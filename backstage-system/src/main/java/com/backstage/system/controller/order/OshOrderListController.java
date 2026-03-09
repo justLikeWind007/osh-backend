@@ -41,8 +41,7 @@ public class OshOrderListController extends BaseController
 //
     @Anonymous
     @GetMapping("/list")
-    public AjaxResult list(@RequestParam(defaultValue = "1") Integer page, @RequestParam(defaultValue = "10") Integer limit) {
-
+    public AjaxResult list(@RequestParam Integer page, @RequestParam(defaultValue = "20") Integer limit) {
         PageHelper.startPage(page, limit);
         List<OshOrderList> list = oshOrderListService.selectOshOrderListList(new OshOrderList());
 
