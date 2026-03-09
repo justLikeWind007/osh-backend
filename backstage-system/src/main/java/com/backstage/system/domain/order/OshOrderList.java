@@ -14,6 +14,7 @@ import com.backstage.common.core.domain.BaseEntity;
  * @author ruoyi
  * @date 2026-03-09
  */
+// 排除nul字段 和 json返回保持有序
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({"id", "no", "price", "status", "totalPrice", "createdTime", "goods"})
 public class OshOrderList extends BaseEntity
@@ -36,11 +37,13 @@ public class OshOrderList extends BaseEntity
     private String status;
 
     /** $column.columnComment */
+    // json返回格式化字段
     @JsonProperty("total_price")
     @Excel(name = "${comment}", readConverterExp = "$column.readConverterExp()")
     private String totalPrice;
 
     /** $column.columnComment */
+    // json返回格式化字段
     @JsonProperty("created_time")
     @Excel(name = "${comment}", readConverterExp = "$column.readConverterExp()")
     private String createdTime;
