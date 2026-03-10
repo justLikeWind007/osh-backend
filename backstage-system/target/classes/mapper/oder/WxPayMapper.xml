@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.order.WxPayMapper">
+    
+    <resultMap type="WxPay" id="WxPayResult">
+        <result property="no"    column="no"    />
+        <result property="price"    column="price"    />
+        <result property="codeUrl"    column="code_url"    />
+    </resultMap>
+
+    <sql id="selectWxPayVo">
+        select no, price, code_url from osh_wxpay
+    </sql>
+
+    <select id="selectWxPayList" parameterType="WxPay" resultMap="WxPayResult">
+        <include refid="selectWxPayVo"/>
+        <where>  
+            <if test="price != null  and price != ''"> and price = #{price}</if>
+            <if test="codeUrl != null  and codeUrl != ''"> and code_url = #{codeUrl}</if>
+        </where>
+    </select>
+    
+    <select id="selectWxPayByNo" parameterType="WxPay" resultMap="WxPayResult">
+        <include refid="selectWxPayVo"/>
+        where no = #{no}
+    </select>
+
+<!--    useGeneratedKeys="true" keyProperty="no" -->
+    <insert id="insertWxPay" parameterType="WxPay">
+        insert into osh_wxpay
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="no != null and no != ''">no,</if>
+            <if test="price != null">price,</if>
+            <if test="codeUrl != null">code_url,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="no != null and no != ''">#{no},</if>
+            <if test="price != null">#{price},</if>
+            <if test="codeUrl != null">#{codeUrl},</if>
+         </trim>
+    </insert>
+
+    <update id="updateWxPay" parameterType="WxPay">
+        update osh_wxpay
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="price != null">price = #{price},</if>
+            <if test="codeUrl != null">code_url = #{codeUrl},</if>
+        </trim>
+        where no = #{no}
+    </update>
+
+    <delete id="deleteWxPayById" parameterType="Long">
+        delete from osh_wxpay where no = #{no}
+    </delete>
+
+    <delete id="deleteWxPayByIds" parameterType="String">
+        delete from osh_wxpay where no in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{no}
+        </foreach>
+    </delete>
+</mapper>
