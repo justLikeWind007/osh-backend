@@ -86,8 +86,14 @@ public class LogAspect
     {
         try
         {
-            // 获取当前的用户
-            LoginUser loginUser = SecurityUtils.getLoginUser();
+            // 获取当前的用户（可能为 null，例如匿名访问时）
+            LoginUser loginUser = null;
+            try {
+                loginUser = SecurityUtils.getLoginUser();
+            } catch (Exception ex) {
+                // 忽略获取用户失败的异常，anonymous 访问时 loginUser 为 null
+                loginUser = null;
+            }
 
             // *========数据库日志=========*//
             SysOperLog operLog = new SysOperLog();
@@ -104,6 +110,11 @@ public class LogAspect
                 {
                     operLog.setDeptName(currentUser.getDept().getDeptName());
                 }
+            }
+            else
+            {
+                // 匿名用户访问，设置操作人为"匿名用户"
+                operLog.setOperName("anonymous");
             }
 
             if (e != null)
