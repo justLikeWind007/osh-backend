@@ -5,6 +5,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 
+import com.backstage.common.utils.DateUtils;
+import com.backstage.common.utils.uuid.UUID;
 import com.backstage.system.domain.order.OshLearn;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -55,7 +57,11 @@ public class OshFlashsaleListServiceImpl implements IOshFlashsaleListService
         OshFlashsaleList a = new OshFlashsaleList();
         a.setSchoolId(1L);
         a.setUserId(1L);
-        a.setNo("2021620174121_f8sms0jid");
+
+        // ruoyi自带 拼接年月日 和 uuid
+        String orderNo = DateUtils.datePath() + "_" + UUID.randomUUID().toString().substring(0, 9);
+        a.setNo(orderNo);
+
         a.setStatus("pending");
         a.setPrice(String.format("%.1f", price.doubleValue()));
         a.setTotalPrice(String.format("%.1f", totalPrice.doubleValue()));

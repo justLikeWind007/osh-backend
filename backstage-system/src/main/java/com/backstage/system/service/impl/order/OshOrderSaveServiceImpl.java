@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 
-import com.backstage.common.core.domain.AjaxResult;
+import com.backstage.system.mapper.order.ColumnPriceMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.backstage.system.mapper.order.OshOrderSaveMapper;
@@ -17,7 +17,6 @@ import com.backstage.common.exception.ServiceException;
 import com.backstage.common.utils.DateUtils;
 import com.backstage.common.utils.uuid.UUID;
 import com.backstage.system.mapper.order.CourseMapper;
-import com.backstage.system.mapper.order.ColumnMapper;
 import com.backstage.system.mapper.order.BookMapper;
 
 /**
@@ -39,7 +38,7 @@ public class OshOrderSaveServiceImpl implements IOshOrderSaveService
     private CourseMapper courseMapper;
 
     @Autowired(required = false)
-    private ColumnMapper columnMapper;
+    private ColumnPriceMapper columnPriceMapper;
 
     @Autowired(required = false)
     private BookMapper bookMapper;
@@ -225,8 +224,8 @@ public class OshOrderSaveServiceImpl implements IOshOrderSaveService
                 }
             } else if ("column".equals(type)) {
                 // 查询专栏价格
-                if (columnMapper != null) {
-                    return columnMapper.selectPriceById(goodsId);
+                if (columnPriceMapper != null) {
+                    return columnPriceMapper.selectPriceById(goodsId);
                 }
             } else if ("book".equals(type)) {
                 // 查询电子书价格

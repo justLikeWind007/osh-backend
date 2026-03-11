@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Select;
  * 专栏 Mapper 接口
  */
 @Mapper
-public interface ColumnMapper {
+public interface ColumnPriceMapper {
     
     /**
      * 根据 ID 查询专栏价格

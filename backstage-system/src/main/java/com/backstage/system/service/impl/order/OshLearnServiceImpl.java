@@ -6,8 +6,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 
+import com.backstage.common.utils.DateUtils;
+import com.backstage.common.utils.uuid.UUID;
 import com.backstage.system.mapper.order.BookMapper;
-import com.backstage.system.mapper.order.ColumnMapper;
+import com.backstage.system.mapper.order.ColumnPriceMapper;
 import com.backstage.system.mapper.order.CourseMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -31,7 +33,7 @@ public class OshLearnServiceImpl implements IOshLearnService
     private CourseMapper courseMapper;
 
     @Autowired(required = false)
-    private ColumnMapper columnMapper;
+    private ColumnPriceMapper columnPriceMapper;
 
     @Autowired(required = false)
     private BookMapper bookMapper;
@@ -67,7 +69,8 @@ public class OshLearnServiceImpl implements IOshLearnService
         OshLearn a = new OshLearn();
         a.setSchoolId(1L);
         a.setUserId(1L);
-        a.setNo("2021620174121_f8sms0jid");
+        String orderNo = DateUtils.datePath() + "_" + UUID.randomUUID().toString().substring(0, 9);
+        a.setNo(orderNo);
         a.setStatus("success");
         a.setPrice("0.00");
         a.setTotalPrice("0.00");
@@ -106,7 +109,7 @@ public class OshLearnServiceImpl implements IOshLearnService
             if (c != null)
                 return CreateList(type);
         }else if (type.equals("column")){
-            c = columnMapper.selectPriceById((long)goods_id);
+            c = columnPriceMapper.selectPriceById((long)goods_id);
             if (c != null)
                 return CreateList(type);
         }else if (type.equals("book")){
