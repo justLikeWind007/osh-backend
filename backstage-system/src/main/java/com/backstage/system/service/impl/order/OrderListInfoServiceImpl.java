@@ -4,6 +4,11 @@ import com.backstage.common.utils.DateUtils;
 import com.backstage.common.utils.uuid.UUID;
 import com.backstage.system.domain.order.OshLearn;
 import com.backstage.system.domain.vo.order.GoodsVo;
+import com.backstage.system.mapper.column.ColumnMapper;
+import com.backstage.system.mapper.column.SysFlashColumnMapper;
+import com.backstage.system.mapper.group.GroupMapper;
+import com.backstage.system.mapper.order.BookMapper;
+import com.backstage.system.mapper.order.CourseMapper;
 import com.backstage.system.service.order.OrderListInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,6 +22,17 @@ public class OrderListInfoServiceImpl implements OrderListInfoService {
 
 //    @Autowired
 //    private OrderListInfoServiceImpl orderListInfoService;
+    @Autowired
+    private CourseMapper courseMapper;
+    @Autowired
+    private SysFlashColumnMapper flashColumnMapper;
+    @Autowired
+    private ColumnMapper ColumnMapper;
+    @Autowired
+    private BookMapper BookMapper;
+    @Autowired
+    private GroupMapper oshGroupMapper;
+    @Autowired
 
 
     public GoodsVo CreateOrderInfo(Object s){

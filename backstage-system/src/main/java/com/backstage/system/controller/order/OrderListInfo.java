@@ -24,13 +24,12 @@ public class OrderListInfo {
 
         // course课程，column专栏，book电子书，flashsale秒杀，group拼团，live直播
         // 返回 id titile cover price type(video 或者其他)
-        GoodsVo S = odrService.getOrderInfo(type, id);
-//        if(S==null){
-//            return R.fail();
-//        }
+        GoodsVo s = odrService.getOrderInfo(type, id);
+        if(s==null){
+            return a.fail();
+        }
 
-//        a.ok(S,  "ok");
-        return a;
+        return a.ok(s,"ok");
     }
 
 
