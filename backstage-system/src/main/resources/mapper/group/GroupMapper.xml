@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.group.GroupMapper">
+
+    <resultMap type="GroupActivity" id="GroupActivityResult">
+        <result property="id"    column="id"    />
+        <result property="type"    column="type"    />
+        <result property="goodsId"    column="goods_id"    />
+        <result property="price"    column="price"    />
+        <result property="pNum"    column="p_num"    />
+        <result property="startTime"    column="start_time"    />
+        <result property="endTime"    column="end_time"    />
+    </resultMap>
+
+    <resultMap type="GroupWork" id="GroupWorkResult">
+        <result property="id"    column="id"    />
+        <result property="groupActivityId"    column="group_activity_id"    />
+        <result property="num"    column="num"    />
+        <result property="total"    column="total"    />
+        <result property="expire"    column="expire"    />
+        <result property="createdTime"    column="created_time"    />
+    </resultMap>
+
+    <sql id="selectGroupActivity">
+        select id, type, goods_id, price, p_num, start_time, end_time from osh_group_activity
+    </sql>
+
+    <sql id="selectGroupWork">
+        select id, group_activity_id, num, total, expire, created_time from osh_group_work
+    </sql>
+
+    <select id="getGroupActivityById" parameterType="java.lang.Long" resultMap="GroupActivityResult">
+        <include refid="selectGroupActivity"/>
+        where id = #{id}
+    </select>
+
+    <select id="getGroupWorkListByActivityId" parameterType="java.lang.Long" resultMap="GroupWorkResult">
+        <include refid="selectGroupWork"/>
+        where group_activity_id = #{groupId}
+    </select>
+
+    <select id="getGroupWorkUserListById" parameterType="java.lang.Long" resultType="java.lang.Long">
+        select user_id from osh_group_user where group_work_id = #{groupWorkId}
+    </select>
+
+    <select id="getGroupUserListByIds" resultType="com.backstage.system.domain.vo.GroupUserVo">
+        select username,nickname,avatar from osh_user where id in
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+</mapper>

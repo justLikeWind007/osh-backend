@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.course.SysFlashCourseMapper">
+
+    <resultMap type="FlashCourseVo" id="OshCourseResult">
+        <result property="id"    column="id"    />
+        <result property="title"    column="title"    />
+        <result property="cover"    column="cover"    />
+        <result property="tryText"    column="try_text"    />
+        <result property="price"    column="price"    />
+        <result property="oldPrice"    column="old_price"    />
+        <result property="courseType"    column="course_type"    />
+        <result property="countNum"    column="count_num"    />
+        <result property="buyFlag"    column="buy_flag"    />
+        <result property="favaFlag"    column="fava_flag"    />
+    </resultMap>
+
+    <select id="selectCoursesByColumnId" resultMap="OshCourseResult">
+        SELECT c.id, c.title, c.price, c.course_type
+        FROM osh_course c
+        INNER JOIN osh_column_course occ ON c.id = occ.course_id
+        WHERE occ.column_id = #{columnId}
+    </select>
+
+    <sql id="selectOshCourseVo">
+        select id, title, cover, try_text, price, old_price, course_type, count_num, buy_flag, fava_flag from osh_course
+    </sql>
+
+    <select id="selectOshCourseList" parameterType="FlashCourseVo" resultMap="OshCourseResult">
+        <include refid="selectOshCourseVo"/>
+        <where>
+            <if test="title != null  and title != ''"> and title = #{title}</if>
+            <if test="cover != null  and cover != ''"> and cover = #{cover}</if>
+            <if test="tryText != null  and tryText != ''"> and try_text = #{tryText}</if>
+            <if test="price != null  and price != ''"> and price = #{price}</if>
+            <if test="oldPrice != null  and oldPrice != ''"> and old_price = #{oldPrice}</if>
+            <if test="courseType != null  and courseType != ''"> and course_type = #{courseType}</if>
+            <if test="countNum != null  and countNum != ''"> and count_num = #{countNum}</if>
+            <if test="buyFlag != null  and buyFlag != ''"> and buy_flag = #{buyFlag}</if>
+            <if test="favaFlag != null  and favaFlag != ''"> and fava_flag = #{favaFlag}</if>
+        </where>
+    </select>
+
+    <select id="selectOshCourseById" parameterType="Long" resultMap="OshCourseResult">
+        <include refid="selectOshCourseVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertOshCourse" parameterType="FlashCourseVo" useGeneratedKeys="true" keyProperty="id">
+        insert into osh_course
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="title != null">title,</if>
+            <if test="cover != null">cover,</if>
+            <if test="tryText != null">try_text,</if>
+            <if test="price != null">price,</if>
+            <if test="oldPrice != null">old_price,</if>
+            <if test="courseType != null">course_type,</if>
+            <if test="countNum != null">count_num,</if>
+            <if test="buyFlag != null">buy_flag,</if>
+            <if test="favaFlag != null">fava_flag,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="title != null">#{title},</if>
+            <if test="cover != null">#{cover},</if>
+            <if test="tryText != null">#{tryText},</if>
+            <if test="price != null">#{price},</if>
+            <if test="oldPrice != null">#{oldPrice},</if>
+            <if test="courseType != null">#{courseType},</if>
+            <if test="countNum != null">#{countNum},</if>
+            <if test="buyFlag != null">#{buyFlag},</if>
+            <if test="favaFlag != null">#{favaFlag},</if>
+        </trim>
+    </insert>
+
+    <update id="updateOshCourse" parameterType="FlashCourseVo">
+        update osh_course
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="title != null">title = #{title},</if>
+            <if test="cover != null">cover = #{cover},</if>
+            <if test="tryText != null">try_text = #{tryText},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="oldPrice != null">old_price = #{oldPrice},</if>
+            <if test="courseType != null">course_type = #{courseType},</if>
+            <if test="countNum != null">count_num = #{countNum},</if>
+            <if test="buyFlag != null">buy_flag = #{buyFlag},</if>
+            <if test="favaFlag != null">fava_flag = #{favaFlag},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteOshCourseById" parameterType="Long">
+        delete from osh_course where id = #{id}
+    </delete>
+
+    <delete id="deleteOshCourseByIds" parameterType="String">
+        delete from osh_course where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>
