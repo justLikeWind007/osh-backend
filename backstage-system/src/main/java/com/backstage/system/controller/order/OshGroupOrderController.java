@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import javax.servlet.http.HttpServletResponse;
 
+import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.R;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,12 +76,12 @@ public class OshGroupOrderController extends BaseController
     /**
      * 新增订单
      */
-    @PreAuthorize("@ss.hasPermi('system:order:add')")
-    @Log(title = "订单", businessType = BusinessType.INSERT)
+//    @PreAuthorize("@ss.hasPermi('system:order:add')")
+//    @Log(title = "订单", businessType = BusinessType.INSERT)
+    @Anonymous
     @PostMapping
-    public R add(@RequestBody Map<Integer, Integer> params)
+    public R add(@RequestBody Map<String, Integer> params)
     {
-
         OshGroupOrder go = oshGroupOrderService.findGroupId( (Integer) params.get("group_id"), (Integer) params.get("group_work_id"));
         if (go==null)
             return R.fail("group_id不存在");

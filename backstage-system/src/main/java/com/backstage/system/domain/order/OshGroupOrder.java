@@ -3,6 +3,8 @@ package com.backstage.system.domain.order;
 import java.math.BigDecimal;
 import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import com.backstage.common.annotation.Excel;
@@ -14,6 +16,7 @@ import com.backstage.common.core.domain.BaseEntity;
  * @author ruoyi
  * @date 2026-03-11
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class OshGroupOrder extends BaseEntity
 {
     private static final long serialVersionUID = 1L;
@@ -23,10 +26,12 @@ public class OshGroupOrder extends BaseEntity
 
     /** 所属网校ID */
     @Excel(name = "所属网校ID")
+    @JsonProperty("school_id")
     private Long schoolId;
 
     /** 下单用户ID */
     @Excel(name = "下单用户ID")
+    @JsonProperty("user_id")
     private Long userId;
 
     /** 订单编号（唯一） */
@@ -43,6 +48,7 @@ public class OshGroupOrder extends BaseEntity
 
     /** 商品原价 */
     @Excel(name = "商品原价")
+    @JsonProperty("total_price")
     private BigDecimal totalPrice;
 
     /** 订单类型：group拼团 */
@@ -51,10 +57,12 @@ public class OshGroupOrder extends BaseEntity
 
     /** $column.columnComment */
     @Excel(name = "${comment}", readConverterExp = "$column.readConverterExp()")
+    @JsonProperty("updated_time")
     private Date updatedTime;
 
     /** $column.columnComment */
     @Excel(name = "${comment}", readConverterExp = "$column.readConverterExp()")
+    @JsonProperty("created_time")
     private Date createdTime;
 
     public void setId(Long id) 

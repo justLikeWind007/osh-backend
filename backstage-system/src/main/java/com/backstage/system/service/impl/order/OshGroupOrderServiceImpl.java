@@ -8,6 +8,8 @@ import java.util.TimeZone;
 
 import com.backstage.common.utils.DateUtils;
 import com.backstage.common.utils.uuid.UUID;
+import com.backstage.system.domain.group.GroupActivity;
+import com.backstage.system.mapper.group.GroupMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.backstage.system.mapper.order.OshGroupOrderMapper;
@@ -25,6 +27,9 @@ public class OshGroupOrderServiceImpl implements IOshGroupOrderService
 {
     @Autowired
     private OshGroupOrderMapper oshGroupOrderMapper;
+
+    @Autowired
+    private GroupMapper groupMapper;
 
     /**
      * 查询订单
@@ -100,29 +105,22 @@ public class OshGroupOrderServiceImpl implements IOshGroupOrderService
     }
 
 
-    public OshGroupOrder CreateGroupList(OshGroupOrder oshGroupOrder){
+    public OshGroupOrder CreateGroupList(GroupActivity ga){
 
         OshGroupOrder a = new OshGroupOrder();
-        a.setId(1L);
+        a.setId(ga.getId().longValue());
         a.setSchoolId(1L);
         a.setUserId(1L);
         String orderNo = DateUtils.datePath() + "_" + UUID.randomUUID().toString().substring(0, 9);
         a.setNo(orderNo);
         a.setStatus("pendding");
-        a.setPrice(new BigDecimal(0));
-        a.setTotalPrice(new BigDecimal(0));
+        a.setPrice(new BigDecimal(ga.getPrice()));
+        a.setTotalPrice(new BigDecimal(ga.getpNum()));
         a.setType("group");
         Date date = new Date();
 
-        // 创建格式化对象
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));  // 设置为 UTC 时区
-
-        // 格式化
-        String isoString = sdf.format(date);
-        System.out.println(isoString);  // 输出：2021-06-20T09:41:21.245Z
-        a.setUpdatedTime(new Date(isoString));
-        a.setCreatedTime(new Date(isoString));
+        a.setUpdatedTime(date);
+        a.setCreatedTime(date);
 
         oshGroupOrderMapper.insertOshGroupOrder(a);
         return a;
@@ -134,13 +132,10 @@ public class OshGroupOrderServiceImpl implements IOshGroupOrderService
         //TODO 立即拼团service实现
         // 调用service获取拼团相关数值 group_id对应数据
         // 返回json格式 id school_id user_id no status price total_price type updated_time created_time
+        GroupActivity group = groupMapper.getGroupActivityById(Long.valueOf(group_id));
 
 
-        OshGroupOrder oshGroupOrder = new OshGroupOrder();
-
-//        传入查询到的值
-//        CreateGroupList();
-
+        OshGroupOrder oshGroupOrder = CreateGroupList(group);
 
 
     	return oshGroupOrder;
