@@ -1,5 +1,6 @@
 package com.backstage.system.service.impl.order;
 
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -7,7 +8,12 @@ import java.util.TimeZone;
 
 import com.backstage.common.utils.DateUtils;
 import com.backstage.common.utils.uuid.UUID;
+import com.backstage.system.domain.SysFlashSale;
 import com.backstage.system.domain.order.OshLearn;
+import com.backstage.system.mapper.SysFlashsaleMapper;
+import com.backstage.system.mapper.order.BookMapper;
+import com.backstage.system.mapper.order.ColumnPriceMapper;
+import com.backstage.system.mapper.order.CourseMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.backstage.system.mapper.order.OshFlashsaleListMapper;
@@ -26,6 +32,17 @@ public class OshFlashsaleListServiceImpl implements IOshFlashsaleListService
     @Autowired
     private OshFlashsaleListMapper oshFlashsaleListMapper;
 
+    @Autowired
+    private CourseMapper courseMapper;
+
+    @Autowired
+    private ColumnPriceMapper columnPriceMapper;
+
+    @Autowired
+    private BookMapper bookMapper;
+
+    @Autowired
+    private SysFlashsaleMapper flashsaleMapper;
     /**
      * 查询创建秒杀订单
      * 
@@ -52,19 +69,18 @@ public class OshFlashsaleListServiceImpl implements IOshFlashsaleListService
 
 
 
-    public OshFlashsaleList CreateList(Long flashId,Long price, Long totalPrice){
+    public OshFlashsaleList CreateList(String flashId,String price, String totalPrice){
 
         OshFlashsaleList a = new OshFlashsaleList();
-        a.setSchoolId(1L);
-        a.setUserId(1L);
-
+        a.setSchoolId("1");
+        a.setUserId("1");
         // ruoyi自带 拼接年月日 和 uuid
         String orderNo = DateUtils.datePath() + "_" + UUID.randomUUID().toString().substring(0, 9);
         a.setNo(orderNo);
 
         a.setStatus("pending");
-        a.setPrice(String.format("%.1f", price.doubleValue()));
-        a.setTotalPrice(String.format("%.1f", totalPrice.doubleValue()));
+        a.setPrice(price);
+        a.setTotalPrice(totalPrice);
         a.setType("flashsale");
         a.setFlashsaleId(flashId);
         Date date = new Date();
@@ -95,10 +111,27 @@ public class OshFlashsaleListServiceImpl implements IOshFlashsaleListService
 
         //TODO 创建秒杀订单
         boolean is_exist = false;
-        long price=0,totalPrice=0,goodId=0;
-        if (flashsale_id>=1){
+        String price="",totalPrice="",goodId="";
+        if (flashsale_id>0){
             // 秒杀列表查询id是否存在 并且获取价格price 和 goods_id
-            is_exist=true;
+            SysFlashSale flashsale = flashsaleMapper.selectOshFlashsaleById(flashsale_id);
+            price = flashsale.getFlashPrice();
+            goodId = String.valueOf(flashsale.getGoodsId());
+
+            String flashsale_type = flashsale.getFlashType();
+            if(flashsale_type.equals("course")){
+                BigDecimal coursePrice = courseMapper.selectPriceById(Long.valueOf(goodId));
+                totalPrice = coursePrice != null ? coursePrice.toString() : "0.00";
+            }else if(flashsale_type.equals("column")){
+                BigDecimal columnPrice = columnPriceMapper.selectPriceById(Long.valueOf(goodId));
+                totalPrice = columnPrice != null ? columnPrice.toString() : "0.00";
+            }else if(flashsale_type.equals("book")) {
+                BigDecimal bookPrice = bookMapper.selectPriceById(Long.valueOf(goodId));
+                totalPrice = bookPrice != null ? bookPrice.toString() : "0.00";
+            }
+
+            if (flashsale!=null)
+                is_exist=true;
         }
 
 
@@ -110,9 +143,7 @@ public class OshFlashsaleListServiceImpl implements IOshFlashsaleListService
         // 查找课程表的内容获取价格 price(total_price)
 
 
-        OshFlashsaleList fl = CreateList(flashsale_id,price,totalPrice);
-
-
+        OshFlashsaleList fl = CreateList(String.valueOf(flashsale_id),price,totalPrice);
 
         return fl;
     }

@@ -1,5 +1,7 @@
 package com.backstage.system.domain.order;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import com.backstage.common.annotation.Excel;
@@ -11,6 +13,7 @@ import com.backstage.common.core.domain.BaseEntity;
  * @author ruoyi
  * @date 2026-03-10
  */
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class OshFlashsaleList extends BaseEntity
 {
     private static final long serialVersionUID = 1L;
@@ -20,11 +23,13 @@ public class OshFlashsaleList extends BaseEntity
 
     /** $column.columnComment */
     @Excel(name = "${comment}", readConverterExp = "$column.readConverterExp()")
-    private Long schoolId;
+    @JsonProperty("school_id")
+    private String schoolId;
 
     /** $column.columnComment */
     @Excel(name = "${comment}", readConverterExp = "$column.readConverterExp()")
-    private Long userId;
+    @JsonProperty("user_id")
+    private String userId;
 
     /** $column.columnComment */
     @Excel(name = "${comment}", readConverterExp = "$column.readConverterExp()")
@@ -40,6 +45,7 @@ public class OshFlashsaleList extends BaseEntity
 
     /** $column.columnComment */
     @Excel(name = "${comment}", readConverterExp = "$column.readConverterExp()")
+    @JsonProperty("total_price")
     private String totalPrice;
 
     /** $column.columnComment */
@@ -48,42 +54,45 @@ public class OshFlashsaleList extends BaseEntity
 
     /** $column.columnComment */
     @Excel(name = "${comment}", readConverterExp = "$column.readConverterExp()")
-    private Long flashsaleId;
+    @JsonProperty("flashsale_id")
+    private String flashsaleId;
 
     /** $column.columnComment */
     @Excel(name = "${comment}", readConverterExp = "$column.readConverterExp()")
+    @JsonProperty("updated_time")
     private String updatedTime;
 
     /** $column.columnComment */
     @Excel(name = "${comment}", readConverterExp = "$column.readConverterExp()")
+    @JsonProperty("created_time")
     private String createdTime;
 
-    public void setId(Long id) 
+    public void setId(Long id)
     {
         this.id = id;
     }
 
-    public Long getId() 
+    public Long getId()
     {
         return id;
     }
 
-    public void setSchoolId(Long schoolId) 
+    public void setSchoolId(String schoolId)
     {
         this.schoolId = schoolId;
     }
 
-    public Long getSchoolId() 
+    public String getSchoolId()
     {
         return schoolId;
     }
 
-    public void setUserId(Long userId) 
+    public void setUserId(String userId)
     {
         this.userId = userId;
     }
 
-    public Long getUserId() 
+    public String getUserId()
     {
         return userId;
     }
@@ -138,12 +147,12 @@ public class OshFlashsaleList extends BaseEntity
         return type;
     }
 
-    public void setFlashsaleId(Long flashsaleId) 
+        public void setFlashsaleId(String flashsaleId)
     {
         this.flashsaleId = flashsaleId;
     }
 
-    public Long getFlashsaleId() 
+    public String getFlashsaleId()
     {
         return flashsaleId;
     }
