@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.column.SysFlashColumnMapper">
+
+    <resultMap type="FlashColumnVo" id="OshColumnResult">
+        <result property="id"    column="id"    />
+        <result property="title"    column="title"    />
+        <result property="cover"    column="cover"    />
+        <result property="col_try"    column="col_try"    />
+        <result property="content"    column="content"    />
+        <result property="price"    column="price"    />
+        <result property="tPrice"    column="t_price"    />
+        <result property="isend"    column="isend"    />
+        <result property="subCount"    column="sub_count"    />
+        <result property="buyFlag"    column="buy_flag"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectOshColumnVo">
+        select id, title, cover, col_try, content, price, t_price, isend, sub_count, buy_flag, create_time, update_time from osh_column
+    </sql>
+
+    <select id="selectOshColumnList" parameterType="FlashColumnVo" resultMap="OshColumnResult">
+        <include refid="selectOshColumnVo"/>
+        <where>
+            <if test="title != null  and title != ''"> and title = #{title}</if>
+            <if test="cover != null  and cover != ''"> and cover = #{cover}</if>
+            <if test="col_try != null  and col_try != ''"> and col_try = #{col_try}</if>
+            <if test="content != null  and content != ''"> and content = #{content}</if>
+            <if test="price != null "> and price = #{price}</if>
+            <if test="tPrice != null "> and t_price = #{tPrice}</if>
+            <if test="isend != null "> and isend = #{isend}</if>
+            <if test="subCount != null "> and sub_count = #{subCount}</if>
+            <if test="buyFlag != null "> and buy_flag = #{buyFlag}</if>
+        </where>
+    </select>
+
+    <select id="selectOshColumnById" parameterType="Long" resultMap="OshColumnResult">
+        <include refid="selectOshColumnVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertOshColumn" parameterType="FlashColumnVo" useGeneratedKeys="true" keyProperty="id">
+        insert into osh_column
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="title != null and title != ''">title,</if>
+            <if test="cover != null">cover,</if>
+            <if test="col_col_try != null">col_try,</if>
+            <if test="content != null">content,</if>
+            <if test="price != null">price,</if>
+            <if test="tPrice != null">t_price,</if>
+            <if test="isend != null">isend,</if>
+            <if test="subCount != null">sub_count,</if>
+            <if test="buyFlag != null">buy_flag,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="title != null and title != ''">#{title},</if>
+            <if test="cover != null">#{cover},</if>
+            <if test="col_try != null">#{col_try},</if>
+            <if test="content != null">#{content},</if>
+            <if test="price != null">#{price},</if>
+            <if test="tPrice != null">#{tPrice},</if>
+            <if test="isend != null">#{isend},</if>
+            <if test="subCount != null">#{subCount},</if>
+            <if test="buyFlag != null">#{buyFlag},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+        </trim>
+    </insert>
+
+    <update id="updateOshColumn" parameterType="FlashColumnVo">
+        update osh_column
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="title != null and title != ''">title = #{title},</if>
+            <if test="cover != null">cover = #{cover},</if>
+            <if test="col_try != null">col_try = #{col_try},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="tPrice != null">t_price = #{tPrice},</if>
+            <if test="isend != null">isend = #{isend},</if>
+            <if test="subCount != null">sub_count = #{subCount},</if>
+            <if test="buyFlag != null">buy_flag = #{buyFlag},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteOshColumnById" parameterType="Long">
+        delete from osh_column where id = #{id}
+    </delete>
+
+    <delete id="deleteOshColumnByIds" parameterType="String">
+        delete from osh_column where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>
