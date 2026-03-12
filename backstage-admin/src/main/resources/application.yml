@@ -5,7 +5,7 @@ ruoyi:
   # 版本
   version: 3.9.0
   # 版权年份
-  copyrightYear: 2026
+  copyrightYear: 2027
   # 文件路径 示例（ Windows配置D:/ruoyi/uploadPath，Linux配置 /home/ruoyi/uploadPath）
   profile: ./uploadPath
   # 获取ip地址开关
