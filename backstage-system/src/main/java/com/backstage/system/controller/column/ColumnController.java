@@ -2,6 +2,7 @@ package com.backstage.system.controller.column;
 
 import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.AjaxResult;
+import com.backstage.common.core.domain.R;
 import com.backstage.system.domain.vo.ColumnDetailVo;
 import com.backstage.system.domain.vo.ColumnListItemVo;
 import com.backstage.system.service.IColumnService;
@@ -32,17 +33,17 @@ public class ColumnController {
 
     @GetMapping("/read")
     @Anonymous
-    public AjaxResult read(@RequestParam Long id) {
+    public R read(@RequestParam Long id) {
         ColumnDetailVo columnDetail = columnService.getColumnDetail(id);
         if (columnDetail == null) {
-            return AjaxResult.error("fail", "专栏不存在");
+            return R.fail("fail", "专栏不存在");
         }
-        return AjaxResult.success(columnDetail);
+        return R.ok(columnDetail);
     }
 
     @GetMapping("/list")
     @Anonymous
-    public AjaxResult list(@RequestParam("page") Integer page,
+    public R list(@RequestParam("page") Integer page,
                            @RequestParam(value = "limit", defaultValue = "10") Integer limit) {
         PageHelper.startPage(page, limit);
         List<ColumnListItemVo> rows = columnService.listColumnPage();
@@ -51,6 +52,6 @@ public class ColumnController {
         Map<String, Object> data = new HashMap<>(2);
         data.put("count", pageInfo.getTotal());
         data.put("rows", rows);
-        return new AjaxResult(20000, "ok", data);
+        return R.ok(data, "ok");
     }
 }
