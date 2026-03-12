@@ -1,4 +1,4 @@
-package com.backstage.system.mapper;
+package com.backstage.system.mapper.common;
 
 import java.util.List;
 import com.backstage.system.domain.order.OshUploadImage;

@@ -14,7 +14,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/pc/order/iswxpay")
-public class IsWxPay {
+public class IsWxPayController {
 
     @Autowired
     IsWxPayNoServiceImp mp;

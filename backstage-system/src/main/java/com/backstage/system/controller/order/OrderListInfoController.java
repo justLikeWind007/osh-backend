@@ -12,16 +12,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/pc/goods")
-public class OrderListInfo {
+public class OrderListInfoController {
 
     @Autowired
     private OrderListInfoService odrService;
     @Anonymous
     @GetMapping("/read")
     public R getList(@RequestParam String type,@RequestParam Integer id){
-
         R a = new R();
-
         // course课程，column专栏，book电子书，flashsale秒杀，group拼团，live直播
         // 返回 id titile cover price type(video 或者其他)
         GoodsVo s = odrService.getOrderInfo(type, id);

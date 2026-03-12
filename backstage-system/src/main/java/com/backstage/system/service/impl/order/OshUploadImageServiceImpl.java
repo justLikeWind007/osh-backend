@@ -3,7 +3,7 @@ package com.backstage.system.service.impl.order;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.backstage.system.mapper.OshUploadImageMapper;
+import com.backstage.system.mapper.common.OshUploadImageMapper;
 import com.backstage.system.domain.order.OshUploadImage;
 import com.backstage.system.service.order.IOshUploadImageService;
 
