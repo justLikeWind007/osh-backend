@@ -27,7 +27,6 @@ public class CardController {
     @Autowired
     private ICardService cardService;
 
-    // 核心：适配 /pc/user_coupon?goods_id=6&type=course&page=1
     @Anonymous
     @GetMapping("")
     public Map<String, Object> getUserCouponList(
