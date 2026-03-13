@@ -7,6 +7,7 @@ import java.util.Map;
 import javax.servlet.http.HttpServletResponse;
 
 import com.backstage.common.annotation.Anonymous;
+import com.backstage.common.core.domain.R;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -41,7 +42,7 @@ public class OshOrderListController extends BaseController
 //
     @Anonymous
     @GetMapping("/list")
-    public AjaxResult list(@RequestParam Integer page, @RequestParam(defaultValue = "20") Integer limit) {
+    public R list(@RequestParam Integer page, @RequestParam(defaultValue = "20") Integer limit) {
         PageHelper.startPage(page, limit);
         List<OshOrderList> list = oshOrderListService.selectOshOrderListList(new OshOrderList());
 
@@ -53,11 +54,12 @@ public class OshOrderListController extends BaseController
         data1.put("count", pageInfo.getTotal());
         data1.put("rows", pageInfo.getList());
 
-        AjaxResult result = new AjaxResult();
-        result.put("msg", "ok");
-        result.put("data", data1);
-        result.put("code", 20000);
-        return result;
+
+        R r = new R();
+        r.setMsg("ok");
+        r.setData(data1);
+        r.setCode(20000);
+        return r;
 
     }
 

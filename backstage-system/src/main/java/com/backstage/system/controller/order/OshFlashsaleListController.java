@@ -5,6 +5,7 @@ import java.util.Map;
 import javax.servlet.http.HttpServletResponse;
 
 import com.backstage.common.annotation.Anonymous;
+import com.backstage.common.core.domain.R;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -80,17 +81,17 @@ public class OshFlashsaleListController extends BaseController
     // 秒杀只有课程
     @Anonymous
     @PostMapping
-    public AjaxResult add(@RequestBody Map<String, Integer> params)
+    public R add(@RequestBody Map<String, Integer> params)
     {
 
         OshFlashsaleList fl = oshFlashsaleListService.insertOshFlashsaleList((long)params.get("flashsale_id"));
         if (fl== null)
-            return error("flashsale_id 不存在！");
-        AjaxResult ajax = new AjaxResult();
-        ajax.put("msg","ok");
-        ajax.put("data",fl);
-        ajax.put("code",20000);
-        return ajax;
+            return R.fail("flashsale_id 不存在！");
+        R r = new R();
+        r.setMsg("ok");
+        r.setData(fl);
+        r.setCode(20000);
+        return r;
     }
 
     /**

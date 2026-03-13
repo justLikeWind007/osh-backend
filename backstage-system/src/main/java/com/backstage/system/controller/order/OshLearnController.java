@@ -5,6 +5,7 @@ import java.util.Map;
 import javax.servlet.http.HttpServletResponse;
 
 import com.backstage.common.annotation.Anonymous;
+import com.backstage.common.core.domain.R;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -79,22 +80,22 @@ public class OshLearnController extends BaseController
 //    @Log(title = "立即学习", businessType = BusinessType.INSERT)
     @Anonymous
     @PostMapping
-    public AjaxResult add(@RequestBody Map<String, Object> params)
+    public R add(@RequestBody Map<String, Object> params)
     {
 
         // 参数必须填写goods_id和type
         if (params.get("goods_id" ) == null || params.get("type") == null)
-            return error("参数错误");
+            return R.fail("参数错误");
 
         OshLearn oshLearn = oshLearnService.insertOshLearn((int)params.get("goods_id"),(String)params.get("type"));
         if (oshLearn == null)
-            return error("未查询到！goods_id");
-        AjaxResult result = new AjaxResult();
-        result.put("msg", "ok");
-        result.put("data", oshLearn);
-        result.put("code", 20000);
+            return R.fail("未查询到！goods_id");
+        R r = new R();
+        r.setMsg("ok");
+        r.setData(oshLearn);
+        r.setCode(20000);
 
-        return result;
+        return r;
     }
 
     /**
