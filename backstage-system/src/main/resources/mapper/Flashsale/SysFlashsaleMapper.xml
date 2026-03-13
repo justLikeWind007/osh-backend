@@ -10,8 +10,8 @@
         <result property="flashPrice"    column="flash_price"    />
         <result property="sNum"    column="s_num"    />
         <result property="usedNum"    column="used_num"    />
-        <result property="startTime"    column="start_time"    />
-        <result property="endTime"    column="end_time"    />
+        <result property="startTime" column="start_time" />
+        <result property="endTime" column="end_time" />
         <result property="flashType"    column="flash_type"    />
     </resultMap>
 
