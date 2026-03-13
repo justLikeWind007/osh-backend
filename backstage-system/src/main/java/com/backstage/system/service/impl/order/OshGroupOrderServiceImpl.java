@@ -111,7 +111,8 @@ public class OshGroupOrderServiceImpl implements IOshGroupOrderService
         a.setId(ga.getId().longValue());
         a.setSchoolId(1L);
         a.setUserId(1L);
-        String orderNo = DateUtils.datePath() + "_" + UUID.randomUUID().toString().substring(0, 9);
+        // 生成订单号：日期 (yyyyMMdd) + 随机字符串
+        String orderNo = DateUtils.dateTime() + "_" + UUID.randomUUID().toString().substring(0, 9);
         a.setNo(orderNo);
         a.setStatus("pendding");
         a.setPrice(new BigDecimal(ga.getPrice()));
@@ -129,7 +130,6 @@ public class OshGroupOrderServiceImpl implements IOshGroupOrderService
     @Override
     public OshGroupOrder findGroupId(Integer group_id, Integer group_work_id) {
 
-        //TODO 立即拼团service实现
         // 调用service获取拼团相关数值 group_id对应数据
         // 返回json格式 id school_id user_id no status price total_price type updated_time created_time
         GroupActivity group = groupMapper.getGroupActivityById(Long.valueOf(group_id));
