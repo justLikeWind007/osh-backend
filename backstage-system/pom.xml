@@ -29,6 +29,13 @@
             <artifactId>backstage-common</artifactId>
         </dependency>
 
+        <!-- swagger -->
+        <dependency>
+            <groupId>io.swagger</groupId>
+            <artifactId>swagger-annotations</artifactId>
+            <version>1.6.2</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
 </project>

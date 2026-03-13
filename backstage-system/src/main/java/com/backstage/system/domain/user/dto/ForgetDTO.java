@@ -1,5 +1,8 @@
 package com.backstage.system.domain.user.dto;
 
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+
 /**
  * Created with IntelliJ IDEA.
  * Description:
@@ -7,18 +10,39 @@ package com.backstage.system.domain.user.dto;
  * Date: 2026/3/7
  * Time: 21:38
  */
+@ApiModel(value = "找回密码参数", description = "前端传递的找回密码请求实体类")
 public class ForgetDTO {
-    private String phone;
+    @ApiModelProperty(
+            value = "邮箱",
+            example = "admin123",
+            required = true
+    )
+    private String email;
+    @ApiModelProperty(
+            value = "验证码",
+            example = "admin123",
+            required = true
+    )
     private String code;
+    @ApiModelProperty(
+            value = "用户密码",
+            example = "admin123",
+            required = true
+    )
     private String password;
+    @ApiModelProperty(
+            value = "确认密码",
+            example = "admin123",
+            required = true
+    )
     private String repassword;
 
-    public String getPhone() {
-        return phone;
+    public String getEmail() {
+        return email;
     }
 
-    public void setPhone(String phone) {
-        this.phone = phone;
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getCode() {
@@ -48,7 +72,7 @@ public class ForgetDTO {
     @Override
     public String toString() {
         return "ForgetDTO{" +
-                "phone='" + phone + '\'' +
+                "email='" + email + '\'' +
                 ", code='" + code + '\'' +
                 ", password='" + password + '\'' +
                 ", repassword='" + repassword + '\'' +

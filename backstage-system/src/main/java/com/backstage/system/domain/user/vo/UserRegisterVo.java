@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
  * Date: 2026/3/7
  * Time: 17:21
  */
-public class UserRegisterVO {
+public class UserRegisterVo {
     /**
      * 用户id
      */
@@ -125,7 +125,7 @@ public class UserRegisterVO {
 
     @Override
     public String toString() {
-        return "UserRegisterVO{" +
+        return "UserRegisterVo{" +
                 "id=" + id +
                 ", username='" + username + '\'' +
                 ", nickname='" + nickname + '\'' +

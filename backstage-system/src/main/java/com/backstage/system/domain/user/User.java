@@ -28,12 +28,6 @@ public class User {
      * 邮箱
      */
     private String email;
-
-    /**
-     * 手机号
-     */
-    private String phone;
-
     /**
      * 密码（加密存储）
      */
@@ -103,14 +97,6 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
-    }
-
-    public String getPhone() {
-        return phone;
-    }
-
-    public void setPhone(String phone) {
-        this.phone = phone;
     }
 
     public String getPassword() {
@@ -184,7 +170,6 @@ public class User {
                 ", username='" + username + '\'' +
                 ", nickname='" + nickname + '\'' +
                 ", email='" + email + '\'' +
-                ", phone='" + phone + '\'' +
                 ", password='" + password + '\'' +
                 ", avatar='" + avatar + '\'' +
                 ", weixinUnionid='" + weixinUnionid + '\'' +
