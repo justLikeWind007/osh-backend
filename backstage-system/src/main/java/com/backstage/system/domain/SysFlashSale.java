@@ -1,9 +1,12 @@
 package com.backstage.system.domain;
 
-import com.backstage.common.annotation.Excel;
-import com.backstage.common.core.domain.BaseEntity;
+import java.math.BigDecimal;
+import java.util.Date;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import com.backstage.common.annotation.Excel;
+import com.backstage.common.core.domain.BaseEntity;
 
 /**
  * 秒杀活动对象 osh_flashsale
@@ -18,120 +21,106 @@ public class SysFlashSale extends BaseEntity
     /** 主键ID */
     private Long id;
 
-    /** 商品id */
+    /** 秒杀活动ID (JSON里的flashsale_id) */
+    @Excel(name = "秒杀活动ID")
+    private Long flashsaleId;
+
+    /** 商品id (JSON里的id) */
     @Excel(name = "商品id")
     private Long goodsId;
 
+    /** 标题 */
+    @Excel(name = "标题")
+    private String title;
+
+    /** 封面图 */
+    @Excel(name = "封面图")
+    private String cover;
+
     /** 秒杀价格 */
     @Excel(name = "秒杀价格")
-    private String flashPrice;
+    private BigDecimal flashPrice;
+
+    /** 原价 */
+    @Excel(name = "原价")
+    private BigDecimal tPrice;
 
     /** 数量 */
     @Excel(name = "数量")
-    private String sNum;
+    private Integer sNum;
 
     /** 使用数量 */
     @Excel(name = "使用数量")
-    private String usedNum;
+    private Integer usedNum;
 
     /** 开始时间 */
     @Excel(name = "开始时间")
-    private String startTime;
+    private String startTime; // 改回 String
 
     /** 结束时间 */
     @Excel(name = "结束时间")
-    private String endTime;
+    private String endTime; // 改回 String
 
     /** 秒杀类型 */
     @Excel(name = "秒杀类型")
     private String flashType;
 
-    public void setId(Long id)
-    {
-        this.id = id;
-    }
 
-    public Long getId()
-    {
-        return id;
-    }
+    public void setId(Long id) { this.id = id; }
+    public Long getId() { return id; }
 
-    public void setGoodsId(Long goodsId)
-    {
-        this.goodsId = goodsId;
-    }
+    public void setFlashsaleId(Long flashsaleId) { this.flashsaleId = flashsaleId; }
+    public Long getFlashsaleId() { return flashsaleId; }
 
-    public Long getGoodsId()
-    {
-        return goodsId;
-    }
+    public void setGoodsId(Long goodsId) { this.goodsId = goodsId; }
+    public Long getGoodsId() { return goodsId; }
 
-    public void setFlashPrice(String flashPrice)
-    {
-        this.flashPrice = flashPrice;
-    }
+    public void setTitle(String title) { this.title = title; }
+    public String getTitle() { return title; }
 
-    public String getFlashPrice()
-    {
-        return flashPrice;
-    }
+    public void setCover(String cover) { this.cover = cover; }
+    public String getCover() { return cover; }
 
-    public void setsNum(String sNum)
-    {
-        this.sNum = sNum;
-    }
+    public void setFlashPrice(BigDecimal flashPrice) { this.flashPrice = flashPrice; }
+    public BigDecimal getFlashPrice() { return flashPrice; }
 
-    public String getsNum()
-    {
-        return sNum;
-    }
+    public void settPrice(BigDecimal tPrice) { this.tPrice = tPrice; }
+    public BigDecimal gettPrice() { return tPrice; }
 
-    public void setUsedNum(String usedNum)
-    {
-        this.usedNum = usedNum;
-    }
+    public void setsNum(Integer sNum) { this.sNum = sNum; }
+    public Integer getsNum() { return sNum; }
 
-    public String getUsedNum()
-    {
-        return usedNum;
-    }
+    public void setUsedNum(Integer usedNum) { this.usedNum = usedNum; }
+    public Integer getUsedNum() { return usedNum; }
 
-    public void setStartTime(String startTime)
-    {
+    public void setStartTime(String startTime) {
         this.startTime = startTime;
     }
 
-    public String getStartTime()
-    {
+    public String getStartTime() {
         return startTime;
     }
 
-    public void setEndTime(String endTime)
-    {
+    public void setEndTime(String endTime) {
         this.endTime = endTime;
     }
 
-    public String getEndTime()
-    {
+    public String getEndTime() {
         return endTime;
     }
-
-    public void setFlashType(String flashType)
-    {
-        this.flashType = flashType;
-    }
-
-    public String getFlashType()
-    {
-        return flashType;
-    }
+    public void setFlashType(String flashType) { this.flashType = flashType; }
+    public String getFlashType() { return flashType; }
 
     @Override
     public String toString() {
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
                 .append("id", getId())
+                .append("flashsaleId", getFlashsaleId())
                 .append("goodsId", getGoodsId())
+                .append("title", getTitle())
+                .append("cover", getCover())
                 .append("flashPrice", getFlashPrice())
+                .append("tPrice", gettPrice())
                 .append("sNum", getsNum())
                 .append("usedNum", getUsedNum())
                 .append("startTime", getStartTime())
