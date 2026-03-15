@@ -9,9 +9,8 @@ import java.util.TimeZone;
 import com.backstage.common.utils.DateUtils;
 import com.backstage.common.utils.uuid.UUID;
 import com.backstage.system.domain.SysFlashSale;
-import com.backstage.system.domain.order.OshLearn;
 import com.backstage.system.mapper.SysFlashsaleMapper;
-import com.backstage.system.mapper.order.BookMapper;
+import com.backstage.system.mapper.order.OshBookMapper;
 import com.backstage.system.mapper.order.ColumnPriceMapper;
 import com.backstage.system.mapper.order.CourseMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +38,7 @@ public class OshFlashsaleListServiceImpl implements IOshFlashsaleListService
     private ColumnPriceMapper columnPriceMapper;
 
     @Autowired
-    private BookMapper bookMapper;
+    private OshBookMapper oshBookMapper;
 
     @Autowired
     private SysFlashsaleMapper flashsaleMapper;
@@ -109,13 +108,12 @@ public class OshFlashsaleListServiceImpl implements IOshFlashsaleListService
     {
 
 
-        //TODO 创建秒杀订单
         boolean is_exist = false;
         String price="",totalPrice="",goodId="";
         if (flashsale_id>0){
             // 秒杀列表查询id是否存在 并且获取价格price 和 goods_id
             SysFlashSale flashsale = flashsaleMapper.selectOshFlashsaleById(flashsale_id);
-            price = flashsale.getFlashPrice();
+            price = String.valueOf(flashsale.getFlashPrice());
             goodId = String.valueOf(flashsale.getGoodsId());
 
             String flashsale_type = flashsale.getFlashType();
@@ -126,7 +124,7 @@ public class OshFlashsaleListServiceImpl implements IOshFlashsaleListService
                 BigDecimal columnPrice = columnPriceMapper.selectPriceById(Long.valueOf(goodId));
                 totalPrice = columnPrice != null ? columnPrice.toString() : "0.00";
             }else if(flashsale_type.equals("book")) {
-                BigDecimal bookPrice = bookMapper.selectPriceById(Long.valueOf(goodId));
+                BigDecimal bookPrice = oshBookMapper.selectPriceById(Long.valueOf(goodId));
                 totalPrice = bookPrice != null ? bookPrice.toString() : "0.00";
             }
 
@@ -141,8 +139,6 @@ public class OshFlashsaleListServiceImpl implements IOshFlashsaleListService
         //  goods_id 查找course column book 三张表的id是否匹配
         // 获取价格price
         // 查找课程表的内容获取价格 price(total_price)
-
-
         OshFlashsaleList fl = CreateList(String.valueOf(flashsale_id),price,totalPrice);
 
         return fl;
