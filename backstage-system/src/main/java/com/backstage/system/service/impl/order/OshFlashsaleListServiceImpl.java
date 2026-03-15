@@ -9,9 +9,8 @@ import java.util.TimeZone;
 import com.backstage.common.utils.DateUtils;
 import com.backstage.common.utils.uuid.UUID;
 import com.backstage.system.domain.SysFlashSale;
-import com.backstage.system.domain.order.OshLearn;
 import com.backstage.system.mapper.SysFlashsaleMapper;
-import com.backstage.system.mapper.order.BookMapper;
+import com.backstage.system.mapper.order.OshBookMapper;
 import com.backstage.system.mapper.order.ColumnPriceMapper;
 import com.backstage.system.mapper.order.CourseMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +38,7 @@ public class OshFlashsaleListServiceImpl implements IOshFlashsaleListService
     private ColumnPriceMapper columnPriceMapper;
 
     @Autowired
-    private BookMapper bookMapper;
+    private OshBookMapper oshBookMapper;
 
     @Autowired
     private SysFlashsaleMapper flashsaleMapper;
@@ -114,8 +113,8 @@ public class OshFlashsaleListServiceImpl implements IOshFlashsaleListService
         if (flashsale_id>0){
             // 秒杀列表查询id是否存在 并且获取价格price 和 goods_id
             SysFlashSale flashsale = flashsaleMapper.selectOshFlashsaleById(flashsale_id);
-            price = flashsale.getFlashPrice().toString();
-            goodId = flashsale.getGoodsId().toString();
+            price = String.valueOf(flashsale.getFlashPrice());
+            goodId = String.valueOf(flashsale.getGoodsId());
 
             String flashsale_type = flashsale.getFlashType();
             if(flashsale_type.equals("course")){
@@ -125,7 +124,7 @@ public class OshFlashsaleListServiceImpl implements IOshFlashsaleListService
                 BigDecimal columnPrice = columnPriceMapper.selectPriceById(Long.valueOf(goodId));
                 totalPrice = columnPrice != null ? columnPrice.toString() : "0.00";
             }else if(flashsale_type.equals("book")) {
-                BigDecimal bookPrice = bookMapper.selectPriceById(Long.valueOf(goodId));
+                BigDecimal bookPrice = oshBookMapper.selectPriceById(Long.valueOf(goodId));
                 totalPrice = bookPrice != null ? bookPrice.toString() : "0.00";
             }
 

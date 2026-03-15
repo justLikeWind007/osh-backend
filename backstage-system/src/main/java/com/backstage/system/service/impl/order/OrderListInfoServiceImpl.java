@@ -1,5 +1,6 @@
 package com.backstage.system.service.impl.order;
 
+import com.backstage.system.domain.Book;
 import com.backstage.system.domain.course.SysCourse;
 import com.backstage.system.domain.group.GroupActivity;
 import com.backstage.system.domain.vo.ColumnDetailVo;
@@ -11,7 +12,7 @@ import com.backstage.system.mapper.column.SysFlashColumnMapper;
 import com.backstage.system.mapper.course.SysCourseMapper;
 import com.backstage.system.mapper.group.GroupMapper;
 import com.backstage.system.mapper.live.LiveMapper;
-import com.backstage.system.mapper.order.BookMapper;
+import com.backstage.system.mapper.order.OshBookMapper;
 import com.backstage.system.service.order.OrderListInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,8 +24,7 @@ import java.util.List;
 @Service
 public class OrderListInfoServiceImpl implements OrderListInfoService {
 
-//    @Autowired
-//    private OrderListInfoServiceImpl orderListInfoService;
+
     @Autowired
     private SysCourseMapper courseMapper;
     @Autowired
@@ -32,7 +32,7 @@ public class OrderListInfoServiceImpl implements OrderListInfoService {
     @Autowired
     private ColumnMapper columnMapper;
     @Autowired
-    private BookMapper bookMapper;
+    private OshBookMapper oshBookMapper;
     @Autowired
     private GroupMapper groupMapper;
     @Autowired
@@ -63,6 +63,13 @@ public class OrderListInfoServiceImpl implements OrderListInfoService {
             }
         }else if (type.equals("book")) {
             // 电子书
+            Book book = oshBookMapper.selectById(id);
+            if (book!=null){
+                String cover = book.getCover();
+                String title = book.getTitle();
+                ctList.add(cover);
+                ctList.add(title);
+            }
         }
 
         return ctList;
@@ -77,6 +84,7 @@ public class OrderListInfoServiceImpl implements OrderListInfoService {
             LiveDetailVo live;
             FlashColumnVo flash;
             GroupActivity group;
+            Book book;
 
             if (s instanceof SysCourse) {
                 course = (SysCourse) s;
@@ -86,14 +94,14 @@ public class OrderListInfoServiceImpl implements OrderListInfoService {
                 a.setCover(course.getCover());
                 a.setPrice(course.getPrice().toString());
                 a.setType(course.getType());
-            } else if (s instanceof SysCourse) {
-                // 电子书
-//            Long id = course.getId();
-//            a.setId(id.intValue());
-//            a.setTitle(course.getTitle());
-//            a.setCover(course.getCover());
-//            a.setPrice(course.getPrice().toString());
-//            a.setType(course.getType());
+            } else if (s instanceof Book) {
+                book = (Book) s;
+                Long id = book.getId();
+                a.setId(id.intValue());
+                a.setTitle(book.getTitle());
+                a.setCover(book.getCover());
+                a.setPrice(book.getPrice().toString());
+                a.setType("book");
             } else if (s instanceof ColumnDetailVo) {
                 column = (ColumnDetailVo) s;
                 Long id = column.getId();
@@ -136,7 +144,7 @@ public class OrderListInfoServiceImpl implements OrderListInfoService {
 
     @Override
     public GoodsVo getOrderInfo(String type, Integer id) {
-        // TODO 下单前获取信息接口
+
         // 查询对应模块的 id titile cover price type(video 或者其它)
         if (type.equals("course") ){
             SysCourse c = courseMapper.selectCourseById(Long.valueOf(id));
@@ -145,7 +153,8 @@ public class OrderListInfoServiceImpl implements OrderListInfoService {
             ColumnDetailVo cd = columnMapper.getColumnDetail(Long.valueOf(id));
             return CreateOrderInfo(cd);
         }else if (type.equals("book")){
-            // 电子书类型
+            Book b = oshBookMapper.selectById(Long.valueOf(id));
+            return CreateOrderInfo(b);
         }else if (type.equals("live")){
             LiveDetailVo ld =  liveMapper.getLiveInfoById(Long.valueOf(id));
             return CreateOrderInfo(ld);
