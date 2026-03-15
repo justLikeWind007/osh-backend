@@ -109,14 +109,13 @@ public class OshFlashsaleListServiceImpl implements IOshFlashsaleListService
     {
 
 
-        //TODO 创建秒杀订单
         boolean is_exist = false;
         String price="",totalPrice="",goodId="";
         if (flashsale_id>0){
             // 秒杀列表查询id是否存在 并且获取价格price 和 goods_id
             SysFlashSale flashsale = flashsaleMapper.selectOshFlashsaleById(flashsale_id);
-            price = flashsale.getFlashPrice();
-            goodId = String.valueOf(flashsale.getGoodsId());
+            price = flashsale.getFlashPrice().toString();
+            goodId = flashsale.getGoodsId().toString();
 
             String flashsale_type = flashsale.getFlashType();
             if(flashsale_type.equals("course")){
@@ -141,8 +140,6 @@ public class OshFlashsaleListServiceImpl implements IOshFlashsaleListService
         //  goods_id 查找course column book 三张表的id是否匹配
         // 获取价格price
         // 查找课程表的内容获取价格 price(total_price)
-
-
         OshFlashsaleList fl = CreateList(String.valueOf(flashsale_id),price,totalPrice);
 
         return fl;

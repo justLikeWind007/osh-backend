@@ -4,6 +4,7 @@ import java.util.List;
 import javax.servlet.http.HttpServletResponse;
 
 import com.backstage.common.annotation.Anonymous;
+import com.backstage.common.core.domain.R;
 import com.backstage.system.domain.order.OrderCreateRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,19 +84,20 @@ public class OshOrderSaveController extends BaseController
     @Anonymous
 //    @Log(title = "创建订单", businessType = BusinessType.INSERT)
     @PostMapping
-    public AjaxResult createOrder(@RequestBody OrderCreateRequest request)
+    public R createOrder(@RequestBody OrderCreateRequest request)
     {
         try {
             OshOrderSave order = oshOrderSaveService.createOrder(request);
 
-            AjaxResult result = new AjaxResult();
-            result.put("msg","ok");
-            result.put("data",order);
-            result.put("code",20000);
+            R r = new R();
+            R result = new R();
+            result.setMsg("ok");
+            result.setData(order);
+            result.setCode(20000);
             return result;
         }
         catch (Exception e) {
-            return AjaxResult.error(e.getMessage());
+            return R.fail(e.getMessage());
         }
     }
 

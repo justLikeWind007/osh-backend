@@ -1,6 +1,7 @@
 package com.backstage.system.controller.order;
 
 import com.backstage.common.annotation.Anonymous;
+import com.backstage.common.core.domain.R;
 import com.github.pagehelper.PageHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -29,7 +30,7 @@ public class CardController {
 
     @Anonymous
     @GetMapping("")
-    public Map<String, Object> getUserCouponList(
+    public R getUserCouponList(
             @RequestParam Long goods_id,    // 必填：goods_id 课程/专栏 ID
             @RequestParam String type,      // 必填：type（column 专栏/course 课程）
             @RequestParam Integer page    // 必填：page 页面码
@@ -62,15 +63,15 @@ public class CardController {
             formattedList.add(map);
         }
         
-        // 使用 LinkedHashMap 确保 JSON 输出顺序：msg -> data -> code
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("msg", "ok");
-        result.put("data", new LinkedHashMap<String, Object>() {{
-            put("count", (long) list.size()); // 返回实际查询到的条数
+        R r = new R();
+
+        r.setCode(20000);
+        r.setMsg("ok");
+        r.setData(new LinkedHashMap<String, Object>() {{
+            put("count", (long) list.size());
             put("rows", formattedList);
         }});
-        result.put("code", 20000);
-        
-        return result;
+
+        return r;
     }
 }
