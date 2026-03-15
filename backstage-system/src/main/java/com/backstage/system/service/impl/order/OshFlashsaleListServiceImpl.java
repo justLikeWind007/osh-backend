@@ -9,9 +9,8 @@ import java.util.TimeZone;
 import com.backstage.common.utils.DateUtils;
 import com.backstage.common.utils.uuid.UUID;
 import com.backstage.system.domain.SysFlashSale;
-import com.backstage.system.domain.order.OshLearn;
 import com.backstage.system.mapper.SysFlashsaleMapper;
-import com.backstage.system.mapper.order.BookMapper;
+import com.backstage.system.mapper.order.OshBookMapper;
 import com.backstage.system.mapper.order.ColumnPriceMapper;
 import com.backstage.system.mapper.order.CourseMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +38,7 @@ public class OshFlashsaleListServiceImpl implements IOshFlashsaleListService
     private ColumnPriceMapper columnPriceMapper;
 
     @Autowired
-    private BookMapper bookMapper;
+    private OshBookMapper oshBookMapper;
 
     @Autowired
     private SysFlashsaleMapper flashsaleMapper;
@@ -125,7 +124,7 @@ public class OshFlashsaleListServiceImpl implements IOshFlashsaleListService
                 BigDecimal columnPrice = columnPriceMapper.selectPriceById(Long.valueOf(goodId));
                 totalPrice = columnPrice != null ? columnPrice.toString() : "0.00";
             }else if(flashsale_type.equals("book")) {
-                BigDecimal bookPrice = bookMapper.selectPriceById(Long.valueOf(goodId));
+                BigDecimal bookPrice = oshBookMapper.selectPriceById(Long.valueOf(goodId));
                 totalPrice = bookPrice != null ? bookPrice.toString() : "0.00";
             }
 

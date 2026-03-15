@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 
 import com.backstage.system.mapper.order.ColumnPriceMapper;
+import com.backstage.system.mapper.order.OshBookMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.backstage.system.mapper.order.OshOrderSaveMapper;
@@ -17,7 +18,6 @@ import com.backstage.common.exception.ServiceException;
 import com.backstage.common.utils.DateUtils;
 import com.backstage.common.utils.uuid.UUID;
 import com.backstage.system.mapper.order.CourseMapper;
-import com.backstage.system.mapper.order.BookMapper;
 
 /**
  * 创建订单Service业务层处理
@@ -41,7 +41,7 @@ public class OshOrderSaveServiceImpl implements IOshOrderSaveService
     private ColumnPriceMapper columnPriceMapper;
 
     @Autowired(required = false)
-    private BookMapper bookMapper;
+    private OshBookMapper oshBookMapper;
 
     /**
      * 查询创建订单
@@ -229,8 +229,8 @@ public class OshOrderSaveServiceImpl implements IOshOrderSaveService
                 }
             } else if ("book".equals(type)) {
                 // 查询电子书价格
-                if (bookMapper != null) {
-                    return bookMapper.selectPriceById(goodsId);
+                if (oshBookMapper != null) {
+                    return oshBookMapper.selectPriceById(goodsId);
                 }
             }
         } catch (Exception e) {

@@ -8,7 +8,7 @@ import java.util.TimeZone;
 
 import com.backstage.common.utils.DateUtils;
 import com.backstage.common.utils.uuid.UUID;
-import com.backstage.system.mapper.order.BookMapper;
+import com.backstage.system.mapper.order.OshBookMapper;
 import com.backstage.system.mapper.order.ColumnPriceMapper;
 import com.backstage.system.mapper.order.CourseMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +36,7 @@ public class OshLearnServiceImpl implements IOshLearnService
     private ColumnPriceMapper columnPriceMapper;
 
     @Autowired(required = false)
-    private BookMapper bookMapper;
+    private OshBookMapper oshBookMapper;
 
     /**
      * 查询立即学习
@@ -113,7 +113,7 @@ public class OshLearnServiceImpl implements IOshLearnService
             if (c != null)
                 return CreateList(type);
         }else if (type.equals("book")){
-            c = bookMapper.selectPriceById((long)goods_id);
+            c = oshBookMapper.selectPriceById((long)goods_id);
             if (c != null)
                 return CreateList(type);
         }
