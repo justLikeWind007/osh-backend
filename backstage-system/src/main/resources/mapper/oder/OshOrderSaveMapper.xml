@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.order.OshOrderSaveMapper">
+    
+    <resultMap type="OshOrderSave" id="OshOrderSaveResult">
+        <result property="id"    column="id"    />
+        <result property="schoolId"    column="school_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="no"    column="no"    />
+        <result property="status"    column="status"    />
+        <result property="price"    column="price"    />
+        <result property="totalPrice"    column="total_price"    />
+        <result property="type"    column="type"    />
+        <result property="updatedTime"    column="updated_time"    />
+        <result property="createdTime"    column="created_time"    />
+    </resultMap>
+
+    <sql id="selectOshOrderSaveVo">
+        select id, school_id, user_id, no, status, price, total_price, type, updated_time, created_time from osh_order_save
+    </sql>
+
+    <select id="selectOshOrderSaveList" parameterType="OshOrderSave" resultMap="OshOrderSaveResult">
+        <include refid="selectOshOrderSaveVo"/>
+        <where>  
+            <if test="schoolId != null "> and school_id = #{schoolId}</if>
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="no != null  and no != ''"> and no = #{no}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="price != null "> and price = #{price}</if>
+            <if test="totalPrice != null  and totalPrice != ''"> and total_price = #{totalPrice}</if>
+            <if test="type != null  and type != ''"> and type = #{type}</if>
+            <if test="updatedTime != null "> and updated_time = #{updatedTime}</if>
+            <if test="createdTime != null "> and created_time = #{createdTime}</if>
+        </where>
+    </select>
+    
+    <select id="selectOshOrderSaveById" parameterType="Long" resultMap="OshOrderSaveResult">
+        <include refid="selectOshOrderSaveVo"/>
+        where id = #{id}
+    </select>
+
+<!--    查询no订单编号-->
+    <select id="selectOshOrderSaveByNo" parameterType="String" resultMap="OshOrderSaveResult">
+        <include refid="selectOshOrderSaveVo"/>
+        where no = #{no}
+    </select>
+
+
+    <insert id="insertOshOrderSave" parameterType="OshOrderSave" useGeneratedKeys="true" keyProperty="id">
+        insert into osh_order_save
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            school_id,
+            user_id,
+            no,
+            status,
+            price,
+            total_price,
+            type,
+            updated_time,
+            created_time,
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            #{schoolId},
+            #{userId},
+            #{no},
+            #{status},
+            #{price},
+            #{totalPrice},
+            #{type},
+            <if test="updatedTime != null">#{updatedTime},</if>
+            <if test="updatedTime == null">CURRENT_TIMESTAMP,</if>
+            <if test="createdTime != null">#{createdTime},</if>
+            <if test="createdTime == null">CURRENT_TIMESTAMP,</if>
+         </trim>
+    </insert>
+
+    <update id="updateOshOrderSave" parameterType="OshOrderSave">
+        update osh_order_save
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="schoolId != null">school_id = #{schoolId},</if>
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="no != null">no = #{no},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="totalPrice != null">total_price = #{totalPrice},</if>
+            <if test="type != null">type = #{type},</if>
+            <if test="updatedTime != null">updated_time = #{updatedTime},</if>
+            <if test="createdTime != null">created_time = #{createdTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteOshOrderSaveById" parameterType="Long">
+        delete from osh_order_save where id = #{id}
+    </delete>
+
+    <delete id="deleteOshOrderSaveByIds" parameterType="String">
+        delete from osh_order_save where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>
