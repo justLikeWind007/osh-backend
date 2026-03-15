@@ -114,8 +114,8 @@ public class OshFlashsaleListServiceImpl implements IOshFlashsaleListService
         if (flashsale_id>0){
             // 秒杀列表查询id是否存在 并且获取价格price 和 goods_id
             SysFlashSale flashsale = flashsaleMapper.selectOshFlashsaleById(flashsale_id);
-            price = flashsale.getFlashPrice().toString();
-            goodId = flashsale.getGoodsId().toString();
+            price = String.valueOf(flashsale.getFlashPrice());
+            goodId = String.valueOf(flashsale.getGoodsId());
 
             String flashsale_type = flashsale.getFlashType();
             if(flashsale_type.equals("course")){
