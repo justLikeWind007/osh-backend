@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
-PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.backstage.system.mapper.column.ColumnMapper">
-
     <resultMap id="columnDetail" type="com.backstage.system.domain.vo.ColumnDetailVo">
         <id property="id" column="id"/>
         <result property="title" column="title"/>
-        <result property="cover" column="cover_column" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="cover" column="cover_column"/>
         <result property="colTry" column="col_try"/>
         <result property="content" column="content"/>
         <result property="price" column="price"/>
@@ -40,28 +39,25 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         select
         oc1.id,
         oc1.title,
-<!--            osc.'cover',-->
         ifnull(oc1.cover,'') as cover_column,
-<!--            'test' as cover,-->
         oc1.col_try,
         oc1.content,
         oc1.price,
         oc1.t_price,
         oc1.isend as is_end,
         oc1.sub_count,
-<!--            osc.is_buy as buy_flay-->
         oc1.buy_flag ,
 
         oc2.id as course_id,
         oc2.title as course_title,
         oc2.price as course_price,
-        oc2.course_type as course_type
+        oc2.type as course_type
 
         from osh_column oc1
         left join osh_column_course occ
-            on oc1.id = occ.column_id
+        on oc1.id = occ.column_id
         left join osh_course oc2
-            on occ.course_id = oc2.id
+        on occ.course_id = oc2.id
         where 0=0
         <if test="id != null">
             and oc1.id = #{id}
@@ -69,14 +65,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <select id="listColumnPage" resultMap="columnListItem">
-        select
-            oc.id,
-            oc.title,
-            CAST(oc.cover AS CHAR) as cover,
-            oc.col_try,
-            oc.price,
-            oc.t_price,
-            'column' as type
+        select oc.id,
+               oc.title,
+               CAST(oc.cover AS CHAR) as cover,
+               oc.col_try,
+               oc.price,
+               oc.t_price,
+               type
         from osh_column oc
         order by oc.id desc
     </select>
