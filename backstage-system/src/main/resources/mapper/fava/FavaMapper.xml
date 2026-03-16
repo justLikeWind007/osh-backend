@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.fava.OshFavaMapper">
+    <resultMap id="FavaVoResult" type="com.backstage.system.domain.vo.fava.FavaVo">
+        <id property="id" column="fava_id" />
+        <result property="type" column="fava_type" />
+
+        <association property="goods" javaType="com.backstage.system.domain.vo.fava.FavaVo$GoodsVo">
+            <id property="id" column="g_id" />
+            <result property="title" column="g_title" />
+            <result property="cover" column="g_cover" />
+            <result property="type" column="g_type" />
+            <result property="tryStr" column="g_try" />
+        </association>
+    </resultMap>
+
+    <select id="selectFavaList" parameterType="Long" resultMap="FavaVoResult">
+        SELECT
+        f.id as fava_id,
+        f.type as fava_type,
+        c.id as g_id,
+        c.title as g_title,
+        c.cover as g_cover,
+        'course' as g_type,
+        '可试看' as g_try
+        FROM osh_fava f
+        INNER JOIN osh_course c ON f.goods_id = c.id
+        WHERE f.user_id = #{userId} AND f.type = 'course'
+
+        UNION ALL
+
+        SELECT
+        f.id as fava_id,
+        f.type as fava_type,
+        col.id as g_id,
+        col.title as g_title,
+        col.cover as g_cover,
+        'column' as g_type,
+        '' as g_try
+        FROM osh_fava f
+        INNER JOIN osh_column col ON f.goods_id = col.id
+        WHERE f.user_id = #{userId} AND f.type = 'column'
+
+        ORDER BY fava_id DESC
+    </select>
+
+    <select id="countFava" resultType="Integer">
+        SELECT count(1) FROM osh_fava
+        WHERE user_id = #{userId} AND goods_id = #{goodsId} AND type = #{type}
+    </select>
+
+    <insert id="insertFava" parameterType="com.backstage.system.domain.fava.OshFava" useGeneratedKeys="true" keyProperty="id">
+        insert into osh_fava(
+        <if test="userId != null">user_id,</if>
+        <if test="goodsId != null">goods_id,</if>
+        <if test="type != null and type != ''">type,</if>
+        create_time
+        )values(
+        <if test="userId != null">#{userId},</if>
+        <if test="goodsId != null">#{goodsId},</if>
+        <if test="type != null and type != ''">#{type},</if>
+        sysdate()
+        )
+    </insert>
+
+    <delete id="deleteFava" parameterType="com.backstage.system.domain.fava.OshFava">
+        delete from osh_fava
+        where user_id = #{userId} and goods_id = #{goodsId} and type = #{type}
+    </delete>
+
+</mapper>
