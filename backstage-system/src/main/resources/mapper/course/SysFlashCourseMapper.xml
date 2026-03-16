@@ -8,24 +8,24 @@
         <result property="id"    column="id"    />
         <result property="title"    column="title"    />
         <result property="cover"    column="cover"    />
-        <result property="tryText"    column="try_text"    />
+        <result property="tryText"    column="try"    />
         <result property="price"    column="price"    />
-        <result property="oldPrice"    column="old_price"    />
-        <result property="courseType"    column="course_type"    />
-        <result property="countNum"    column="count_num"    />
-        <result property="buyFlag"    column="buy_flag"    />
-        <result property="favaFlag"    column="fava_flag"    />
+        <result property="oldPrice"    column="t_price"    />
+        <result property="courseType"    column="type"    />
+        <result property="countNum"    column="sub_count"    />
+        <result property="buyFlag"    column="isbuy"    />
+        <result property="favaFlag"    column="isfava"    />
     </resultMap>
 
     <select id="selectCoursesByColumnId" resultMap="OshCourseResult">
-        SELECT c.id, c.title, c.price, c.course_type
+        SELECT c.id, c.title, c.price, c.type
         FROM osh_course c
         INNER JOIN osh_column_course occ ON c.id = occ.course_id
         WHERE occ.column_id = #{columnId}
     </select>
 
     <sql id="selectOshCourseVo">
-        select id, title, cover, try_text, price, old_price, course_type, count_num, buy_flag, fava_flag from osh_course
+        select id, title, cover, try, price, t_price, type, sub_count, isbuy, isfava from osh_course
     </sql>
 
     <select id="selectOshCourseList" parameterType="FlashCourseVo" resultMap="OshCourseResult">
@@ -33,13 +33,13 @@
         <where>
             <if test="title != null  and title != ''"> and title = #{title}</if>
             <if test="cover != null  and cover != ''"> and cover = #{cover}</if>
-            <if test="tryText != null  and tryText != ''"> and try_text = #{tryText}</if>
+            <if test="tryText != null  and tryText != ''"> and try = #{tryText}</if>
             <if test="price != null  and price != ''"> and price = #{price}</if>
-            <if test="oldPrice != null  and oldPrice != ''"> and old_price = #{oldPrice}</if>
-            <if test="courseType != null  and courseType != ''"> and course_type = #{courseType}</if>
-            <if test="countNum != null  and countNum != ''"> and count_num = #{countNum}</if>
-            <if test="buyFlag != null  and buyFlag != ''"> and buy_flag = #{buyFlag}</if>
-            <if test="favaFlag != null  and favaFlag != ''"> and fava_flag = #{favaFlag}</if>
+            <if test="oldPrice != null  and oldPrice != ''"> and t_price = #{oldPrice}</if>
+            <if test="courseType != null  and courseType != ''"> and type = #{courseType}</if>
+            <if test="countNum != null  and countNum != ''"> and sub_count = #{countNum}</if>
+            <if test="buyFlag != null  and buyFlag != ''"> and isbuy = #{buyFlag}</if>
+            <if test="favaFlag != null  and favaFlag != ''"> and isfava = #{favaFlag}</if>
         </where>
     </select>
 
@@ -53,18 +53,18 @@
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="title != null">title,</if>
             <if test="cover != null">cover,</if>
-            <if test="tryText != null">try_text,</if>
+            <if test="tryText != null">try,</if>
             <if test="price != null">price,</if>
-            <if test="oldPrice != null">old_price,</if>
-            <if test="courseType != null">course_type,</if>
-            <if test="countNum != null">count_num,</if>
-            <if test="buyFlag != null">buy_flag,</if>
-            <if test="favaFlag != null">fava_flag,</if>
+            <if test="oldPrice != null">t_price,</if>
+            <if test="courseType != null">type,</if>
+            <if test="countNum != null">sub_count,</if>
+            <if test="buyFlag != null">isbuy,</if>
+            <if test="favaFlag != null">isfava,</if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="title != null">#{title},</if>
             <if test="cover != null">#{cover},</if>
-            <if test="tryText != null">#{tryText},</if>
+            <if test="tryText != null">#{try},</if>
             <if test="price != null">#{price},</if>
             <if test="oldPrice != null">#{oldPrice},</if>
             <if test="courseType != null">#{courseType},</if>
@@ -79,13 +79,13 @@
         <trim prefix="SET" suffixOverrides=",">
             <if test="title != null">title = #{title},</if>
             <if test="cover != null">cover = #{cover},</if>
-            <if test="tryText != null">try_text = #{tryText},</if>
+            <if test="tryText != null">try = #{tryText},</if>
             <if test="price != null">price = #{price},</if>
-            <if test="oldPrice != null">old_price = #{oldPrice},</if>
-            <if test="courseType != null">course_type = #{courseType},</if>
-            <if test="countNum != null">count_num = #{countNum},</if>
-            <if test="buyFlag != null">buy_flag = #{buyFlag},</if>
-            <if test="favaFlag != null">fava_flag = #{favaFlag},</if>
+            <if test="oldPrice != null">t_price = #{oldPrice},</if>
+            <if test="courseType != null">type = #{courseType},</if>
+            <if test="countNum != null">sub_count = #{countNum},</if>
+            <if test="buyFlag != null">isbuy = #{buyFlag},</if>
+            <if test="favaFlag != null">isfava = #{favaFlag},</if>
         </trim>
         where id = #{id}
     </update>

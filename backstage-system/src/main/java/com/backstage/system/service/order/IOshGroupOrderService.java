@@ -1,0 +1,65 @@
+package com.backstage.system.service.order;
+
+import java.util.List;
+import com.backstage.system.domain.order.OshGroupOrder;
+
+/**
+ * 订单Service接口
+ * 
+ * @author ruoyi
+ * @date 2026-03-11
+ */
+public interface IOshGroupOrderService 
+{
+    /**
+     * 查询订单
+     * 
+     * @param id 订单主键
+     * @return 订单
+     */
+    public OshGroupOrder selectOshGroupOrderById(Long id);
+
+    /**
+     * 查询订单列表
+     * 
+     * @param oshGroupOrder 订单
+     * @return 订单集合
+     */
+    public List<OshGroupOrder> selectOshGroupOrderList(OshGroupOrder oshGroupOrder);
+
+    public int insertOshGroupOrder(OshGroupOrder oshGroupOrder);
+
+    /**
+     * 新增订单
+     * 
+     * @param group_id 拼团id
+     * @param group_work_id 组团id 可选
+     * @return 结果
+     */
+    public OshGroupOrder findGroupId(Integer group_id, Integer group_work_id);
+
+
+    /**
+     * 修改订单
+     * 
+     * @param oshGroupOrder 订单
+     * @return 结果
+     */
+    public int updateOshGroupOrder(OshGroupOrder oshGroupOrder);
+
+    /**
+     * 批量删除订单
+     * 
+     * @param ids 需要删除的订单主键集合
+     * @return 结果
+     */
+    public int deleteOshGroupOrderByIds(Long[] ids);
+
+    /**
+     * 删除订单信息
+     * 
+     * @param id 订单主键
+     * @return 结果
+     */
+    public int deleteOshGroupOrderById(Long id);
+}

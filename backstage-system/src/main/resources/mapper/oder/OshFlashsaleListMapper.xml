@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.order.OshFlashsaleListMapper">
+    
+    <resultMap type="OshFlashsaleList" id="OshFlashsaleListResult">
+        <result property="id"    column="id"    />
+        <result property="schoolId"    column="school_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="no"    column="no"    />
+        <result property="status"    column="status"    />
+        <result property="price"    column="price"    />
+        <result property="totalPrice"    column="total_price"    />
+        <result property="type"    column="type"    />
+        <result property="flashsaleId"    column="flashsale_id"    />
+        <result property="updatedTime"    column="updated_time"    />
+        <result property="createdTime"    column="created_time"    />
+    </resultMap>
+
+    <sql id="selectOshFlashsaleListVo">
+        select id, school_id, user_id, no, status, price, total_price, type, flashsale_id, updated_time, created_time from osh_flashsale_list
+    </sql>
+
+    <select id="selectOshFlashsaleListList" parameterType="OshFlashsaleList" resultMap="OshFlashsaleListResult">
+        <include refid="selectOshFlashsaleListVo"/>
+        <where>  
+            <if test="schoolId != null "> and school_id = #{schoolId}</if>
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="no != null  and no != ''"> and no = #{no}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="price != null  and price != ''"> and price = #{price}</if>
+            <if test="totalPrice != null  and totalPrice != ''"> and total_price = #{totalPrice}</if>
+            <if test="type != null  and type != ''"> and type = #{type}</if>
+            <if test="flashsaleId != null "> and flashsale_id = #{flashsaleId}</if>
+            <if test="updatedTime != null  and updatedTime != ''"> and updated_time = #{updatedTime}</if>
+            <if test="createdTime != null  and createdTime != ''"> and created_time = #{createdTime}</if>
+        </where>
+    </select>
+    
+    <select id="selectOshFlashsaleListById" parameterType="Long" resultMap="OshFlashsaleListResult">
+        <include refid="selectOshFlashsaleListVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertOshFlashsaleList" parameterType="OshFlashsaleList" useGeneratedKeys="true" keyProperty="id">
+        insert into osh_flashsale_list
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="schoolId != null">school_id,</if>
+            <if test="userId != null">user_id,</if>
+            <if test="no != null">no,</if>
+            <if test="status != null">status,</if>
+            <if test="price != null">price,</if>
+            <if test="totalPrice != null">total_price,</if>
+            <if test="type != null">type,</if>
+            <if test="flashsaleId != null">flashsale_id,</if>
+            <if test="updatedTime != null">updated_time,</if>
+            <if test="createdTime != null">created_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="schoolId != null">#{schoolId},</if>
+            <if test="userId != null">#{userId},</if>
+            <if test="no != null">#{no},</if>
+            <if test="status != null">#{status},</if>
+            <if test="price != null">#{price},</if>
+            <if test="totalPrice != null">#{totalPrice},</if>
+            <if test="type != null">#{type},</if>
+            <if test="flashsaleId != null">#{flashsaleId},</if>
+            <if test="updatedTime != null">#{updatedTime},</if>
+            <if test="createdTime != null">#{createdTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateOshFlashsaleList" parameterType="OshFlashsaleList">
+        update osh_flashsale_list
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="schoolId != null">school_id = #{schoolId},</if>
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="no != null">no = #{no},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="totalPrice != null">total_price = #{totalPrice},</if>
+            <if test="type != null">type = #{type},</if>
+            <if test="flashsaleId != null">flashsale_id = #{flashsaleId},</if>
+            <if test="updatedTime != null">updated_time = #{updatedTime},</if>
+            <if test="createdTime != null">created_time = #{createdTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteOshFlashsaleListById" parameterType="Long">
+        delete from osh_flashsale_list where id = #{id}
+    </delete>
+
+    <delete id="deleteOshFlashsaleListByIds" parameterType="String">
+        delete from osh_flashsale_list where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>
