@@ -4,20 +4,19 @@ import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.annotation.Log;
 import com.backstage.common.constant.HttpStatus;
 import com.backstage.common.core.controller.BaseController;
-import com.backstage.common.core.domain.R;
+import com.backstage.common.core.domain.AjaxResult;
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.enums.BusinessType;
 
-import com.backstage.system.domain.course.OshCoures;
+import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.vo.CourseDetailVO;
-import com.backstage.system.service.IOshCouresService;
+import com.backstage.system.service.ISysCourseService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -29,10 +28,10 @@ import java.util.List;
 @Api(tags = "课程管理")
 @RestController
 @RequestMapping("/pc/course")
-public class OshCouresController extends BaseController
+public class SysCourseController extends BaseController
 {
     @Autowired
-    private IOshCouresService oshCouresService;
+    private ISysCourseService sysCourseService;
 
 
     /**
@@ -58,7 +57,7 @@ public class OshCouresController extends BaseController
 
 
         startPage();
-        List<OshCoures> list = oshCouresService.selectCourseList(columnId);
+        List<OshCourse> list = sysCourseService.selectCourseList(columnId);
         return getDataTable(list);
     }
 
@@ -69,7 +68,7 @@ public class OshCouresController extends BaseController
     @Anonymous
     @ApiOperation("获取课程详细信息")
     @GetMapping(value = "/{id}")
-    public R<CourseDetailVO> getInfo(
+    public AjaxResult getInfo(
             @ApiParam("网校 appid") @RequestHeader("appid") String appid,
             @ApiParam("课程 ID") @PathVariable("id") Long id,
             @ApiParam("专栏 ID") @RequestParam(required = false, defaultValue = "0") Long columnId)
@@ -77,15 +76,15 @@ public class OshCouresController extends BaseController
         // 校验 appid 是否 为空
         if (appid == null || appid.trim().isEmpty())
         {
-            return R.fail("appid 不能为空");
+            return AjaxResult.error("appid 不能为空");
         }
         
         // TODO: 校验请求中的 appid 的有效性
 
-        OshCoures course = oshCouresService.selectCourseById(id);
+        OshCourse course = sysCourseService.selectCourseById(id);
         if (course == null)
         {
-            return R.fail("课程不存在");
+            return AjaxResult.error("课程不存在");
         }
 
         // 构建响应数据
@@ -98,7 +97,7 @@ public class OshCouresController extends BaseController
         data.setTPrice(course.getTPrice() != null ? course.getTPrice().toString() : "20.00");
         data.setType(course.getType());
 
-        return R.ok(data, "ok");
+        return AjaxResult.success("ok", data);
     }
 
     /**
@@ -109,14 +108,9 @@ public class OshCouresController extends BaseController
     @Log(title = "课程", businessType = BusinessType.INSERT)
     @ApiOperation("新增课程")
     @PostMapping
-    public R<Void> add(@RequestBody OshCoures course)
+    public AjaxResult add(@RequestBody OshCourse course)
     {
-        int deleteResult = oshCouresService.insertCourse(course);
-        if (deleteResult>0) {
-            return R.ok();
-        } else {
-            return R.fail("新增失败");
-        }
+        return toAjax(sysCourseService.insertCourse(course));
     }
 
     /**
@@ -127,14 +121,9 @@ public class OshCouresController extends BaseController
     @Log(title = "课程", businessType = BusinessType.UPDATE)
     @ApiOperation("修改课程")
     @PutMapping
-    public R<Void> edit(@RequestBody OshCoures course)
+    public AjaxResult edit(@RequestBody OshCourse course)
     {
-        int deleteResult = oshCouresService.updateCourse(course);
-        if (deleteResult>0) {
-            return R.ok();
-        } else {
-            return R.fail("修改失败");
-        }
+        return toAjax(sysCourseService.updateCourse(course));
     }
 
     /**
@@ -145,16 +134,8 @@ public class OshCouresController extends BaseController
     @Log(title = "课程", businessType = BusinessType.DELETE)
 	@ApiOperation("删除课程")
     @DeleteMapping("/{ids}")
-    public R<String> remove(@PathVariable Long[] ids)
+    public AjaxResult remove(@PathVariable Long[] ids)
     {
-        // 2. 执行删除操作（修正原拼写错误：oshCouresService → oshCourseService）
-        int deleteResult = oshCouresService.deleteCourseByIds(ids);
-
-        // 3. 结果判断与日志记录
-        if (deleteResult>0) {
-            return R.ok();
-        } else {
-            return R.fail("删除课程失败");
-        }
+        return toAjax(sysCourseService.deleteCourseByIds(ids));
     }
 }

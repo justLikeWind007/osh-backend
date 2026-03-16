@@ -1,11 +1,11 @@
 package com.backstage.system.service.impl;
 
-import com.backstage.system.domain.course.SysCourse;
+import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.group.GroupActivity;
 import com.backstage.system.domain.group.GroupWork;
 import com.backstage.system.domain.vo.*;
 import com.backstage.system.mapper.column.ColumnMapper;
-import com.backstage.system.mapper.course.SysCourseMapper;
+import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.group.GroupMapper;
 import com.backstage.system.service.IGroupService;
 import org.springframework.beans.BeanUtils;
@@ -28,7 +28,7 @@ public class GroupServiceImpl implements IGroupService {
     @Autowired
     private GroupMapper groupMapper;
     @Autowired
-    private SysCourseMapper courseMapper;
+    private OshCourseMapper courseMapper;
     @Autowired
     private ColumnMapper columnMapper;
 
@@ -36,7 +36,7 @@ public class GroupServiceImpl implements IGroupService {
     public GroupCourseVo course(Long id, Long groupId) {
         GroupCourseVo groupCourseVO = new GroupCourseVo();
         GroupActivity groupActivity = groupMapper.getGroupActivityById(groupId);
-        SysCourse sysCourse = courseMapper.selectCourseById(id);
+        OshCourse sysCourse = courseMapper.selectCourseById(id);
         BeanUtils.copyProperties(sysCourse, groupCourseVO);
         groupCourseVO.setGroup(groupActivity);
         return groupCourseVO;

@@ -2,9 +2,15 @@
 <!DOCTYPE mapper
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<<<<<<<< HEAD:backstage-system/src/main/resources/mapper/course/OshCouresMapper.xml
 <mapper namespace="com.backstage.system.mapper.course.OshCouresMapper">
     
     <resultMap type="OshCoures" id="OshCouresResult">
+========
+<mapper namespace="com.backstage.system.mapper.course.OshCourseMapper">
+    
+    <resultMap type="OshCourse" id="SysCourseResult">
+>>>>>>>> refs/heads/release/20260328:backstage-system/src/main/resources/mapper/course/OshCourseMapper.xml
         <result property="id"   column="id"    />
         <result property="title"   column="title"    />
         <result property="cover"   column="cover"    />
@@ -51,8 +57,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <!-- 新增课程 -->
+<<<<<<<< HEAD:backstage-system/src/main/resources/mapper/course/OshCouresMapper.xml
     <insert id="insertCourse" parameterType="OshCoures" useGeneratedKeys="true" keyProperty="id">
         insert into osh_course
+========
+    <insert id="insertCourse" parameterType="OshCourse" useGeneratedKeys="true" keyProperty="id">
+        insert into sys_course
+>>>>>>>> refs/heads/release/20260328:backstage-system/src/main/resources/mapper/course/OshCourseMapper.xml
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="title != null and title != ''">title,</if>
             <if test="cover != null and cover != ''">cover,</if>
@@ -100,8 +111,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </insert>
 
     <!-- 修改课程 -->
+<<<<<<<< HEAD:backstage-system/src/main/resources/mapper/course/OshCouresMapper.xml
     <update id="updateCourse" parameterType="OshCoures">
         update osh_course
+========
+    <update id="updateCourse" parameterType="OshCourse">
+        update sys_course
+>>>>>>>> refs/heads/release/20260328:backstage-system/src/main/resources/mapper/course/OshCourseMapper.xml
         <trim prefix="SET" suffixOverrides=",">
             <if test="title != null and title != ''">title = #{title},</if>
             <if test="cover != null and cover != ''">cover = #{cover},</if>

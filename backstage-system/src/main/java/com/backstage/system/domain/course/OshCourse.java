@@ -17,7 +17,11 @@ import java.util.Date;
  * @date 2026-01-XX
  */
 @ApiModel(description = "课程信息")
+<<<<<<<< HEAD:backstage-system/src/main/java/com/backstage/system/domain/course/OshCoures.java
 public class OshCoures
+========
+public class OshCourse
+>>>>>>>> refs/heads/release/20260328:backstage-system/src/main/java/com/backstage/system/domain/course/OshCourse.java
 {
     private static final long serialVersionUID = 1L;
 
