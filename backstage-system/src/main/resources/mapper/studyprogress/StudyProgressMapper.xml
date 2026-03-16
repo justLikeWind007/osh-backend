@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.studyprogress.StudyProgressMapper">
+
+    <select id="selectStudyProgressList" resultType="com.backstage.system.domain.vo.studyprogress.UserStudyProgressVo">
+        SELECT
+        sp.id,
+        sp.type,
+        sp.progress,
+        CASE
+        WHEN sp.type = 'course' THEN c.title
+        WHEN sp.type = 'column' THEN col.title
+        END as title,
+        CASE
+        WHEN sp.type = 'course' THEN c.cover
+        WHEN sp.type = 'column' THEN col.cover
+        END as cover
+        FROM osh_user_studyprogress sp
+        LEFT JOIN osh_course c ON sp.goods_id = c.id AND sp.type = 'course'
+        LEFT JOIN osh_column col ON sp.goods_id = col.id AND sp.type = 'column'
+        WHERE sp.user_id = #{userId}
+        ORDER BY sp.update_time DESC
+    </select>
+
+    <insert id="saveOrUpdateProgress">
+        INSERT INTO osh_user_studyprogress (
+        user_id, goods_id, type, progress, update_time
+        ) VALUES (
+        #{userId}, #{vo.id}, #{vo.type}, #{vo.progress}, NOW()
+        )
+        ON DUPLICATE KEY UPDATE
+        progress = VALUES(progress),
+        update_time = NOW()
+    </insert>
+
+</mapper>
