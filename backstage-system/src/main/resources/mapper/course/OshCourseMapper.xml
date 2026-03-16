@@ -2,9 +2,9 @@
 <!DOCTYPE mapper
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.backstage.system.mapper.course.SysCourseMapper">
+<mapper namespace="com.backstage.system.mapper.course.OshCourseMapper">
     
-    <resultMap type="SysCourse" id="SysCourseResult">
+    <resultMap type="OshCourse" id="SysCourseResult">
         <result property="id"   column="id"    />
         <result property="title"   column="title"    />
         <result property="cover"   column="cover"    />
@@ -51,7 +51,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <!-- 新增课程 -->
-    <insert id="insertCourse" parameterType="SysCourse" useGeneratedKeys="true" keyProperty="id">
+    <insert id="insertCourse" parameterType="OshCourse" useGeneratedKeys="true" keyProperty="id">
         insert into sys_course
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="title != null and title != ''">title,</if>
@@ -100,7 +100,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </insert>
 
     <!-- 修改课程 -->
-    <update id="updateCourse" parameterType="SysCourse">
+    <update id="updateCourse" parameterType="OshCourse">
         update sys_course
         <trim prefix="SET" suffixOverrides=",">
             <if test="title != null and title != ''">title = #{title},</if>

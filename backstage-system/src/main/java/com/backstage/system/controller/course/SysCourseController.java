@@ -8,7 +8,7 @@ import com.backstage.common.core.domain.AjaxResult;
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.enums.BusinessType;
 
-import com.backstage.system.domain.course.SysCourse;
+import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.vo.CourseDetailVO;
 import com.backstage.system.service.ISysCourseService;
 import io.swagger.annotations.Api;
@@ -57,7 +57,7 @@ public class SysCourseController extends BaseController
 
 
         startPage();
-        List<SysCourse> list = sysCourseService.selectCourseList(columnId);
+        List<OshCourse> list = sysCourseService.selectCourseList(columnId);
         return getDataTable(list);
     }
 
@@ -81,7 +81,7 @@ public class SysCourseController extends BaseController
         
         // TODO: 校验请求中的 appid 的有效性
 
-        SysCourse course = sysCourseService.selectCourseById(id);
+        OshCourse course = sysCourseService.selectCourseById(id);
         if (course == null)
         {
             return AjaxResult.error("课程不存在");
@@ -108,7 +108,7 @@ public class SysCourseController extends BaseController
     @Log(title = "课程", businessType = BusinessType.INSERT)
     @ApiOperation("新增课程")
     @PostMapping
-    public AjaxResult add(@RequestBody SysCourse course)
+    public AjaxResult add(@RequestBody OshCourse course)
     {
         return toAjax(sysCourseService.insertCourse(course));
     }
@@ -121,7 +121,7 @@ public class SysCourseController extends BaseController
     @Log(title = "课程", businessType = BusinessType.UPDATE)
     @ApiOperation("修改课程")
     @PutMapping
-    public AjaxResult edit(@RequestBody SysCourse course)
+    public AjaxResult edit(@RequestBody OshCourse course)
     {
         return toAjax(sysCourseService.updateCourse(course));
     }
