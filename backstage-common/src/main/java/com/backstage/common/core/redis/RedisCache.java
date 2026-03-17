@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
  **/
 @SuppressWarnings(value = { "unchecked", "rawtypes" })
 @Component
-public class RedisCache
+public class  RedisCache
 {
     @Autowired
     public RedisTemplate redisTemplate;

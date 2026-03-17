@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.exam.OshExamMapper">
+    <resultMap id="ExamDetailMap" type="com.backstage.system.domain.vo.exam.ExamDetailVo">
+        <id property="id" column="id" />
+        <result property="title" column="title" />
+        <result property="total_score" column="total_score" />
+        <result property="pass_score" column="pass_score" />
+        <result property="expire" column="expire" />
+
+        <collection property="testpaper_questions" ofType="com.backstage.system.domain.vo.exam.QuestionVo">
+            <id property="id" column="q_id" />
+            <result property="question_id" column="q_question_id" />
+            <result property="title" column="q_title" />
+            <result property="score" column="q_score" />
+            <result property="type" column="q_type" />
+            <result property="remark" column="q_remark" />
+            <result property="options" column="q_options" />
+        </collection>
+    </resultMap>
+
+    <select id="selectExamById" resultMap="ExamDetailMap">
+        SELECT
+        e.id,
+        e.title,
+        e.total_score,
+        e.pass_score,
+        e.expire,
+        q.id AS q_id,
+        q.id AS q_question_id, -- 确保这个别名对应 ResultMap 里的 q_question_id
+        q.title AS q_title,
+        q.score AS q_score,
+        q.type AS q_type,
+        q.remark AS q_remark,
+        q.options AS q_options
+        FROM osh_examination e
+        LEFT JOIN osh_question q ON e.id = q.exam_id AND q.is_delete = 0
+        WHERE e.id = #{id}
+        AND e.is_delete = 0
+    </select>
+
+    <select id="selectExamList" resultType="com.backstage.system.domain.vo.exam.ExamVo">
+        SELECT
+        id, title, total_score, pass_score, expire, question_count
+        FROM
+        osh_examination
+        WHERE
+        status = 1 AND is_delete = 0
+        ORDER BY
+        id DESC
+    </select>
+
+
+</mapper>
