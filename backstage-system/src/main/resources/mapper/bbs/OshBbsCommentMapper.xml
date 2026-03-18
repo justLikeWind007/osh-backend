@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.bbs.OshBbsCommentMapper">
+
+    <select id="selectCommentList" resultType="com.backstage.system.domain.dto.bbs.OshBbsCommentDto">
+        SELECT c.*, u.nick_name, u.avatar
+        FROM osh_bbs_comment c
+        LEFT JOIN sys_user u ON c.user_id = u.user_id
+        WHERE c.post_id = #{postId}
+        AND c.reply_id = #{replyId}
+        AND c.is_delete = 0
+        ORDER BY c.is_top DESC, c.create_time DESC
+    </select>
+
+
+
+</mapper>
