@@ -1,6 +1,8 @@
 package com.backstage.system.controller.order;
 
+import com.alibaba.fastjson2.JSON;
 import com.backstage.common.annotation.Anonymous;
+import com.backstage.common.core.domain.R;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestHighLevelClient;
@@ -27,10 +29,14 @@ public class EsTestController {
      */
     @Anonymous
     @GetMapping("/test")
-    public String testEs() throws IOException {
+    public R testEs() throws IOException {
         Request request = new Request("GET", "/");
         Response response = client.getLowLevelClient().performRequest(request);
-        return EntityUtils.toString(response.getEntity());
+
+        String jsonStr = EntityUtils.toString(response.getEntity(), "UTF-8");
+
+        Object json = JSON.parse(jsonStr);
+        return R.ok(json);
     }
 
     /**
@@ -39,10 +45,11 @@ public class EsTestController {
      */
     @Anonymous
     @GetMapping("/health")
-    public String health() throws IOException {
+    public R health() throws IOException {
         Request request = new Request("GET", "/_cat/health?v");
         Response response = client.getLowLevelClient().performRequest(request);
-        return EntityUtils.toString(response.getEntity());
+        String jsonStr = EntityUtils.toString(response.getEntity(), "UTF-8");
+        return R.ok(jsonStr);
     }
 
     /**
@@ -51,10 +58,11 @@ public class EsTestController {
      */
     @Anonymous
     @GetMapping("/nodes")
-    public String nodes() throws IOException {
+    public R nodes() throws IOException {
         Request request = new Request("GET", "/_cat/nodes?v");
         Response response = client.getLowLevelClient().performRequest(request);
-        return EntityUtils.toString(response.getEntity());
+        String jsonStr = EntityUtils.toString(response.getEntity(), "UTF-8");
+        return R.ok(jsonStr);
     }
 
     /**
@@ -63,10 +71,11 @@ public class EsTestController {
      */
     @Anonymous
     @GetMapping("/indices")
-    public String indices() throws IOException {
+    public R indices() throws IOException {
         Request request = new Request("GET", "/_cat/indices?v");
         Response response = client.getLowLevelClient().performRequest(request);
-        return EntityUtils.toString(response.getEntity());
+        String jsonStr = EntityUtils.toString(response.getEntity(), "UTF-8");
+        return R.ok(jsonStr);
     }
 
     /**
@@ -75,9 +84,10 @@ public class EsTestController {
      */
     @Anonymous
     @GetMapping("/cluster")
-    public String cluster() throws IOException {
+    public R cluster() throws IOException {
         Request request = new Request("GET", "/_cluster/health?pretty");
         Response response = client.getLowLevelClient().performRequest(request);
-        return EntityUtils.toString(response.getEntity());
+        String jsonStr = EntityUtils.toString(response.getEntity(), "UTF-8");
+        return R.ok(jsonStr);
     }
 }

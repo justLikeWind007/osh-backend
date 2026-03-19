@@ -59,51 +59,35 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Elasticsearch 客户端 -->
-        <dependency>
-            <groupId>org.elasticsearch.client</groupId>
-            <artifactId>elasticsearch-rest-high-level-client</artifactId>
-            <version>7.17.9</version>
-        </dependency>
-
-        <!-- Spring Data Elasticsearch -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
         </dependency>
 
-        <!-- Elasticsearch 核心客户端 固定 7.17.9 -->
-        <dependency>
-            <groupId>org.elasticsearch</groupId>
-            <artifactId>elasticsearch</artifactId>
-            <version>7.17.9</version>
-        </dependency>
 
-        <!-- High-Level REST Client 7.17.9 -->
-        <dependency>
-            <groupId>org.elasticsearch.client</groupId>
-            <artifactId>elasticsearch-rest-high-level-client</artifactId>
-            <version>7.17.9</version>
-            <!-- 排除冲突版本 -->
-            <exclusions>
-                <exclusion>
-                    <groupId>org.elasticsearch</groupId>
-                    <artifactId>elasticsearch</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <!-- Spring Data Elasticsearch 适配 SpringBoot2.x -->
-        <dependency>
-            <groupId>org.springframework.data</groupId>
-            <artifactId>spring-data-elasticsearch</artifactId>
-            <version>4.4.15</version>
-        </dependency>
 
         <!-- mybatis-plus -->
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.data</groupId>
+            <artifactId>spring-data-elasticsearch</artifactId>
+        </dependency>
+
+
+
+        <!-- Cloudflare R2 对象存储（S3兼容）-->
+        <dependency>
+            <groupId>org.dromara.x-file-storage</groupId>
+            <artifactId>x-file-storage-spring</artifactId>
+        </dependency>
+
+        <!-- 必须：S3 核心依赖 -->
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-s3</artifactId>
         </dependency>
 
     </dependencies>

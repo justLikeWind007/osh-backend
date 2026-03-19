@@ -132,21 +132,6 @@ xss:
   # 匹配链接
   urlPatterns: /system/*,/monitor/*,/tool/*
 
-# 阿里云 OSS 配置
-aliyun:
-  oss:
-    # OSS endpoint (如：oss-cn-hangzhou.aliyuncs.com)
-    endpoint: oss-cn-beijing.aliyuncs.com
-    # AccessKeyId
-    accessKeyId: your-access-key-id
-    # AccessKeySecret
-    accessKeySecret: your-access-key-secret
-    # Bucket 名称
-    bucketName: dishaxydishait
-    # 自定义域名（可选，用于 CDN 加速）
-    domain:
-    # 文件路径前缀
-    pathPrefix: upload/
 
 # es 配置
 elasticsearch:
@@ -154,3 +139,13 @@ elasticsearch:
   port: 9200
   connect-timeout: 10000
   socket-timeout: 10000
+
+
+x-file-storage:
+  cloudflare-r2:
+    access-key: 57d33560810af6e5e58b7529eed60236
+    secret-key: 09a82e5a301c1c520e87f995581e064d6f4a2d60bdb22e9f0e10089f784b9902
+    endpoint: https://645fe29b30ebce3e940e06365ce74872.r2.cloudflarestorage.com
+    bucket-name: osh
+    public-domain: https://pub-cc2625f0659a489793764180efc40d08.r2.dev
+    base-path: ruoyi/images/
