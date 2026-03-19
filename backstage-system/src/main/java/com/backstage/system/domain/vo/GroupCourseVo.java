@@ -1,6 +1,6 @@
 package com.backstage.system.domain.vo;
 
-import com.backstage.system.domain.course.SysCourse;
+import com.backstage.system.domain.course.OshCoures;
 import com.backstage.system.domain.group.GroupActivity;
 
 /**
@@ -10,7 +10,7 @@ import com.backstage.system.domain.group.GroupActivity;
  * Date: 2026/3/3
  * Time: 20:38
  */
-public class GroupCourseVo extends SysCourse {
+public class GroupCourseVo extends OshCoures {
 
     /** 拼团活动信息 */
     private GroupActivity group;
