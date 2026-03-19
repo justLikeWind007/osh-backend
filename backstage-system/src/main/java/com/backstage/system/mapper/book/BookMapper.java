@@ -1,4 +1,4 @@
-package com.backstage.system.mapper;
+package com.backstage.system.mapper.book;
 
 import com.backstage.system.domain.Book;
 import com.backstage.system.domain.vo.BookListVO;
