@@ -16,35 +16,37 @@ public class UserLoginDTO {
             value = "用户名或邮箱",
             required = true
     )
-    private String name;
+    private String username;
     @ApiModelProperty(
             value = "用户密码或唯一标识",
             example = "admin123",
             required = true
     )
-    private String pid;
+    private String password;
 
-    public String getName() {
-        return name;
+
+
+    public String getUsername() {
+        return username;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setUsername(String username) {
+        this.username = username;
     }
 
-    public String getPid() {
-        return pid;
+    public String getPassword() {
+        return password;
     }
 
-    public void setPid(String pid) {
-        this.pid = pid;
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     @Override
     public String toString() {
         return "UserLoginDTO{" +
-                "name='" + name + '\'' +
-                ", pid='" + pid + '\'' +
+                "username='" + username + '\'' +
+                ", password='" + password + '\'' +
                 '}';
     }
 }

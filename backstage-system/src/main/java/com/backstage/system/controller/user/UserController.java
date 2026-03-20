@@ -46,7 +46,7 @@ public class UserController extends BaseController {
     public R<UserLoginVo> login(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserLoginDTO userLoginDTO) {
-        return userService.login(userLoginDTO.getName(),userLoginDTO.getPid());
+        return userService.login(userLoginDTO.getUsername(),userLoginDTO.getPassword());
     }
 
     @Anonymous
