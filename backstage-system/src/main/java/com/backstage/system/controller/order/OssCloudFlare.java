@@ -6,6 +6,11 @@ import com.amazonaws.services.s3.S3ClientOptions;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.backstage.common.annotation.Anonymous;
+import com.backstage.common.core.domain.AjaxResult;
+import com.backstage.common.core.domain.R;
+import com.backstage.system.domain.order.OshUploadImage;
+import com.backstage.system.service.order.IOshUploadImageService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,6 +19,10 @@ import java.util.UUID;
 
 @RestController
 public class OssCloudFlare {
+
+    @Autowired
+    private IOshUploadImageService oshUploadImageService;
+
 
     @Value("${x-file-storage.cloudflare-r2.access-key}")
     private String accessKey;
@@ -35,7 +44,7 @@ public class OssCloudFlare {
 
     @Anonymous
     @PostMapping("/upload")
-    public String upload(MultipartFile file) {
+    public AjaxResult upload(MultipartFile file) {
         try {
             BasicAWSCredentials credentials = new BasicAWSCredentials(accessKey, secretKey);
             AmazonS3Client s3 = new AmazonS3Client(credentials);
@@ -55,11 +64,32 @@ public class OssCloudFlare {
 
             // 返回可访问地址（自动带路径）
             String url = publicDomain + "/" + fileName;
-            return "上传成功：" + url;
+
+
+            OshUploadImage uploadImage = new OshUploadImage();
+            uploadImage.setUserId(1L);
+            uploadImage.setSchoolId(1L);
+            uploadImage.setFileName(file.getOriginalFilename());
+            uploadImage.setFilePath(url);
+            uploadImage.setFileSize(file.getSize());
+            uploadImage.setFileType(file.getContentType());
+            uploadImage.setStatus(1L);
+
+            int result = oshUploadImageService.insertOshUploadImage(uploadImage);
+
+            if (result > 0) {
+                AjaxResult ajax = AjaxResult.success();
+                ajax.put("url", url);
+                ajax.put("fileName", file.getOriginalFilename());
+                ajax.put("fileSize", file.getSize());
+                return ajax;
+            } else {
+                return AjaxResult.error("上传失败");
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
-            return "上传失败：" + e.getMessage();
+            return AjaxResult.error(e.getMessage());
         }
     }
 }

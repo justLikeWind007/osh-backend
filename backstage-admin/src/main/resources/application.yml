@@ -148,4 +148,4 @@ x-file-storage:
     endpoint: https://645fe29b30ebce3e940e06365ce74872.r2.cloudflarestorage.com
     bucket-name: osh
     public-domain: https://pub-cc2625f0659a489793764180efc40d08.r2.dev
-    base-path: ruoyi/images/
+    base-path: common/image/
