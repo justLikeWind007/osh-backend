@@ -26,7 +26,7 @@ public class OshCardServiceImpl implements IOshCardService
      * 查询卡券信息
      * 
      * @param id 卡券信息主键
-     * @return 卡券信息
+     * @return 查询卡券信息
      */
     @Override
     public OshCard selectOshCardById(Long id)

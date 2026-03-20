@@ -56,7 +56,7 @@ public interface IOshCardService
      * 删除卡券信息信息
      * 
      * @param id 卡券信息主键
-     * @return 结果
+     * @return 查询结果
      */
     public int deleteOshCardById(Long id);
 
