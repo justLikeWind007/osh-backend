@@ -1,9 +1,11 @@
 package com.backstage.system.mapper.column;
 
 import com.backstage.system.domain.vo.FlashColumnVo;
+import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
 
+@Mapper
 public interface SysFlashColumnMapper {
     /**
      * 查询专栏

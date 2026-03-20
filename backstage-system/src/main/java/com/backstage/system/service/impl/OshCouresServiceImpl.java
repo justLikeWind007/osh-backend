@@ -1,8 +1,8 @@
 package com.backstage.system.service.impl;
 
-import com.backstage.system.domain.course.SysCourse;
-import com.backstage.system.mapper.course.SysCourseMapper;
-import com.backstage.system.service.ISysCourseService;
+import com.backstage.system.domain.course.OshCoures;
+import com.backstage.system.mapper.course.OshCouresMapper;
+import com.backstage.system.service.IOshCouresService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -15,10 +15,10 @@ import java.util.List;
  * @date 2026-01-XX
  */
 @Service
-public class SysCourseServiceImpl implements ISysCourseService 
+public class OshCouresServiceImpl implements IOshCouresService 
 {
     @Autowired
-    private SysCourseMapper sysCourseMapper;
+    private OshCouresMapper oshCouresMapper;
 
     /**
      * 查询课程详情
@@ -27,9 +27,9 @@ public class SysCourseServiceImpl implements ISysCourseService
      * @return 课程信息
      */
     @Override
-    public SysCourse selectCourseById(Long id)
+    public OshCoures selectCourseById(Long id)
     {
-        return sysCourseMapper.selectCourseById(id);
+        return oshCouresMapper.selectCourseById(id);
     }
 
     /**
@@ -39,9 +39,9 @@ public class SysCourseServiceImpl implements ISysCourseService
      * @return 课程集合
      */
     @Override
-    public List<SysCourse> selectCourseList(Long columnId)
+    public List<OshCoures> selectCourseList(Long columnId)
     {
-        return sysCourseMapper.selectCourseList(columnId);
+        return oshCouresMapper.selectCourseList(columnId);
     }
 
     /**
@@ -51,9 +51,9 @@ public class SysCourseServiceImpl implements ISysCourseService
      * @return 结果
      */
     @Override
-    public int insertCourse(SysCourse course)
+    public int insertCourse(OshCoures course)
     {
-        return sysCourseMapper.insertCourse(course);
+        return oshCouresMapper.insertCourse(course);
     }
 
     /**
@@ -63,9 +63,9 @@ public class SysCourseServiceImpl implements ISysCourseService
      * @return 结果
      */
     @Override
-    public int updateCourse(SysCourse course)
+    public int updateCourse(OshCoures course)
     {
-        return sysCourseMapper.updateCourse(course);
+        return oshCouresMapper.updateCourse(course);
     }
 
     /**
@@ -77,7 +77,7 @@ public class SysCourseServiceImpl implements ISysCourseService
     @Override
     public int deleteCourseByIds(Long[] ids)
     {
-        return sysCourseMapper.deleteCourseByIds(ids);
+        return oshCouresMapper.deleteCourseByIds(ids);
     }
 
     /**
@@ -89,6 +89,6 @@ public class SysCourseServiceImpl implements ISysCourseService
     @Override
     public int deleteCourseById(Long id)
     {
-        return sysCourseMapper.deleteCourseById(id);
+        return oshCouresMapper.deleteCourseById(id);
     }
 }

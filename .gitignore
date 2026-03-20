@@ -23,8 +23,6 @@
 hs_err_pid*
 replay_pid*
 
-AGENTS.md
-
 # IntelliJ IDEA
 .idea/
 *.iml

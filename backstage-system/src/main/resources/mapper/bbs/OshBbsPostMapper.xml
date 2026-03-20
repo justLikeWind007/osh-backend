@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.bbs.OshBbsPostMapper">
+
+    <resultMap id="OshBbsPostResult" type="com.backstage.system.domain.dto.bbs.OshBbsPostDto">
+        <id property="id" column="id" />
+        <result property="userId" column="user_id" />
+        <result property="categoryId" column="category_id" />
+        <result property="title" column="title" />
+        <result property="content" column="content" />
+        <result property="images" column="images" />
+        <result property="viewCount" column="view_count" />
+        <result property="supportCount" column="support_count" />
+        <result property="commentCount" column="comment_count" />
+        <result property="isTop" column="is_top" />
+        <result property="createTime" column="create_time" />
+        <result property="nickName" column="nick_name" />
+        <result property="avatar" column="avatar" />
+        <result property="sex" column="sex" />
+    </resultMap>
+
+    <select id="selectPostList" parameterType="com.backstage.system.domain.bbs.OshBbsPost" resultMap="OshBbsPostResult">
+        SELECT
+        p.id, p.user_id, p.category_id, p.title, p.content, p.images,
+        p.view_count, p.support_count, p.comment_count, p.is_top, p.create_time,
+        u.nick_name, u.avatar, u.sex
+        FROM osh_bbs_post p
+        LEFT JOIN sys_user u ON p.user_id = u.user_id
+        WHERE p.is_delete = 0
+        <if test="id != null"> AND p.id = #{id} </if>
+        <if test="categoryId != null">
+            AND p.category_id = #{categoryId}
+        </if>
+        <if test="isTop != null">
+            AND p.is_top = #{isTop}
+        </if>
+        ORDER BY p.is_top DESC, p.create_time DESC
+    </select>
+
+    <select id="checkIsSupport" resultType="Integer">
+        SELECT count(1) FROM osh_bbs_support
+        WHERE post_id = #{postId} AND user_id = #{userId}
+    </select>
+
+    <insert id="insertSupport">
+        INSERT INTO osh_bbs_support (post_id, user_id, create_time)
+        VALUES (#{postId}, #{userId}, NOW())
+    </insert>
+
+    <update id="incrementSupportCount">
+        UPDATE osh_bbs_post
+        SET support_count = support_count + 1
+        WHERE id = #{postId}
+    </update>
+
+    <update id="decrementSupportCount">
+        UPDATE osh_bbs_post
+        SET support_count = GREATEST(support_count - 1, 0)
+        WHERE id = #{postId}
+    </update>
+
+    <delete id="deleteSupport">
+        DELETE FROM osh_bbs_support
+        WHERE post_id = #{postId} AND user_id = #{userId}
+    </delete>
+
+    <select id="selectPostById" resultType="com.backstage.system.domain.bbs.OshBbsPost">
+        SELECT * FROM osh_bbs_post WHERE id = #{postId}
+    </select>
+
+    <insert id="insertComment">
+        INSERT INTO osh_bbs_comment (
+        post_id,
+        content,
+        reply_id,
+        reply_user_id,
+        user_id,
+        create_time
+        ) VALUES (
+        #{postId},
+        #{content},
+        #{replyId},
+        #{replyUserId},
+        #{userId},
+        NOW()
+        )
+    </insert>
+
+    <update id="incrementCommentCount">
+        UPDATE osh_bbs_post
+        SET comment_count = comment_count + 1
+        WHERE id = #{postId}
+    </update>
+
+    <update id="softDeletePost">
+        UPDATE osh_bbs_post SET is_delete = 1 WHERE id = #{id}
+    </update>
+
+    <delete id="deleteAllSupportByPostId">
+        DELETE FROM osh_bbs_support WHERE post_id = #{postId}
+    </delete>
+
+
+    <select id="selectMyPostList" resultType="com.backstage.system.domain.dto.bbs.OshBbsPostDto">
+        SELECT
+        p.*,
+        u.nick_name as nickName,
+        u.avatar as avatar,
+        u.sex as sex
+        FROM osh_bbs_post p
+        LEFT JOIN sys_user u ON p.user_id = u.user_id
+        WHERE p.user_id = #{userId}
+        AND p.is_delete = 0
+        ORDER BY p.create_time DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="selectMyPostCount" resultType="int">
+        SELECT count(1) FROM osh_bbs_post WHERE user_id = #{userId} AND is_delete = 0
+    </select>
+
+    <insert id="insertPost" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO osh_bbs_post (
+        category_id,
+        content,
+        title,
+        user_id,
+        comment_count,
+        support_count,
+        is_top,
+        create_time,
+        is_delete
+        ) VALUES (
+        #{categoryId},
+        #{content},
+        #{title},
+        #{userId},
+        0,
+        0,
+        0,
+        #{createTime},
+        0
+        )
+    </insert>
+</mapper>
