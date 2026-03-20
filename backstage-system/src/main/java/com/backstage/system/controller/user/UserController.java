@@ -11,7 +11,6 @@ import com.backstage.common.utils.poi.ExcelUtil;
 import com.backstage.system.domain.user.User;
 import com.backstage.system.domain.user.dto.*;
 import com.backstage.system.domain.user.vo.UserLoginVo;
-import com.backstage.system.domain.user.vo.UserRegisterVo;
 import com.backstage.system.service.IUserService;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -19,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import javax.mail.MessagingException;
 import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 
@@ -46,16 +46,25 @@ public class UserController extends BaseController {
     public R<UserLoginVo> login(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserLoginDTO userLoginDTO) {
-        return userService.login(userLoginDTO.getUsername(),userLoginDTO.getPassword());
+        return userService.login(userLoginDTO.getName(),userLoginDTO.getPid());
+    }
+
+    @Anonymous
+    @ApiOperation("注册请求")
+    @PostMapping("/register/submit")
+    public R<String> registerSubmit(
+            @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
+            @RequestBody UserRegisterDTO userRegisterDTO) throws MessagingException {
+        return userService.registerSubmit(userRegisterDTO.getUsername(),userRegisterDTO.getPassword(),userRegisterDTO.getRepassword(),userRegisterDTO.getEmail());
     }
 
     @Anonymous
     @ApiOperation("账号注册")
-    @PostMapping("/reg")
-    public R<UserRegisterVo> register(
+    @PostMapping("/register/verity")
+    public R<String> registerVerity(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
-            @RequestBody UserRegisterDTO userRegisterDTO) {
-        return userService.register(userRegisterDTO.getUsername(),userRegisterDTO.getPassword(),userRegisterDTO.getRepassword());
+            @ApiParam("用户的唯一标识") @RequestParam(value = "uniqueId") String uniqueId) {
+        return userService.registerVerity(uniqueId);
     }
 
     @Anonymous
@@ -68,31 +77,35 @@ public class UserController extends BaseController {
     }
 
     @Anonymous
-    @ApiOperation("绑定邮箱")
-    @PostMapping("/bind_email")
-    public R<String> bindEmail(
+    @ApiOperation("改绑邮箱请求 根据唯一标识改绑邮箱")
+    @PostMapping("/changeEmail/submit")
+    public R<String> changeEmailSubmit(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @ApiParam("token") @RequestHeader(value = "token") String token,
-            @RequestBody UserBindEmailDTO userBindEmailDTO) {
-        return userService.bindEmail(token, userBindEmailDTO.getEmail(), userBindEmailDTO.getCode());
+            @ApiParam("用户的唯一标识") @RequestParam(value = "uniqueId") String uniqueId,
+            @ApiParam("新的邮箱账号") @RequestParam(value = "newEmail") String newEmail) throws MessagingException {
+        return userService.changeEmailSubmit(token, uniqueId, newEmail);
     }
 
     @Anonymous
-    @ApiOperation("获取邮箱验证码")
-    @GetMapping("/get_captcha")
-    public R<String> getCaptcha(
+    @ApiOperation("改绑邮箱验证")
+    @PostMapping("/changeEmail/verity")
+    public R<String> changeEmailVerity(
+            @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @ApiParam("token") @RequestHeader(value = "token") String token,
-            @ApiParam("email") @RequestParam(value = "email") String email) {
-        return userService.getCaptcha(token, email);
+            @ApiParam("用户的唯一标识") @RequestParam(value = "uniqueId") String uniqueId) {
+        return userService.changeEmailVerity(token, uniqueId);
     }
 
+    //todo
     @Anonymous
     @ApiOperation("找回密码")
     @PostMapping("/forget")
     public R<String> forget(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
+            @ApiParam("token") @RequestHeader(value = "token") String token,
             @RequestBody ForgetDTO forgetDTO) {
-        return userService.forget(forgetDTO.getEmail(),forgetDTO.getCode(),forgetDTO.getPassword(),forgetDTO.getRepassword());
+        return userService.forget(token,forgetDTO.getUniqueId(),forgetDTO.getPassword(),forgetDTO.getRepassword());
     }
 
     @Anonymous

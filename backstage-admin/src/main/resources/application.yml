@@ -47,9 +47,18 @@ user:
 
 # Spring配置
 spring:
-  elasticsearch:
-    rest:
-      uris: http://43.242.200.25:9200
+  # 邮件配置
+  mail:
+    username: 18482663265@163.com
+    password: ZWsCZpBXab3hVGSS
+    host: smtp.163.com
+  # 模板引擎配置
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML
+    encoding: UTF-8
+    cache: false
   # 资源信息
   messages:
     # 国际化资源文件路径
@@ -91,7 +100,7 @@ spring:
         # #连接池最大阻塞等待时间（使用负值表示没有限制）
         max-wait: -1ms
 
-# token 配置
+# token配置
 token:
   # 令牌自定义标识
   header: Authorization
