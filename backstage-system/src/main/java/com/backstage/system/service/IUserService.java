@@ -3,8 +3,8 @@ package com.backstage.system.service;
 import com.backstage.common.core.domain.R;
 import com.backstage.system.domain.user.User;
 import com.backstage.system.domain.user.vo.UserLoginVo;
-import com.backstage.system.domain.user.vo.UserRegisterVo;
 
+import javax.mail.MessagingException;
 import java.util.List;
 
 /**
@@ -15,23 +15,25 @@ import java.util.List;
  * Time: 16:42
  */
 public interface IUserService {
-    R<UserLoginVo> login(String username, String password);
+    R<UserLoginVo> login(String name, String pid);
 
-    R<UserRegisterVo> register(String username, String password, String repassword);
+    R<String> registerSubmit(String username, String password, String repassword, String email) throws MessagingException;
+
+    R<String> registerVerity(String uniqueId);
+
+    R<String> logout(String token);
+
+    R<String> changeEmailSubmit(String token, String uniqueId, String newEmail) throws MessagingException;
+
+    R<String> changeEmailVerity(String token, String uniqueId);
+
+    R<String> forget(String token, String uniqueId, String password, String repassword);
 
     R<String> updateInfo(String avatar, String nickname, String sex, String token);
-
-    R<String> forget(String email, String code, String password, String repassword);
 
     R<String> updatePassword(String opassword, String password, String repassword, String token);
 
     R<User> getUserInfo(String token);
-
-    R<String> bindEmail(String token, String email, String code);
-
-    R<String> getCaptcha(String token, String email);
-
-    R<String> logout(String token);
 
 
 

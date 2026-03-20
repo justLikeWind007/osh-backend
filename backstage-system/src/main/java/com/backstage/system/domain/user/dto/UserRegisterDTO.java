@@ -29,6 +29,11 @@ public class UserRegisterDTO {
             required = true
     )
     private String repassword;
+    @ApiModelProperty(
+            value = "邮箱",
+            required = true
+    )
+    private String email;
 
     public String getUsername() {
         return username;
@@ -54,12 +59,21 @@ public class UserRegisterDTO {
         this.repassword = repassword;
     }
 
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
     @Override
     public String toString() {
         return "UserRegisterDTO{" +
                 "username='" + username + '\'' +
                 ", password='" + password + '\'' +
                 ", repassword='" + repassword + '\'' +
+                ", email='" + email + '\'' +
                 '}';
     }
 }

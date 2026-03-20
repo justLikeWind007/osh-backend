@@ -1,14 +1,9 @@
 package com.backstage.system.service.impl;
 
-import com.backstage.common.constant.UserConstants;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.core.redis.RedisCache;
-import com.backstage.common.exception.user.UserNotExistsException;
-import com.backstage.common.exception.user.UserPasswordNotMatchException;
-import com.backstage.common.utils.StringUtils;
 import com.backstage.system.domain.user.User;
 import com.backstage.system.domain.user.vo.UserLoginVo;
-import com.backstage.system.domain.user.vo.UserRegisterVo;
 import com.backstage.system.mapper.user.UserMapper;
 import com.backstage.system.service.IUserService;
 import io.jsonwebtoken.Claims;
@@ -18,12 +13,16 @@ import io.jsonwebtoken.SignatureException;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.spring5.SpringTemplateEngine;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeMessage;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -40,20 +39,37 @@ public class UserServiceImpl implements IUserService {
     private UserMapper userMapper;
     @Autowired
     private RedisCache redisCache;
+    @Autowired
+    private JavaMailSender javaMailSender;
+    @Autowired
+    private SpringTemplateEngine springTemplateEngine;
+    // 邮件主题
+    private final String subject = "open source helper";
+    // 发件人
+    private final String from = "18482663265@163.com";
 
     // 令牌秘钥
     @Value("${token.secret}")
     private String secret;
 
     @Override
-    public R<UserLoginVo> login(String username, String password) {
-        loginPreCheck(username, password);
-        User user = userMapper.getUserByUsername(username);
+    public R<UserLoginVo> login(String name, String pid) {
+        User user = userMapper.getUserByUsernameOrEmail(name);
+        if (user == null) {
+            return R.fail("用户不存在");
+        }
         if (user.getStatus() == 0) {
             return R.fail("用户被拉黑");
         }
-        if (!user.getPassword().equals(password)) {
-            return R.fail("密码错误");
+        if (pid.length() > 40) {
+            String uniqueIdByUserId = userMapper.getUniqueIdByUserId(user.getId());
+            if (!uniqueIdByUserId.equals(pid)) {
+                return R.fail("唯一标识错误");
+            }
+        }else {
+            if (!user.getPassword().equals(pid)) {
+                return R.fail("密码错误");
+            }
         }
         String token = createToken(user);
         UserLoginVo userLoginVo = new UserLoginVo();
@@ -64,25 +80,42 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
-    public R<UserRegisterVo> register(String username, String password, String repassword) {
+    public R<String> registerSubmit(String username, String password, String repassword, String email) throws MessagingException {
         if(!password.equals(repassword)){
             return R.fail("两次输入密码不一致");
         }
         User user = userMapper.getUserByUsername(username);
         if (user != null && user.getUsername().equals(username)) {
-            return R.fail("用户已存在");
+            return R.fail("用户名已存在");
         }
-        userMapper.register(username, password);
-        User newUser = userMapper.getUserByUsername(username);
-        UserRegisterVo userRegisterVO = new UserRegisterVo();
-        BeanUtils.copyProperties(newUser, userRegisterVO);
-        return R.ok(userRegisterVO);
+        user = userMapper.getUserByEmail(email);
+        if (user != null && user.getEmail().equals(email)) {
+            return R.fail("邮箱已被绑定");
+        }
+        checkEmail(email);
+        String uniqueId = sendEmail(username, email);
+        Map<String,String> userMap = new HashMap<>();
+        userMap.put("username", username);
+        userMap.put("password", password);
+        userMap.put("email", email);
+        redisCache.setCacheObject("uniqueId:" + uniqueId, userMap, 500, TimeUnit.MINUTES);
+        return R.ok("邮件发送成功");
+    }
+
+    @Override
+    public R<String> registerVerity(String uniqueId) {
+        Map<String,String> userMap = redisCache.getCacheObject("uniqueId:" + uniqueId);
+        if(userMap == null) return R.fail("唯一标识错误或已过期");
+        userMapper.register(userMap.get("username"), userMap.get("password"), userMap.get("email"));
+        User user = userMapper.getUserByUsername(userMap.get("username"));
+        userMapper.addUniqueId(user.getId(), uniqueId);
+        redisCache.deleteObject("uniqueId:" + uniqueId);
+        return R.ok("注册成功");
     }
 
     @Override
     public R<String> logout(String token) {
-        Claims claims = parseToken(secret, token);
-        Long userId = claims.get("user_id", Long.class);
+        Long userId = getUserIdByToken(token);
         String key = "LoginUser:" + userId;
         if (redisCache.hasKey(key)) {
             redisCache.deleteObject("LoginUser:" + userId);
@@ -92,59 +125,72 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
-    public R<String> bindEmail(String token, String email, String code) {
-        checkEmail(email);
-        Claims claims = parseToken(secret, token);
-        Long userId = claims.get("user_id", Long.class);
-        String cacheObject = redisCache.getCacheObject("emailCode:" + email);
-        if (!code.equals(cacheObject)) {
-            return R.fail("验证码错误");
+    public R<String> changeEmailSubmit(String token, String uniqueId, String newEmail) throws MessagingException {
+        Long userId = getUserIdByToken(token);
+        User user = userMapper.selectUserById(userId);
+        if (user == null) {
+            return R.fail("用户不存在");
         }
-        // 绑定email
-        userMapper.updateEmailById(userId, email);
-        return R.ok(email);
+        String uniqueIdByUserId = userMapper.getUniqueIdByUserId(userId);
+        if (!uniqueIdByUserId.equals(uniqueId)) {
+            return R.fail("唯一标识错误");
+        }
+        User emailUser = userMapper.getUserByEmail(newEmail);
+        if (emailUser != null && user.getEmail().equals(newEmail)) {
+            return R.fail("邮箱已被绑定");
+        }
+        String newUniqueId = sendEmail(user.getUsername(), newEmail);
+        Map<String,String> userMap = new HashMap<>();
+        userMap.put("userId", userId.toString());
+        userMap.put("email", newEmail);
+        redisCache.setCacheObject("re:uniqueId:" + newUniqueId, userMap, 500, TimeUnit.MINUTES);
+        return R.ok("旧邮箱的唯一标识验证成功");
     }
 
     @Override
-    public R<String> getCaptcha(String token, String email) {
-        Claims claims = parseToken(secret, token);
-        Long userId = claims.get("user_id", Long.class);
-        if(userId == null || userMapper.selectUserById(userId) == null) return R.fail("用户不存在");
-        if(!redisCache.hasKey("LoginUser:" + userId)) return R.fail("登陆状态已过期");
-        checkEmail(email);
-        Random random = new Random();
-        int captcha = 100000 + random.nextInt(900000);
-        String code = String.valueOf(captcha);
-        redisCache.setCacheObject("emailCode:" + email,code,500, TimeUnit.MINUTES);
-        return R.ok(code);
+    public R<String> changeEmailVerity(String token, String uniqueId) {
+        Long userId = getUserIdByToken(token);
+        User user = userMapper.selectUserById(userId);
+        if (user == null) {
+            return R.fail("用户不存在");
+        }
+        Map<String,String> userMap = redisCache.getCacheObject("re:uniqueId:" + uniqueId);
+        if (userMap == null) return R.fail("新的唯一标识错误或已过期");
+        if (!userId.equals(Long.parseLong(userMap.get("userId")))) return R.fail("非法用户");
+        userMapper.updateEmailById(userId, userMap.get("email"));
+        userMapper.updateUniqueIdByUserId(userId, uniqueId);
+        redisCache.deleteObject("re:uniqueId:" + uniqueId);
+        return R.ok("邮箱修改成功");
     }
 
     @Override
-    public R<String> forget(String email, String code, String password, String repassword) {
+    public R<String> forget(String token, String uniqueId, String password, String repassword) {
+        Long userId = getUserIdByToken(token);
+        User user = userMapper.selectUserById(userId);
+        if (user == null) {
+            return R.fail("用户不存在");
+        }
         if(!password.equals(repassword)){
             return R.fail("两次输入密码不一致");
         }
-        checkEmail(email);
-        String cacheObject = redisCache.getCacheObject("emailCode:" + email);
-        if (!code.equals(cacheObject)) {
-            return R.fail("验证码错误");
+        String uniqueIdByUserId = userMapper.getUniqueIdByUserId(userId);
+        if (!uniqueIdByUserId.equals(uniqueId)) {
+            return R.fail("唯一标识错误");
         }
-        userMapper.updatePasswordByEmail(email, password);
+        userMapper.updatePasswordById(userId, password);
         return R.ok("ok");
     }
 
     @Override
     public R<String> updateInfo(String avatar, String nickname, String sex, String token) {
-        Claims claims = parseToken(secret, token);
-        Long userId = claims.get("user_id", Long.class);
+        Long userId = getUserIdByToken(token);
         userMapper.updateUserInfoById(userId, avatar, nickname, sex);
         return R.ok("ok");
     }
 
     @Override
     public R<String> updatePassword(String opassword, String password, String repassword, String token) {
-        Claims claims = parseToken(secret, token);
-        Long userId = claims.get("user_id", Long.class);
+        Long userId = getUserIdByToken(token);
         String passwordById = userMapper.getPasswordById(userId);
         if (passwordById != null && !passwordById.equals(opassword)) {
             return R.fail("密码错误");
@@ -158,30 +204,9 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     public R<User> getUserInfo(String token) {
-        Claims claims = parseToken(secret, token);
-        Long userId = claims.get("user_id", Long.class);
+        Long userId = getUserIdByToken(token);
         User user = userMapper.getUserInfoById(userId);
         return R.ok(user);
-    }
-
-    /**
-     * 登录前置校验
-     * @param username 用户名
-     * @param password 用户密码
-     */
-    public void loginPreCheck(String username, String password) {
-        // 用户名或密码为空 错误
-        if (StringUtils.isEmpty(username) || StringUtils.isEmpty(password)) {
-            throw new UserNotExistsException();
-        }
-        // 密码如果不在指定范围内 错误
-        if (password.length() < UserConstants.PASSWORD_MIN_LENGTH || password.length() > UserConstants.PASSWORD_MAX_LENGTH) {
-            throw new UserPasswordNotMatchException();
-        }
-        // 用户名不在指定范围内 错误
-        if (username.length() < UserConstants.USERNAME_MIN_LENGTH || username.length() > UserConstants.USERNAME_MAX_LENGTH) {
-            throw new UserPasswordNotMatchException();
-        }
     }
 
     public String createToken(User user) {
@@ -216,11 +241,39 @@ public class UserServiceImpl implements IUserService {
         }
     }
 
+    public Long getUserIdByToken(String token) {
+        Claims claims = parseToken(secret, token);
+        return claims.get("user_id", Long.class);
+    }
+
     public void checkEmail(String email) {
         String regex = "^[a-zA-Z0-9_!#$%&'*+/=?`{|}~^.-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$";
         if (!email.matches(regex)) {
             throw new RuntimeException("邮箱格式错误");
         }
+    }
+
+    public String sendEmail(String username, String email) throws MessagingException {
+        MimeMessage mimeMessage = javaMailSender.createMimeMessage();
+        MimeMessageHelper mimeMessageHelper = new MimeMessageHelper(mimeMessage, true);
+        // 准备模板数据
+        Context context = new Context();
+        context.setVariable("username", username);
+        context.setVariable("message", "欢迎使用我们的服务！");
+        String uniqueId = UUID.randomUUID() + "-" + System.currentTimeMillis();
+        context.setVariable("uniqueId", uniqueId);
+        // 通过模板引擎生成HTML内容
+        String content = springTemplateEngine.process("mail-template", context);
+        // 设置邮件内容
+        mimeMessageHelper.setSubject(subject);
+        mimeMessageHelper.setText(content, true);
+        mimeMessageHelper.setTo(email);
+        mimeMessageHelper.setFrom(from);
+        //
+        ClassPathResource imageResource = new ClassPathResource("static/open-source-helper.jpg");
+        mimeMessageHelper.addInline("logoImage", imageResource);
+        javaMailSender.send(mimeMessage);
+        return uniqueId;
     }
 
 
