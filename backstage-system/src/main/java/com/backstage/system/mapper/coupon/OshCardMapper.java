@@ -19,7 +19,7 @@ public interface OshCardMapper
      * 查询卡券信息
      * 
      * @param id 卡券信息主键
-     * @return 卡券信息
+     * @return 卡券详细信息
      */
     public OshCard selectOshCardById(Long id);
 

@@ -1,7 +1,7 @@
 package com.backstage.system.service.impl.order;
 
 import com.backstage.system.domain.Book;
-import com.backstage.system.domain.course.OshCoures;
+import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.group.GroupActivity;
 import com.backstage.system.domain.vo.ColumnDetailVo;
 import com.backstage.system.domain.vo.FlashColumnVo;
@@ -9,7 +9,7 @@ import com.backstage.system.domain.vo.LiveDetailVo;
 import com.backstage.system.domain.vo.order.GoodsVo;
 import com.backstage.system.mapper.column.ColumnMapper;
 import com.backstage.system.mapper.column.SysFlashColumnMapper;
-import com.backstage.system.mapper.course.OshCouresMapper;
+import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.group.GroupMapper;
 import com.backstage.system.mapper.live.LiveMapper;
 import com.backstage.system.mapper.order.OshBookMapper;
@@ -26,7 +26,7 @@ public class OrderListInfoServiceImpl implements OrderListInfoService {
 
 
     @Autowired
-    private OshCouresMapper  courseMapper;
+    private OshCourseMapper courseMapper;
     @Autowired
     private SysFlashColumnMapper flashColumnMapper;
     @Autowired
@@ -54,7 +54,7 @@ public class OrderListInfoServiceImpl implements OrderListInfoService {
             }
         }else if (type.equals("course")) {
             // 课程
-            OshCoures course = courseMapper.selectCourseById(id);
+            OshCourse course = courseMapper.selectCourseById(id);
             if (course!=null){
                 String cover = course.getCover();
                 String title = course.getTitle();
@@ -79,15 +79,15 @@ public class OrderListInfoServiceImpl implements OrderListInfoService {
     public GoodsVo CreateOrderInfo(Object s){
         GoodsVo a = new GoodsVo();
         if (s!=null) {
-            OshCoures course;
+            OshCourse course;
             ColumnDetailVo column;
             LiveDetailVo live;
             FlashColumnVo flash;
             GroupActivity group;
             Book book;
 
-            if (s instanceof OshCoures) {
-                course = (OshCoures) s;
+            if (s instanceof OshCourse) {
+                course = (OshCourse) s;
                 Long id = course.getId();
                 a.setId(id.intValue());
                 a.setTitle(course.getTitle());
@@ -147,7 +147,7 @@ public class OrderListInfoServiceImpl implements OrderListInfoService {
 
         // 查询对应模块的 id titile cover price type(video 或者其它)
         if (type.equals("course") ){
-            OshCoures c = courseMapper.selectCourseById(Long.valueOf(id));
+            OshCourse c = courseMapper.selectCourseById(Long.valueOf(id));
             return CreateOrderInfo(c);
         }else if (type.equals("column")){
             ColumnDetailVo cd = columnMapper.getColumnDetail(Long.valueOf(id));

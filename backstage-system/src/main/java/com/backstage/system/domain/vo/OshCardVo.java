@@ -22,7 +22,7 @@ public class OshCardVo {
     private Integer used;
     /** 标题 */
     private String title;
-    /** 商品 ID */
+    /** 货品 ID */
     private Long goodsId;
 
     public Long getId() {

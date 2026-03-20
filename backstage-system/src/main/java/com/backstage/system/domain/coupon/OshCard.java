@@ -15,7 +15,7 @@ import com.backstage.common.core.domain.BaseEntity;
  * @date 2026-03-15
  */
 public class OshCard extends BaseEntity
-{
+{// 卡券信息
     private static final long serialVersionUID = 1L;
 
     /** ID */

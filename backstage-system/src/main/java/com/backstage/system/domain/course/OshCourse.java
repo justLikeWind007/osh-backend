@@ -17,8 +17,8 @@ import java.util.Date;
  * @date 2026-01-XX
  */
 @ApiModel(description = "课程信息")
-public class OshCoures
-{
+public class OshCourse
+{// 课程信息
     private static final long serialVersionUID = 1L;
 
     /** 课程 ID */
