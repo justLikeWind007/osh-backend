@@ -1,0 +1,30 @@
+drop table if exists osh_coures;
+create table osh_coures (
+
+                            id                bigint(20)      not null auto_increment    comment '课程ID',
+                            title             varchar(200)    not null                   comment '课程标题',
+                            cover             varchar(500)    default null               comment '课程封面图URL',
+                            try_content       text            default null               comment '课程介绍/试看内容',
+                            price             decimal(10, 2)  default 0.00               comment '当前价格',
+                            t_price           decimal(10, 2)  default null               comment '原价/市场价',
+                            type              varchar(20)     default null               comment '课程类型（media-视频课 live-直播课 text-图文课）',
+                            sub_count         int(11)         default 0                  comment '章节数量',
+                            column_id         bigint(20)      default null               comment '所属专栏ID',
+                            appid             varchar(64)     default null               comment '网校appid',
+                            isbuy             tinyint(1)      default 0                  comment '是否已购买（0-否 1-是）',
+                            isfava            tinyint(1)      default 0                  comment '是否已收藏（0-否 1-是）',
+                            ext_field1        varchar(255)    default null               comment '备用字段1',
+                            ext_field2        varchar(255)    default null               comment '备用字段2',
+                            ext_field3        varchar(255)    default null               comment '备用字段3',
+                            ext_field4        varchar(255)    default null               comment '备用字段4',
+                            ext_field5        int(11)         default null               comment '备用字段5',
+                            ext_field6        int(11)         default null               comment '备用字段6',
+                            ext_field7        decimal(10, 2)  default null               comment '备用字段7',
+                            ext_field8        datetime        default null               comment '备用字段8',
+                            create_by         varchar(64)     default ''                 comment '创建者',
+                            create_time       datetime                                   comment '创建时间',
+                            update_by         varchar(64)     default ''                 comment '更新者',
+                            update_time       datetime                                   comment '更新时间',
+                            remark            varchar(500)    default null               comment '备注',
+                            primary key (id)
+) engine=innodb auto_increment=1 comment = '课程信息表';
