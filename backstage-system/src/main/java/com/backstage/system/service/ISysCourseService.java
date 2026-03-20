@@ -10,7 +10,7 @@ import java.util.List;
  * @author ruoyi
  * @date 2026-01-XX
  */
-public interface IOshCouresService 
+public interface ISysCourseService 
 {
     /**
      * 查询课程详情

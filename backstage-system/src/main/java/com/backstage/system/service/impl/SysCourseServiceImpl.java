@@ -2,7 +2,7 @@ package com.backstage.system.service.impl;
 
 import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.mapper.course.OshCourseMapper;
-import com.backstage.system.service.IOshCouresService;
+import com.backstage.system.service.ISysCourseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -15,10 +15,10 @@ import java.util.List;
  * @date 2026-01-XX
  */
 @Service
-public class OshCouresServiceImpl implements IOshCouresService 
+public class SysCourseServiceImpl implements ISysCourseService 
 {
     @Autowired
-    private OshCourseMapper oshCouresMapper;
+    private OshCourseMapper sysCourseMapper;
 
     /**
      * 查询课程详情
@@ -29,7 +29,7 @@ public class OshCouresServiceImpl implements IOshCouresService
     @Override
     public OshCourse selectCourseById(Long id)
     {
-        return oshCouresMapper.selectCourseById(id);
+        return sysCourseMapper.selectCourseById(id);
     }
 
     /**
@@ -41,7 +41,7 @@ public class OshCouresServiceImpl implements IOshCouresService
     @Override
     public List<OshCourse> selectCourseList(Long columnId)
     {
-        return oshCouresMapper.selectCourseList(columnId);
+        return sysCourseMapper.selectCourseList(columnId);
     }
 
     /**
@@ -53,7 +53,7 @@ public class OshCouresServiceImpl implements IOshCouresService
     @Override
     public int insertCourse(OshCourse course)
     {
-        return oshCouresMapper.insertCourse(course);
+        return sysCourseMapper.insertCourse(course);
     }
 
     /**
@@ -65,7 +65,7 @@ public class OshCouresServiceImpl implements IOshCouresService
     @Override
     public int updateCourse(OshCourse course)
     {
-        return oshCouresMapper.updateCourse(course);
+        return sysCourseMapper.updateCourse(course);
     }
 
     /**
@@ -77,7 +77,7 @@ public class OshCouresServiceImpl implements IOshCouresService
     @Override
     public int deleteCourseByIds(Long[] ids)
     {
-        return oshCouresMapper.deleteCourseByIds(ids);
+        return sysCourseMapper.deleteCourseByIds(ids);
     }
 
     /**
@@ -89,6 +89,6 @@ public class OshCouresServiceImpl implements IOshCouresService
     @Override
     public int deleteCourseById(Long id)
     {
-        return oshCouresMapper.deleteCourseById(id);
+        return sysCourseMapper.deleteCourseById(id);
     }
 }
