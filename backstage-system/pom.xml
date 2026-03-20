@@ -13,6 +13,13 @@
                 <directory>src/main/resources</directory>
                 <includes>
                     <include>**/*.xml</include>
+                    <include>**/*.html</include>
+                    <include>**/templates/**</include>
+                    <include>**/static/**</include>
+                    <include>**/*.jpg</include>
+                    <include>**/*.png</include>
+                    <include>**/*.gif</include>
+                    <include>**/*.ico</include>
                 </includes>
             </resource>
         </resources>
@@ -49,11 +56,6 @@
             <artifactId>backstage-common</artifactId>
         </dependency>
 
-        <!-- mybatis-plus -->
-        <dependency>
-            <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-boot-starter</artifactId>
-        </dependency>
 
         <!-- lombok -->
         <dependency>
