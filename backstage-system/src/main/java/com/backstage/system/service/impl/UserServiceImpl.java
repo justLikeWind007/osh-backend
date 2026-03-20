@@ -1,11 +1,7 @@
 package com.backstage.system.service.impl;
 
-import com.backstage.common.constant.UserConstants;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.core.redis.RedisCache;
-import com.backstage.common.exception.user.UserNotExistsException;
-import com.backstage.common.exception.user.UserPasswordNotMatchException;
-import com.backstage.common.utils.StringUtils;
 import com.backstage.system.domain.user.User;
 import com.backstage.system.domain.user.vo.UserLoginVo;
 import com.backstage.system.mapper.user.UserMapper;
