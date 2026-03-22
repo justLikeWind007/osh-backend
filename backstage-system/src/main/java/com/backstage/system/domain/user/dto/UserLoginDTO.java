@@ -13,16 +13,18 @@ import io.swagger.annotations.ApiModelProperty;
 @ApiModel(value = "账号登录参数", description = "前端传递的登录请求实体类")
 public class UserLoginDTO {
     @ApiModelProperty(
-            value = "用户名",
+            value = "用户名或邮箱",
             required = true
     )
     private String username;
     @ApiModelProperty(
-            value = "用户密码",
+            value = "用户密码或唯一标识",
             example = "admin123",
             required = true
     )
     private String password;
+
+
 
     public String getUsername() {
         return username;

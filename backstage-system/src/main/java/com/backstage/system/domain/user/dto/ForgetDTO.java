@@ -13,17 +13,10 @@ import io.swagger.annotations.ApiModelProperty;
 @ApiModel(value = "找回密码参数", description = "前端传递的找回密码请求实体类")
 public class ForgetDTO {
     @ApiModelProperty(
-            value = "邮箱",
-            example = "admin123",
+            value = "用户的唯一标识",
             required = true
     )
-    private String email;
-    @ApiModelProperty(
-            value = "验证码",
-            example = "admin123",
-            required = true
-    )
-    private String code;
+    private String uniqueId;
     @ApiModelProperty(
             value = "用户密码",
             example = "admin123",
@@ -37,20 +30,12 @@ public class ForgetDTO {
     )
     private String repassword;
 
-    public String getEmail() {
-        return email;
+    public String getUniqueId() {
+        return uniqueId;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getCode() {
-        return code;
-    }
-
-    public void setCode(String code) {
-        this.code = code;
+    public void setUniqueId(String uniqueId) {
+        this.uniqueId = uniqueId;
     }
 
     public String getPassword() {
@@ -72,8 +57,7 @@ public class ForgetDTO {
     @Override
     public String toString() {
         return "ForgetDTO{" +
-                "email='" + email + '\'' +
-                ", code='" + code + '\'' +
+                "uniqueId='" + uniqueId + '\'' +
                 ", password='" + password + '\'' +
                 ", repassword='" + repassword + '\'' +
                 '}';

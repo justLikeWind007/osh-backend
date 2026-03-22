@@ -11,14 +11,14 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 /**
- * 课程信息对象 sys_course
+ * 课程信息对象 osh_coures
  * 
  * @author ruoyi
  * @date 2026-01-XX
  */
 @ApiModel(description = "课程信息")
-public class SysCourse
-{
+public class OshCourse
+{// 课程信息
     private static final long serialVersionUID = 1L;
 
     /** 课程 ID */

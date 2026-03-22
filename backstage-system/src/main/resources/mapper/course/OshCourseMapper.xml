@@ -2,9 +2,9 @@
 <!DOCTYPE mapper
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.backstage.system.mapper.course.SysCourseMapper">
+<mapper namespace="com.backstage.system.mapper.course.OshCourseMapper">
     
-    <resultMap type="SysCourse" id="SysCourseResult">
+    <resultMap type="OshCourse" id="OshCouresResult">
         <result property="id"   column="id"    />
         <result property="title"   column="title"    />
         <result property="cover"   column="cover"    />
@@ -31,17 +31,17 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectCourseVo">
-        select id, title, cover, try, price, t_price, type, remark, create_time, update_time from sys_course
+        select id, title, cover, try, price, t_price, type, remark, create_time, update_time from osh_course
     </sql>
 
     <!-- 查询课程详情 -->
-    <select id="selectCourseById" parameterType="Long" resultMap="SysCourseResult">
+    <select id="selectCourseById" parameterType="Long" resultMap="OshCouresResult">
         <include refid="selectCourseVo"/>
         where id = #{id}
     </select>
 
     <!-- 根据条件查询课程列表 -->
-    <select id="selectCourseList" resultMap="SysCourseResult">
+    <select id="selectCourseList" resultMap="OshCouresResult">
         <include refid="selectCourseVo"/>
         <where>  
             <if test="columnId != null">
@@ -51,8 +51,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <!-- 新增课程 -->
-    <insert id="insertCourse" parameterType="SysCourse" useGeneratedKeys="true" keyProperty="id">
-        insert into sys_course
+    <insert id="insertCourse" parameterType="OshCourse" useGeneratedKeys="true" keyProperty="id">
+        insert into osh_course
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="title != null and title != ''">title,</if>
             <if test="cover != null and cover != ''">cover,</if>
@@ -100,8 +100,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </insert>
 
     <!-- 修改课程 -->
-    <update id="updateCourse" parameterType="SysCourse">
-        update sys_course
+    <update id="updateCourse" parameterType="OshCourse">
+        update osh_course
         <trim prefix="SET" suffixOverrides=",">
             <if test="title != null and title != ''">title = #{title},</if>
             <if test="cover != null and cover != ''">cover = #{cover},</if>
@@ -129,12 +129,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <!-- 删除课程 -->
     <delete id="deleteCourseById" parameterType="Long">
-        delete from sys_course where id = #{id}
+        delete from osh_course where id = #{id}
     </delete>
 
     <!-- 批量删除课程 -->
     <delete id="deleteCourseByIds" parameterType="String">
-        delete from sys_course where id in 
+        delete from osh_course where id in
         <foreach item="id" collection="array" open="(" separator="," close=")">
             #{id}
         </foreach>

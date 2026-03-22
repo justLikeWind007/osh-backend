@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>开源助手 - 欢迎注册</title>
+    <style>
+        /* 邮件客户端兼容样式 */
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            font-family: 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        .email-wrapper {
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 20px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-container {
+            background-color: rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            padding: 4px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .company-logo {
+            max-width: 200px;
+            max-height: 80px;
+            height: auto;
+            width: auto;
+            display: block;
+        }
+
+        .welcome-text {
+            line-height: 1.3;
+        }
+        .welcome-text h1 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+        .welcome-text p {
+            margin: 4px 0 0;
+            opacity: 0.9;
+            font-size: 12px;
+        }
+        .content {
+            padding: 25px;
+            background-color: #ffffff;
+        }
+        .unique-id {
+            background-color: #e8f5e9;
+            border: 1px dashed #4CAF50;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 15px 0;
+            text-align: center;
+        }
+        .unique-id .label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        .unique-id .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #000000;
+            letter-spacing: 2px;
+            font-family: 'Courier New', monospace;
+        }
+        .unique-id .note {
+            font-size: 12px;
+            color: #999;
+            margin-top: 6px;
+        }
+        .login-methods {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 15px 0;
+        }
+        .login-methods h3 {
+            margin: 0 0 8px;
+            color: #333;
+            font-size: 15px;
+        }
+        .method-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .method-tag {
+            background-color: #ffffff;
+            border: 1px solid #4CAF50;
+            color: #4CAF50;
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 12px;
+            display: inline-block;
+        }
+        .feature-list {
+            margin: 20px 0;
+        }
+        .feature-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #eeeeee;
+            display: flex;
+            align-items: flex-start;
+        }
+        .feature-number {
+            background-color: #4CAF50;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        .feature-text {
+            flex: 1;
+            color: #555;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .feature-text strong {
+            color: #4CAF50;
+        }
+        .highlight {
+            background: linear-gradient(120deg, #f0f7f0 0%, #f0f7f0 100%);
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 13px;
+            color: #2d5a2d;
+        }
+
+        @media only screen and (max-width: 480px) {
+            .container { padding: 10px; }
+            .content { padding: 15px; }
+            .header {
+                padding: 15px;
+                flex-direction: column;
+                text-align: center;
+            }
+            .header-left {
+                margin-bottom: 10px;
+                flex-direction: column;
+                width: 100%;
+            }
+            .logo-container { margin-bottom: 8px; }
+            .unique-id .value { font-size: 20px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="email-wrapper">
+        <div class="header" th:fragment="header">
+            <div class="header-left">
+                <div class="logo-container">
+                    <img th:src="'cid:logoImage'" alt="开源助手" class="company-logo">
+                </div>
+
+                <div class="welcome-text">
+                    <h1 th:text="'尊敬的 ' + ${username} + '，您好！'"></h1>
+                    <p>感谢您注册开源助手 · 开启开源之旅</p>
+                </div>
+            </div>
+            <div style="width: 10px;"></div>
+        </div>
+
+        <!-- 内容区域 Content -->
+        <div class="content">
+
+            <div class="unique-id">
+                <div class="label">您的唯一标识（第二密码）</div>
+                <div class="value" th:text="${uniqueId} ?: 'xxx'">xxx</div>
+                <div class="note">请妥善保管，登录时可用作第二密码</div>
+            </div>
+
+            <!-- 登录方式 -->
+            <div class="login-methods">
+                <h3>🔐 支持的登录方式：</h3>
+                <div class="method-tags">
+                    <span class="method-tag">用户名 + 密码</span>
+                    <span class="method-tag">用户名 + 唯一标识</span>
+                    <span class="method-tag">邮箱 + 密码</span>
+                    <span class="method-tag">邮箱 + 唯一标识</span>
+                </div>
+            </div>
+
+            <!-- 平台介绍 -->
+            <div style="margin: 25px 0 15px;">
+                <h3 style="color: #333; border-left: 3px solid #4CAF50; padding-left: 10px; margin-bottom: 15px; font-size: 16px;">
+                    我们是一个通过精品开源项目帮助求职者、个人开发者与企业的平台
+                </h3>
+
+                <div class="feature-list">
+                    <!-- 特性1 -->
+                    <div class="feature-item">
+                        <span class="feature-number">1</span>
+                        <div class="feature-text">
+                            <strong>零门槛入门</strong> - 平台上所有开源项目都包含最基础的搭建、启动、部署与使用等基础教程
+                        </div>
+                    </div>
+
+                    <!-- 特性2 -->
+                    <div class="feature-item">
+                        <span class="feature-number">2</span>
+                        <div class="feature-text">
+                            <strong>包就业服务</strong> - 通过就业辅导+学习规划+答疑+模拟面试+试用期兜底，让您转行/找工作/跳槽都能具备极大优势以及节省大量时间
+                        </div>
+                    </div>
+
+                    <!-- 特性3 -->
+                    <div class="feature-item">
+                        <span class="feature-number">3</span>
+                        <div class="feature-text">
+                            <strong>企业服务</strong> - 如果您是企业用户，需要我们帮您搭建、部署、迭代开发、维护或者进行员工培训，也欢迎联系我们
+                        </div>
+                    </div>
+
+                    <!-- 特性4 -->
+                    <div class="feature-item">
+                        <span class="feature-number">4</span>
+                        <div class="feature-text">
+                            <strong>副业机会</strong> - 如果您想要一份副业收入，可以学习本平台项目教程，通过考试并通过审核即可成为该项目的兼职服务人员
+                        </div>
+                    </div>
+
+                    <!-- 特性5 -->
+                    <div class="feature-item">
+                        <span class="feature-number">5</span>
+                        <div class="feature-text">
+                            <strong>项目类型</strong> - 本平台开源项目类型以互联网企业刚需或AI领域的为主
+                        </div>
+                    </div>
+
+                    <!-- 特性6 -->
+                    <div class="feature-item">
+                        <span class="feature-number">6</span>
+                        <div class="feature-text">
+                            <strong>项目来源</strong> - 主要来源于GitHub、Gitee，以协议宽松的为主，少部分为自研或学习市面课程加以改造而来
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 宗旨 Highlight -->
+            <div class="highlight">
+                <div style="font-size: 18px; font-weight: bold; margin-bottom: 8px; color: #4CAF50;">🎯 我们的宗旨</div>
+                <div style="font-size: 20px; font-weight: bold; margin: 8px 0; color: #333;">拼多多的价格 · 胖东来的服务</div>
+                <p style="margin: 12px 0 4px; font-size: 13px;">您有任何意见/建议欢迎来谏寓提出，我们会认真对待！</p>
+            </div>
+
+        </div>
+    </div>
+</div>
+</body>
+</html>

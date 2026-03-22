@@ -232,6 +232,22 @@
                 <version>${sensitive-word.version}</version>
             </dependency>
 
+
+
+            <!-- Cloudflare R2 对象存储（S3兼容）-->
+            <dependency>
+                <groupId>org.dromara.x-file-storage</groupId>
+                <artifactId>x-file-storage-spring</artifactId>
+                <version>2.1.0</version>
+            </dependency>
+
+            <!-- 必须：S3 核心依赖 -->
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-java-sdk-s3</artifactId>
+                <version>1.12.362</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
