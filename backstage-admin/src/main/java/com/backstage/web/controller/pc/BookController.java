@@ -20,8 +20,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/pc/book")
-public class BookController extends BaseBookController
-{
+public class BookController extends BaseBookController {
     @Autowired
     private IBookService bookService;
 
@@ -30,12 +29,11 @@ public class BookController extends BaseBookController
      */
     @Anonymous
     @GetMapping("/list")
-    public R<Page<Book>> list(@RequestParam(defaultValue = "1") Integer page)
-    {
+    public R<Page<Book>> list(@RequestParam(defaultValue = "1") Integer page) {
         Page<Book> pageParam = new Page<>(page, 10);
         LambdaQueryWrapper<Book> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Book::getStatus, "0")
-               .orderByDesc(Book::getCreateTime);
+                .orderByDesc(Book::getCreateTime);
 
         Page<Book> pageResult = bookService.page(pageParam, wrapper);
         return R.ok(pageResult);
@@ -46,8 +44,7 @@ public class BookController extends BaseBookController
      */
     @Anonymous
     @GetMapping("/read")
-    public R<BookDetailVO> read(@RequestParam Long id)
-    {
+    public R<BookDetailVO> read(@RequestParam Long id) {
         Long userId = getCurrentUserId();
         BookDetailVO detail = bookService.selectBookDetail(id, userId);
         return R.ok(detail);
@@ -58,8 +55,7 @@ public class BookController extends BaseBookController
      */
     @Anonymous
     @GetMapping("/detail")
-    public R<BookChapterContentVO> detail(@RequestParam Long book_id, @RequestParam Long id)
-    {
+    public R<BookChapterContentVO> detail(@RequestParam Long book_id, @RequestParam Long id) {
         Long userId = getCurrentUserId();
         BookChapterContentVO content = bookService.selectBookChapterContent(book_id, id, userId);
         return R.ok(content);
@@ -70,8 +66,7 @@ public class BookController extends BaseBookController
      */
     @Anonymous
     @GetMapping("/menus")
-    public R<BookMenuVO> menus(@RequestParam Long id)
-    {
+    public R<BookMenuVO> menus(@RequestParam Long id) {
         Long userId = getCurrentUserId();
         BookMenuVO menu = bookService.selectBookMenu(id, userId);
         return R.ok(menu);
