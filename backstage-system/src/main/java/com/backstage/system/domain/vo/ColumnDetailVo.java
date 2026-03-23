@@ -1,5 +1,7 @@
 package com.backstage.system.domain.vo;
 
+import com.alibaba.fastjson2.annotation.JSONField;
+
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -40,6 +42,7 @@ public class ColumnDetailVo {
     /**
      * 原价
      */
+    @JSONField(name = "t_price")
     private BigDecimal tPrice;
 
     /**
@@ -50,6 +53,7 @@ public class ColumnDetailVo {
     /**
      * 订阅数
      */
+    @JSONField(name = "sub_count")
     private Integer subCount;
 
     private List<ColumnCourseVo> columnCoursVos;

@@ -158,3 +158,9 @@ x-file-storage:
     bucket-name: osh
     public-domain: https://pub-cc2625f0659a489793764180efc40d08.r2.dev
     base-path: common/image/
+baidu:
+  ai:
+    app-id: 122501081       # 应用列表中的AppID
+    api-key: Ozc7BMQUP6NHJDJddANFLdwC     # 复制的API Key
+    secret-key: xecF7Z7HZmAVhUPlje7djcaxkfY6CrYT # 复制的Secret Key
+    timeout: 3000             # 超时时间（毫秒）
