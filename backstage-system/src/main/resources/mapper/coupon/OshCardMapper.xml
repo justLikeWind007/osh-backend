@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.coupon.OshCardMapper">
+    
+    <resultMap type="OshCard" id="OshCardResult">
+        <result property="id"    column="id"    />
+        <result property="title"    column="title"    />
+        <result property="type"    column="type"    />
+        <result property="price"    column="price"    />
+        <result property="goodsId"    column="goods_id"    />
+        <result property="startTime"    column="start_time"    />
+        <result property="endTime"    column="end_time"    />
+        <result property="used"    column="used"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="remark"    column="remark"    />
+    </resultMap>
+
+    <sql id="selectOshCardVo">
+        select id, title, type, price, goods_id, start_time, end_time, used, create_by, create_time, update_by, update_time, remark from osh_card
+    </sql>
+
+    <select id="selectOshCardList" parameterType="OshCard" resultMap="OshCardResult">
+        <include refid="selectOshCardVo"/>
+        <where>  
+            <if test="title != null  and title != ''"> and title = #{title}</if>
+            <if test="type != null  and type != ''"> and type = #{type}</if>
+            <if test="price != null "> and price = #{price}</if>
+            <if test="goodsId != null "> and goods_id = #{goodsId}</if>
+            <if test="startTime != null "> and start_time = #{startTime}</if>
+            <if test="endTime != null "> and end_time = #{endTime}</if>
+            <if test="used != null "> and used = #{used}</if>
+        </where>
+    </select>
+    
+    <select id="selectOshCardById" parameterType="Long" resultMap="OshCardResult">
+        <include refid="selectOshCardVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertOshCard" parameterType="OshCard" useGeneratedKeys="true" keyProperty="id">
+        insert into osh_card
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="title != null">title,</if>
+            <if test="type != null">type,</if>
+            <if test="price != null">price,</if>
+            <if test="goodsId != null">goods_id,</if>
+            <if test="startTime != null">start_time,</if>
+            <if test="endTime != null">end_time,</if>
+            <if test="used != null">used,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="remark != null">remark,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="title != null">#{title},</if>
+            <if test="type != null">#{type},</if>
+            <if test="price != null">#{price},</if>
+            <if test="goodsId != null">#{goodsId},</if>
+            <if test="startTime != null">#{startTime},</if>
+            <if test="endTime != null">#{endTime},</if>
+            <if test="used != null">#{used},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="remark != null">#{remark},</if>
+         </trim>
+    </insert>
+
+    <update id="updateOshCard" parameterType="OshCard">
+        update osh_card
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="title != null">title = #{title},</if>
+            <if test="type != null">type = #{type},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="goodsId != null">goods_id = #{goodsId},</if>
+            <if test="startTime != null">start_time = #{startTime},</if>
+            <if test="endTime != null">end_time = #{endTime},</if>
+            <if test="used != null">used = #{used},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteOshCardById" parameterType="Long">
+        delete from osh_card where id = #{id}
+    </delete>
+
+
+    <delete id="deleteOshCardByIds" parameterType="String">
+        delete from osh_card where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

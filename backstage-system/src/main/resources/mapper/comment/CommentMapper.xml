@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.comment.CommentMapper">
+
+    <resultMap id="CommentVoResultMap" type="com.backstage.system.domain.vo.CommentVo">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="username" column="username"/>
+        <result property="nickname" column="nickname"/>
+        <result property="avatar" column="avatar"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="parentUserId" column="parent_user_id"/>
+        <result property="parentNickname" column="parent_nickname"/>
+        <result property="content" column="content"/>
+        <result property="likeCount" column="like_count"/>
+        <result property="replyCount" column="reply_count"/>
+        <result property="status" column="status"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="existsCourseInColumn" resultType="boolean">
+        select exists (
+            select 1
+            from osh_course c
+            left join osh_column_course occ
+                on occ.course_id = c.id
+               and occ.column_id = #{columnId}
+            where c.id = #{courseId}
+              and (c.column_id = #{columnId} or occ.id is not null)
+        )
+    </select>
+
+    <select id="selectCourseCommentList" resultMap="CommentVoResultMap">
+        select
+            c.id,
+            c.user_id,
+            ifnull(u.username, '') as username,
+            ifnull(u.nickname, '') as nickname,
+            ifnull(u.avatar, '') as avatar,
+            c.parent_id,
+            null as parent_user_id,
+            '' as parent_nickname,
+            c.content,
+            c.like_count,
+            c.reply_count,
+            c.status,
+            c.create_time,
+            c.update_time
+        from osh_comment c
+        inner join osh_comment_relation cr
+            on cr.comment_id = c.id
+           and cr.biz_type = #{bizType}
+           and cr.biz_id = #{courseId}
+        left join osh_user u
+            on u.id = c.user_id
+        where c.status = 1
+          and (c.parent_id = 0 or c.parent_id is null)
+        order by
+            c.create_time asc,
+            c.id asc
+    </select>
+
+    <select id="selectCourseReplyList" resultMap="CommentVoResultMap">
+        select
+            c.id,
+            c.user_id,
+            ifnull(u.username, '') as username,
+            ifnull(u.nickname, '') as nickname,
+            ifnull(u.avatar, '') as avatar,
+            c.parent_id,
+            p.user_id as parent_user_id,
+            ifnull(pu.nickname, '') as parent_nickname,
+            c.content,
+            c.like_count,
+            c.reply_count,
+            c.status,
+            c.create_time,
+            c.update_time
+        from osh_comment c
+        inner join osh_comment p
+            on p.id = c.parent_id
+        inner join osh_comment_relation cr
+            on cr.comment_id = p.id
+           and cr.biz_type = #{bizType}
+           and cr.biz_id = #{courseId}
+        left join osh_user u
+            on u.id = c.user_id
+        left join osh_user pu
+            on pu.id = p.user_id
+        where c.status = 1
+          and c.parent_id in
+        <foreach collection="parentIds" item="parentId" open="(" separator="," close=")">
+            #{parentId}
+        </foreach>
+        order by
+            c.parent_id asc,
+            c.create_time asc,
+            c.id asc
+    </select>
+
+    <select id="existsRootCommentInCourse" resultType="boolean">
+        select exists (
+            select 1
+            from osh_comment c
+            inner join osh_comment_relation cr
+                on cr.comment_id = c.id
+               and cr.biz_type = #{bizType}
+               and cr.biz_id = #{courseId}
+            where c.id = #{commentId}
+              and c.status = 1
+              and (c.parent_id = 0 or c.parent_id is null)
+        )
+    </select>
+
+    <insert id="insertComment" parameterType="com.backstage.system.domain.comment.Comment"
+            useGeneratedKeys="true" keyProperty="comment.id">
+        insert into osh_comment (
+            user_id,
+            parent_id,
+            content,
+            like_count,
+            reply_count,
+            status,
+            create_time,
+            update_time
+        ) values (
+            #{comment.userId},
+            #{comment.parentId},
+            #{comment.content},
+            #{comment.likeCount},
+            #{comment.replyCount},
+            #{comment.status},
+            now(),
+            now()
+        )
+    </insert>
+
+    <insert id="insertCommentRelation">
+        insert into osh_comment_relation (
+            comment_id,
+            biz_type,
+            biz_id,
+            create_time
+        ) values (
+            #{commentId},
+            #{bizType},
+            #{bizId},
+            now()
+        )
+    </insert>
+
+    <update id="increaseReplyCount">
+        update osh_comment
+        set reply_count = ifnull(reply_count, 0) + 1,
+            update_time = now()
+        where id = #{commentId}
+    </update>
+
+    <select id="selectCommentById" resultMap="CommentVoResultMap">
+        select
+            c.id,
+            c.user_id,
+            ifnull(u.username, '') as username,
+            ifnull(u.nickname, '') as nickname,
+            ifnull(u.avatar, '') as avatar,
+            c.parent_id,
+            p.user_id as parent_user_id,
+            ifnull(pu.nickname, '') as parent_nickname,
+            c.content,
+            c.like_count,
+            c.reply_count,
+            c.status,
+            c.create_time,
+            c.update_time
+        from osh_comment c
+        left join osh_user u
+            on u.id = c.user_id
+        left join osh_comment p
+            on p.id = c.parent_id
+        left join osh_user pu
+            on pu.id = p.user_id
+        where c.id = #{commentId}
+        limit 1
+    </select>
+</mapper>

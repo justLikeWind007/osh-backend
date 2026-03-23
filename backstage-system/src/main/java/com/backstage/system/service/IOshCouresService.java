@@ -1,6 +1,6 @@
 package com.backstage.system.service;
 
-import com.backstage.system.domain.course.OshCoures;
+import com.backstage.system.domain.course.OshCourse;
 
 import java.util.List;
 
@@ -18,7 +18,7 @@ public interface IOshCouresService
      * @param id 课程 ID
      * @return 课程信息
      */
-    OshCoures selectCourseById(Long id);
+    OshCourse selectCourseById(Long id);
 
     /**
      * 查询课程列表
@@ -26,7 +26,7 @@ public interface IOshCouresService
      * @param columnId 专栏 ID
      * @return 课程集合
      */
-    List<OshCoures> selectCourseList(Long columnId);
+    List<OshCourse> selectCourseList(Long columnId);
 
     /**
      * 新增课程
@@ -34,7 +34,7 @@ public interface IOshCouresService
      * @param course 课程信息
      * @return 结果
      */
-    int insertCourse(OshCoures course);
+    int insertCourse(OshCourse course);
 
     /**
      * 修改课程
@@ -42,7 +42,7 @@ public interface IOshCouresService
      * @param course 课程信息
      * @return 结果
      */
-    int updateCourse(OshCoures course);
+    int updateCourse(OshCourse course);
 
     /**
      * 批量删除课程

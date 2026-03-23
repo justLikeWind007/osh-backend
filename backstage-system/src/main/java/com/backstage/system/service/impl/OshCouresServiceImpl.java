@@ -1,7 +1,7 @@
 package com.backstage.system.service.impl;
 
-import com.backstage.system.domain.course.OshCoures;
-import com.backstage.system.mapper.course.OshCouresMapper;
+import com.backstage.system.domain.course.OshCourse;
+import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.service.IOshCouresService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,7 +18,7 @@ import java.util.List;
 public class OshCouresServiceImpl implements IOshCouresService 
 {
     @Autowired
-    private OshCouresMapper oshCouresMapper;
+    private OshCourseMapper oshCouresMapper;
 
     /**
      * 查询课程详情
@@ -27,7 +27,7 @@ public class OshCouresServiceImpl implements IOshCouresService
      * @return 课程信息
      */
     @Override
-    public OshCoures selectCourseById(Long id)
+    public OshCourse selectCourseById(Long id)
     {
         return oshCouresMapper.selectCourseById(id);
     }
@@ -39,7 +39,7 @@ public class OshCouresServiceImpl implements IOshCouresService
      * @return 课程集合
      */
     @Override
-    public List<OshCoures> selectCourseList(Long columnId)
+    public List<OshCourse> selectCourseList(Long columnId)
     {
         return oshCouresMapper.selectCourseList(columnId);
     }
@@ -51,7 +51,7 @@ public class OshCouresServiceImpl implements IOshCouresService
      * @return 结果
      */
     @Override
-    public int insertCourse(OshCoures course)
+    public int insertCourse(OshCourse course)
     {
         return oshCouresMapper.insertCourse(course);
     }
@@ -63,7 +63,7 @@ public class OshCouresServiceImpl implements IOshCouresService
      * @return 结果
      */
     @Override
-    public int updateCourse(OshCoures course)
+    public int updateCourse(OshCourse course)
     {
         return oshCouresMapper.updateCourse(course);
     }

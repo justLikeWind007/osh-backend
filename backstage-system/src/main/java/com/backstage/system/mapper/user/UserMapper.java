@@ -14,7 +14,18 @@ import java.util.List;
  */
 public interface UserMapper {
     User getUserByUsername(String username);
-    int register(@Param("username") String username,@Param("password")  String password);
+
+    User getUserByUsernameOrEmail(String name);
+
+    User getUserByEmail(String email);
+
+    int register(@Param("username") String username,@Param("password")  String password, @Param("email")  String email);
+
+    int addUniqueId(@Param("userId") Long userId,@Param("uniqueId") String uniqueId);
+
+    String getUniqueIdByUserId(@Param("userId") Long userId);
+
+    int updateUniqueIdByUserId(@Param("userId") Long userId,@Param("uniqueId") String uniqueId);
 
     int updatePasswordByEmail(@Param("email") String email, @Param("password") String password);
 

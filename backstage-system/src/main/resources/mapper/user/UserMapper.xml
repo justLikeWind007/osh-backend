@@ -28,9 +28,31 @@
         where username = #{username}
     </select>
 
+    <select id="getUserByUsernameOrEmail" resultType="com.backstage.system.domain.user.User">
+        <include refid="selectUser"/>
+        where username = #{name} or email = #{name}
+    </select>
+
+    <select id="getUserByEmail" resultType="com.backstage.system.domain.user.User">
+        <include refid="selectUser"/>
+        where email = #{email}
+    </select>
+
     <insert id="register">
-        insert into osh_user (username, password, status, created_time, updated_time) values (#{username},#{password},1,now(),now());
+        insert into osh_user (username, email, password, status, created_time, updated_time) values (#{username},#{email},#{password},1,now(),now());
     </insert>
+
+    <insert id="addUniqueId">
+        insert into osh_user_unique(user_id, unique_id) values (#{userId}, #{uniqueId})
+    </insert>
+
+    <select id="getUniqueIdByUserId" resultType="java.lang.String">
+        select unique_id from osh_user_unique where user_id = #{userId}
+    </select>
+
+    <update id="updateUniqueIdByUserId">
+        update osh_user_unique set unique_id = #{uniqueId} where user_id = #{userId}
+    </update>
 
     <update id="updatePasswordByEmail" >
         update osh_user set password = #{password} where email = #{email}
