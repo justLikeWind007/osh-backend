@@ -8,7 +8,7 @@ import com.backstage.common.core.domain.R;
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.enums.BusinessType;
 
-import com.backstage.system.domain.course.OshCoures;
+import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.vo.CourseDetailVO;
 import com.backstage.system.service.IOshCouresService;
 import io.swagger.annotations.Api;
@@ -17,7 +17,6 @@ import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -29,7 +28,7 @@ import java.util.List;
 @Api(tags = "课程管理")
 @RestController
 @RequestMapping("/pc/course")
-public class OshCouresController extends BaseController
+public class OshCourseController extends BaseController
 {
     @Autowired
     private IOshCouresService oshCouresService;
@@ -58,7 +57,7 @@ public class OshCouresController extends BaseController
 
 
         startPage();
-        List<OshCoures> list = oshCouresService.selectCourseList(columnId);
+        List<OshCourse> list = oshCouresService.selectCourseList(columnId);
         return getDataTable(list);
     }
 
@@ -82,7 +81,7 @@ public class OshCouresController extends BaseController
         
         // TODO: 校验请求中的 appid 的有效性
 
-        OshCoures course = oshCouresService.selectCourseById(id);
+        OshCourse course = oshCouresService.selectCourseById(id);
         if (course == null)
         {
             return R.fail("课程不存在");
@@ -109,7 +108,7 @@ public class OshCouresController extends BaseController
     @Log(title = "课程", businessType = BusinessType.INSERT)
     @ApiOperation("新增课程")
     @PostMapping
-    public R<Void> add(@RequestBody OshCoures course)
+    public R<Void> add(@RequestBody OshCourse course)
     {
         int deleteResult = oshCouresService.insertCourse(course);
         if (deleteResult>0) {
@@ -127,7 +126,7 @@ public class OshCouresController extends BaseController
     @Log(title = "课程", businessType = BusinessType.UPDATE)
     @ApiOperation("修改课程")
     @PutMapping
-    public R<Void> edit(@RequestBody OshCoures course)
+    public R<Void> edit(@RequestBody OshCourse course)
     {
         int deleteResult = oshCouresService.updateCourse(course);
         if (deleteResult>0) {

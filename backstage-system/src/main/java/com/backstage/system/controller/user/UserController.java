@@ -1,6 +1,5 @@
 package com.backstage.system.controller.user;
 
-import com.alibaba.fastjson2.JSON;
 import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.annotation.Log;
 import com.backstage.common.core.controller.BaseController;
@@ -64,9 +63,8 @@ public class UserController extends BaseController {
     @PostMapping("/register/verity")
     public R<String> registerVerity(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
-            @ApiParam("用户的唯一标识") @RequestBody() String body) {
-        String uniqueId = JSON.parseObject(body).getString("uniqueId");
-        return userService.registerVerity(uniqueId);
+            @ApiParam("用户的唯一标识") @RequestBody VerityRequestDTO verityRequestDTO) {
+        return userService.registerVerity(verityRequestDTO.getUniqueId());
     }
 
     @Anonymous
@@ -84,9 +82,8 @@ public class UserController extends BaseController {
     public R<String> changeEmailSubmit(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @ApiParam("token") @RequestHeader(value = "token") String token,
-            @ApiParam("用户的唯一标识") @RequestParam(value = "uniqueId") String uniqueId,
-            @ApiParam("新的邮箱账号") @RequestParam(value = "newEmail") String newEmail) throws MessagingException {
-        return userService.changeEmailSubmit(token, uniqueId, newEmail);
+            @RequestBody UserChangeEmailDTO userChangeEmailDTO) throws MessagingException {
+        return userService.changeEmailSubmit(token, userChangeEmailDTO.getUniqueId(), userChangeEmailDTO.getNewEmail());
     }
 
     @Anonymous
@@ -95,19 +92,18 @@ public class UserController extends BaseController {
     public R<String> changeEmailVerity(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @ApiParam("token") @RequestHeader(value = "token") String token,
-            @ApiParam("用户的唯一标识") @RequestParam(value = "uniqueId") String uniqueId) {
-        return userService.changeEmailVerity(token, uniqueId);
+            @ApiParam("用户的唯一标识") @RequestBody VerityRequestDTO verityRequestDTO) {
+        return userService.changeEmailVerity(token, verityRequestDTO.getUniqueId());
     }
 
-    //todo
     @Anonymous
     @ApiOperation("找回密码")
     @PostMapping("/forget")
     public R<String> forget(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @ApiParam("token") @RequestHeader(value = "token") String token,
-            @RequestBody ForgetDTO forgetDTO) {
-        return userService.forget(token,forgetDTO.getUniqueId(),forgetDTO.getPassword(),forgetDTO.getRepassword());
+            @RequestBody UserForgetDTO userForgetDTO) {
+        return userService.forget(token, userForgetDTO.getUniqueId(), userForgetDTO.getPassword(), userForgetDTO.getRepassword());
     }
 
     @Anonymous
