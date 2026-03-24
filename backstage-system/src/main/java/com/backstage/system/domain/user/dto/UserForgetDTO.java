@@ -11,7 +11,7 @@ import io.swagger.annotations.ApiModelProperty;
  * Time: 21:38
  */
 @ApiModel(value = "找回密码参数", description = "前端传递的找回密码请求实体类")
-public class ForgetDTO {
+public class UserForgetDTO {
     @ApiModelProperty(
             value = "用户的唯一标识",
             required = true
@@ -56,7 +56,7 @@ public class ForgetDTO {
 
     @Override
     public String toString() {
-        return "ForgetDTO{" +
+        return "UserForgetDTO{" +
                 "uniqueId='" + uniqueId + '\'' +
                 ", password='" + password + '\'' +
                 ", repassword='" + repassword + '\'' +
