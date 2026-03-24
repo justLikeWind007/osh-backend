@@ -12,7 +12,11 @@ public interface OshUserExamRecordMapper {
      */
     List<UserExamRecordVo> selectUserTestList(@Param("userId") Long userId);
 
-    List<QuestionVo> selectQuestionsByExamId(Long userExamId);
-
+    List<QuestionVo> selectQuestionsByExamId(@Param("examId") Long examId);
     int updateOshUserExam(OshUserExamRecord record);
+
+
+    void insertOshUserExam(OshUserExamRecord record);
+
+    OshUserExamRecord selectByUserIdAndExamId(@Param("userId") Long userId, @Param("examId") Long examId);
 }
