@@ -1,7 +1,10 @@
 package com.backstage.system.service.impl.exam;
 
 import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONArray;
+import com.alibaba.fastjson2.JSONObject;
 import com.backstage.common.exception.ServiceException;
+import com.backstage.common.utils.SecurityUtils;
 import com.backstage.common.utils.aijudge.AiUtil;
 import com.backstage.system.domain.dto.exam.UserExamSaveDto;
 import com.backstage.system.domain.exam.OshUserExamRecord;
@@ -35,7 +38,24 @@ public class OshUserExamRecordServiceImpl implements IOshUserExamRecordService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean saveUserExam(UserExamSaveDto saveDto) {
-        List<QuestionVo> questions = userTestMapper.selectQuestionsByExamId(saveDto.getUser_test_id());
+        Long examId = saveDto.getExam_id(); // 刚才我们在 DTO 里补全的字段
+        Long userId = saveDto.getUser_test_id();
+        OshUserExamRecord record = userTestMapper.selectByUserIdAndExamId(userId, examId);
+
+        if (record == null) {
+            // 如果不存在（即你说的 ID 为 7 但表里没数据的情况），手动创建一个存进去
+            record = new OshUserExamRecord();
+            record.setUser_id(saveDto.getUser_test_id());                    // 实际应从 SecurityUtils 获取
+            record.setId(saveDto.getUser_test_id());                  // 此处写死为你确定的试卷 ID 12，或者从别处获取
+            record.setAnswer_status(0);              // 初始为进行中
+            record.setRead_status(0);                // 初始为未批阅
+            record.setScore(0);
+            record.setExam_id(examId);
+
+            // 执行插入
+            userTestMapper.insertOshUserExam(record);
+        }
+        List<QuestionVo> questions = userTestMapper.selectQuestionsByExamId(record.getExam_id());
         List<Object> userAnswers = saveDto.getValue();
 
         if (questions == null || userAnswers == null || questions.size() != userAnswers.size()) {
@@ -76,8 +96,8 @@ public class OshUserExamRecordServiceImpl implements IOshUserExamRecordService {
             String aiResponse = callAiForScoring(essayPromptBuilder.toString());
             if (aiResponse != null) {
                 // 解析 AI 返回的 JSON，例如 {"scores": [15, 20], "evaluation": "..."}
-                com.alibaba.fastjson2.JSONObject aiResult = JSON.parseObject(aiResponse);
-                com.alibaba.fastjson2.JSONArray scoresArray = aiResult.getJSONArray("scores");
+                JSONObject aiResult = JSON.parseObject(aiResponse);
+                JSONArray scoresArray = aiResult.getJSONArray("scores");
 
                 if (scoresArray != null && scoresArray.size() == essayIndexList.size()) {
                     for (int j = 0; j < scoresArray.size(); j++) {
@@ -89,8 +109,6 @@ public class OshUserExamRecordServiceImpl implements IOshUserExamRecordService {
         }
 
         // 3. 构造更新对象
-        OshUserExamRecord record = new OshUserExamRecord();
-        record.setId(saveDto.getUser_test_id());
         record.setScore(finalScore);
         record.setAnswer_status(1);
         record.setRead_status(1); // AI 评完了，直接标记为已批阅
