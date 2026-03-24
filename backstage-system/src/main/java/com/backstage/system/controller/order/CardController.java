@@ -3,6 +3,9 @@ package com.backstage.system.controller.order;
 import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.R;
 import com.github.pagehelper.PageHelper;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +24,8 @@ import com.backstage.system.service.order.ICardService;
  * @author ruoyi
  * @date 2026-03-05
  */
+
+@Api("查询用户优惠券")
 @RestController
 @RequestMapping("/pc/user_coupon")
 public class CardController {
@@ -28,11 +33,16 @@ public class CardController {
     @Autowired
     private ICardService cardService;
 
+    @ApiOperation("查询用户优惠券")
+    @ApiParam("goods_id 课程/专栏 ID")
     @Anonymous
     @GetMapping("")
-    public R getUserCouponList(
+    public R<Card> getUserCouponList(
+            @ApiParam(name = "goods_id", value = "课程/专栏等ID", required = true)
             @RequestParam Long goods_id,    // 必填：goods_id 课程/专栏 ID
+            @ApiParam(name = "type", value = "类型（column 专栏/course 课程）", required = true)
             @RequestParam String type,      // 必填：type（column 专栏/course 课程）
+            @ApiParam(name = "page", value = "页面码", required = true)
             @RequestParam Integer page    // 必填：page 页面码
     ) {
         // 构建查询条件

@@ -3,6 +3,9 @@ package com.backstage.system.domain.order;
 import java.math.BigDecimal;
 import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import com.backstage.common.annotation.Excel;
@@ -14,41 +17,49 @@ import com.backstage.common.core.domain.BaseEntity;
  * @author ruoyi
  * @date 2026-03-05
  */
-
+@ApiModel("优惠券")
 public class Card extends BaseEntity
 {
     private static final long serialVersionUID = 1L;
 
     /** ID */
+    @ApiModelProperty("优惠券的ID")
     private Long id;
 
     /** 标题 */
     @Excel(name = "标题")
+    @ApiModelProperty("优惠券的名称")
     private String title;
 
     /** 类型（course 课程/other 其他） */
+    @ApiModelProperty("优惠券类型")
     @Excel(name = "类型")
     private String type;
 
     /** 价格 */
     @Excel(name = "价格")
+    @ApiModelProperty("优惠券价格")
     private BigDecimal price;
 
     /** 商品 ID */
     @Excel(name = "商品 ID")
+    @ApiModelProperty("优惠券对应商品的ID")
     private Long goodsId;
 
     /** 开始时间 */
+    @ApiModelProperty("优惠券发放时间")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Excel(name = "开始时间", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss")
     private Date startTime;
 
     /** 结束时间 */
+    @ApiModelProperty("优惠券失效时间")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Excel(name = "结束时间", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss")
     private Date endTime;
 
     /** 是否使用（0 未使用 1 已使用） */
+    @ApiModelProperty("优惠券是否使用")
     @Excel(name = "是否使用")
     private Integer used;
 

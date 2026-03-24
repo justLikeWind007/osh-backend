@@ -1,5 +1,6 @@
 package com.backstage.system.controller.user;
 
+import com.alibaba.fastjson2.JSON;
 import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.annotation.Log;
 import com.backstage.common.core.controller.BaseController;
@@ -63,7 +64,8 @@ public class UserController extends BaseController {
     @PostMapping("/register/verity")
     public R<String> registerVerity(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
-            @ApiParam("用户的唯一标识") @RequestParam(value = "uniqueId") String uniqueId) {
+            @ApiParam("用户的唯一标识") @RequestBody() String body) {
+        String uniqueId = JSON.parseObject(body).getString("uniqueId");
         return userService.registerVerity(uniqueId);
     }
 
