@@ -109,11 +109,6 @@
             <artifactId>java-sdk</artifactId>
             <version>4.16.11</version> <!-- 推荐最新稳定版 -->
         </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-        </dependency>
-
     </dependencies>
 
 </project>

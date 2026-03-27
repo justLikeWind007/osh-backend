@@ -164,8 +164,8 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
-    public R<String> forget(String token, String uniqueId, String password, String repassword) {
-        Long userId = getUserIdByToken(token);
+    public R<String> forget(String uniqueId, String password, String repassword) {
+        Long userId = userMapper.getUserIdByUniqueId(uniqueId);
         User user = userMapper.selectUserById(userId);
         if (user == null) {
             return R.fail("用户不存在");
