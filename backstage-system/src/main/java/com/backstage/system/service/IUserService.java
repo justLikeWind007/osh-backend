@@ -27,7 +27,7 @@ public interface IUserService {
 
     R<String> changeEmailVerity(String token, String uniqueId);
 
-    R<String> forget(String token, String uniqueId, String password, String repassword);
+    R<String> forget(String uniqueId, String password, String repassword);
 
     R<String> updateInfo(String avatar, String nickname, String sex, String token);
 
