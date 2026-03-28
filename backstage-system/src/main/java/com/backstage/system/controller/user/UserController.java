@@ -31,7 +31,8 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/pc/user")
-public class UserController extends BaseController {
+public class
+UserController extends BaseController {
 
     private final IUserService userService;
 
