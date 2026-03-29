@@ -2,6 +2,7 @@ package com.backstage.system.service.course;
 
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.system.domain.course.OshCoures;
+import com.backstage.system.domain.course.OshCourseTag;
 import com.backstage.system.domain.dto.*;
 import com.backstage.system.domain.vo.*;
 import com.backstage.system.domain.vo.CourseDetailVO;
@@ -342,13 +343,23 @@ public interface ICourseManageService {
     // ==================== 标签查询接口 ====================
     
     /**
-     * 根据关键字模糊查询标签
-     * 实现效果：返回匹配的标签列表，按使用数量降序排列
+     * 根据关键字模糊查询标签,按使用数量降序排列
      * 
      * @param keyword 关键字（可选）
      * @return 标签列表（包含 id、name、useCount）
      */
     List<Map<String, Object>> searchTags(String keyword);
+    
+    /**
+     * 新增标签
+     * 语法逻辑：检查名称是否已存在→保存标签信息
+     * 实现效果：返回新标签ID
+     * 
+     * @param tag 标签信息
+     * @param userId 用户ID
+     * @return 标签ID
+     */
+    Long addTag(OshCourseTag tag, Long userId);
     
     
     // ==================== 课程收藏接口 ====================

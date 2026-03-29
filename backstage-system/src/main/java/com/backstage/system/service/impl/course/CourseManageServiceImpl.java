@@ -16,6 +16,7 @@ import com.backstage.system.mapper.course.OshCourseSectionMapper;
 import com.backstage.system.mapper.course.OshCourseMaterialMapper;
 import com.backstage.system.mapper.course.OshCourseQuestionMapper;
 import com.backstage.system.mapper.course.OshCourseTagMapper;
+import com.backstage.system.domain.course.OshCourseTag;
 import com.backstage.system.mapper.course.OshUserCourseProgressMapper;
 import com.backstage.system.mapper.course.OshCourseStaffMapper;
 import com.backstage.system.mapper.course.OshCourseReviewMapper;
@@ -85,7 +86,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
             params.put("tagIds", courseDTO.getTagIds());
         }
         
-        // 3. 处理关键字搜索
+        // TODO ES 实现关键字搜索
         if (StringUtils.isNotEmpty(courseDTO.getKeyword())) {
             params.put("keyword", "%" + courseDTO.getKeyword() + "%");
         }
@@ -160,7 +161,11 @@ public class CourseManageServiceImpl implements ICourseManageService {
         boolean isPurchased = checkUserPurchased(courseId, userId);
         vo.setIsBuy(isPurchased);
         
-        // 6. 查询章节列表（仅显示前几节免费章节用于试看）
+        // 6. 判断用户是否已收藏
+        Boolean isFavorited = course.getIsfava() != null ? course.getIsfava() : false;
+        vo.setIsfava(isFavorited);
+        
+        // 7. 查询章节列表（仅显示前几节免费章节用于试看）
         List<CourseSectionVO> sections = getCourseSections(courseId, userId);
         vo.setSections(sections);
         
@@ -169,14 +174,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
     
     /**
      * 新增课程
-     * 语法逻辑：
-     * 1. 保存课程基本信息
-     * 2. 保存标签关联关系
-     * 
-     * 实现效果：
-     * - 返回新创建的课程 ID
-     * - 事务保证数据一致性
-     * - 权限控制由 Controller 层@RequiresPermissions 注解处理
+     * 保存 章节、标签关联关系
      * 
      * @param course 课程信息
      * @param userId 用户 ID
@@ -216,8 +214,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
     
     /**
      * 修改课程
-     * 语法逻辑：
-     * 1. 更新课程基本信息
+     * 1. 更新课程章节信息
      * 2. 更新标签关联关系
      * 
      * 实现效果：
@@ -1383,6 +1380,45 @@ public class CourseManageServiceImpl implements ICourseManageService {
         return tagMapper.selectTagsByKeyword(keyword);
     }
     
+    /**
+     * 新增标签
+     * 
+     * @param tag 标签信息
+     * @param userId 用户ID
+     * @return 标签ID
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long addTag(OshCourseTag tag, Long userId) {
+        // 1. 检查标签名称是否已存在
+        if (tagMapper.checkTagNameExists(tag.getName()) > 0) {
+            throw new ServiceException("标签名称已存在");
+        }
+        
+        // 2. 设置默认值
+        tag.setCreateBy(String.valueOf(userId));
+        tag.setUpdateBy(String.valueOf(userId));
+        tag.setCreateTime(DateUtils.getNowDate());
+        tag.setUpdateTime(DateUtils.getNowDate());
+        if (tag.getSort() == null) {
+            tag.setSort(0);
+        }
+        if (tag.getStatus() == null) {
+            tag.setStatus(1); // 默认启用
+        }
+        if (tag.getUseCount() == null) {
+            tag.setUseCount(0);
+        }
+        
+        // 3. 插入标签
+        int result = tagMapper.insertTag(tag);
+        if (result <= 0) {
+            throw new ServiceException("新增标签失败");
+        }
+        
+        return tag.getId();
+    }
+    
     // ==================== 课程收藏接口实现 ====================
     
     /**
@@ -1710,16 +1746,12 @@ public class CourseManageServiceImpl implements ICourseManageService {
      */
     private void saveVideoMaterial(Long courseId, Long sectionId, SectionCreateDTO sectionDTO) {
         OshCourseMaterial material = new OshCourseMaterial();
-        // 视频名称：章节标题 + "-视频"
-        material.setMaterialName(sectionDTO.getTitle() + " - 视频");
-        // 视频URL
+        material.setMaterialName(sectionDTO.getTitle() );
         material.setFileUrl(sectionDTO.getMediaUrl());
-        // 视频文件类型
         material.setFileType("video");
         // 设置关联
         material.setCourseId(courseId);
         material.setSectionId(sectionId);
-        // 视频默认免费可下载（与章节免费属性一致）
         material.setIsPayOnly(sectionDTO.getIsFree() != null && sectionDTO.getIsFree() == 1 ? 0 : 1);
         material.setSort(0);
         
@@ -1824,29 +1856,16 @@ public class CourseManageServiceImpl implements ICourseManageService {
             throw new ServiceException("课程不存在");
         }
         
-        // 2. 校验必填参数
+        // 校验必填参数
         if (StringUtils.isEmpty(sectionCreateDTO.getTitle())) {
             throw new ServiceException("章节标题不能为空");
         }
-        
-        // 3. 构建章节实体
+
         OshCourseSection section = new OshCourseSection();
         BeanUtils.copyProperties(sectionCreateDTO, section);
         section.setCourseId(courseId);
-        
-        // 设置默认值
-        if (section.getParentId() == null) {
-            section.setParentId(0L);
-        }
-        if (section.getSort() == null) {
-            section.setSort(0);
-        }
-        if (section.getIsFree() == null) {
-            section.setIsFree(0);
-        }
-        if (section.getStatus() == null) {
-            section.setStatus(1);
-        }
+        section.setStatus(1);
+
         
         sectionMapper.insertSectionEntity(section);
         Long sectionId = section.getId();

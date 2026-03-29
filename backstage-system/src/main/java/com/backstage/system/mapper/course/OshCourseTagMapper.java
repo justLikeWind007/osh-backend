@@ -1,5 +1,7 @@
 package com.backstage.system.mapper.course;
 
+import com.backstage.system.domain.course.OshCourseTag;
+import org.apache.ibatis.annotations.MapKey;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
@@ -16,6 +18,7 @@ public interface OshCourseTagMapper {
     /**
      * 查询所有标签
      */
+    @MapKey("id")
     List<Map<String, Object>> selectAllTags();
     
     /**
@@ -25,12 +28,30 @@ public interface OshCourseTagMapper {
      * @param keyword 关键字（可选）
      * @return 标签列表
      */
+    @MapKey("id")
     List<Map<String, Object>> selectTagsByKeyword(@Param("keyword") String keyword);
     
     /**
      * 查询课程的标签列表
      */
+    @MapKey("id")
     List<Map<String, Object>> selectTagsByCourseId(@Param("courseId") Long courseId);
+    
+    /**
+     * 新增标签
+     * 
+     * @param tag 标签对象
+     * @return 结果
+     */
+    int insertTag(OshCourseTag tag);
+    
+    /**
+     * 检查标签名称是否已存在
+     * 
+     * @param name 标签名称
+     * @return 数量
+     */
+    int checkTagNameExists(@Param("name") String name);
     
     /**
      * 新增标签关联
