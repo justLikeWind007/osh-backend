@@ -9,14 +9,13 @@ import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import com.backstage.system.domain.order.Card;
-import com.backstage.system.service.order.ICardService;
+import com.backstage.system.service.order.ICouponListService;
 
 /**
  * 卡券 Controller - 适配 /pc/card/list?page=1&limit=20
@@ -28,10 +27,10 @@ import com.backstage.system.service.order.ICardService;
 @Api("查询用户优惠券")
 @RestController
 @RequestMapping("/pc/user_coupon")
-public class CardController {
+public class CouponListController {
 
     @Autowired
-    private ICardService cardService;
+    private ICouponListService cardService;
 
     @ApiOperation("查询用户优惠券")
     @ApiParam("goods_id 课程/专栏 ID")

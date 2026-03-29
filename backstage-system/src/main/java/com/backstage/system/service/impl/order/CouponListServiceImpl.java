@@ -3,9 +3,9 @@ package com.backstage.system.service.impl.order;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.backstage.system.mapper.order.CardMapper;
+import com.backstage.system.mapper.order.CouponListMapper;
 import com.backstage.system.domain.order.Card;
-import com.backstage.system.service.order.ICardService;
+import com.backstage.system.service.order.ICouponListService;
 
 /**
  * 卡券 Service 业务层处理
@@ -14,10 +14,10 @@ import com.backstage.system.service.order.ICardService;
  * @date 2026-03-05
  */
 @Service
-public class CardServiceImpl implements ICardService 
+public class CouponListServiceImpl implements ICouponListService
 {
     @Autowired
-    private CardMapper cardMapper;
+    private CouponListMapper cardMapper;
 
     /**
      * 查询卡券

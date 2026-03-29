@@ -13,7 +13,7 @@ import com.backstage.system.domain.order.OshOrderSave;
 import com.backstage.system.domain.order.OrderCreateRequest;
 import com.backstage.system.domain.order.Card;
 import com.backstage.system.service.order.IOshOrderSaveService;
-import com.backstage.system.service.order.ICardService;
+import com.backstage.system.service.order.ICouponListService;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.common.utils.DateUtils;
 import com.backstage.common.utils.uuid.UUID;
@@ -32,7 +32,7 @@ public class OshOrderSaveServiceImpl implements IOshOrderSaveService
     private OshOrderSaveMapper oshOrderSaveMapper;
 
     @Autowired
-    private ICardService cardService;
+    private ICouponListService cardService;
 
     @Autowired(required = false)
     private CourseMapper courseMapper;

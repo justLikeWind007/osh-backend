@@ -9,7 +9,7 @@ import com.backstage.system.domain.order.Card;
  * @author ruoyi
  * @date 2026-03-05
  */
-public interface ICardService 
+public interface ICouponListService
 {
     /**
      * 查询卡券

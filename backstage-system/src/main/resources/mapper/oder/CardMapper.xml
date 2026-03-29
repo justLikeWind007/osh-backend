@@ -2,7 +2,7 @@
 <!DOCTYPE mapper
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.backstage.system.mapper.order.CardMapper">
+<mapper namespace="com.backstage.system.mapper.order.CouponListMapper">
     
     <resultMap type="Card" id="CardResult">
         <result property="id"    column="id"    />
