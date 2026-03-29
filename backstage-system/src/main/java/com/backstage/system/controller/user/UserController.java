@@ -101,9 +101,8 @@ public class UserController extends BaseController {
     @PostMapping("/forget")
     public R<String> forget(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
-            @ApiParam("token") @RequestHeader(value = "token") String token,
             @RequestBody UserForgetDTO userForgetDTO) {
-        return userService.forget(token, userForgetDTO.getUniqueId(), userForgetDTO.getPassword(), userForgetDTO.getRepassword());
+        return userService.forget(userForgetDTO.getUniqueId(), userForgetDTO.getPassword(), userForgetDTO.getRepassword());
     }
 
     @Anonymous

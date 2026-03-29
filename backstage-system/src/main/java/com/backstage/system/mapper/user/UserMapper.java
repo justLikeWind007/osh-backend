@@ -25,6 +25,8 @@ public interface UserMapper {
 
     String getUniqueIdByUserId(@Param("userId") Long userId);
 
+    Long getUserIdByUniqueId(String uniqueId);
+
     int updateUniqueIdByUserId(@Param("userId") Long userId,@Param("uniqueId") String uniqueId);
 
     int updatePasswordByEmail(@Param("email") String email, @Param("password") String password);

@@ -50,6 +50,10 @@
         select unique_id from osh_user_unique where user_id = #{userId}
     </select>
 
+    <select id="getUserIdByUniqueId" resultType="java.lang.Long">
+        select user_id from osh_user_unique where unique_id = #{uniqueId}
+    </select>
+
     <update id="updateUniqueIdByUserId">
         update osh_user_unique set unique_id = #{uniqueId} where user_id = #{userId}
     </update>
