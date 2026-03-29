@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.course.OshCourseQuestionMapper">
+    
+    <!-- 查询问题列表 -->
+    <select id="selectQuestionsByCourseId" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT q.id, q.course_id, q.section_id, q.user_id, q.question_title, q.question_content,
+               q.answer_content, q.answer_user_id, q.answer_time, q.status, q.like_count, q.is_top,
+               q.create_time, s.section_title,
+               u1.nick_name as asker_name,
+               u2.nick_name as answerer_name
+        FROM osh_course_question q
+        LEFT JOIN osh_course_section s ON q.section_id = s.id
+        LEFT JOIN sys_user u1 ON q.user_id = u1.user_id
+        LEFT JOIN sys_user u2 ON q.answer_user_id = u2.user_id
+        WHERE q.course_id = #{courseId}
+        <if test="sectionId != null">
+            AND q.section_id = #{sectionId}
+        </if>
+        <if test="status != null and status != ''">
+            AND q.status = #{status}
+        </if>
+        ORDER BY q.is_top DESC, q.create_time DESC
+    </select>
+    
+    <!-- 查询问题详情 -->
+    <select id="selectQuestionById" parameterType="Long" resultType="java.util.Map">
+        SELECT * FROM osh_course_question WHERE id = #{id}
+    </select>
+    
+    <!-- 统计问题数量 -->
+    <select id="countQuestionsBySectionId" parameterType="Long" resultType="int">
+        SELECT COUNT(*) FROM osh_course_question WHERE section_id = #{sectionId}
+    </select>
+    
+    <!-- 新增问题 -->
+    <insert id="insertQuestion" parameterType="java.util.Map" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO osh_course_question (
+            course_id, section_id, user_id, question_title, question_content, status, create_time
+        ) VALUES (
+            #{courseId}, #{sectionId}, #{userId}, #{questionTitle}, #{questionContent}, 'pending', NOW()
+        )
+    </insert>
+    
+    <!-- 修改问题（回答） -->
+    <update id="updateQuestion" parameterType="java.util.Map">
+        UPDATE osh_course_question
+        <set>
+            <if test="answer_content != null">answer_content = #{answer_content},</if>
+            <if test="answer_user_id != null">answer_user_id = #{answer_user_id},</if>
+            <if test="answer_time != null">answer_time = #{answer_time},</if>
+            <if test="status != null">status = #{status},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+    
+    <!-- 删除问题 -->
+    <delete id="deleteQuestionById" parameterType="Long">
+        DELETE FROM osh_course_question WHERE id = #{id}
+    </delete>
+    
+    <!-- 批量删除问题 -->
+    <delete id="deleteQuestionsByCourseId" parameterType="Long">
+        DELETE FROM osh_course_question WHERE course_id = #{courseId}
+    </delete>
+    
+</mapper>

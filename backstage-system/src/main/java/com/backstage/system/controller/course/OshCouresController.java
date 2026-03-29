@@ -9,15 +9,20 @@ import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.enums.BusinessType;
 
 import com.backstage.system.domain.course.OshCoures;
+import com.backstage.system.domain.dto.CourseCreateDTO;
 import com.backstage.system.domain.vo.CourseDetailVO;
+import com.backstage.system.domain.vo.VideoUploadVO;
 import com.backstage.system.service.IOshCouresService;
+import com.backstage.system.service.course.ICourseManageService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -31,8 +36,13 @@ import java.util.List;
 @RequestMapping("/pc/course")
 public class OshCouresController extends BaseController
 {
+    private static final Logger log = LoggerFactory.getLogger(OshCouresController.class);
+    
     @Autowired
     private IOshCouresService oshCouresService;
+    
+    @Autowired
+    private ICourseManageService courseManageService;
 
 
     /**
@@ -102,7 +112,73 @@ public class OshCouresController extends BaseController
     }
 
     /**
-     * 新增课程
+     * 新增课程（包含章节、视频、资料）
+     */
+    @Anonymous
+    @Log(title = "课程", businessType = BusinessType.INSERT)
+    @ApiOperation("新增课程（包含章节、视频、资料）")
+    @PostMapping("/create")
+    public R<Long> createCourse(@RequestBody CourseCreateDTO courseCreateDTO)
+    {
+        try {
+            // 获取当前用户 ID（实际项目中需要从登录信息中获取）
+            Long userId = getUserId();
+            
+            // 调用 Service 层方法创建课程及章节
+            Long courseId = courseManageService.createCourseWithSections(courseCreateDTO, userId);
+            
+            return R.ok(courseId);
+        } catch (Exception e) {
+            log.error("创建课程失败：{}", e.getMessage(), e);
+            return R.fail("创建失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 上传课时视频
+     */
+    @Anonymous
+    @Log(title = "课时视频", businessType = BusinessType.UPLOAD)
+    @ApiOperation("上传课时视频")
+    @PostMapping("/section/video")
+    public R<Object> uploadSectionVideo(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("courseId") Long courseId)
+    {
+        try {
+            Long userId = getUserId();
+            VideoUploadVO result = courseManageService.uploadSectionVideo(file, courseId, userId);
+            return R.ok(result);
+        } catch (Exception e) {
+            log.error("上传视频失败：{}", e.getMessage(), e);
+            return R.fail("上传失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 上传课时资料
+     */
+    @Anonymous
+    @Log(title = "课时资料", businessType = BusinessType.UPLOAD)
+    @ApiOperation("上传课时资料")
+    @PostMapping("/section/material")
+    public R<Long> uploadSectionMaterial(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("courseId") Long courseId,
+            @RequestParam("materialName") String materialName)
+    {
+        try {
+            Long userId = getUserId();
+            Long materialId = courseManageService.uploadSectionMaterial(file, courseId, materialName, userId);
+            return R.ok(materialId);
+        } catch (Exception e) {
+            log.error("上传资料失败：{}", e.getMessage(), e);
+            return R.fail("上传失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 新增课程（简单版本，仅保存基本信息）
      */
     //@PreAuthorize("@ss.hasPermi('system:course:add')")
     @Anonymous

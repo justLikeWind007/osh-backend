@@ -55,6 +55,42 @@ public class OshCoures
     @ApiModelProperty("课程类型：media-视频课，live-直播课，text-图文课")
     private String type;
 
+    /** 标签 ID 列表（非数据库字段，用于前后端交互） */
+    @ApiModelProperty("标签 ID 列表")
+    private Long[] tagIds;
+
+    /** 好评数量 */
+    @ApiModelProperty("好评数量")
+    private Integer goodCount;
+
+    /** 中评数量 */
+    @ApiModelProperty("中评数量")
+    private Integer midCount;
+
+    /** 差评数量 */
+    @ApiModelProperty("差评数量")
+    private Integer badCount;
+
+    /** 收藏数量 */
+    @ApiModelProperty("收藏数量")
+    private Integer favaCount;
+
+    /** 购买数量 */
+    @ApiModelProperty("购买数量")
+    private Integer buyCount;
+
+    /** 章节数量 */
+    @ApiModelProperty("章节数量")
+    private Integer subCount;
+
+    /** 免费试看章节数 */
+    @ApiModelProperty("免费试看章节数")
+    private Integer freeLessonCount;
+
+    /** 课程状态：0-草稿 1-已发布 2-已下架 */
+    @ApiModelProperty("课程状态")
+    private Integer status;
+
 //
 //    /** 章节数量 */
 //    @Excel(name = "章节数量")
@@ -204,6 +240,96 @@ public class OshCoures
     public String getType() 
     {
         return type;
+    }
+
+    public void setTagIds(Long[] tagIds)
+    {
+        this.tagIds = tagIds;
+    }
+
+    public Long[] getTagIds()
+    {
+        return tagIds;
+    }
+
+    public void setGoodCount(Integer goodCount)
+    {
+        this.goodCount = goodCount;
+    }
+
+    public Integer getGoodCount()
+    {
+        return goodCount;
+    }
+
+    public void setMidCount(Integer midCount)
+    {
+        this.midCount = midCount;
+    }
+
+    public Integer getMidCount()
+    {
+        return midCount;
+    }
+
+    public void setBadCount(Integer badCount)
+    {
+        this.badCount = badCount;
+    }
+
+    public Integer getBadCount()
+    {
+        return badCount;
+    }
+
+    public void setFavaCount(Integer favaCount)
+    {
+        this.favaCount = favaCount;
+    }
+
+    public Integer getFavaCount()
+    {
+        return favaCount;
+    }
+
+    public void setBuyCount(Integer buyCount)
+    {
+        this.buyCount = buyCount;
+    }
+
+    public Integer getBuyCount()
+    {
+        return buyCount;
+    }
+
+    public void setSubCount(Integer subCount)
+    {
+        this.subCount = subCount;
+    }
+
+    public Integer getSubCount()
+    {
+        return subCount;
+    }
+
+    public void setFreeLessonCount(Integer freeLessonCount)
+    {
+        this.freeLessonCount = freeLessonCount;
+    }
+
+    public Integer getFreeLessonCount()
+    {
+        return freeLessonCount;
+    }
+
+    public void setStatus(Integer status)
+    {
+        this.status = status;
+    }
+
+    public Integer getStatus()
+    {
+        return status;
     }
 
 //    public void setSubCount(Integer subCount)

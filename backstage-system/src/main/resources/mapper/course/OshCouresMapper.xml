@@ -12,42 +12,80 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="price"   column="price"    />
         <result property="tPrice"   column="t_price"    />
         <result property="type"   column="type"    />
-<!--        <result property="subCount"   column="sub_count"    />-->
-<!--        <result property="columnId"   column="column_id"    />-->
-<!--        <result property="appid"   column="appid"    />-->
-<!--        <result property="isbuy"   column="isbuy"    />-->
-<!--        <result property="isfava"   column="isfava"    />-->
-<!--        <result property="extField1"   column="ext1"    />-->
-<!--        <result property="extField2"   column="ext2"    />-->
-<!--        <result property="extField3"   column="ext3"    />-->
-<!--        <result property="extField4"   column="ext4"    />-->
-<!--        <result property="extField5"   column="ext5"    />-->
-<!--        <result property="extField6"   column="ext6"    />-->
-<!--        <result property="extField7"   column="ext7"    />-->
-<!--        <result property="extField8"   column="ext8"    />-->
+        <result property="goodCount"   column="good_count"    />
+        <result property="midCount"   column="mid_count"    />
+        <result property="badCount"   column="bad_count"    />
+        <result property="favaCount"   column="fava_count"    />
+        <result property="buyCount"   column="buy_count"    />
+        <result property="subCount"   column="sub_count"    />
+        <result property="freeLessonCount"   column="free_lesson_count"    />
+        <result property="status"   column="status"    />
         <result property="remark"   column="remark"    />
         <result property="createTime"   column="create_time"    />
         <result property="updateTime"   column="update_time"    />
     </resultMap>
 
     <sql id="selectCourseVo">
-        select id, title, cover, try, price, t_price, type, remark, create_time, update_time from osh_course
+        select id, title, cover, price, t_price, type, status, buy_count, good_count, mid_count, bad_count,
+               free_lesson_count, sub_count, remark, create_time, update_time from osh_coures
     </sql>
 
     <!-- 查询课程详情 -->
     <select id="selectCourseById" parameterType="Long" resultMap="OshCouresResult">
         <include refid="selectCourseVo"/>
-        where id = #{id}
+        where id = #{id} AND delete_flag = 0
     </select>
 
     <!-- 根据条件查询课程列表 -->
     <select id="selectCourseList" resultMap="OshCouresResult">
         <include refid="selectCourseVo"/>
-        <where>  
+        <where>
+            AND delete_flag = 0
             <if test="columnId != null">
                 and column_id = #{columnId}
             </if>
         </where>
+    </select>
+
+    <!-- 多标签 + 关键字 + 动态排序查询课程列表 -->
+    <select id="selectCourseListByCondition" parameterType="java.util.Map" resultMap="OshCouresResult">
+        SELECT DISTINCT c.id, c.title, c.cover, c.price, c.t_price, c.type, c.status,
+                        c.buy_count, c.good_count, c.mid_count, c.bad_count, c.fava_count,
+                        c.free_lesson_count, c.sub_count, c.remark, c.create_time, c.update_time
+        FROM osh_coures c
+        <if test="tagIds != null and tagIds.size() > 0">
+            INNER JOIN osh_course_tag_rel tr ON c.id = tr.course_id AND tr.delete_flag = 0
+        </if>
+        <where>
+            c.delete_flag = 0
+            AND c.status = 1
+            <if test="tagIds != null and tagIds.size() > 0">
+                AND tr.tag_id IN
+                <foreach collection="tagIds" item="tagId" open="(" separator="," close=")">
+                    #{tagId}
+                </foreach>
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND c.title LIKE #{keyword}
+            </if>
+        </where>
+        <choose>
+            <when test="sortBy == 'price'">
+                ORDER BY c.price ${sortOrder}
+            </when>
+            <when test="sortBy == 'buy_count'">
+                ORDER BY c.buy_count ${sortOrder}
+            </when>
+            <when test="sortBy == 'good_count'">
+                ORDER BY c.good_count ${sortOrder}
+            </when>
+            <when test="sortBy == 'fava_count'">
+                ORDER BY c.fava_count ${sortOrder}
+            </when>
+            <otherwise>
+                ORDER BY c.create_time ${sortOrder}
+            </otherwise>
+        </choose>
     </select>
 
     <!-- 新增课程 -->
@@ -139,4 +177,19 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             #{id}
         </foreach>
     </delete>
+    
+    <!-- 增加课程收藏计数 -->
+    <update id="incrementFavaCount" parameterType="java.util.Map">
+        UPDATE osh_coures SET fava_count = fava_count + 1 WHERE id = #{courseId}
+    </update>
+    
+    <!-- 减少课程收藏计数 -->
+    <update id="decrementFavaCount" parameterType="java.util.Map">
+        UPDATE osh_coures SET fava_count = GREATEST(fava_count - 1, 0) WHERE id = #{courseId}
+    </update>
+    
+    <!-- 更新课程章节数量 -->
+    <update id="updateCourseSubCount" parameterType="java.util.Map">
+        UPDATE osh_coures SET sub_count = #{subCount} WHERE id = #{id}
+    </update>
 </mapper>

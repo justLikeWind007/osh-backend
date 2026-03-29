@@ -71,3 +71,6 @@ build/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Windows special files
+nul

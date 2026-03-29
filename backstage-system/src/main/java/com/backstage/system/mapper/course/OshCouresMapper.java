@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 课程信息 Mapper 接口
@@ -30,6 +31,14 @@ public interface OshCouresMapper
      * @return 课程列表
      */
     List<OshCoures> selectCourseList(@Param("columnId") Long columnId);
+
+    /**
+     * 根据条件查询课程列表（支持多标签筛选 + 关键字搜索 + 动态排序）
+     *
+     * @param params 查询参数：tagIds(List), keyword(String), sortBy(String), sortOrder(String)
+     * @return 课程列表
+     */
+    List<OshCoures> selectCourseListByCondition(Map<String, Object> params);
 
     /**
      * 新增课程
@@ -62,4 +71,28 @@ public interface OshCouresMapper
      * @return 结果
      */
     int deleteCourseByIds(Long[] ids);
+    
+    /**
+     * 增加课程收藏计数
+     *
+     * @param params 包含 courseId
+     * @return 结果
+     */
+    int incrementFavaCount(Map<String, Object> params);
+    
+    /**
+     * 减少课程收藏计数
+     *
+     * @param params 包含 courseId
+     * @return 结果
+     */
+    int decrementFavaCount(Map<String, Object> params);
+    
+    /**
+     * 更新课程章节数量
+     *
+     * @param params 参数（包含 id 和 subCount）
+     * @return 结果
+     */
+    int updateCourseSubCount(Map<String, Object> params);
 }

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.course.OshCourseMaterialMapper">
+    
+    <!-- 查询资料列表 -->
+    <select id="selectMaterialsByCourseId" parameterType="Long" resultType="java.util.Map">
+        SELECT id, course_id, material_name, file_url, file_type, file_size, download_count, is_downloadable, sort_order
+        FROM osh_course_material
+        WHERE course_id = #{courseId}
+        ORDER BY sort_order ASC
+    </select>
+    
+    <!-- 查询资料详情 -->
+    <select id="selectMaterialById" parameterType="Long" resultType="java.util.Map">
+        SELECT * FROM osh_course_material WHERE id = #{id}
+    </select>
+    
+    <!-- 新增资料 -->
+    <insert id="insertMaterial" parameterType="java.util.Map">
+        INSERT INTO osh_course_material (
+            course_id, material_name, file_url, file_type, file_size, is_downloadable, sort_order, create_time
+        ) VALUES (
+            #{courseId}, #{material_name}, #{file_url}, #{file_type}, #{file_size}, #{is_downloadable}, #{sort_order}, NOW()
+        )
+    </insert>
+    
+    <!-- 新增资料（使用实体对象） -->
+    <insert id="insertMaterialEntity" parameterType="com.backstage.system.domain.course.OshCourseMaterial" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO osh_course_material (
+            course_id, section_id, material_name, file_url, file_type, file_size, 
+            is_pay_only, sort, create_by, create_time, update_time
+        ) VALUES (
+            #{courseId}, #{sectionId}, #{materialName}, #{fileUrl}, #{fileType}, #{fileSize},
+            #{isPayOnly}, #{sort}, #{createBy}, NOW(), NOW()
+        )
+    </insert>
+    
+    <!-- 修改资料 -->
+    <update id="updateMaterial" parameterType="java.util.Map">
+        UPDATE osh_course_material
+        <set>
+            <if test="material_name != null">material_name = #{material_name},</if>
+            <if test="file_url != null">file_url = #{file_url},</if>
+            <if test="file_type != null">file_type = #{file_type},</if>
+            <if test="file_size != null">file_size = #{file_size},</if>
+            <if test="download_count != null">download_count = #{download_count},</if>
+            <if test="is_downloadable != null">is_downloadable = #{is_downloadable},</if>
+            <if test="sort_order != null">sort_order = #{sort_order},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+    
+    <!-- 删除资料 -->
+    <delete id="deleteMaterialById" parameterType="Long">
+        DELETE FROM osh_course_material WHERE id = #{id}
+    </delete>
+    
+    <!-- 批量删除资料 -->
+    <delete id="deleteMaterialsByCourseId" parameterType="Long">
+        DELETE FROM osh_course_material WHERE course_id = #{courseId}
+    </delete>
+    
+    <!-- 增加下载次数 -->
+    <update id="incrementDownloadCount" parameterType="Long">
+        UPDATE osh_course_material SET download_count = download_count + 1 WHERE id = #{id}
+    </update>
+    
+</mapper>

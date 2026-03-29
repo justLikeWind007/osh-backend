@@ -58,27 +58,34 @@ CREATE TABLE `osh_coures` (
 
 DROP TABLE IF EXISTS `osh_course_section`;
 CREATE TABLE `osh_course_section` (
-    `id`            bigint(20)      NOT NULL AUTO_INCREMENT         COMMENT '章节ID',
-    `course_id`     bigint(20)      NOT NULL                        COMMENT '所属课程ID',
-    `parent_id`     bigint(20)      NOT NULL DEFAULT 0              COMMENT '父级ID（0=章 >0=节）',
-    `title`         varchar(200)    NOT NULL                        COMMENT '章节标题',
-    `sort`          int(11)         NOT NULL DEFAULT 0              COMMENT '排序序号',
-    `is_free`       tinyint(1)      NOT NULL DEFAULT 0              COMMENT '是否免费试看：0-否 1-是',
-    `duration`      int(11)         DEFAULT 0                       COMMENT '视频时长（秒）',
-    `media_url`     varchar(500)    DEFAULT NULL                    COMMENT '媒体资源URL',
-    `type`          varchar(20)     DEFAULT NULL                    COMMENT '小节类型：video/audio/text/live',
-    `status`        tinyint(1)      NOT NULL DEFAULT 1              COMMENT '状态：0-隐藏 1-发布',
-    `exam_id`       bigint(20)      DEFAULT NULL                    COMMENT '关联考试ID（学完跳转答题）',
-    `delete_flag`   tinyint(1)      NOT NULL DEFAULT 0              COMMENT '逻辑删除：0-正常 1-删除',
-    `create_by`     varchar(64)     DEFAULT ''                      COMMENT '创建者',
-    `create_time`   datetime        DEFAULT NULL                    COMMENT '创建时间',
-    `update_by`     varchar(64)     DEFAULT ''                      COMMENT '更新者',
-    `update_time`   datetime        DEFAULT NULL                    COMMENT '更新时间',
+    `id`                bigint(20)      NOT NULL AUTO_INCREMENT         COMMENT '章节ID',
+    `course_id`         bigint(20)      NOT NULL                        COMMENT '所属课程ID',
+    `parent_id`         bigint(20)      NOT NULL DEFAULT 0              COMMENT '父级ID（0=章 >0=节）',
+    `title`             varchar(200)    NOT NULL                        COMMENT '章节标题',
+    `sort`              int(11)         NOT NULL DEFAULT 0              COMMENT '排序序号',
+    `is_free`           tinyint(1)      NOT NULL DEFAULT 0              COMMENT '是否免费试看：0-否 1-是',
+    `duration`          int(11)         DEFAULT 0                       COMMENT '视频时长（秒）',
+    `media_url`         varchar(500)    DEFAULT NULL                    COMMENT '媒体资源URL',
+    `cover`             varchar(500)    DEFAULT NULL                    COMMENT '视频封面图URL',
+    `video_codec`       varchar(20)     DEFAULT NULL                    COMMENT '视频编码格式（h264/h265/av1）',
+    `video_bitrate`     int(11)         DEFAULT NULL                    COMMENT '视频比特率（kbps）',
+    `video_resolution`  varchar(20)     DEFAULT NULL                    COMMENT '视频分辨率标识（720p/1080p/4k）',
+    `file_size`         bigint(20)      DEFAULT 0                       COMMENT '视频文件大小（字节）',
+    `subtitle_url`      varchar(500)    DEFAULT NULL                    COMMENT '字幕文件URL',
+    `type`              varchar(20)     DEFAULT NULL                    COMMENT '小节类型：video/audio/text/live',
+    `status`            tinyint(1)      NOT NULL DEFAULT 1              COMMENT '状态：0-隐藏 1-发布',
+    `exam_id`           bigint(20)      DEFAULT NULL                    COMMENT '关联考试ID（学完跳转答题）',
+    `delete_flag`       tinyint(1)      NOT NULL DEFAULT 0              COMMENT '逻辑删除：0-正常 1-删除',
+    `create_by`         varchar(64)     DEFAULT ''                      COMMENT '创建者',
+    `create_time`       datetime        DEFAULT NULL                    COMMENT '创建时间',
+    `update_by`         varchar(64)     DEFAULT ''                      COMMENT '更新者',
+    `update_time`       datetime        DEFAULT NULL                    COMMENT '更新时间',
     PRIMARY KEY (`id`),
-    KEY `idx_course_id`  (`course_id`),
-    KEY `idx_parent_id`  (`parent_id`),
-    KEY `idx_exam_id`    (`exam_id`),
-    KEY `idx_delete_flag`(`delete_flag`)
+    KEY `idx_course_id`      (`course_id`),
+    KEY `idx_parent_id`      (`parent_id`),
+    KEY `idx_exam_id`        (`exam_id`),
+    KEY `idx_delete_flag`    (`delete_flag`),
+    KEY `idx_course_status`  (`course_id`, `status`, `delete_flag`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1
   CHARACTER SET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='课程章节表（支持二级：章-节）';
@@ -157,7 +164,10 @@ CREATE TABLE `osh_user_learn_progress` (
     `progress`       tinyint(3)      NOT NULL DEFAULT 0              COMMENT '进度百分比（0-100）',
     `last_position`  int(11)         DEFAULT 0                       COMMENT '上次播放位置（秒）',
     `learn_time`     int(11)         DEFAULT 0                       COMMENT '累计学习时长（秒）',
-    `finish_time`    datetime        DEFAULT NULL                    COMMENT '完成时间',
+    `watch_count`    int(11)         NOT NULL DEFAULT 0              COMMENT '观看次数',
+    `is_completed`   tinyint(1)      NOT NULL DEFAULT 0              COMMENT '是否完成：0-否 1-是',
+    `complete_time`  datetime        DEFAULT NULL                    COMMENT '首次完成时间',
+    `finish_time`    datetime        DEFAULT NULL                    COMMENT '最近完成时间',
     `delete_flag`    tinyint(1)      NOT NULL DEFAULT 0              COMMENT '逻辑删除：0-正常 1-删除',
     `create_by`      varchar(64)     DEFAULT ''                      COMMENT '创建者',
     `create_time`    datetime        DEFAULT NULL                    COMMENT '首次学习时间',
@@ -166,7 +176,9 @@ CREATE TABLE `osh_user_learn_progress` (
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_user_section` (`user_id`, `section_id`),
     KEY `idx_user_course`  (`user_id`, `course_id`),
-    KEY `idx_section_id`   (`section_id`)
+    KEY `idx_section_id`   (`section_id`),
+    KEY `idx_user_status`  (`user_id`, `status`),
+    KEY `idx_delete_flag`  (`delete_flag`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1
   CHARACTER SET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='用户章节学习进度表';
@@ -284,3 +296,24 @@ CREATE TABLE `osh_course_teacher_apply` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1
   CHARACTER SET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='课程讲师申请审核表';
+
+
+-- 13.用户点赞记录表（统一管理评论和问答的点赞）
+-- 支持用户对问答、回答等内容进行点赞操作
+
+DROP TABLE IF EXISTS `osh_user_like`;
+CREATE TABLE `osh_user_like` (
+    `id`          bigint(20)      NOT NULL AUTO_INCREMENT         COMMENT '主键ID',
+    `user_id`     bigint(20)      NOT NULL                        COMMENT '用户ID',
+    `target_type` varchar(20)     NOT NULL                        COMMENT '目标类型：question-问答 answer-回答 comment-评论',
+    `target_id`   bigint(20)      NOT NULL                        COMMENT '目标ID',
+    `delete_flag` tinyint(1)      NOT NULL DEFAULT 0              COMMENT '逻辑删除：0-正常 1-删除',
+    `create_by`   varchar(64)     DEFAULT ''                      COMMENT '创建者',
+    `create_time` datetime        DEFAULT NULL                    COMMENT '点赞时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_user_target` (`user_id`, `target_type`, `target_id`),
+    KEY `idx_target` (`target_type`, `target_id`),
+    KEY `idx_delete_flag` (`delete_flag`)
+) ENGINE=InnoDB AUTO_INCREMENT=1
+  CHARACTER SET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='用户点赞记录表';
