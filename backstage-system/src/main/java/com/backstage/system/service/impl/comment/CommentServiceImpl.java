@@ -9,7 +9,7 @@ import com.backstage.system.domain.comment.dto.CourseCommentAddDTO;
 import com.backstage.system.domain.user.User;
 import com.backstage.system.domain.vo.CommentVo;
 import com.backstage.system.mapper.comment.CommentMapper;
-import com.backstage.system.mapper.user.UserMapper;
+import com.backstage.system.mapper.user.OshUserMapper;
 import com.backstage.system.service.comment.ICommentService;
 import com.backstage.common.utils.PageUtils;
 import com.backstage.system.service.comment.CommentForbiddenWordFilter;
@@ -34,7 +34,7 @@ public class CommentServiceImpl implements ICommentService {
     private CommentMapper commentMapper;
 
     @Autowired
-    private UserMapper userMapper;
+    private OshUserMapper oshUserMapper;
 
     @Autowired
     private RedisCache redisCache;
@@ -115,7 +115,7 @@ public class CommentServiceImpl implements ICommentService {
             return R.fail("登录状态已过期");
         }
 
-        User user = userMapper.getUserInfoById(userId);
+        User user = oshUserMapper.getUserInfoById(userId);
         if (user == null) {
             return R.fail("用户不存在或已被禁用");
         }

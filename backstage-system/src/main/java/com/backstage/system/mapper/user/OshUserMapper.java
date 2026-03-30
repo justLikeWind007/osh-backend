@@ -12,7 +12,7 @@ import java.util.List;
  * Date: 2026/3/7
  * Time: 16:44
  */
-public interface UserMapper {
+public interface OshUserMapper {
     User getUserByUsername(String username);
 
     User getUserByUsernameOrEmail(String name);

@@ -1,5 +1,7 @@
 package com.backstage.system.mapper.questionanswer;
 
+import org.apache.ibatis.annotations.Mapper;
+
 /**
  * Created with IntelliJ IDEA.
  * Description:
@@ -7,5 +9,9 @@ package com.backstage.system.mapper.questionanswer;
  * Date: 2026/3/24
  * Time: 21:51
  */
-public class QAMapper {
+@Mapper
+public interface QAMapper {
+    int addQuestionAnswer(Long userId, Long resourceNo, String resourceType, String title, String content, Integer isPaidOnly);
+
+    int addQuestionTags(Long tag);
 }

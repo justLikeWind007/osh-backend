@@ -1,6 +1,7 @@
 package com.backstage.system.domain.questionanswer;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.Date;
 /**
  * Created with IntelliJ IDEA.
@@ -41,30 +42,28 @@ public class UserViolationStat implements Serializable {
     /**
      * 创建时间
      */
-    private Date createdTime;
+    private LocalDateTime createdTime;
+
+    /**
+     * 创建人
+     */
+    private String createdBy;
 
     /**
      * 更新时间
      */
-    private Date updatedTime;
+    private LocalDateTime updatedTime;
 
-    // 无参构造方法
-    public UserViolationStat() {
-    }
+    /**
+     * 更新人
+     */
+    private String updatedBy;
 
-    // 全参构造方法
-    public UserViolationStat(Long userId, Integer violationCount, Byte isGraylisted,
-                             Byte isBanned, String reason, Date createdTime, Date updatedTime) {
-        this.userId = userId;
-        this.violationCount = violationCount;
-        this.isGraylisted = isGraylisted;
-        this.isBanned = isBanned;
-        this.reason = reason;
-        this.createdTime = createdTime;
-        this.updatedTime = updatedTime;
-    }
+    /**
+     * 逻辑删除：0=未删除，1=已删除
+     */
+    private Integer isDelete;
 
-    // getter和setter方法
     public Long getUserId() {
         return userId;
     }
@@ -105,32 +104,43 @@ public class UserViolationStat implements Serializable {
         this.reason = reason;
     }
 
-    public Date getCreatedTime() {
+    public LocalDateTime getCreatedTime() {
         return createdTime;
     }
 
-    public void setCreatedTime(Date createdTime) {
+    public void setCreatedTime(LocalDateTime createdTime) {
         this.createdTime = createdTime;
     }
 
-    public Date getUpdatedTime() {
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public LocalDateTime getUpdatedTime() {
         return updatedTime;
     }
 
-    public void setUpdatedTime(Date updatedTime) {
+    public void setUpdatedTime(LocalDateTime updatedTime) {
         this.updatedTime = updatedTime;
     }
 
-    @Override
-    public String toString() {
-        return "UserViolationStat{" +
-                "userId=" + userId +
-                ", violationCount=" + violationCount +
-                ", isGraylisted=" + isGraylisted +
-                ", isBanned=" + isBanned +
-                ", reason='" + reason + '\'' +
-                ", createdTime=" + createdTime +
-                ", updatedTime=" + updatedTime +
-                '}';
+    public String getUpdatedBy() {
+        return updatedBy;
+    }
+
+    public void setUpdatedBy(String updatedBy) {
+        this.updatedBy = updatedBy;
+    }
+
+    public Integer getIsDelete() {
+        return isDelete;
+    }
+
+    public void setIsDelete(Integer isDelete) {
+        this.isDelete = isDelete;
     }
 }

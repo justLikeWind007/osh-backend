@@ -1,6 +1,7 @@
 package com.backstage.system.domain.questionanswer;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.Date;
 /**
  * Created with IntelliJ IDEA.
@@ -56,33 +57,28 @@ public class Answer implements Serializable {
     /**
      * 创建时间
      */
-    private Date createdTime;
+    private LocalDateTime createdTime;
+
+    /**
+     * 创建人
+     */
+    private String createdBy;
 
     /**
      * 更新时间
      */
-    private Date updatedTime;
+    private LocalDateTime updatedTime;
 
-    // 无参构造方法
-    public Answer() {
-    }
+    /**
+     * 更新人
+     */
+    private String updatedBy;
 
-    // 全参构造方法
-    public Answer(Long id, Long questionId, Long userId, String content, Integer voteCount,
-                  Byte isSolution, Byte isFlagged, Byte status, Date createdTime, Date updatedTime) {
-        this.id = id;
-        this.questionId = questionId;
-        this.userId = userId;
-        this.content = content;
-        this.voteCount = voteCount;
-        this.isSolution = isSolution;
-        this.isFlagged = isFlagged;
-        this.status = status;
-        this.createdTime = createdTime;
-        this.updatedTime = updatedTime;
-    }
+    /**
+     * 逻辑删除：0=未删除，1=已删除
+     */
+    private Integer isDelete;
 
-    // getter和setter方法
     public Long getId() {
         return id;
     }
@@ -147,20 +143,44 @@ public class Answer implements Serializable {
         this.status = status;
     }
 
-    public Date getCreatedTime() {
+    public LocalDateTime getCreatedTime() {
         return createdTime;
     }
 
-    public void setCreatedTime(Date createdTime) {
+    public void setCreatedTime(LocalDateTime createdTime) {
         this.createdTime = createdTime;
     }
 
-    public Date getUpdatedTime() {
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public LocalDateTime getUpdatedTime() {
         return updatedTime;
     }
 
-    public void setUpdatedTime(Date updatedTime) {
+    public void setUpdatedTime(LocalDateTime updatedTime) {
         this.updatedTime = updatedTime;
+    }
+
+    public String getUpdatedBy() {
+        return updatedBy;
+    }
+
+    public void setUpdatedBy(String updatedBy) {
+        this.updatedBy = updatedBy;
+    }
+
+    public Integer getIsDelete() {
+        return isDelete;
+    }
+
+    public void setIsDelete(Integer isDelete) {
+        this.isDelete = isDelete;
     }
 
     @Override
@@ -175,7 +195,10 @@ public class Answer implements Serializable {
                 ", isFlagged=" + isFlagged +
                 ", status=" + status +
                 ", createdTime=" + createdTime +
+                ", createdBy='" + createdBy + '\'' +
                 ", updatedTime=" + updatedTime +
+                ", updatedBy='" + updatedBy + '\'' +
+                ", isDelete=" + isDelete +
                 '}';
     }
 }
