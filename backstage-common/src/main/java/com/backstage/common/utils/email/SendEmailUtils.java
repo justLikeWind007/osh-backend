@@ -28,7 +28,7 @@ public class SendEmailUtils {
     // 发件人
     public final String from = "18482663265@163.com";
     // 收件人
-    public final String to = "3210728077@qq.com";
+    public final String[] to = new String[]{"3210728077@qq.com","3891715998@qq.com"};
 
     @Autowired
     private JavaMailSender javaMailSender;
