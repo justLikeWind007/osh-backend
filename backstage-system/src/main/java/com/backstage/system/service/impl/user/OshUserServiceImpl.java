@@ -4,16 +4,14 @@ import com.backstage.common.constant.OshUserConstants;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.core.redis.RedisCache;
 import com.backstage.common.enums.ResultCode;
-import com.backstage.common.exception.user.UserNotExistsException;
-import com.backstage.common.exception.user.UserPasswordNotMatchException;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
-import com.backstage.common.utils.email.SendEmailUtils;
-import com.backstage.common.utils.jwt.JwtUtils;
+import com.backstage.common.utils.email.EmailUtil;
+import com.backstage.common.utils.jwt.JwtUtil;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.system.domain.user.User;
 import com.backstage.system.domain.user.vo.UserLoginVo;
 import com.backstage.system.mapper.user.OshUserMapper;
-import com.backstage.system.service.IUserService;
+import com.backstage.system.service.user.IOshUserService;
 import com.backstage.system.utils.UserContextUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +29,7 @@ import java.util.concurrent.TimeUnit;
  * Time: 16:42
  */
 @Service
-public class OshUserServiceImpl implements IUserService {
+public class OshOshUserServiceImpl implements IOshUserService {
 
     @Autowired
     private OshUserMapper oshUserMapper;
@@ -40,7 +38,7 @@ public class OshUserServiceImpl implements IUserService {
     @Autowired
     private UserContextUtil userContextUtil;
     @Autowired
-    private SendEmailUtils sendEmailUtils;
+    private EmailUtil emailUtil;
 
     @Override
     public R<UserLoginVo> login(String username, String password) {
@@ -94,7 +92,7 @@ public class OshUserServiceImpl implements IUserService {
         if (user != null && user.getEmail().equals(email)) {
             return R.fail(ResultCode.FAILED_USER_EMAIL_BOUND.getMsg());
         }
-        String uniqueId = sendEmailUtils.sendEmailGetUniqueId(username, email);
+        String uniqueId = emailUtil.sendEmailGetUniqueId(username, email);
         Map<String,String> userMap = new HashMap<>();
         userMap.put(OshUserConstants.USERNAME, username);
         userMap.put(OshUserConstants.PASSWORD, password);
@@ -140,7 +138,7 @@ public class OshUserServiceImpl implements IUserService {
         if (emailUser != null && user.getEmail().equals(newEmail)) {
             return R.fail(ResultCode.FAILED_USER_EMAIL_BOUND.getMsg());
         }
-        String newUniqueId = sendEmailUtils.sendEmailGetUniqueId(user.getUsername(), newEmail);
+        String newUniqueId = emailUtil.sendEmailGetUniqueId(user.getUsername(), newEmail);
         Map<String,String> userMap = new HashMap<>();
         userMap.put(OshUserConstants.USER_ID, userId.toString());
         userMap.put(OshUserConstants.EMAIL, newEmail);
@@ -217,7 +215,7 @@ public class OshUserServiceImpl implements IUserService {
         claims.put(OshUserConstants.USER_ID, user.getId());
         claims.put(OshUserConstants.USERNAME, user.getUsername());
         claims.put(OshUserConstants.PASSWORD, user.getPassword());
-        return JwtUtils.createToken(claims);
+        return JwtUtil.createToken(claims);
     }
 
 
