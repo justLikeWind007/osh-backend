@@ -1,6 +1,7 @@
 package com.backstage.system.domain.questionanswer;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.Date;
 /**
  * Created with IntelliJ IDEA.
@@ -31,21 +32,28 @@ public class Tag implements Serializable {
     /**
      * 创建时间
      */
-    private Date createdTime;
+    private LocalDateTime createdTime;
 
-    // 无参构造方法
-    public Tag() {
-    }
+    /**
+     * 创建人
+     */
+    private String createdBy;
 
-    // 全参构造方法
-    public Tag(Long id, String name, Integer useCount, Date createdTime) {
-        this.id = id;
-        this.name = name;
-        this.useCount = useCount;
-        this.createdTime = createdTime;
-    }
+    /**
+     * 更新时间
+     */
+    private LocalDateTime updatedTime;
 
-    // getter和setter方法
+    /**
+     * 更新人
+     */
+    private String updatedBy;
+
+    /**
+     * 逻辑删除：0=未删除，1=已删除
+     */
+    private Integer isDelete;
+
     public Long getId() {
         return id;
     }
@@ -70,12 +78,44 @@ public class Tag implements Serializable {
         this.useCount = useCount;
     }
 
-    public Date getCreatedTime() {
+    public LocalDateTime getCreatedTime() {
         return createdTime;
     }
 
-    public void setCreatedTime(Date createdTime) {
+    public void setCreatedTime(LocalDateTime createdTime) {
         this.createdTime = createdTime;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public LocalDateTime getUpdatedTime() {
+        return updatedTime;
+    }
+
+    public void setUpdatedTime(LocalDateTime updatedTime) {
+        this.updatedTime = updatedTime;
+    }
+
+    public String getUpdatedBy() {
+        return updatedBy;
+    }
+
+    public void setUpdatedBy(String updatedBy) {
+        this.updatedBy = updatedBy;
+    }
+
+    public Integer getIsDelete() {
+        return isDelete;
+    }
+
+    public void setIsDelete(Integer isDelete) {
+        this.isDelete = isDelete;
     }
 
     @Override
@@ -85,6 +125,10 @@ public class Tag implements Serializable {
                 ", name='" + name + '\'' +
                 ", useCount=" + useCount +
                 ", createdTime=" + createdTime +
+                ", createdBy='" + createdBy + '\'' +
+                ", updatedTime=" + updatedTime +
+                ", updatedBy='" + updatedBy + '\'' +
+                ", isDelete=" + isDelete +
                 '}';
     }
 }

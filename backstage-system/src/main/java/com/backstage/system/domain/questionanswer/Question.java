@@ -1,6 +1,7 @@
 package com.backstage.system.domain.questionanswer;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.Date;
 
 /**
@@ -33,7 +34,7 @@ public class Question implements Serializable {
     /**
      * 资源编号（resource_type=0时为空）
      */
-    private Long resourceId;
+    private Long resourceNo;
 
     /**
      * 问题标题
@@ -73,37 +74,28 @@ public class Question implements Serializable {
     /**
      * 创建时间
      */
-    private Date createdTime;
+    private LocalDateTime createdTime;
+
+    /**
+     * 创建人
+     */
+    private String createdBy;
 
     /**
      * 更新时间
      */
-    private Date updatedTime;
+    private LocalDateTime updatedTime;
 
-    // 无参构造方法
-    public Question() {
-    }
+    /**
+     * 更新人
+     */
+    private String updatedBy;
 
-    // 全参构造方法
-    public Question(Long id, Long userId, Byte resourceType, Long resourceId, String title,
-                    String content, Byte isPaidOnly, Byte status, Long solvedAnswerId,
-                    Integer viewCount, Integer followCount, Date createdTime, Date updatedTime) {
-        this.id = id;
-        this.userId = userId;
-        this.resourceType = resourceType;
-        this.resourceId = resourceId;
-        this.title = title;
-        this.content = content;
-        this.isPaidOnly = isPaidOnly;
-        this.status = status;
-        this.solvedAnswerId = solvedAnswerId;
-        this.viewCount = viewCount;
-        this.followCount = followCount;
-        this.createdTime = createdTime;
-        this.updatedTime = updatedTime;
-    }
+    /**
+     * 逻辑删除：0=未删除，1=已删除
+     */
+    private Integer isDelete;
 
-    // getter和setter方法
     public Long getId() {
         return id;
     }
@@ -128,12 +120,12 @@ public class Question implements Serializable {
         this.resourceType = resourceType;
     }
 
-    public Long getResourceId() {
-        return resourceId;
+    public Long getResourceNo() {
+        return resourceNo;
     }
 
-    public void setResourceId(Long resourceId) {
-        this.resourceId = resourceId;
+    public void setResourceNo(Long resourceNo) {
+        this.resourceNo = resourceNo;
     }
 
     public String getTitle() {
@@ -192,22 +184,45 @@ public class Question implements Serializable {
         this.followCount = followCount;
     }
 
-    public Date getCreatedTime() {
+    public LocalDateTime getCreatedTime() {
         return createdTime;
     }
 
-    public void setCreatedTime(Date createdTime) {
+    public void setCreatedTime(LocalDateTime createdTime) {
         this.createdTime = createdTime;
     }
 
-    public Date getUpdatedTime() {
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public LocalDateTime getUpdatedTime() {
         return updatedTime;
     }
 
-    public void setUpdatedTime(Date updatedTime) {
+    public void setUpdatedTime(LocalDateTime updatedTime) {
         this.updatedTime = updatedTime;
     }
 
+    public String getUpdatedBy() {
+        return updatedBy;
+    }
+
+    public void setUpdatedBy(String updatedBy) {
+        this.updatedBy = updatedBy;
+    }
+
+    public Integer getIsDelete() {
+        return isDelete;
+    }
+
+    public void setIsDelete(Integer isDelete) {
+        this.isDelete = isDelete;
+    }
 
     @Override
     public String toString() {
@@ -215,7 +230,7 @@ public class Question implements Serializable {
                 "id=" + id +
                 ", userId=" + userId +
                 ", resourceType=" + resourceType +
-                ", resourceId=" + resourceId +
+                ", resourceId=" + resourceNo +
                 ", title='" + title + '\'' +
                 ", content='" + content + '\'' +
                 ", isPaidOnly=" + isPaidOnly +
@@ -224,7 +239,10 @@ public class Question implements Serializable {
                 ", viewCount=" + viewCount +
                 ", followCount=" + followCount +
                 ", createdTime=" + createdTime +
+                ", createdBy='" + createdBy + '\'' +
                 ", updatedTime=" + updatedTime +
+                ", updatedBy='" + updatedBy + '\'' +
+                ", isDelete=" + isDelete +
                 '}';
     }
 }

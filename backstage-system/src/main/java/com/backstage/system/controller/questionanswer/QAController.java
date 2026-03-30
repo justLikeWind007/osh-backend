@@ -1,11 +1,7 @@
 package com.backstage.system.controller.questionanswer;
 
-import com.backstage.common.annotation.Anonymous;
-import com.backstage.common.core.domain.R;
-import com.backstage.system.domain.questionanswer.dto.CheckQuestionPermissionDTO;
+import com.backstage.system.service.impl.user.OshUserServiceImpl;
 import com.backstage.system.service.questionanswer.IQAService;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,17 +18,19 @@ public class QAController {
 
     @Autowired
     private IQAService iqaService;
+    @Autowired
+    private OshUserServiceImpl userService;
+    //todo
 
-    public R<String> checkQuestionPermission(
-            @ApiParam("token") @RequestHeader(value = "token") String token,
-            @RequestBody CheckQuestionPermissionDTO checkQuestionPermissionDTO) {
-        return iqaService.checkQuestionPermission(token, checkQuestionPermissionDTO.getResource_type(),checkQuestionPermissionDTO.getResource_id());
-    }
-    @Anonymous
-    @ApiOperation("新增问题")
-    @PostMapping("/add")
-    public R<String> addQuestionAnswer(
-            @ApiParam("token") @RequestHeader(value = "token") String token) {
-        return R.ok();
-    }
+//    @Anonymous
+//    @ApiOperation("新增问题")
+//    @PostMapping("/save")
+//    public R<String> addQuestionAnswer(
+//            @ApiParam("token") @RequestHeader(value = "token") String token,
+//            @RequestBody AddQuestionDTO addQuestionDTO) {
+//
+//        return iqaService.addQuestionAnswer(userService.getUserIdByToken(token), addQuestionDTO.getResourceNo(),
+//                addQuestionDTO.getResourceType(), addQuestionDTO.getTitle(),
+//                addQuestionDTO.getContent(), addQuestionDTO.getIsPaidOnly(), addQuestionDTO.getTags());
+//    }
 }

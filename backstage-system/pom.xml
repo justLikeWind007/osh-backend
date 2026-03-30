@@ -81,21 +81,7 @@
             <artifactId>aws-java-sdk-s3</artifactId>
         </dependency>
 
-        <!-- 邮件发送 -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-mail</artifactId>
-        </dependency>
 
-        <!-- thymeleaf模板引擎 -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-thymeleaf</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.github.houbb</groupId>
-            <artifactId>sensitive-word</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>junit</groupId>
