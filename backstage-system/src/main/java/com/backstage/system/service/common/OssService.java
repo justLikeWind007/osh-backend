@@ -1,6 +1,7 @@
 package com.backstage.system.service.common;
 
 
+import com.backstage.common.enums.UploadPathEnum;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface OssService {
@@ -9,7 +10,7 @@ public interface OssService {
 //    String addFile(MultipartFile file);
 //
     // 上传文件 带路径
-    String addCommonAvaterImage(MultipartFile file, String customPath) throws Exception;
+    String upload(MultipartFile file, UploadPathEnum pathEnum) throws Exception;
 
     // 删除文件 不带路径
 //    String deleteFile(String fileName);

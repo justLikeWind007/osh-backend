@@ -1,4 +1,4 @@
-package com.backstage.system.domain.vo.order;
+package com.backstage.system.domain.vo.common;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -19,8 +19,6 @@ public class AvaterVo {
     @ApiModelProperty("图片类型")
     private String fileType;
 
-    @ApiModelProperty("url")
-    private String data;
 
     public String getUrl() {
         return url;
@@ -46,11 +44,6 @@ public class AvaterVo {
     public void setFileType(String fileType) {
         this.fileType = fileType;
     }
-    public String getData() {
-        return data;
-    }
-    public void setData(String data) {
-        this.data = data;
-    }
+
 
 }

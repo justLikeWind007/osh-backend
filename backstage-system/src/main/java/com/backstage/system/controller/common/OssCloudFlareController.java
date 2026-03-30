@@ -2,9 +2,10 @@ package com.backstage.system.controller.common;
 
 import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.R;
+import com.backstage.common.enums.UploadPathEnum;
 import com.backstage.common.utils.OssUtil;
 import com.backstage.system.domain.order.OshUploadImage;
-import com.backstage.system.domain.vo.order.AvaterVo;
+import com.backstage.system.domain.vo.common.AvaterVo;
 import com.backstage.system.service.common.OssService;
 import com.backstage.system.service.order.IOshUploadImageService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,11 +36,15 @@ public class OssCloudFlareController {
     @Autowired
     private OssUtil ossUtil;
 
+
+    // 上传头像 到 osh_user才对
     @Anonymous
     @PostMapping("/upload")
     public R<AvaterVo> upload(MultipartFile file) {
+
+
         try {
-            String url = ossService.addCommonAvaterImage(file, null);
+            String url = ossService.upload(file, UploadPathEnum.AVATAR);
             if (url == "图片大小不能超过3M") {
                 return R.fail(url);
             }
@@ -47,7 +52,7 @@ public class OssCloudFlareController {
             uploadImage.setUserId(1L);
             uploadImage.setSchoolId(1L);
             uploadImage.setFileName(file.getOriginalFilename());
-            uploadImage.setFilePath(url);
+            uploadImage.setFilePath(UploadPathEnum.AVATAR.getPath() + file.getOriginalFilename());
             uploadImage.setFileSize(file.getSize());
             uploadImage.setFileType(file.getContentType());
             uploadImage.setStatus(1L);
@@ -57,7 +62,7 @@ public class OssCloudFlareController {
             if (result > 0) {
                 R r = new R();
                 AvaterVo avaterVo = new AvaterVo();
-                avaterVo.setUrl(url);
+                avaterVo.setUrl(UploadPathEnum.AVATAR.getPath() + file.getOriginalFilename());
                 avaterVo.setFileName(file.getOriginalFilename());
                 avaterVo.setFileSize(String.valueOf(file.getSize()));
                 avaterVo.setFileType(file.getContentType());
@@ -74,9 +79,9 @@ public class OssCloudFlareController {
     }
 
     @Anonymous
-    @GetMapping("/upload/avater")
+    @GetMapping("/upload/avatar")
     public R getUrl() {
-        String signedUrl = ossUtil.getSignedUrl("common/image/avatar/03/41c7136c-caee-4569-9bd5-41cf7d61802f_fail.png", 1);
+        String signedUrl = ossUtil.getSignedUrl("common/image/avatar/202603/微信图片_20260327163452_147_8.jpg", 1);
 
         return R.ok(signedUrl);
 
