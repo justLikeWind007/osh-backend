@@ -3,7 +3,7 @@ package com.backstage.system.controller.common;
 import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.enums.UploadPathEnum;
-import com.backstage.common.utils.OssUtil;
+import com.backstage.system.utils.OssUtil;
 import com.backstage.system.domain.order.OshUploadImage;
 import com.backstage.system.domain.vo.common.AvaterVo;
 import com.backstage.system.service.common.OssService;

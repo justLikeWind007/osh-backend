@@ -12,7 +12,7 @@ import eu.bitwalker.useragentutils.UserAgent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import com.backstage.common.utils.OssUtil;
+import com.backstage.system.utils.OssUtil;
 
 
 @Service
@@ -76,7 +76,7 @@ public class OssImpl implements OssService {
             if(file.getSize() > 1024 * 1024 * 3){
                 return "图片大小不能超过3M";
             }
-            ossMapper.insert(log);
+
         }else if(UploadPathEnum.COURSE_VIDEO.equals(pathEnum)){
             customPath = UploadPathEnum.COURSE_VIDEO.getPath()+ym+"/";
             //
@@ -90,7 +90,7 @@ public class OssImpl implements OssService {
 
 
         // 限制操作次数
-
+        ossMapper.insert(log);
 
         return ossUtil.uploadFile(file, customPath);
     }
