@@ -22,7 +22,7 @@ import java.util.UUID;
  * Time: 15:44
  */
 @Component
-public class SendEmailUtils {
+public class EmailUtil {
     // 邮件主题
     public final String subject = "open source helper";
     // 发件人
