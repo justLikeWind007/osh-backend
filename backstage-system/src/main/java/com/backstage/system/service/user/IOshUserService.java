@@ -1,4 +1,4 @@
-package com.backstage.system.service;
+package com.backstage.system.service.user;
 
 import com.backstage.common.core.domain.R;
 import com.backstage.system.domain.user.User;
@@ -14,7 +14,7 @@ import java.util.List;
  * Date: 2026/3/7
  * Time: 16:42
  */
-public interface IUserService {
+public interface IOshUserService {
     R<UserLoginVo> login(String username, String password);
 
     R<String> registerSubmit(String username, String password, String repassword, String email) throws MessagingException;

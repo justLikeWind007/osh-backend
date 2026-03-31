@@ -2,7 +2,7 @@ package com.backstage.common.interceptor;
 
 import com.backstage.common.constant.OshUserConstants;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
-import com.backstage.common.utils.jwt.JwtUtils;
+import com.backstage.common.utils.jwt.JwtUtil;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -30,7 +30,7 @@ public class UserContextInterceptor implements HandlerInterceptor {
         // 2. 只有 token 不为空时才尝试解析
         if (StringUtils.hasText(token)) {
             try {
-                Long userId = JwtUtils.getUserIdByToken(token);
+                Long userId = JwtUtil.getUserIdByToken(token);
                 if (userId != null) {
                     ThreadLocalUtil.set(OshUserConstants.USER_ID, userId);
                 }

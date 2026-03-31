@@ -11,7 +11,7 @@ import com.backstage.common.utils.poi.ExcelUtil;
 import com.backstage.system.domain.user.User;
 import com.backstage.system.domain.user.dto.*;
 import com.backstage.system.domain.user.vo.UserLoginVo;
-import com.backstage.system.service.IUserService;
+import com.backstage.system.service.user.IOshUserService;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,10 +34,10 @@ import java.util.List;
 public class
 OshUserController extends BaseController {
 
-    private final IUserService userService;
+    private final IOshUserService userService;
 
     @Autowired
-    public OshUserController(IUserService userService) {
+    public OshUserController(IOshUserService userService) {
         this.userService = userService;
     }
 
