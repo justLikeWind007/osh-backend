@@ -66,7 +66,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <!-- 新增章节（使用实体对象） -->
     <insert id="insertSectionEntity" parameterType="com.backstage.system.domain.course.OshCourseSection" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO osh_course_section (
-            course_id, parent_id, title, sort, is_free, section_type, duration, 
+            course_id, parent_id, title, sort, is_free, type, duration, 
             media_url, cover, video_codec, video_bitrate, video_resolution, 
             subtitle_url, status, exam_id, create_by, create_time, update_time
         ) VALUES (

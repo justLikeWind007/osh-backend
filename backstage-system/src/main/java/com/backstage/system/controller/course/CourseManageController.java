@@ -66,19 +66,6 @@ public class CourseManageController extends BaseController {
         return R.ok(courseManageService.getCourseDetail(courseId, userId));
     }
     
-    /**
-     * 获取课程购买状态
-     * 检查用户是否已购买该课程以及是否过期
-     */
-    @Anonymous
-    @ApiOperation("获取课程购买状态")
-    @GetMapping("/{courseId}/purchase-status")
-    public R<CoursePurchaseStatusVO> getPurchaseStatus(
-            @ApiParam("课程 ID") @PathVariable Long courseId,
-            @ApiParam("用户ID") @RequestParam(required = false) Long userId) {
-        return R.ok(courseManageService.getPurchaseStatus(courseId, userId));
-    }
-    
     // /**
     //  * 新增课程
     //  */

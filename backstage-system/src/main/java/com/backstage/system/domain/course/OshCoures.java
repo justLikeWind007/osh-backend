@@ -91,31 +91,15 @@ public class OshCoures
     @ApiModelProperty("课程状态")
     private Integer status;
 
-//
-//    /** 章节数量 */
-//    @Excel(name = "章节数量")
-//    @ApiModelProperty("章节数量")
-//    private Integer subCount;
-//
-//    /** 所属专栏 ID */
-//    @Excel(name = "专栏 ID")
-//    @ApiModelProperty("所属专栏 ID")
-//    private Long columnId;
-//
-//    /** 网校 appid */
-//    @Excel(name = "网校 appid")
-//    @ApiModelProperty("网校 appid")
-//    private String appid;
-//
-//    /** 是否已购买：0-否，1-是 */
-//    @Excel(name = "是否已购买", readConverterExp = "0=否，1=是")
-//    @ApiModelProperty("是否已购买：0-否，1-是")
-//    private Boolean isbuy;
-//
-//    /** 是否已收藏：0-否，1-是 */
-//    @Excel(name = "是否已收藏", readConverterExp = "0=否，1=是")
-//    @ApiModelProperty("是否已收藏：0-否，1-是")
-//    private Boolean isfava;
+    /** 是否已购买：0-否，1-是 */
+    @Excel(name = "是否已购买", readConverterExp = "0=否，1=是")
+    @ApiModelProperty("是否已购买：0-否，1-是")
+    private Boolean isbuy;
+
+    /** 是否已收藏：0-否，1-是 */
+    @Excel(name = "是否已收藏", readConverterExp = "0=否，1=是")
+    @ApiModelProperty("是否已收藏：0-否，1-是")
+    private Boolean isfava;
 //
 //    /** 备用字段 1 */
 //    @ApiModelProperty("备用字段 1")
@@ -362,25 +346,25 @@ public class OshCoures
 //        return appid;
 //    }
 //
-//    public void setIsbuy(Boolean isbuy)
-//    {
-//        this.isbuy = isbuy;
-//    }
-//
-//    public Boolean getIsbuy()
-//    {
-//        return isbuy;
-//    }
-//
-//    public void setIsfava(Boolean isfava)
-//    {
-//        this.isfava = isfava;
-//    }
-//
-//    public Boolean getIsfava()
-//    {
-//        return isfava;
-//    }
+    public void setIsbuy(Boolean isbuy)
+    {
+        this.isbuy = isbuy;
+    }
+
+    public Boolean getIsbuy()
+    {
+        return isbuy;
+    }
+
+    public void setIsfava(Boolean isfava)
+    {
+        this.isfava = isfava;
+    }
+
+    public Boolean getIsfava()
+    {
+        return isfava;
+    }
 //
 //    public String getExtField1()
 //    {
@@ -532,19 +516,8 @@ public class OshCoures
             .append("price", getPrice())
             .append("tPrice", getTPrice())
             .append("type", getType())
-//            .append("subCount", getSubCount())
-//            .append("columnId", getColumnId())
-//            .append("appid", getAppid())
-//            .append("isbuy", getIsbuy())
-//            .append("isfava", getIsfava())
-//            .append("extField1", getExtField1())
-//            .append("extField2", getExtField2())
-//            .append("extField3", getExtField3())
-//            .append("extField4", getExtField4())
-//            .append("extField5", getExtField5())
-//            .append("extField6", getExtField6())
-//            .append("extField7", getExtField7())
-//            .append("extField8", getExtField8())
+            .append("isbuy", getIsbuy())
+            .append("isfava", getIsfava())
             .append("searchValue", getSearchValue())
             .append("createBy", getCreateBy())
             .append("updateBy", getUpdateBy())
@@ -553,4 +526,6 @@ public class OshCoures
             .append("remark", getRemark())
             .toString();
     }
+
+
 }

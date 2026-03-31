@@ -53,4 +53,21 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         UPDATE osh_course_tag SET use_count = use_count + 1 WHERE id = #{tagId}
     </update>
     
+    <!-- 新增标签 -->
+    <insert id="insertTag" parameterType="OshCourseTag">
+        INSERT INTO osh_course_tag (
+            name, sort, use_count, status, remark, 
+            create_by, create_time, update_by, update_time
+        ) VALUES (
+            #{name}, #{sort}, #{useCount}, #{status}, #{remark},
+            #{createBy}, NOW(), #{updateBy}, NOW()
+        )
+    </insert>
+    
+    <!-- 检查标签名称是否存在 -->
+    <select id="checkTagNameExists" resultType="int">
+        SELECT COUNT(1) FROM osh_course_tag 
+        WHERE name = #{name} AND delete_flag = 0
+    </select>
+    
 </mapper>
