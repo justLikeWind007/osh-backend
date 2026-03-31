@@ -56,47 +56,7 @@ public class OssUtil {
     }
 
 
-    public void inserMapper(MultipartFile file, String customPath) {
 
-        OssOperationLogVo log = new OssOperationLogVo();
-
-        if (!ossService.existsFileKey(file.getOriginalFilename())) {
-            // 获取浏览器 User-Agent
-            UserAgent userAgent = UserAgent.parseUserAgentString(
-                    ServletUtils.getRequest().getHeader("User-Agent")
-            );
-            // 获取客户端IP
-            String ip = IpUtils.getIpAddr();
-            // 原始文件名
-            log.setOriginalName(file.getOriginalFilename());
-            log.setFileKey(customPath);
-            // 文件后缀
-            log.setFileSuffix(file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf(".") + 1, file.getOriginalFilename().length()));
-            // 文件大小字节
-            log.setFileSize(file.getSize() / 1024 / 1024);
-            log.setFileType(file.getContentType());
-            log.setOperationType("上传");
-
-            // 文件访问次数
-            log.setOperationCount(1);
-
-
-            log.setOperationCount(1);
-            log.setUsername("admin");
-            log.setOperationCount(1);
-            log.setIp(ip);
-
-            // 浏览器的userAgent
-            log.setUserAgent(userAgent.toString());
-            log.setBucket(ossUtil.getOssProperties().getBucketName());
-
-        }else {
-            ossService.incrementOperationCount(file.getOriginalFilename());
-        }
-
-
-        ossMapper.insert(log);
-    }
 
 
     // 上传文件 带路径
@@ -121,9 +81,8 @@ public class OssUtil {
         s3.putObject(request);
 
 
-        // TODO
-        // 看下数据库文件路径是否正确
-        inserMapper(file, fileName);
+
+        ossService.insertMapper(file, fileName);
 
         return "/" + fileName;
     }

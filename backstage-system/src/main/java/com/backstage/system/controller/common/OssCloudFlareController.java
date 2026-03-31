@@ -10,6 +10,8 @@ import com.backstage.system.domain.order.OshUploadImage;
 import com.backstage.system.domain.vo.common.AvaterVo;
 import com.backstage.system.service.common.OssService;
 import com.backstage.system.service.order.IOshUploadImageService;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,6 +28,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 
+@ApiOperation("上传接口")
 @RestController
 public class OssCloudFlareController {
 
@@ -39,78 +42,71 @@ public class OssCloudFlareController {
     private OssUtil ossUtil;
 
 
-    @Anonymous
-    @PostMapping("/upload/video")
-    public R uploadVideo(MultipartFile video){
-
-
-        if (video.isEmpty()) {
-            return R.fail("上传文件不能为空");
-        }
-
-        try {
-            String url = ossService.upload(video, UploadPathEnum.COURSE_VIDEO);
-
-            // 判断是否返回了错误信息
-            if (url == null || url.contains("不能超过") || url.contains("类型不正确")) {
-                return R.fail(url);
-            }
-
-            return R.ok(url);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return R.fail("上传失败：" + e.getMessage());
-        }
-
-    }
-
-    // 上传头像 到 osh_user才对
     // 限制IP 没60秒 10次 如果加key可以相同的配额限制
     @RateLimiter(limitType = LimitType.IP, time = 60, count = 10)
     @Anonymous
+    @ApiParam(value = "上传文件", required = true)
+    @ApiOperation("上传接口")
     @PostMapping("/upload")
-    public R<AvaterVo> upload(MultipartFile file) {
+    public R upload(@RequestParam("file") MultipartFile file, @RequestParam("type") String type) {
 
+        if (file.isEmpty()) {
+            return R.fail("上传文件不能为空");
+        }
+        if(type == "video") {
+            try {
+                String url = ossService.upload(file, UploadPathEnum.COURSE_VIDEO);
 
-        try {
-            String url = ossService.upload(file, UploadPathEnum.AVATAR);
-            if (url == "图片大小不能超过3M") {
-                return R.fail(url);
+                // 判断是否返回了错误信息
+                if (url == null || url.contains("不能超过") || url.contains("类型不正确")) {
+                    return R.fail(url);
+                }
+                return R.ok(url);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return R.fail("上传失败：" + e.getMessage());
             }
-            OshUploadImage uploadImage = new OshUploadImage();
-            uploadImage.setUserId(1L);
-            uploadImage.setSchoolId(1L);
-            uploadImage.setFileName(file.getOriginalFilename());
-            uploadImage.setFilePath(UploadPathEnum.AVATAR.getPath() + file.getOriginalFilename());
-            uploadImage.setFileSize(file.getSize());
-            uploadImage.setFileType(file.getContentType());
-            uploadImage.setStatus(1L);
+        }else{
+            try {
+                String url = ossService.upload(file, UploadPathEnum.AVATAR);
+                if (url == "图片大小不能超过3M") {
+                    return R.fail(url);
+                }
+                OshUploadImage uploadImage = new OshUploadImage();
+                uploadImage.setUserId(1L);
+                uploadImage.setSchoolId(1L);
+                uploadImage.setFileName(file.getOriginalFilename());
+                uploadImage.setFilePath(UploadPathEnum.AVATAR.getPath() + file.getOriginalFilename());
+                uploadImage.setFileSize(file.getSize());
+                uploadImage.setFileType(file.getContentType());
+                uploadImage.setStatus(1L);
 
-            int result = oshUploadImageService.insertOshUploadImage(uploadImage);
+                int result = oshUploadImageService.insertOshUploadImage(uploadImage);
 
-            if (result > 0) {
-                R r = new R();
-                AvaterVo avaterVo = new AvaterVo();
-                avaterVo.setUrl(UploadPathEnum.AVATAR.getPath() + file.getOriginalFilename());
-                avaterVo.setFileName(file.getOriginalFilename());
-                avaterVo.setFileSize(String.valueOf(file.getSize()));
-                avaterVo.setFileType(file.getContentType());
-                r.setMsg("ok");
-                return r.ok(avaterVo);
-            } else {
-                return R.fail(file.getOriginalFilename());
+                if (result > 0) {
+                    R r = new R();
+                    AvaterVo avaterVo = new AvaterVo();
+                    avaterVo.setUrl(UploadPathEnum.AVATAR.getPath() + file.getOriginalFilename());
+                    avaterVo.setFileName(file.getOriginalFilename());
+                    avaterVo.setFileSize(String.valueOf(file.getSize()));
+                    avaterVo.setFileType(file.getContentType());
+                    r.setMsg("ok");
+                    return r.ok(avaterVo);
+                } else {
+                    return R.fail(file.getOriginalFilename());
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                return R.fail(e.getMessage());
             }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return R.fail(e.getMessage());
         }
     }
 
     @Anonymous
     @GetMapping("/upload/avatar")
     public R getUrl() {
-        String signedUrl = ossUtil.getSignedUrl("common/image/avatar/202603/微信图片_20260327163452_147_8.jpg", 1);
+        String signedUrl = ossUtil.getSignedUrl("common/image/avatar/微信图片_20260327163452_147_8.jpg", 1);
 
         return R.ok(signedUrl);
 
@@ -157,7 +153,7 @@ public class OssCloudFlareController {
             }
 
             // 5. 流式输出（捕获断开异常，不抛错）
-            byte[] buffer = new byte[8192];
+            byte[] buffer = new byte[1048576];
             try (InputStream in = conn.getInputStream();
                  ServletOutputStream out = response.getOutputStream()) {
 

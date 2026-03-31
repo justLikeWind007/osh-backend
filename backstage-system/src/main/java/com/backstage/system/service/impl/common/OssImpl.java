@@ -2,12 +2,15 @@ package com.backstage.system.service.impl.common;
 
 import com.backstage.common.enums.UploadPathEnum;
 import com.backstage.common.utils.DateUtils;
+import com.backstage.common.utils.ServletUtils;
+import com.backstage.common.utils.ip.IpUtils;
 import com.backstage.system.domain.vo.common.OssOperationLogVo;
 import com.backstage.system.mapper.common.OssMapper;
 import com.backstage.system.service.common.OssService;
 import com.backstage.system.utils.OssUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import eu.bitwalker.useragentutils.UserAgent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -31,6 +34,8 @@ public class OssImpl implements OssService {
     @Autowired
     private OssMapper ossMapper;
 
+    @Autowired
+    private OssService ossService;
 
     // TODO
     // 多文件上传
@@ -149,6 +154,48 @@ public class OssImpl implements OssService {
                 e.printStackTrace();
             }
         }
+    }
+
+
+    public void insertMapper(MultipartFile file, String customPath) {
+
+        OssOperationLogVo log = new OssOperationLogVo();
+
+        if (!ossService.existsFileKey(file.getOriginalFilename())) {
+            // 获取浏览器 User-Agent
+            UserAgent userAgent = UserAgent.parseUserAgentString(
+                    ServletUtils.getRequest().getHeader("User-Agent")
+            );
+            // 获取客户端IP
+            String ip = IpUtils.getIpAddr();
+            // 原始文件名
+            log.setOriginalName(file.getOriginalFilename());
+            log.setFileKey(customPath);
+            // 文件后缀
+            log.setFileSuffix(file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf(".") + 1, file.getOriginalFilename().length()));
+            // 文件大小字节
+            log.setFileSize(file.getSize() / 1024 / 1024);
+            log.setFileType(file.getContentType());
+            log.setOperationType("upload");
+
+            // 文件访问次数
+            log.setOperationCount(1);
+
+            log.setOperationCount(1);
+            log.setUsername("admin");
+            log.setOperationCount(1);
+            log.setIp(ip);
+
+            // 浏览器的userAgent
+            log.setUserAgent(userAgent.toString());
+            log.setBucket(ossUtil.getOssProperties().getBucketName());
+
+        }else {
+            ossService.incrementOperationCount(file.getOriginalFilename());
+        }
+
+
+        ossMapper.insert(log);
     }
 
 

@@ -2,7 +2,7 @@ package com.backstage.system.controller.order;
 
 import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.R;
-import com.backstage.system.service.impl.order.IsWxPayNoServiceImp;
+import com.backstage.system.service.order.impl.IsWxPayNoServiceImp;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

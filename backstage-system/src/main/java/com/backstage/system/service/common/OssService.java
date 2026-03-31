@@ -12,6 +12,7 @@ public interface OssService {
     // 上传文件 带路径
     String upload(MultipartFile file, UploadPathEnum pathEnum) throws Exception;
 
+    void insertMapper(MultipartFile file, String customPath);
 
     // 判断文件是否存在
     public boolean existsFileKey(String fileKey);
