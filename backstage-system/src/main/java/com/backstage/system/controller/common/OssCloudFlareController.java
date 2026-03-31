@@ -1,7 +1,9 @@
 package com.backstage.system.controller.common;
 
 import com.backstage.common.annotation.Anonymous;
+import com.backstage.common.annotation.RateLimiter;
 import com.backstage.common.core.domain.R;
+import com.backstage.common.enums.LimitType;
 import com.backstage.common.enums.UploadPathEnum;
 import com.backstage.system.utils.OssUtil;
 import com.backstage.system.domain.order.OshUploadImage;
@@ -63,6 +65,8 @@ public class OssCloudFlareController {
     }
 
     // 上传头像 到 osh_user才对
+    // 限制IP 没60秒 10次 如果加key可以相同的配额限制
+    @RateLimiter(limitType = LimitType.IP, time = 60, count = 10)
     @Anonymous
     @PostMapping("/upload")
     public R<AvaterVo> upload(MultipartFile file) {

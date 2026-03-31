@@ -8,6 +8,12 @@ import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.backstage.common.config.OssProperties;
+import com.backstage.common.utils.ServletUtils;
+import com.backstage.common.utils.ip.IpUtils;
+import com.backstage.system.domain.vo.common.OssOperationLogVo;
+import com.backstage.system.mapper.common.OssMapper;
+import com.backstage.system.service.common.OssService;
+import eu.bitwalker.useragentutils.UserAgent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,7 +25,18 @@ import java.util.UUID;
 public class OssUtil {
 
     @Autowired
+    private OssMapper ossMapper;
+
+    @Autowired
     private OssProperties ossProperties;
+
+
+    @Autowired
+    private OssUtil ossUtil;
+
+    @Autowired
+    private OssService ossService;
+
 
     // 创建连接
     public AmazonS3Client createS3Client() {
@@ -37,6 +54,50 @@ public class OssUtil {
     public String uploadFile(MultipartFile file) throws Exception {
         return uploadFile(file, null);
     }
+
+
+    public void inserMapper(MultipartFile file, String customPath) {
+
+        OssOperationLogVo log = new OssOperationLogVo();
+
+        if (!ossService.existsFileKey(file.getOriginalFilename())) {
+            // 获取浏览器 User-Agent
+            UserAgent userAgent = UserAgent.parseUserAgentString(
+                    ServletUtils.getRequest().getHeader("User-Agent")
+            );
+            // 获取客户端IP
+            String ip = IpUtils.getIpAddr();
+            // 原始文件名
+            log.setOriginalName(file.getOriginalFilename());
+            log.setFileKey(customPath);
+            // 文件后缀
+            log.setFileSuffix(file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf(".") + 1, file.getOriginalFilename().length()));
+            // 文件大小字节
+            log.setFileSize(file.getSize() / 1024 / 1024);
+            log.setFileType(file.getContentType());
+            log.setOperationType("上传");
+
+            // 文件访问次数
+            log.setOperationCount(1);
+
+
+            log.setOperationCount(1);
+            log.setUsername("admin");
+            log.setOperationCount(1);
+            log.setIp(ip);
+
+            // 浏览器的userAgent
+            log.setUserAgent(userAgent.toString());
+            log.setBucket(ossUtil.getOssProperties().getBucketName());
+
+        }else {
+            ossService.incrementOperationCount(file.getOriginalFilename());
+        }
+
+
+        ossMapper.insert(log);
+    }
+
 
     // 上传文件 带路径
     public String uploadFile(MultipartFile file, String customPath) throws Exception {
@@ -58,6 +119,11 @@ public class OssUtil {
         );
 
         s3.putObject(request);
+
+
+        // TODO
+        // 看下数据库文件路径是否正确
+        inserMapper(file, fileName);
 
         return "/" + fileName;
     }

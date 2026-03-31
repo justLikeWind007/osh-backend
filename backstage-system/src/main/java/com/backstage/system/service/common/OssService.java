@@ -12,6 +12,13 @@ public interface OssService {
     // 上传文件 带路径
     String upload(MultipartFile file, UploadPathEnum pathEnum) throws Exception;
 
+
+    // 判断文件是否存在
+    public boolean existsFileKey(String fileKey);
+
+
+    public int incrementOperationCount(String fileKey);
+
     // 删除文件 不带路径
 //    String deleteFile(String fileName);
 //
