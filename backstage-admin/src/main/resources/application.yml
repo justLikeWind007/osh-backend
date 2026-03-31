@@ -23,8 +23,14 @@ server:
   tomcat:
     # tomcat的URI编码
     uri-encoding: UTF-8
+    max-swallow-size: 100MB
+    max-http-form-post-size: 200MB
+
     # 连接数满后的排队数，默认为100
     accept-count: 1000
+    # tomcat 最大请求头大小
+    max-http-header-size: 16384
+    # 请求头设置
     threads:
       # tomcat最大线程数，默认为200
       max: 800
@@ -69,9 +75,10 @@ spring:
   servlet:
     multipart:
       # 单个文件大小
-      max-file-size: 10MB
+      max-file-size: 200MB
       # 设置总上传的文件大小
-      max-request-size: 20MB
+      max-request-size: 200MB
+
   # 服务模块
   devtools:
     restart:

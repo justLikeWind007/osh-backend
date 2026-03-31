@@ -37,6 +37,31 @@ public class OssCloudFlareController {
     private OssUtil ossUtil;
 
 
+    @Anonymous
+    @PostMapping("/upload/video")
+    public R uploadVideo(MultipartFile video){
+
+
+        if (video.isEmpty()) {
+            return R.fail("上传文件不能为空");
+        }
+
+        try {
+            String url = ossService.upload(video, UploadPathEnum.COURSE_VIDEO);
+
+            // 判断是否返回了错误信息
+            if (url == null || url.contains("不能超过") || url.contains("类型不正确")) {
+                return R.fail(url);
+            }
+
+            return R.ok(url);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("上传失败：" + e.getMessage());
+        }
+
+    }
+
     // 上传头像 到 osh_user才对
     @Anonymous
     @PostMapping("/upload")

@@ -3,17 +3,17 @@ package com.backstage.system.service.impl.common;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.enums.UploadPathEnum;
 import com.backstage.common.utils.DateUtils;
+import com.backstage.common.utils.ServletUtils;
 import com.backstage.common.utils.ip.IpUtils;
 import com.backstage.system.domain.vo.common.OssOperationLogVo;
 import com.backstage.system.mapper.common.OssMapper;
 import com.backstage.system.service.common.OssService;
+import eu.bitwalker.useragentutils.UserAgent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import com.backstage.common.utils.OssUtil;
 
-import static com.backstage.common.core.domain.R.SUCCESS;
-import static com.backstage.common.core.domain.R.fail;
 
 @Service
 public class OssImpl implements OssService {
@@ -28,7 +28,12 @@ public class OssImpl implements OssService {
     // TODO
 
     // enum 固定路径类型 course_code.zip 7z
-    public String upload(MultipartFile file, UploadPathEnum pathEnum) throws Exception {
+    public String upload(MultipartFile file, UploadPathEnum pathEnum) throws  Exception{
+
+        // 获取浏览器 User-Agent
+        UserAgent userAgent = UserAgent.parseUserAgentString(
+                ServletUtils.getRequest().getHeader("User-Agent")
+        );
 
         // 获取客户端IP
         String ip = IpUtils.getIpAddr();
@@ -57,7 +62,7 @@ public class OssImpl implements OssService {
         log.setIp(ip);
 
         // 浏览器的userAgent
-//        log.setUserAgent(IpUtils.getUserAgent());
+        log.setUserAgent(userAgent.toString());
 
 
         log.setBucket(ossUtil.getOssProperties().getBucketName());
@@ -74,6 +79,7 @@ public class OssImpl implements OssService {
             ossMapper.insert(log);
         }else if(UploadPathEnum.COURSE_VIDEO.equals(pathEnum)){
             customPath = UploadPathEnum.COURSE_VIDEO.getPath()+ym+"/";
+            //
             log.setFileKey(customPath + file.getOriginalFilename());
             if(file.getSize() > 1024 * 1024 * 200){
                 return "视频大小不能超过200MB";

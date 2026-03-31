@@ -59,7 +59,7 @@ public class OssUtil {
 
         s3.putObject(request);
 
-        return ossProperties.getPublicDomain() + "/" + fileName;
+        return "/" + fileName;
     }
 
     // 生成文件名 不带前缀
