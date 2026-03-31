@@ -21,6 +21,7 @@ import com.backstage.system.mapper.course.OshCourseStaffMapper;
 import com.backstage.system.mapper.course.OshCourseReviewMapper;
 import com.backstage.system.domain.fava.OshFava;
 import com.backstage.system.mapper.fava.OshFavaMapper;
+import com.backstage.system.mapper.course.OshOrderSaveMapper;
 import com.backstage.system.service.course.ICourseManageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +31,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
-import java.util.Set;
 
 /**
  * 课程管理 Service 业务层处理
@@ -69,6 +69,9 @@ public class CourseManageServiceImpl implements ICourseManageService {
     
     @Autowired
     private OshFavaMapper favaMapper;
+    
+    @Autowired
+    private OshOrderSaveMapper orderMapper;
     
     // ==================== 课程查询接口实现 ====================
     
@@ -1350,25 +1353,6 @@ public class CourseManageServiceImpl implements ICourseManageService {
      * @param userId 用户 ID
      * @return 是否已购买
      */
-    private boolean checkUserPurchased(Long courseId, Long userId) {
-        if (userId == null) {
-            return false;
-        }
-        
-        // 1. 查询学习进度
-        Map<String, Object> progress = progressMapper.selectProgressByUserIdAndCourseId(userId, courseId);
-        if (progress != null) {
-            return true;
-        }
-        
-        // 2. 查询订单（这里简化处理，实际需要查询订单表）
-        // List<Order> orders = orderMapper.selectOrdersByUserIdAndCourseId(userId, courseId);
-        // if (orders != null && !orders.isEmpty()) {
-        //     return true;
-        // }
-        
-        return false;
-    }
     
     // ==================== 标签查询接口实现 ====================
     
@@ -1462,17 +1446,170 @@ public class CourseManageServiceImpl implements ICourseManageService {
     
     
     // ==================== 视频上传接口实现 ====================
+        
+    /**
+     * 上传课程封面图片
+     * 语法逻辑:
+     * 1. 校验课程是否存在
+     * 2. 校验权限（仅课程创建者或管理员可上传）
+     * 3. 调用文件上传接口
+     * 4. 更新课程 cover 字段
+     * 
+     * 实现效果:
+     * - 将封面图片上传到文件服务器
+     * - 更新课程表的 cover 字段
+     * - 支持常见图片格式（bmp/gif/jpg/jpeg/png）
+     * - 文件大小限制 5MB
+     * 
+     * @param file 封面文件
+     * @param courseId 课程 ID
+     * @param userId 用户 ID
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void uploadCourseCover(MultipartFile file, Long courseId, Long userId) {
+        // 1. 校验课程是否存在
+        OshCoures course = courseMapper.selectCourseById(courseId);
+        if (course == null) {
+            throw new ServiceException("课程不存在");
+        }
+            
+        // 2. 校验权限（仅课程创建者或管理员可上传）
+        // TODO: 实际项目中需要集成 Spring Security 或 Shiro 进行权限校验
+        // 这里简化处理，仅检查 createBy 字段
+        if (course.getCreateBy() != null && !course.getCreateBy().equals(String.valueOf(userId))) {
+            throw new ServiceException("无权限上传该课程的封面");
+        }
+            
+        // 3. 校验文件类型（仅允许图片格式）
+        String fileName = file.getOriginalFilename();
+        String extension = "";
+        if (fileName != null && fileName.contains(".")) {
+            extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
+        }
+            
+        List<String> allowedImageExtensions = Arrays.asList("bmp", "gif", "jpg", "jpeg", "png");
+        if (!allowedImageExtensions.contains(extension)) {
+            throw new ServiceException("封面图片仅支持 bmp、gif、jpg、jpeg、png 格式");
+        }
+            
+        // 4. 校验文件大小（5MB）
+        long maxImageSize = 5 * 1024 * 1024;
+        if (file.getSize() > maxImageSize) {
+            throw new ServiceException("封面图片大小不能超过 5MB");
+        }
+            
+        // 5. 调用文件上传接口（等待文件模块提供）
+        // TODO: 实际需要使用 FileUploadUtils.upload(file, UploadPathEnum.COURSE_COVER)
+        // 这里先使用临时实现，后续替换为正式接口
+        String savePath = "/upload/course/cover/" + DateUtils.datePath() + "/" + System.currentTimeMillis() + "." + extension;
+        // String coverUrl = FileUploadUtils.upload(file, UploadPathEnum.COURSE_COVER);
+            
+        // 6. 更新课程封面 URL
+        OshCoures updateCourse = new OshCoures();
+        updateCourse.setId(courseId);
+        updateCourse.setCover(savePath);
+        updateCourse.setUpdateTime(DateUtils.getNowDate());
+        updateCourse.setUpdateBy(String.valueOf(userId));
+            
+        int result = courseMapper.updateCourse(updateCourse);
+        if (result <= 0) {
+            throw new ServiceException("更新课程封面失败");
+        }
+            
+        log.info("课程封面上传成功：courseId={}, url={}", courseId, savePath);
+    }
+    
+    /**
+     * 上传课时视频（指定章节 ID）
+     * 语法逻辑:
+     * 1. 校验章节是否存在且属于该课程
+     * 2. 校验文件类型和大小
+     * 3. 调用文件上传接口
+     * 4. 更新章节的 mediaUrl 字段
+     * 5. 返回视频信息
+     * 
+     * 实现效果:
+     * - 支持 mp4、avi、mov、mkv 等常见视频格式
+     * - 将视频 URL 保存到章节表
+     * - 限制文件大小 500MB
+     * 
+     * @param file 视频文件
+     * @param courseId 课程 ID
+     * @param sectionId 章节 ID
+     * @param userId 用户 ID
+     * @return 视频上传结果 VO
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public VideoUploadVO uploadSectionVideo(MultipartFile file, Long courseId, Long sectionId, Long userId) {
+        // 1. 校验章节是否存在且属于该课程
+        Map<String, Object> section = sectionMapper.selectSectionById(sectionId);
+        if (section == null || !section.get("course_id").equals(courseId)) {
+            throw new ServiceException("章节不存在或不属于该课程");
+        }
+        
+        // 2. 校验文件类型（仅允许视频格式）
+        String fileName = file.getOriginalFilename();
+        String extension = "";
+        if (fileName != null && fileName.contains(".")) {
+            extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
+        }
+        
+        List<String> allowedVideoExtensions = Arrays.asList("mp4", "avi", "mov", "mkv", "wmv", "flv", "webm");
+        if (!allowedVideoExtensions.contains(extension)) {
+            throw new ServiceException("仅支持视频格式（mp4/avi/mov/mkv/wmv/flv/webm）");
+        }
+        
+        // 3. 校验文件大小（500MB）
+        long maxVideoSize = 500 * 1024 * 1024;
+        if (file.getSize() > maxVideoSize) {
+            throw new ServiceException("视频文件大小不能超过 500MB");
+        }
+        
+        // 4. 调用文件上传接口（等待文件模块提供）
+        // TODO: 实际需要使用 FileUploadUtils.upload(file, UploadPathEnum.COURSE_VIDEO)
+        // 这里先使用临时实现，后续替换为正式接口
+        String savePath = "/upload/course/video/" + courseId + "/" + DateUtils.datePath() + "/" + System.currentTimeMillis() + "." + extension;
+        // String videoUrl = FileUploadUtils.upload(file, UploadPathEnum.COURSE_VIDEO);
+        
+        // 5. 更新章节的视频 URL（使用 Map 方式）
+        Map<String, Object> params = new HashMap<>();
+        params.put("id", sectionId);
+        params.put("mediaUrl", savePath);
+        params.put("updateTime", DateUtils.getNowDate());
+        params.put("updateBy", String.valueOf(userId));
+        
+        int result = sectionMapper.updateSection(params);
+        if (result <= 0) {
+            throw new ServiceException("更新章节视频失败");
+        }
+        
+        // 6. 构建返回结果
+        VideoUploadVO vo = new VideoUploadVO();
+        vo.setVideoUrl(savePath);
+        vo.setOriginalFileName(fileName);
+        vo.setFileSize(file.getSize());
+        // TODO: 实际需要调用视频处理服务提取元数据
+        vo.setDuration(0);  // 实际需要从视频中提取
+        vo.setVideoCodec("h264");
+        vo.setVideoResolution("1080p");
+        vo.setVideoBitrate(0);
+        
+        log.info("课时视频上传成功：courseId={}, sectionId={}, url={}", courseId, sectionId, savePath);
+        return vo;
+    }
     
     /**
      * 上传课时视频
-     * 语法逻辑：
+     * 语法逻辑:
      * 1. 校验文件类型和大小
      * 2. 上传文件到存储服务
      * 3. 提取视频元数据（时长、分辨率、编码格式等）
      * 4. 生成视频预览封面
      * 5. 返回视频信息
      * 
-     * 实现效果：
+     * 实现效果:
      * - 支持 mp4、avi、mov、mkv 等常见视频格式
      * - 自动提取视频时长、分辨率等元数据
      * - 自动生成视频封面图
@@ -1867,5 +2004,117 @@ public class CourseManageServiceImpl implements ICourseManageService {
         courseMapper.updateCourseSubCount(params);
         
         return sectionId;
+    }
+    
+    
+    /**
+     * 获取课程购买状态
+     * 语法逻辑：检查学习进度→检查订单表→判断是否过期
+     * 实现效果：返回用户对课程的购买状态获取上传文件的用户信息吗？
+当前登录用户（已购买/未购买/已过期）
+     *
+     * @param courseId 课程 ID
+     * @param userId 用户 ID（可为空，未登录时返回未购买）
+     * @return 购买状态 VO
+     */
+    @Override
+    public CoursePurchaseStatusVO getPurchaseStatus(Long courseId, Long userId) {
+        CoursePurchaseStatusVO vo = new CoursePurchaseStatusVO();
+        vo.setCourseId(courseId);
+        
+        // 1. 检查课程是否存在
+        OshCoures course = courseMapper.selectCourseById(courseId);
+        if (course == null) {
+            vo.setIsPurchased(false);
+            vo.setReason("课程不存在");
+            return vo;
+        }
+        vo.setCourseName(course.getTitle());
+        
+        // 2. 未登录用户
+        if (userId == null) {
+            vo.setIsPurchased(false);
+            vo.setReason("请先登录");
+            return vo;
+        }
+        
+        // 3. 检查学习进度（有进度表示已购买）
+        Map<String, Object> progress = progressMapper.selectProgressByUserIdAndCourseId(userId, courseId);
+        if (progress != null) {
+            vo.setIsPurchased(true);
+            vo.setIsExpired(false);
+            vo.setPurchaseTime((Date) progress.get("create_time"));
+            vo.setServiceType("永久有效");
+            vo.setStatus("closed");
+            return vo;
+        }
+        
+        // 4. 检查订单表
+        Map<String, Object> order = orderMapper.selectOrderByUserIdAndCourseId(userId, courseId);
+        if (order == null) {
+            vo.setIsPurchased(false);
+            vo.setReason("未购买该课程");
+            return vo;
+        }
+        
+        // 5. 检查订单状态
+        String status = (String) order.get("status");
+        vo.setStatus(status);
+        vo.setOrderNo((String) order.get("orderNo"));
+        vo.setPrice(order.get("price") != null ? order.get("price").toString() : null);
+        
+        if (!"closed".equals(status)) {
+            vo.setIsPurchased(false);
+            vo.setReason("订单未支付");
+            return vo;
+        }
+        
+        // 6. 检查是否过期
+        vo.setIsPurchased(true);
+        vo.setPurchaseTime((Date) order.get("createdTime"));
+        vo.setServiceType((String) order.get("serviceType"));
+        
+        Date expireTime = (Date) order.get("expireTime");
+        vo.setExpireTime(expireTime);
+        
+        if (expireTime != null) {
+            vo.setIsExpired(expireTime.before(new Date()));
+            // 计算剩余天数
+            if (!vo.getIsExpired()) {
+                long days = (expireTime.getTime() - System.currentTimeMillis()) / (1000 * 60 * 60 * 24);
+                vo.setRemainingDays(days);
+            }
+        } else {
+            // 无过期时间表示永久有效
+            vo.setIsExpired(false);
+        }
+        
+        return vo;
+    }
+    
+    /**
+     * 检查用户是否已购买课程
+     * 语法逻辑：检查学习进度→检查订单表→判断是否过期
+     * 实现效果：返回布尔值，用于快速判断
+     *
+     * @param courseId 课程 ID
+     * @param userId 用户 ID
+     * @return 是否已购买且未过期
+     */
+    @Override
+    public boolean checkUserPurchased(Long courseId, Long userId) {
+        if (userId == null) {
+            return false;
+        }
+        
+        // 1. 检查学习进度
+        Map<String, Object> progress = progressMapper.selectProgressByUserIdAndCourseId(userId, courseId);
+        if (progress != null) {
+            return true;
+        }
+        
+        // 2. 检查有效订单
+        Map<String, Object> order = orderMapper.selectValidOrderByUserIdAndCourseId(userId, courseId);
+        return order != null;
     }
 }

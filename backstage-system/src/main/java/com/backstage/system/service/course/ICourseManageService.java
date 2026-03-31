@@ -16,6 +16,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Map;
 
+import com.backstage.system.domain.vo.CoursePurchaseStatusVO;
+
 /**
  * 课程管理 Service 接口
  * 
@@ -388,6 +390,17 @@ public interface ICourseManageService {
     // ==================== 视频上传接口 ====================
     
     /**
+     * 上传课程封面图片
+     * 语法逻辑：校验文件→调用上传接口→更新课程 cover 字段
+     * 实现效果：将封面图片上传到文件服务器，并更新课程表的 cover 字段
+     * 
+     * @param file 封面文件
+     * @param courseId 课程 ID
+     * @param userId 用户 ID
+     */
+    void uploadCourseCover(MultipartFile file, Long courseId, Long userId);
+    
+    /**
      * 上传课时视频
      * 语法逻辑：校验文件→上传视频→提取元数据→生成封面→返回视频信息
      * 实现效果：提取视频时长、分辨率、编码格式等信息，自动生成预览封面
@@ -398,6 +411,19 @@ public interface ICourseManageService {
      * @return 视频上传结果 VO
      */
     VideoUploadVO uploadSectionVideo(MultipartFile file, Long courseId, Long userId);
+    
+    /**
+     * 上传课时视频（指定章节 ID）
+     * 语法逻辑：校验文件→上传视频→更新章节 mediaUrl→提取元数据→返回视频信息
+     * 实现效果：将视频上传到文件服务器，并更新章节表的 mediaUrl 字段
+     * 
+     * @param file 视频文件
+     * @param courseId 课程 ID
+     * @param sectionId 章节 ID
+     * @param userId 用户 ID
+     * @return 视频上传结果 VO
+     */
+    VideoUploadVO uploadSectionVideo(MultipartFile file, Long courseId, Long sectionId, Long userId);
     
     /**
      * 上传课时资料
@@ -440,4 +466,29 @@ public interface ICourseManageService {
      * @return 章节 ID
      */
     Long addSection(Long courseId, SectionCreateDTO sectionCreateDTO, Long userId);
+    
+    
+    // ==================== 购买状态查询接口 ====================
+    
+    /**
+     * 获取课程购买状态
+     * 语法逻辑：检查学习进度→检查订单表→判断是否过期
+     * 实现效果：返回用户对课程的购买状态（已购买/未购买/已过期）
+     * 
+     * @param courseId 课程 ID
+     * @param userId 用户 ID（可为空，未登录时返回未购买）
+     * @return 购买状态 VO
+     */
+    CoursePurchaseStatusVO getPurchaseStatus(Long courseId, Long userId);
+    
+    /**
+     * 检查用户是否已购买课程
+     * 语法逻辑：检查学习进度→检查订单表→判断是否过期
+     * 实现效果：返回布尔值，用于快速判断
+     * 
+     * @param courseId 课程 ID
+     * @param userId 用户 ID
+     * @return 是否已购买且未过期
+     */
+    boolean checkUserPurchased(Long courseId, Long userId);
 }

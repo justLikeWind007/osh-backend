@@ -135,6 +135,27 @@ public class OshCouresController extends BaseController
     }
 
     /**
+     * 上传课程封面图片
+     */
+    @Anonymous
+    @Log(title = "课程封面", businessType = BusinessType.UPLOAD)
+    @ApiOperation("上传课程封面")
+    @PostMapping("/cover/upload")
+    public R<Void> uploadCourseCover(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("courseId") Long courseId)
+    {
+        try {
+            Long userId = getUserId();
+            courseManageService.uploadCourseCover(file, courseId, userId);
+            return R.ok();
+        } catch (Exception e) {
+            log.error("上传封面失败：{}", e.getMessage(), e);
+            return R.fail("上传失败：" + e.getMessage());
+        }
+    }
+
+    /**
      * 上传课时视频
      */
     @Anonymous
@@ -143,11 +164,12 @@ public class OshCouresController extends BaseController
     @PostMapping("/section/video")
     public R<Object> uploadSectionVideo(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("courseId") Long courseId)
+            @RequestParam("courseId") Long courseId,
+            @RequestParam("sectionId") Long sectionId)
     {
         try {
             Long userId = getUserId();
-            VideoUploadVO result = courseManageService.uploadSectionVideo(file, courseId, userId);
+            VideoUploadVO result = courseManageService.uploadSectionVideo(file, courseId, sectionId, userId);
             return R.ok(result);
         } catch (Exception e) {
             log.error("上传视频失败：{}", e.getMessage(), e);
