@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
  * Time: 16:42
  */
 @Service
-public class OshOshUserServiceImpl implements IOshUserService {
+public class OshUserServiceImpl implements IOshUserService {
 
     @Autowired
     private OshUserMapper oshUserMapper;

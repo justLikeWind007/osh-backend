@@ -18,13 +18,13 @@ import java.util.Map;
  * Time: 13:33
  */
 @Component
-public class JwtUtils {
+public class JwtUtil {
     // 令牌秘钥
 
     private static String secret;
     @Value("${token.secret}")
     public void setSecret(String secret) {
-        JwtUtils.secret = secret;
+        JwtUtil.secret = secret;
     }
 
     public static String createToken(Map<String, Object> claims)
