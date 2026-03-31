@@ -15,25 +15,25 @@ import java.util.List;
  * Time: 16:42
  */
 public interface IUserService {
-    R<UserLoginVo> login(String name, String pid);
+    R<UserLoginVo> login(String username, String password);
 
     R<String> registerSubmit(String username, String password, String repassword, String email) throws MessagingException;
 
     R<String> registerVerity(String uniqueId);
 
-    R<String> logout(String token);
+    R<String> logout();
 
-    R<String> changeEmailSubmit(String token, String uniqueId, String newEmail) throws MessagingException;
+    R<String> changeEmailSubmit(String uniqueId, String newEmail) throws MessagingException;
 
-    R<String> changeEmailVerity(String token, String uniqueId);
+    R<String> changeEmailVerity(String uniqueId);
 
     R<String> forget(String uniqueId, String password, String repassword);
 
-    R<String> updateInfo(String avatar, String nickname, String sex, String token);
+    R<String> updateInfo(String avatar, String nickname, String sex);
 
-    R<String> updatePassword(String opassword, String password, String repassword, String token);
+    R<String> updatePassword(String opassword, String password, String repassword);
 
-    R<User> getUserInfo(String token);
+    R<User> getUserInfo();
 
 
 

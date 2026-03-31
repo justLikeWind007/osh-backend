@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.info_gap.OshInfoGapVoteMapper">
+
+    <insert id="insertVoteRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO osh_info_gap_vote (
+        user_id,
+        info_gap_id,
+        type,
+        create_time
+        ) VALUES (
+        #{userId},
+        #{infoGapId},
+        #{type},
+        NOW()
+        )
+    </insert>
+
+    <select id="selectVoteRecord" resultType="com.backstage.system.domain.info_gap.OshInfoGapVote">
+        SELECT id, user_id as userId, info_gap_id as infoGapId, type
+        FROM osh_info_gap_vote
+        WHERE user_id = #{userId} AND info_gap_id = #{infoId}
+        LIMIT 1
+    </select>
+
+    <delete id="deleteVoteRecord">
+        DELETE FROM osh_info_gap_vote WHERE id = #{id}
+    </delete>
+    <update id="updateVoteRecord">
+        UPDATE osh_info_gap_vote
+        SET type = #{type},
+        create_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+</mapper>
