@@ -2,7 +2,7 @@ package com.backstage.system.service.impl;
 
 import com.backstage.common.exception.ServiceException;
 import com.backstage.common.utils.StringUtils;
-import com.backstage.system.domain.Book;
+import com.backstage.system.domain.book.BookDO;
 import com.backstage.system.domain.BookChapter;
 import com.backstage.system.domain.UserBook;
 import com.backstage.system.domain.vo.*;
@@ -15,6 +15,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -25,7 +26,7 @@ import java.util.Optional;
  * @author backstage
  */
 @Service
-public class BookServiceImpl extends ServiceImpl<BookMapper, Book> implements IBookService
+public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements IBookService
 {
     @Autowired
     private BookMapper bookMapper;
@@ -43,7 +44,7 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, Book> implements IB
      * @return 电子书集合
      */
     @Override
-    public List<BookListVO> selectBookList(Book book)
+    public List<BookListVO> selectBookList(BookDO book)
     {
         return bookMapper.selectBookList(book);
     }
@@ -58,16 +59,16 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, Book> implements IB
     @Override
     public BookDetailVO selectBookDetail(Long id, Long userId)
     {
-        Book book = getById(id);
-        checkEntityNotNull(book, "该记录不存在");
+        BookDO bookDO = getById(id);
+        checkEntityNotNull(bookDO, "该记录不存在");
 
         BookDetailVO vo = new BookDetailVO();
-        BeanUtils.copyProperties(book, vo);
-        vo.setDesc(book.getDescription());
-        vo.setTryContent(book.getTryContent());
-        vo.setPrice(Optional.ofNullable(book.getPrice()).map(Object::toString).orElse("0"));
-        vo.setTPrice(Optional.ofNullable(book.getOriginalPrice()).map(Object::toString).orElse("0"));
-        vo.setSubCount(Optional.ofNullable(book.getSubCount()).orElse(0));
+        BeanUtils.copyProperties(bookDO, vo);
+        vo.setDesc(bookDO.getDescription());
+        vo.setTryContent(bookDO.getTryContent());
+        vo.setPrice(Optional.ofNullable(bookDO.getPrice()).map(Object::toString).orElse("0"));
+        vo.setTPrice(Optional.ofNullable(bookDO.getOriginalPrice()).map(Object::toString).orElse("0"));
+        vo.setSubCount(Optional.ofNullable(bookDO.getSubCount()).orElse(0));
 
         // 查询章节列表
         List<BookChapterVO> chapters = bookChapterMapper.selectBookChapterListByBookId(id);
@@ -115,14 +116,14 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, Book> implements IB
     @Override
     public BookMenuVO selectBookMenu(Long id, Long userId)
     {
-        Book book = getById(id);
-        checkEntityNotNull(book, "该记录不存在");
+        BookDO bookDO = getById(id);
+        checkEntityNotNull(bookDO, "该记录不存在");
 
         BookMenuVO vo = new BookMenuVO();
 
         // 设置电子书基本信息
         BookSimpleVO simpleVO = new BookSimpleVO();
-        BeanUtils.copyProperties(book, simpleVO);
+        BeanUtils.copyProperties(bookDO, simpleVO);
         vo.setDetail(simpleVO);
 
         // 查询章节列表
@@ -139,7 +140,7 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, Book> implements IB
      * @return 电子书集合
      */
     @Override
-    public List<Book> selectUserBookList(Long userId)
+    public List<BookDO> selectUserBookList(Long userId)
     {
         return userBookMapper.selectUserBookList(userId);
     }
@@ -152,9 +153,56 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, Book> implements IB
      * @return 电子书分页集合
      */
     @Override
-    public Page<Book> selectUserBookListPage(Long userId, Page<Book> page)
+    public Page<BookDO> selectUserBookListPage(Long userId, Page<BookDO> page)
     {
         return userBookMapper.selectUserBookListPage(userId, page);
+    }
+
+    /**
+     * 新增电子书
+     *
+     * @param reqVO 电子书请求VO
+     * @return 电子书响应VO
+     */
+    @Override
+    @Transactional
+    public void createBook(BookSaveReqVO reqVO)
+    {
+        BookDO bookDO = new BookDO();
+        BeanUtils.copyProperties(reqVO, bookDO);
+        bookDO.setStatus("0");
+        bookMapper.insert(bookDO);
+    }
+
+    /**
+     * 修改电子书
+     *
+     * @param reqVO 电子书请求VO
+     * @return 电子书响应VO
+     */
+    @Override
+    public void updateBook(BookSaveReqVO reqVO)
+    {
+        BookDO book = getById(reqVO.getId());
+        checkEntityNotNull(book, "电子书不存在");
+        // 新增
+        BookDO bookDO = new BookDO();
+        BeanUtils.copyProperties(reqVO, bookDO);
+        bookMapper.updateById(bookDO);
+
+    }
+
+    /**
+     * 删除电子书（逻辑删除）
+     *
+     * @param id 电子书ID
+     */
+    @Override
+    public void deleteBook(Long id)
+    {
+        BookDO bookDO = getById(id);
+        checkEntityNotNull(bookDO, "电子书不存在");
+        bookMapper.deleteById(id);
     }
 
     /**
@@ -165,8 +213,7 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, Book> implements IB
      */
     private void checkEntityNotNull(Object entity, String message)
     {
-        if (StringUtils.isNull(entity))
-        {
+        if (StringUtils.isNull(entity)) {
             throw new ServiceException(message);
         }
     }
@@ -180,8 +227,7 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, Book> implements IB
      */
     private boolean checkUserHasBought(Long userId, Long bookId)
     {
-        if (StringUtils.isNull(userId))
-        {
+        if (StringUtils.isNull(userId)) {
             return false;
         }
         UserBook userBook = userBookMapper.selectUserBookByUserIdAndBookId(userId, bookId);
@@ -196,13 +242,11 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, Book> implements IB
      */
     private void checkUserHasBoughtOrThrow(Long userId, Long bookId)
     {
-        if (StringUtils.isNull(userId))
-        {
+        if (StringUtils.isNull(userId)) {
             throw new ServiceException("请先购买该电子书");
         }
         UserBook userBook = userBookMapper.selectUserBookByUserIdAndBookId(userId, bookId);
-        if (StringUtils.isNull(userBook))
-        {
+        if (StringUtils.isNull(userBook)) {
             throw new ServiceException("请先购买该电子书");
         }
     }
