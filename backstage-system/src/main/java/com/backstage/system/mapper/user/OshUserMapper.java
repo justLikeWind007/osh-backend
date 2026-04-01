@@ -12,7 +12,7 @@ import java.util.List;
  * Date: 2026/3/7
  * Time: 16:44
  */
-public interface UserMapper {
+public interface OshUserMapper {
     User getUserByUsername(String username);
 
     User getUserByUsernameOrEmail(String name);
@@ -24,6 +24,8 @@ public interface UserMapper {
     int addUniqueId(@Param("userId") Long userId,@Param("uniqueId") String uniqueId);
 
     String getUniqueIdByUserId(@Param("userId") Long userId);
+
+    Long getUserIdByUniqueId(String uniqueId);
 
     int updateUniqueIdByUserId(@Param("userId") Long userId,@Param("uniqueId") String uniqueId);
 

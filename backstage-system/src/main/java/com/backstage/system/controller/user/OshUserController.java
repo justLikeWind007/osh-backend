@@ -11,7 +11,7 @@ import com.backstage.common.utils.poi.ExcelUtil;
 import com.backstage.system.domain.user.User;
 import com.backstage.system.domain.user.dto.*;
 import com.backstage.system.domain.user.vo.UserLoginVo;
-import com.backstage.system.service.IUserService;
+import com.backstage.system.service.user.IOshUserService;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,12 +31,13 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/pc/user")
-public class UserController extends BaseController {
+public class
+OshUserController extends BaseController {
 
-    private final IUserService userService;
+    private final IOshUserService userService;
 
     @Autowired
-    public UserController(IUserService userService) {
+    public OshUserController(IOshUserService userService) {
         this.userService = userService;
     }
 
@@ -63,17 +64,16 @@ public class UserController extends BaseController {
     @PostMapping("/register/verity")
     public R<String> registerVerity(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
-            @ApiParam("用户的唯一标识") @RequestParam(value = "uniqueId") String uniqueId) {
-        return userService.registerVerity(uniqueId);
+            @ApiParam("用户的唯一标识") @RequestBody VerityRequestDTO verityRequestDTO) {
+        return userService.registerVerity(verityRequestDTO.getUniqueId());
     }
 
     @Anonymous
     @ApiOperation("退出登录")
     @PostMapping("/logout")
     public R<String> logout(
-            @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
-            @ApiParam("token") @RequestHeader(value = "token") String token) {
-        return userService.logout(token);
+            @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid) {
+        return userService.logout();
     }
 
     @Anonymous
@@ -81,10 +81,8 @@ public class UserController extends BaseController {
     @PostMapping("/changeEmail/submit")
     public R<String> changeEmailSubmit(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
-            @ApiParam("token") @RequestHeader(value = "token") String token,
-            @ApiParam("用户的唯一标识") @RequestParam(value = "uniqueId") String uniqueId,
-            @ApiParam("新的邮箱账号") @RequestParam(value = "newEmail") String newEmail) throws MessagingException {
-        return userService.changeEmailSubmit(token, uniqueId, newEmail);
+            @RequestBody UserChangeEmailDTO userChangeEmailDTO) throws MessagingException {
+        return userService.changeEmailSubmit(userChangeEmailDTO.getUniqueId(), userChangeEmailDTO.getNewEmail());
     }
 
     @Anonymous
@@ -92,20 +90,17 @@ public class UserController extends BaseController {
     @PostMapping("/changeEmail/verity")
     public R<String> changeEmailVerity(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
-            @ApiParam("token") @RequestHeader(value = "token") String token,
-            @ApiParam("用户的唯一标识") @RequestParam(value = "uniqueId") String uniqueId) {
-        return userService.changeEmailVerity(token, uniqueId);
+            @ApiParam("用户的唯一标识") @RequestBody VerityRequestDTO verityRequestDTO) {
+        return userService.changeEmailVerity(verityRequestDTO.getUniqueId());
     }
 
-    //todo
     @Anonymous
     @ApiOperation("找回密码")
     @PostMapping("/forget")
     public R<String> forget(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
-            @ApiParam("token") @RequestHeader(value = "token") String token,
-            @RequestBody ForgetDTO forgetDTO) {
-        return userService.forget(token,forgetDTO.getUniqueId(),forgetDTO.getPassword(),forgetDTO.getRepassword());
+            @RequestBody UserForgetDTO userForgetDTO) {
+        return userService.forget(userForgetDTO.getUniqueId(), userForgetDTO.getPassword(), userForgetDTO.getRepassword());
     }
 
     @Anonymous
@@ -113,9 +108,8 @@ public class UserController extends BaseController {
     @PostMapping("/update_info")
     public R<String> updateInfo(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
-            @RequestBody UserUpdateInfoDTO userUpdateInfoDTO,
-            @ApiParam("token") @RequestHeader(value = "token") String token) {
-        return userService.updateInfo(userUpdateInfoDTO.getAvatar(),userUpdateInfoDTO.getNickname(),userUpdateInfoDTO.getSex(), token);
+            @RequestBody UserUpdateInfoDTO userUpdateInfoDTO) {
+        return userService.updateInfo(userUpdateInfoDTO.getAvatar(),userUpdateInfoDTO.getNickname(),userUpdateInfoDTO.getSex());
     }
 
     @Anonymous
@@ -123,18 +117,16 @@ public class UserController extends BaseController {
     @PostMapping("/update_password")
     public R<String> updatePassword(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
-            @RequestBody UserPasswordDTO userPasswordDTO,
-            @ApiParam("token") @RequestHeader(value = "token") String token) {
-        return userService.updatePassword(userPasswordDTO.getOpassword(),userPasswordDTO.getPassword(),userPasswordDTO.getRepassword(), token);
+            @RequestBody UserPasswordDTO userPasswordDTO) {
+        return userService.updatePassword(userPasswordDTO.getOpassword(),userPasswordDTO.getPassword(),userPasswordDTO.getRepassword());
     }
 
     @Anonymous
     @ApiOperation("获取用户信息")
     @GetMapping("/getinfo")
     public R<User> getUserInfo(
-            @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
-            @ApiParam("token") @RequestHeader(value = "token") String token) {
-        return userService.getUserInfo(token);
+            @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid) {
+        return userService.getUserInfo();
     }
 
 
