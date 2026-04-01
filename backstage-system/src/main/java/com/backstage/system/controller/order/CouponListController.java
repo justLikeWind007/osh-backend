@@ -2,18 +2,21 @@ package com.backstage.system.controller.order;
 
 import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.R;
+import com.backstage.system.domain.order.Coupon;
 import com.github.pagehelper.PageHelper;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import com.backstage.system.domain.order.Card;
-import com.backstage.system.service.order.ICardService;
+
+import com.backstage.system.service.order.ICouponListService;
 
 /**
  * 卡券 Controller - 适配 /pc/card/list?page=1&limit=20
@@ -21,36 +24,43 @@ import com.backstage.system.service.order.ICardService;
  * @author ruoyi
  * @date 2026-03-05
  */
+
+@Api("查询用户优惠券")
 @RestController
 @RequestMapping("/pc/user_coupon")
-public class CardController {
+public class CouponListController {
 
     @Autowired
-    private ICardService cardService;
+    private ICouponListService cardService;
 
+    @ApiOperation("查询用户优惠券")
+    @ApiParam("goods_id 课程/专栏 ID")
     @Anonymous
     @GetMapping("")
-    public R getUserCouponList(
+    public R<Coupon> getUserCouponList(
+            @ApiParam(name = "goods_id", value = "课程/专栏等ID", required = true)
             @RequestParam Long goods_id,    // 必填：goods_id 课程/专栏 ID
+            @ApiParam(name = "type", value = "类型（column 专栏/course 课程）", required = true)
             @RequestParam String type,      // 必填：type（column 专栏/course 课程）
+            @ApiParam(name = "page", value = "页面码", required = true)
             @RequestParam Integer page    // 必填：page 页面码
     ) {
         // 构建查询条件
-        Card card = new Card();
-        card.setGoodsId(goods_id);
-        card.setType(type);
+        Coupon coupon = new Coupon();
+        coupon.setGoodsId(goods_id);
+        coupon.setType(type);
         
         // 查询列表（未使用的优惠券）
         // card.setUsed(0);
         
         // 使用 PageHelper 分页（每页 20 条）
         PageHelper.startPage(page, 20);
-        List<Card> list = cardService.selectCardList(card);
+        List<Coupon> list = cardService.selectCardList(coupon);
         
         // 转换为前端需要的格式，price 转为字符串，时间格式化为 yyyy-MM-dd HH:mm:ss
         List<Map<String, Object>> formattedList = new ArrayList<>();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        for (Card item : list) {
+        for (Coupon item : list) {
             Map<String, Object> map = new LinkedHashMap<>();
             map.put("id", item.getId());
             map.put("title", item.getTitle());
