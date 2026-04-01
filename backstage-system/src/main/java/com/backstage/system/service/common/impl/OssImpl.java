@@ -1,4 +1,4 @@
-package com.backstage.system.service.impl.common;
+package com.backstage.system.service.common.impl;
 
 import com.backstage.common.enums.UploadPathEnum;
 import com.backstage.common.utils.DateUtils;
@@ -8,6 +8,7 @@ import com.backstage.system.domain.vo.common.OssOperationLogVo;
 import com.backstage.system.mapper.common.OssMapper;
 import com.backstage.system.service.common.OssService;
 import com.backstage.system.utils.OssUtil;
+import com.backstage.system.utils.UserContextUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import eu.bitwalker.useragentutils.UserAgent;
@@ -37,27 +38,54 @@ public class OssImpl implements OssService {
     @Autowired
     private OssService ossService;
 
+    @Autowired
+    private UserContextUtil userContextUtil;
+
+
+    // 需要OSS的文件路径，怎么存的就怎么从数据库里面取
+    /**
+     * @param path oss存储路径如 common/image/avatar/202604/12345asdaasd_file.jpg
+     * @param minute 分钟数，表示URL的有效期
+     * @return 临时访问URL
+    */
+    public String getLimitedUrl(String path, int minute) {
+        return ossUtil.getSignedUrl(path, minute);
+    }
+
+
     // TODO
-    // 多文件上传
     // enum 固定路径类型 course_code.zip 7z
-    public String upload(MultipartFile file, UploadPathEnum pathEnum) throws  Exception{
+
+    /**
+     * 上传文件
+     * @param file  文件
+     * @param pathEnum  枚举路径固定
+     * @param id    自定义目录下的子文件夹
+     * @return oss服务的文件路径
+     * @throws Exception
+     */
+    public String upload(MultipartFile file, UploadPathEnum pathEnum, String id) throws  Exception{
 
 
         String customPath;
+        if(id== null){
+            id="";
+        }else {
+            id=id+"/";
+        }
 
         // 获取年月
         String ym = DateUtils.getDate().substring(0,7).replace("-", "");;
 
 
-
-        if(UploadPathEnum.AVATAR.equals(pathEnum)){
-            customPath = UploadPathEnum.AVATAR.getPath()+ym+"/";
+        if(UploadPathEnum.IMAGE.equals(pathEnum)){
+            customPath = UploadPathEnum.IMAGE.getPath()+id+ym+"/";
             if(file.getSize() > 1024 * 1024 * 3){
                 return "图片大小不能超过3M";
             }
 
         }else if(UploadPathEnum.COURSE_VIDEO.equals(pathEnum)){
-            customPath = UploadPathEnum.COURSE_VIDEO.getPath()+ym+"/";
+            customPath = UploadPathEnum.COURSE_VIDEO.getPath()+id+ym+"/";
             if(file.getSize() > 1024 * 1024 * 200){
                 return "视频大小不能超过200MB";
             }
@@ -97,66 +125,6 @@ public class OssImpl implements OssService {
     }
 
 
-    public void playVideo(@RequestParam String key,
-                          HttpServletRequest request,
-                          HttpServletResponse response) {
-        try {
-            // 1. 登录校验
-
-
-            // 2. 生成签名
-            String r2SignedUrl = ossUtil.getSignedUrl(key, 10);
-
-            URL url = new URL(r2SignedUrl);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setConnectTimeout(10000);
-            conn.setReadTimeout(10000);
-
-            // 3. 处理拖动 Range
-            String range = request.getHeader("Range");
-            if (range != null) {
-                conn.setRequestProperty("Range", range);
-                response.setStatus(206);
-                // 新增：告诉播放器当前片段的范围
-                String contentRange = conn.getHeaderField("Content-Range");
-                if (contentRange != null) {
-                    response.setHeader("Content-Range", contentRange);
-                }
-            }
-
-            // 4. 设置视频头
-            response.setContentType("video/mp4");
-            response.setHeader("Accept-Ranges", "bytes");
-            long contentLength = conn.getContentLengthLong();
-            if (contentLength > 0) {
-                response.setHeader("Content-Length", String.valueOf(contentLength));
-            }
-
-            // 5. 流式输出（捕获断开异常，不抛错）
-            byte[] buffer = new byte[8192];
-            try (InputStream in = conn.getInputStream();
-                 ServletOutputStream out = response.getOutputStream()) {
-
-                int len;
-                while ((len = in.read(buffer)) != -1) {
-                    out.write(buffer, 0, len);
-                }
-                out.flush();
-            } catch (IOException ignored) {
-                // 浏览器断开连接
-            } finally {
-                conn.disconnect();
-            }
-        } catch (Exception e) {
-            // 只打印真正的错误
-            if (!e.getMessage().contains("已建立的连接")) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-
     public void insertMapper(MultipartFile file, String customPath) {
 
         OssOperationLogVo log = new OssOperationLogVo();
@@ -177,15 +145,15 @@ public class OssImpl implements OssService {
             log.setFileSize(file.getSize() / 1024 / 1024);
             log.setFileType(file.getContentType());
             log.setOperationType("upload");
+            log.setOperationCount(1);
+            try {
+                if (userContextUtil.getCurrentUser().getUsername()!= null)
+                    log.setUsername(userContextUtil.getCurrentUser().getUsername());
+            } catch (Exception e) {
+                log.setUsername("");
+            }
 
-            // 文件访问次数
-            log.setOperationCount(1);
-
-            log.setOperationCount(1);
-            log.setUsername("admin");
-            log.setOperationCount(1);
             log.setIp(ip);
-
             // 浏览器的userAgent
             log.setUserAgent(userAgent.toString());
             log.setBucket(ossUtil.getOssProperties().getBucketName());

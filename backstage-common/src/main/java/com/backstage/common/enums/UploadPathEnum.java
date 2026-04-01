@@ -12,7 +12,7 @@ public enum UploadPathEnum {
 
         AUDIO("common/audio/"),
 
-        COLUMN_IMAGE("column/image/"),
+        IMAGE("common/image/"),
 
         TEMP("temp/"),
 

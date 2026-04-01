@@ -65,6 +65,8 @@ public class OssUtil {
 
         String path = customPath != null ? customPath : ossProperties.getBasePath();
 
+
+
         String fileName = path + UUID.randomUUID() + "_" + file.getOriginalFilename();
 
         ObjectMetadata metadata = new ObjectMetadata();

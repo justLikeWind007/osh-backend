@@ -4,7 +4,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.backstage.system.mapper.order.CouponListMapper">
     
-    <resultMap type="Card" id="CardResult">
+    <resultMap type="Coupon" id="CardResult">
         <result property="id"    column="id"    />
         <result property="title"    column="title"    />
         <result property="type"    column="type"    />
@@ -16,10 +16,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectCardVo">
-        select id, title, type, price, goods_id, start_time, end_time, used from osh_card
+        select id, title, type, price, goods_id, start_time, end_time, used from osh_coupon
     </sql>
 
-    <select id="selectCardList" parameterType="Card" resultMap="CardResult">
+    <select id="selectCardList" parameterType="Coupon" resultMap="CardResult">
         <include refid="selectCardVo"/>
         <where>  
             <if test="id != null"> and id = #{id}</if>
@@ -36,7 +36,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where id = #{id}
     </select>
 
-    <insert id="insertCard" parameterType="Card" useGeneratedKeys="true" keyProperty="id">
+    <insert id="insertCard" parameterType="Coupon" useGeneratedKeys="true" keyProperty="id">
         insert into osh_card
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="title != null">title,</if>
@@ -58,7 +58,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
          </trim>
     </insert>
 
-    <update id="updateCard" parameterType="Card">
+    <update id="updateCard" parameterType="Coupon">
         update osh_card
         <trim prefix="SET" suffixOverrides=",">
             <if test="title != null">title = #{title},</if>

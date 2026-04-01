@@ -2,6 +2,7 @@ package com.backstage.system.controller.order;
 
 import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.R;
+import com.backstage.system.domain.order.Coupon;
 import com.github.pagehelper.PageHelper;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -14,7 +15,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import com.backstage.system.domain.order.Card;
+
 import com.backstage.system.service.order.ICouponListService;
 
 /**
@@ -36,7 +37,7 @@ public class CouponListController {
     @ApiParam("goods_id 课程/专栏 ID")
     @Anonymous
     @GetMapping("")
-    public R<Card> getUserCouponList(
+    public R<Coupon> getUserCouponList(
             @ApiParam(name = "goods_id", value = "课程/专栏等ID", required = true)
             @RequestParam Long goods_id,    // 必填：goods_id 课程/专栏 ID
             @ApiParam(name = "type", value = "类型（column 专栏/course 课程）", required = true)
@@ -45,21 +46,21 @@ public class CouponListController {
             @RequestParam Integer page    // 必填：page 页面码
     ) {
         // 构建查询条件
-        Card card = new Card();
-        card.setGoodsId(goods_id);
-        card.setType(type);
+        Coupon coupon = new Coupon();
+        coupon.setGoodsId(goods_id);
+        coupon.setType(type);
         
         // 查询列表（未使用的优惠券）
         // card.setUsed(0);
         
         // 使用 PageHelper 分页（每页 20 条）
         PageHelper.startPage(page, 20);
-        List<Card> list = cardService.selectCardList(card);
+        List<Coupon> list = cardService.selectCardList(coupon);
         
         // 转换为前端需要的格式，price 转为字符串，时间格式化为 yyyy-MM-dd HH:mm:ss
         List<Map<String, Object>> formattedList = new ArrayList<>();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        for (Card item : list) {
+        for (Coupon item : list) {
             Map<String, Object> map = new LinkedHashMap<>();
             map.put("id", item.getId());
             map.put("title", item.getTitle());

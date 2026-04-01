@@ -10,9 +10,12 @@ public interface OssService {
 //    String addFile(MultipartFile file);
 //
     // 上传文件 带路径
-    String upload(MultipartFile file, UploadPathEnum pathEnum) throws Exception;
+    String upload(MultipartFile file, UploadPathEnum pathEnum, String id) throws Exception;
 
     void insertMapper(MultipartFile file, String customPath);
+
+
+    String getLimitedUrl(String path, int minute);
 
     // 判断文件是否存在
     public boolean existsFileKey(String fileKey);

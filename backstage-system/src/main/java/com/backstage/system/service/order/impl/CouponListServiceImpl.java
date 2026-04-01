@@ -1,10 +1,11 @@
 package com.backstage.system.service.order.impl;
 
 import java.util.List;
+
+import com.backstage.system.domain.order.Coupon;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.backstage.system.mapper.order.CouponListMapper;
-import com.backstage.system.domain.order.Card;
 import com.backstage.system.service.order.ICouponListService;
 
 /**
@@ -26,7 +27,7 @@ public class CouponListServiceImpl implements ICouponListService
      * @return 卡券
      */
     @Override
-    public Card selectCardById(Long id)
+    public Coupon selectCardById(Long id)
     {
         return cardMapper.selectCardById(id);
     }
@@ -34,37 +35,37 @@ public class CouponListServiceImpl implements ICouponListService
     /**
      * 查询卡券列表
      * 
-     * @param card 卡券
+     * @param coupon 卡券
      * @return 卡券
      */
     @Override
-    public List<Card> selectCardList(Card card)
+    public List<Coupon> selectCardList(Coupon coupon)
     {
-        return cardMapper.selectCardList(card);
+        return cardMapper.selectCardList(coupon);
     }
 
     /**
      * 新增卡券
      * 
-     * @param card 卡券
+     * @param coupon 卡券
      * @return 结果
      */
     @Override
-    public int insertCard(Card card)
+    public int insertCard(Coupon coupon)
     {
-        return cardMapper.insertCard(card);
+        return cardMapper.insertCard(coupon);
     }
 
     /**
      * 修改卡券
      * 
-     * @param card 卡券
+     * @param coupon 卡券
      * @return 结果
      */
     @Override
-    public int updateCard(Card card)
+    public int updateCard(Coupon coupon)
     {
-        return cardMapper.updateCard(card);
+        return cardMapper.updateCard(coupon);
     }
 
     /**

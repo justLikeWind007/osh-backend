@@ -1,7 +1,7 @@
 package com.backstage.system.mapper.order;
 
 import java.util.List;
-import com.backstage.system.domain.order.Card;
+import com.backstage.system.domain.order.Coupon;
 
 /**
  * 卡券 Mapper 接口
@@ -17,31 +17,31 @@ public interface CouponListMapper
      * @param id 卡券主键
      * @return 卡券
      */
-    public Card selectCardById(Long id);
+    public Coupon selectCardById(Long id);
 
     /**
      * 查询卡券列表
      * 
-     * @param card 卡券
+     * @param coupon 卡券
      * @return 卡券集合
      */
-    public List<Card> selectCardList(Card card);
+    public List<Coupon> selectCardList(Coupon coupon);
 
     /**
      * 新增卡券
      * 
-     * @param card 卡券
+     * @param coupon 卡券
      * @return 结果
      */
-    public int insertCard(Card card);
+    public int insertCard(Coupon coupon);
 
     /**
      * 修改卡券
      * 
-     * @param card 卡券
+     * @param coupon 卡券
      * @return 结果
      */
-    public int updateCard(Card card);
+    public int updateCard(Coupon coupon);
 
     /**
      * 删除卡券

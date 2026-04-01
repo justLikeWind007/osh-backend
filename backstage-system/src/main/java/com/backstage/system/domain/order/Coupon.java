@@ -5,7 +5,6 @@ import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import com.backstage.common.annotation.Excel;
@@ -18,7 +17,7 @@ import com.backstage.common.core.domain.BaseEntity;
  * @date 2026-03-05
  */
 @ApiModel("优惠券")
-public class Card extends BaseEntity
+public class Coupon extends BaseEntity
 {
     private static final long serialVersionUID = 1L;
 
