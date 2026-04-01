@@ -5,7 +5,7 @@ import com.backstage.common.annotation.Log;
 import com.backstage.common.core.controller.BaseController;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.enums.BusinessType;
-import com.backstage.system.domain.course.OshCoures;
+import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.dto.*;
 import com.backstage.system.domain.vo.*;
 import com.backstage.system.service.course.ICourseManageService;
@@ -150,7 +150,7 @@ public class CourseManageController extends BaseController {
     @PreAuthorize("@ss.hasPermi('system:course:edit')")
     @ApiOperation("修改课程")
     @PutMapping
-    public R<Void> edit(@RequestBody OshCoures course) {
+    public R<Void> edit(@RequestBody OshCourse course) {
         Long userId = getUserId();
         courseManageService.updateCourse(course, userId);
         return R.ok();

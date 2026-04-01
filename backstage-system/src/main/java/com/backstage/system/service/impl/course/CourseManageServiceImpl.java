@@ -6,12 +6,12 @@ import com.backstage.common.utils.DateUtils;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.common.utils.PageUtils;
 import com.backstage.common.utils.bean.BeanUtils;
-import com.backstage.system.domain.course.OshCoures;
+import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.course.OshCourseSection;
 import com.backstage.system.domain.course.OshCourseMaterial;
 import com.backstage.system.domain.dto.*;
 import com.backstage.system.domain.vo.*;
-import com.backstage.system.mapper.course.OshCouresMapper;
+import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.course.OshCourseSectionMapper;
 import com.backstage.system.mapper.course.OshCourseMaterialMapper;
 import com.backstage.system.mapper.course.OshCourseQuestionMapper;
@@ -44,7 +44,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
     private static final Logger log = LoggerFactory.getLogger(CourseManageServiceImpl.class);
     
     @Autowired
-    private OshCouresMapper courseMapper;
+    private OshCourseMapper courseMapper;
     
     @Autowired
     private OshCourseSectionMapper sectionMapper;
@@ -96,8 +96,8 @@ public class CourseManageServiceImpl implements ICourseManageService {
         
 
         PageUtils.startPage();
-        List<OshCoures> list = courseMapper.selectCourseListByCondition(params);
-        return new TableDataInfo(list, new com.github.pagehelper.PageInfo<OshCoures>(list).getTotal());
+        List<OshCourse> list = courseMapper.selectCourseListByCondition(params);
+        return new TableDataInfo(list, new com.github.pagehelper.PageInfo<OshCourse>(list).getTotal());
     }
     
     /**
@@ -131,7 +131,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
     @Override
     public CourseDetailVO getCourseDetail(Long courseId, Long userId) {
         // 1. 查询课程基本信息
-        OshCoures course = courseMapper.selectCourseById(courseId);
+        OshCourse course = courseMapper.selectCourseById(courseId);
         if (course == null) {
             throw new ServiceException("课程不存在");
         }
@@ -184,7 +184,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Long insertCourse(OshCoures course, Long userId) {
+    public Long insertCourse(OshCourse course, Long userId) {
         // 1. 设置课程默认值
         course.setCreateTime(DateUtils.getNowDate());
         course.setUpdateTime(DateUtils.getNowDate());
@@ -231,7 +231,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public int updateCourse(OshCoures course, Long userId) {
+    public int updateCourse(OshCourse course, Long userId) {
         // 1. 更新时间
         course.setUpdateTime(DateUtils.getNowDate());
         
@@ -1619,7 +1619,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
         // TODO 办：校验其他必填参数（如tagr、type、price 等）
         
         // 2. 保存课程信息
-        OshCoures course =  new OshCoures();
+        OshCourse course =  new OshCourse();
         BeanUtils.copyProperties(courseCreateDTO, course);
         course.setCreateBy(String.valueOf(userId));
         course.setCreateTime(DateUtils.getNowDate());
@@ -1819,7 +1819,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
     @Transactional(rollbackFor = Exception.class)
     public Long addSection(Long courseId, SectionCreateDTO sectionCreateDTO, Long userId) {
         // 1. 校验课程是否存在
-        OshCoures course = courseMapper.selectCourseById(courseId);
+        OshCourse course = courseMapper.selectCourseById(courseId);
         if (course == null) {
             throw new ServiceException("课程不存在");
         }

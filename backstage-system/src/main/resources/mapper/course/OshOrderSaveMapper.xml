@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.course.OshOrderSaveMapper">
+
+    <!-- 查询用户的课程订单（仅返回已支付的订单） -->
+    <select id="selectOrderByUserIdAndCourseId" resultType="map">
+        SELECT
+            id as orderId,
+            school_id as schoolId,
+            user_id as userId,
+            course_id as courseId,
+            no as orderNo,
+            status as status,
+            price as price,
+            total_price as totalPrice,
+            type as serviceType,
+            expire_time as expireTime,
+            created_time as createdTime,
+            updated_time as updatedTime
+        FROM osh_order_save
+        WHERE user_id = #{userId}
+          AND course_id = #{courseId}
+          AND status = 'closed'
+        ORDER BY created_time DESC
+        LIMIT 1
+    </select>
+
+    <!-- 查询用户的课程订单（包含所有状态，用于管理） -->
+    <select id="selectOrderByUserIdAndCourseIdAllStatus" resultType="map">
+        SELECT
+            id as orderId,
+            school_id as schoolId,
+            user_id as userId,
+            course_id as courseId,
+            no as orderNo,
+            status as status,
+            price as price,
+            total_price as totalPrice,
+            type as serviceType,
+            expire_time as expireTime,
+            created_time as createdTime,
+            updated_time as updatedTime
+        FROM osh_order_save
+        WHERE user_id = #{userId}
+          AND course_id = #{courseId}
+        ORDER BY created_time DESC
+        LIMIT 1
+    </select>
+
+    <!-- 查询用户的有效订单（未过期的） -->
+    <select id="selectValidOrderByUserIdAndCourseId" resultType="map">
+        SELECT
+            id as orderId,
+            school_id as schoolId,
+            user_id as userId,
+            course_id as courseId,
+            no as orderNo,
+            status as status,
+            price as price,
+            total_price as totalPrice,
+            type as serviceType,
+            expire_time as expireTime,
+            created_time as createdTime,
+            updated_time as updatedTime
+        FROM osh_order_save
+        WHERE user_id = #{userId}
+          AND course_id = #{courseId}
+          AND status = 'closed'
+          AND (expire_time IS NULL OR expire_time > NOW())
+        ORDER BY created_time DESC
+        LIMIT 1
+    </select>
+
+    <!-- 统计用户购买课程数量 -->
+    <select id="countUserPurchasedCourses" resultType="int">
+        SELECT COUNT(DISTINCT course_id)
+        FROM osh_order_save
+        WHERE user_id = #{userId}
+          AND status = 'closed'
+          AND (expire_time IS NULL OR expire_time > NOW())
+    </select>
+
+</mapper>

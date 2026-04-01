@@ -38,7 +38,7 @@ public interface OshCourseMapper
      * @param params 查询参数：tagIds(List), keyword(String), sortBy(String), sortOrder(String)
      * @return 课程列表
      */
-    List<OshCoures> selectCourseListByCondition(Map<String, Object> params);
+    List<OshCourse> selectCourseListByCondition(Map<String, Object> params);
 
     /**
      * 新增课程

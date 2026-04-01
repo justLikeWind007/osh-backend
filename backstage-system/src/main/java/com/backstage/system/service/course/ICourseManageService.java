@@ -1,7 +1,7 @@
 package com.backstage.system.service.course;
 
 import com.backstage.common.core.page.TableDataInfo;
-import com.backstage.system.domain.course.OshCoures;
+import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.dto.*;
 import com.backstage.system.domain.vo.*;
 import com.backstage.system.domain.vo.CourseDetailVO;
@@ -69,7 +69,7 @@ public interface ICourseManageService {
      * @param userId 用户 ID
      * @return 结果
      */
-    Long insertCourse(OshCoures course, Long userId);
+    Long insertCourse(OshCourse course, Long userId);
     
     /**
      * 修改课程
@@ -80,7 +80,7 @@ public interface ICourseManageService {
      * @param userId 用户 ID
      * @return 结果
      */
-    int updateCourse(OshCoures course, Long userId);
+    int updateCourse(OshCourse course, Long userId);
     
     /**
      * 删除课程
