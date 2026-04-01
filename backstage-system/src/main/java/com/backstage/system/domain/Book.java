@@ -15,6 +15,7 @@ import java.util.Date;
  *
  * @author backstage
  */
+
 @TableName("osh_book")
 public class Book
 {

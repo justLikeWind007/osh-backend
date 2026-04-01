@@ -6,11 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 
-/**
- * 用户电子书对象 user_book
- *
- * @author backstage
- */
+
 @TableName("osh_user_book")
 public class UserBook extends BaseEntity
 {
@@ -26,7 +22,7 @@ public class UserBook extends BaseEntity
     /** 电子书ID */
     private Long bookId;
 
-    /** 删除标志（0代表存在 2代表删除） */
+    /** 删除标志（0代表存在 1代表删除） */
     @TableLogic
     private String delFlag;
 

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.info_gap.OshUserRiskProfileMapper">
+
+    <resultMap id="OshUserRiskProfileResult" type="com.backstage.system.domain.user.risk.OshUserRiskProfile">
+        <id     property="userId"       column="user_id"      />
+        <result property="warningCount" column="warning_count" />
+        <result property="isGrey"       column="is_grey"      />
+        <result property="isBanned"     column="is_banned"    />
+    </resultMap>
+
+    <select id="selectRiskByUserId" resultMap="OshUserRiskProfileResult">
+        SELECT user_id, warning_count, is_grey, is_banned, last_warning_reason
+        FROM osh_user_risk_profile
+        WHERE user_id = #{userId}
+    </select>
+
+</mapper>
