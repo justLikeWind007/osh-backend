@@ -1,6 +1,9 @@
 package com.backstage.system.service;
 
 import com.backstage.system.domain.course.OshCourse;
+import com.backstage.system.domain.course.vo.OshCourseDetailVo;
+import com.backstage.system.domain.course.vo.OshCourseSectionVo;
+import com.backstage.system.request.CourseSearchRequest;
 
 import java.util.List;
 
@@ -12,6 +15,8 @@ import java.util.List;
  */
 public interface IOshCouresService 
 {
+    List<OshCourse> pageQuerySearchCourse(CourseSearchRequest request);
+
     /**
      * 查询课程详情
      * 
@@ -23,10 +28,9 @@ public interface IOshCouresService
     /**
      * 查询课程列表
      *
-     * @param columnId 专栏 ID
      * @return 课程集合
      */
-    List<OshCourse> selectCourseList(Long columnId);
+    List<OshCourse> selectCourseList();
 
     /**
      * 新增课程
@@ -59,4 +63,10 @@ public interface IOshCouresService
      * @return 结果
      */
     int deleteCourseById(Long id);
+
+    OshCourseDetailVo getCourseDetail(Long id);
+
+    List<OshCourseSectionVo> getCourseSectionOutline(Long courseId);
+
+    String getTextCourseSectionContent(Long sectionId);
 }

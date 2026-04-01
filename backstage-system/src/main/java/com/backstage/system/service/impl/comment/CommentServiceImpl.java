@@ -12,7 +12,7 @@ import com.backstage.system.mapper.comment.CommentMapper;
 import com.backstage.system.mapper.user.UserMapper;
 import com.backstage.system.service.comment.ICommentService;
 import com.backstage.common.utils.PageUtils;
-import com.backstage.system.service.comment.CommentForbiddenWordFilter;
+import com.backstage.system.component.CommentForbiddenWordFilter;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureException;

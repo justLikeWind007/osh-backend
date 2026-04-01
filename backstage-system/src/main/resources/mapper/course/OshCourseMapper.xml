@@ -3,35 +3,185 @@
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.backstage.system.mapper.course.OshCourseMapper">
+
+    <sql id="searchCourseColumns">
+        c.id,
+        c.title,
+        c.cover,
+        c.intro,
+        c.service_content,
+        c.price,
+        c.t_price,
+        c.type,
+        c.sub_count,
+        c.remark,
+        c.create_by,
+        c.create_time,
+        c.update_by,
+        c.update_time,
+        c.total_duration,
+        c.free_lesson_count,
+        c.video_count,
+        c.sales_count,
+        c.view_count,
+        c.like_count,
+        c.comment_count,
+        c.rating_score,
+        c.free_type,
+        c.after_service_days,
+        c.status,
+        c.exam_id
+    </sql>
+
+    <sql id="courseDetailColumns">
+        c.id,
+        c.title,
+        c.cover,
+        c.intro,
+        c.service_content,
+        c.price,
+        c.t_price,
+        c.sub_count,
+        c.buy_count,
+        c.remark,
+        c.total_duration,
+        c.video_count,
+        c.free_lesson_count,
+        c.view_count,
+        c.good_count,
+        c.mid_count,
+        c.bad_count,
+        c.comment_count,
+        c.collection_count,
+        c.rating_score,
+        c.free_type,
+        c.after_service_days,
+        c.status,
+        c.exam_id,
+        c.create_by,
+        c.create_time,
+        c.update_by,
+        c.update_time
+    </sql>
     
-    <resultMap type="OshCourse" id="OshCouresResult">
+    <resultMap type="com.backstage.system.domain.course.OshCourse" id="OshCouresResult">
         <result property="id"   column="id"    />
         <result property="title"   column="title"    />
         <result property="cover"   column="cover"    />
-        <result property="tryContent"   column="try"    />
+        <result property="intro"   column="intro"    />
+        <result property="serviceContent"   column="service_content"    />
         <result property="price"   column="price"    />
         <result property="tPrice"   column="t_price"    />
         <result property="type"   column="type"    />
-<!--        <result property="subCount"   column="sub_count"    />-->
-<!--        <result property="columnId"   column="column_id"    />-->
-<!--        <result property="appid"   column="appid"    />-->
-<!--        <result property="isbuy"   column="isbuy"    />-->
-<!--        <result property="isfava"   column="isfava"    />-->
-<!--        <result property="extField1"   column="ext1"    />-->
-<!--        <result property="extField2"   column="ext2"    />-->
-<!--        <result property="extField3"   column="ext3"    />-->
-<!--        <result property="extField4"   column="ext4"    />-->
-<!--        <result property="extField5"   column="ext5"    />-->
-<!--        <result property="extField6"   column="ext6"    />-->
-<!--        <result property="extField7"   column="ext7"    />-->
-<!--        <result property="extField8"   column="ext8"    />-->
+        <result property="subCount"   column="sub_count"    />
         <result property="remark"   column="remark"    />
+        <result property="createBy"   column="create_by"    />
         <result property="createTime"   column="create_time"    />
+        <result property="updateBy"   column="update_by"    />
         <result property="updateTime"   column="update_time"    />
+        <result property="totalDuration"   column="total_duration"    />
+        <result property="freeLessonCount" column="free_lesson_count" />
+        <result property="videoCount"   column="video_count"    />
+        <result property="salesCount"   column="sales_count"    />
+        <result property="viewCount"   column="view_count"    />
+        <result property="likeCount"   column="like_count"    />
+        <result property="commentCount"   column="comment_count"    />
+        <result property="ratingScore"   column="rating_score"    />
+        <result property="freeType"   column="free_type"    />
+        <result property="afterServiceDays"   column="after_service_days"    />
+        <result property="status"   column="status"    />
+        <result property="examId" column="exam_id"/>
+    </resultMap>
+
+    <resultMap type="com.backstage.system.domain.course.vo.OshCourseDetailVo" id="OshCourseDetailResult">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="cover" column="cover"/>
+        <result property="intro" column="intro"/>
+        <result property="serviceContent" column="service_content"/>
+        <result property="price" column="price"/>
+        <result property="tPrice" column="t_price"/>
+        <result property="subCount" column="sub_count"/>
+        <result property="buyCount" column="buy_count"/>
+        <result property="remark" column="remark"/>
+        <result property="totalDuration" column="total_duration"/>
+        <result property="videoCount" column="video_count"/>
+        <result property="freeLessonCount" column="free_lesson_count"/>
+        <result property="viewCount" column="view_count"/>
+        <result property="goodCount" column="good_count"/>
+        <result property="midCount" column="mid_count"/>
+        <result property="badCount" column="bad_count"/>
+        <result property="commentCount" column="comment_count"/>
+        <result property="collectionCount" column="collection_count"/>
+        <result property="ratingScore" column="rating_score"/>
+        <result property="freeType" column="free_type"/>
+        <result property="afterServiceDays" column="after_service_days"/>
+        <result property="status" column="status"/>
+        <result property="examId" column="exam_id"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <collection property="tags" ofType="com.backstage.system.domain.course.vo.OshCourseTagSimpleVo">
+            <id property="id" column="tag_id"/>
+            <result property="name" column="tag_name"/>
+            <result property="sort" column="tag_sort"/>
+        </collection>
+    </resultMap>
+
+    <resultMap type="com.backstage.system.domain.course.vo.OshCourseSectionVo" id="OshCourseSectionResult">
+        <id property="id" column="id"/>
+        <result property="courseId" column="course_id"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="title" column="title"/>
+        <result property="sort" column="sort"/>
+        <result property="freeFlag" column="free_flag"/>
+        <result property="duration" column="duration"/>
+        <result property="mediaUrl" column="media_url"/>
+        <result property="textContent" column="text_content"/>
+        <result property="cover" column="cover"/>
+        <result property="videoCodec" column="video_codec"/>
+        <result property="videoBitrate" column="video_bitrate"/>
+        <result property="videoResolution" column="video_resolution"/>
+        <result property="fileSize" column="file_size"/>
+        <result property="subtitleUrl" column="subtitle_url"/>
+        <result property="type" column="type"/>
+        <result property="status" column="status"/>
+        <result property="examId" column="exam_id"/>
+        <result property="deleteFlag" column="delete_flag"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
     </resultMap>
 
     <sql id="selectCourseVo">
-        select id, title, cover, try, price, t_price, type, remark, create_time, update_time from osh_course
+        select id,
+               title,
+               cover,
+               intro,
+               service_content,
+               price,
+               t_price,
+               type,
+               sub_count,
+               create_by,
+               create_time,
+               update_by,
+               update_time,
+               remark,
+               total_duration,
+               video_count,
+               sales_count,
+               view_count,
+               like_count,
+               comment_count,
+               rating_score,
+               free_type,
+               after_service_days,
+               status,
+               exam_id
+        from osh_course
     </sql>
 
     <!-- 查询课程详情 -->
@@ -43,11 +193,90 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <!-- 根据条件查询课程列表 -->
     <select id="selectCourseList" resultMap="OshCouresResult">
         <include refid="selectCourseVo"/>
-        <where>  
-            <if test="columnId != null">
-                and column_id = #{columnId}
+        order by create_time
+    </select>
+
+    <select id="pageQuerySearchCourse" parameterType="com.backstage.system.request.CourseSearchRequest" resultMap="OshCouresResult">
+        select distinct
+        <include refid="searchCourseColumns"/>
+        from osh_course c
+        left join osh_course_tag_rel ctr on ctr.course_id = c.id
+            and ctr.delete_flag = 0
+        left join osh_course_tag ct on ct.id = ctr.tag_id
+            and ct.delete_flag = 0
+            and ct.status = 1
+        <where>
+            c.delete_flag = 0
+            and c.status = 2
+            <if test="keyword != null and keyword != ''">
+                and c.title like concat('%', #{keyword}, '%')
+            </if>
+            <if test="tags != null and tags.size() > 0">
+                and ct.name in
+                <foreach collection="tags" item="tag" open="(" separator="," close=")">
+                    #{tag}
+                </foreach>
             </if>
         </where>
+        order by c.create_time desc, c.id desc
+    </select>
+
+    <select id="getCourseDetail" parameterType="Long" resultMap="OshCourseDetailResult">
+        select
+        <include refid="courseDetailColumns"/>,
+        ct.id as tag_id,
+        ct.name as tag_name,
+        ct.sort as tag_sort
+        from osh_course c
+        left join osh_course_tag_rel ctr on ctr.course_id = c.id
+            and ctr.delete_flag = 0
+        left join osh_course_tag ct on ct.id = ctr.tag_id
+            and ct.delete_flag = 0
+            and ct.status = 1
+        where c.id = #{id}
+          and c.delete_flag = 0
+          and c.status = 2
+        order by ct.sort desc, ct.id asc
+    </select>
+
+    <select id="selectCourseSectionList" parameterType="Long" resultMap="OshCourseSectionResult">
+        select id,
+               course_id,
+               parent_id,
+               title,
+               sort,
+               free_flag,
+               duration,
+               media_url,
+               text_content,
+               cover,
+               video_codec,
+               video_bitrate,
+               video_resolution,
+               file_size,
+               subtitle_url,
+               type,
+               status,
+               exam_id,
+               delete_flag,
+               create_by,
+               create_time,
+               update_by,
+               update_time
+        from osh_course_section
+        where course_id = #{courseId}
+          and delete_flag = 0
+          and status = 1
+        order by sort asc, id asc
+    </select>
+
+    <select id="selectTextCourseSectionContent" parameterType="Long" resultType="java.lang.String">
+        select text_content
+        from osh_course_section
+        where id = #{sectionId}
+          and type = 'text'
+          and status = 1
+          and delete_flag = 0
     </select>
 
     <!-- 新增课程 -->
@@ -139,4 +368,5 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             #{id}
         </foreach>
     </delete>
+
 </mapper>

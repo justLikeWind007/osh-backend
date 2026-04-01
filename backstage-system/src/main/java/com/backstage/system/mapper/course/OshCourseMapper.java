@@ -1,9 +1,11 @@
 package com.backstage.system.mapper.course;
 
 import com.backstage.system.domain.course.OshCourse;
+import com.backstage.system.domain.course.vo.OshCourseDetailVo;
+import com.backstage.system.domain.course.vo.OshCourseSectionVo;
+import com.backstage.system.request.CourseSearchRequest;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-
 import java.util.List;
 
 /**
@@ -15,6 +17,9 @@ import java.util.List;
 @Mapper
 public interface OshCourseMapper
 {
+
+
+    List<OshCourse> pageQuerySearchCourse(CourseSearchRequest request);
     /**
      * 查询课程信息
      *
@@ -24,12 +29,11 @@ public interface OshCourseMapper
     OshCourse selectCourseById(Long id);
 
     /**
-     * 根据 appid 和专栏 ID 查询课程列表
+     * 查询课程列表
      *
-     * @param columnId 专栏 ID
      * @return 课程列表
      */
-    List<OshCourse> selectCourseList(@Param("columnId") Long columnId);
+    List<OshCourse> selectCourseList();
 
     /**
      * 新增课程
@@ -62,4 +66,10 @@ public interface OshCourseMapper
      * @return 结果
      */
     int deleteCourseByIds(Long[] ids);
+
+    OshCourseDetailVo getCourseDetail(@Param("id") Long id);
+
+    List<OshCourseSectionVo> selectCourseSectionList(@Param("courseId") Long courseId);
+
+    String selectTextCourseSectionContent(@Param("sectionId") Long sectionId);
 }
