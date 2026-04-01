@@ -122,6 +122,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="createTime" column="create_time"/>
         <result property="updateBy" column="update_by"/>
         <result property="updateTime" column="update_time"/>
+        <result property="buyFlag" column="buy_flag"/>
         <collection property="tags" ofType="com.backstage.system.domain.course.vo.OshCourseTagSimpleVo">
             <id property="id" column="tag_id"/>
             <result property="name" column="tag_name"/>
@@ -148,6 +149,23 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="type" column="type"/>
         <result property="status" column="status"/>
         <result property="examId" column="exam_id"/>
+        <result property="deleteFlag" column="delete_flag"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <resultMap id="OshCourseMaterial" type="com.backstage.system.domain.course.OshCourseMaterial">
+        <id property="id" column="id"/>
+        <result property="courseId" column="course_id"/>
+        <result property="name" column="name"/>
+        <result property="url" column="url"/>
+        <result property="fileSize" column="file_size"/>
+        <result property="fileType" column="file_type"/>
+        <result property="downloadCount" column="download_count"/>
+        <result property="payOnly" column="pay_only"/>
+        <result property="sort" column="sort"/>
         <result property="deleteFlag" column="delete_flag"/>
         <result property="createBy" column="create_by"/>
         <result property="createTime" column="create_time"/>
@@ -221,22 +239,30 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         order by c.create_time desc, c.id desc
     </select>
 
-    <select id="getCourseDetail" parameterType="Long" resultMap="OshCourseDetailResult">
+    <select id="getCourseDetail" resultMap="OshCourseDetailResult">
         select
         <include refid="courseDetailColumns"/>,
         ct.id as tag_id,
         ct.name as tag_name,
-        ct.sort as tag_sort
+        ct.sort as tag_sort,
+
+        IFNULL(
+        CASE WHEN ocb.pay_status = 'paid' THEN 1 ELSE 0 END,
+        0
+        ) AS buy_flag
         from osh_course c
         left join osh_course_tag_rel ctr on ctr.course_id = c.id
             and ctr.delete_flag = 0
         left join osh_course_tag ct on ct.id = ctr.tag_id
             and ct.delete_flag = 0
             and ct.status = 1
+        left join osh_course_buy ocb
+            on c.id = ocb.course_id
+            and ocb.pay_status= 'paid'
+            and ocb.user_id = #{userId}
         where c.id = #{id}
-          and c.delete_flag = 0
-          and c.status = 2
-        order by ct.sort desc, ct.id asc
+        and c.delete_flag = 0
+        and c.status = 2
     </select>
 
     <select id="selectCourseSectionList" parameterType="Long" resultMap="OshCourseSectionResult">
@@ -270,6 +296,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         order by sort asc, id asc
     </select>
 
+    <select id="countCourseSectionInCourse" resultType="java.lang.Integer">
+        select count(1)
+        from osh_course_section
+        where course_id = #{courseId}
+          and id = #{sectionId}
+          and delete_flag = 0
+    </select>
+
     <select id="selectTextCourseSectionContent" parameterType="Long" resultType="java.lang.String">
         select text_content
         from osh_course_section
@@ -277,6 +311,75 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
           and type = 'text'
           and status = 1
           and delete_flag = 0
+    </select>
+
+    <select id="getCourseSectionContent" resultType="java.lang.String">
+        select case
+                   when type = 'text' then text_content
+                   when type = 'video' then media_url
+                   else ''
+                   end as content
+        from osh_course_section
+        where 0 = 0
+          and id = #{sectionId}
+          and status = 0
+          and delete_flag = 0
+    </select>
+
+    <select id="isUserBuyCourseOrFreeCourse" resultType="java.lang.Integer">
+        select COUNT(1) as num
+        from osh_course_buy ocb
+            left join osh_course oc on oc.id = ocb.course_id
+        where course_id = #{courseId}
+          and user_id = #{userId}
+          and pay_status = 'paid'
+          and status = 1
+
+        union
+
+        select count(1) as num
+        from osh_course
+        where 0=0
+        and id = #{courseId}
+        and ( free_type = 0 or free_type = 2 )
+        and delete_flag = 0
+
+        union
+
+        select count(1) as num
+        from osh_course_section
+        where id = #{courseId}
+        and status = 0
+        and delete_flag = 0
+        and free_flag = 1
+    </select>
+
+    <select id="countUserBoughtCourse" resultType="java.lang.Integer">
+        select count(1)
+        from osh_course_buy
+        where course_id = #{courseId}
+          and user_id = #{userId}
+          and pay_status = 'paid'
+          and delete_flag = 0
+    </select>
+
+    <select id="countFreeCourse" resultType="java.lang.Integer">
+        select count(1)
+        from osh_course
+        where id = #{courseId}
+          and delete_flag = 0
+          and status = 2
+          and free_type in (0, 2)
+    </select>
+
+    <select id="countFreeSectionInCourse" resultType="java.lang.Integer">
+        select count(1)
+        from osh_course_section
+        where course_id = #{courseId}
+          and id = #{sectionId}
+          and delete_flag = 0
+          and status = 1
+          and free_flag = 1
     </select>
 
     <!-- 新增课程 -->
@@ -369,4 +472,24 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </foreach>
     </delete>
 
+    <select id="getCourseMaterials" resultMap="OshCourseMaterial">
+        select id,
+               course_id,
+               name,
+               url,
+               file_size,
+               file_type,
+               download_count,
+               is_pay_only as pay_only,
+               sort,
+               delete_flag,
+               create_by,
+               create_time,
+               update_by,
+               update_time
+        from osh_course_material
+        where course_id = #{courseId}
+          and delete_flag = 0
+        order by sort asc, id asc
+    </select>
 </mapper>

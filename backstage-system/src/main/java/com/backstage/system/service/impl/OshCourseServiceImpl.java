@@ -1,20 +1,17 @@
 package com.backstage.system.service.impl;
 
 import com.backstage.system.domain.course.OshCourse;
+import com.backstage.system.domain.course.OshCourseMaterial;
 import com.backstage.system.domain.course.vo.OshCourseDetailVo;
 import com.backstage.system.domain.course.vo.OshCourseSectionVo;
 import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.request.CourseSearchRequest;
-import com.backstage.system.service.IOshCouresService;
+import com.backstage.system.service.IOshCourseService;
 import com.github.pagehelper.PageHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 课程信息 Service 业务层处理
@@ -23,7 +20,7 @@ import java.util.Map;
  * @date 2026-01-XX
  */
 @Service
-public class OshCouresServiceImpl implements IOshCouresService 
+public class OshCourseServiceImpl implements IOshCourseService
 {
     @Autowired
     private OshCourseMapper oshCourseMapper;
@@ -35,9 +32,44 @@ public class OshCouresServiceImpl implements IOshCouresService
     }
 
     @Override
-    public OshCourseDetailVo getCourseDetail(Long id) {
-        OshCourseDetailVo oshCourseDetailVo = oshCourseMapper.getCourseDetail(id);
+    public OshCourseDetailVo getCourseDetail(Long id, Long userId) {
+        OshCourseDetailVo oshCourseDetailVo = oshCourseMapper.getCourseDetail(id, userId);
         return oshCourseDetailVo;
+    }
+
+    @Override
+    public Integer isUserBuyCourseOrFreeCourse(Long courseId, Long userId) {
+        return oshCourseMapper.isUserBuyCourseOrFreeCourse(courseId, userId);
+    }
+
+    @Override
+    public boolean hasUserBoughtCourse(Long courseId, Long userId) {
+        return oshCourseMapper.countUserBoughtCourse(courseId, userId) > 0;
+    }
+
+    @Override
+    public boolean canUserAskQuestion(Long courseId, Long sectionId, Long userId) {
+        if (courseId == null) {
+            return false;
+        }
+        if (userId != null && oshCourseMapper.countUserBoughtCourse(courseId, userId) > 0) {
+            return true;
+        }
+        if (oshCourseMapper.countFreeCourse(courseId) > 0) {
+            return true;
+        }
+        return sectionId != null && oshCourseMapper.countFreeSectionInCourse(courseId, sectionId) > 0;
+    }
+
+    @Override
+    public String getCourseSectionContent(Long sectionId, Long userId) {
+        return oshCourseMapper.getCourseSectionContent(sectionId);
+    }
+
+    @Override
+    public List<OshCourseMaterial> getCourseMaterials(Long courseId) {
+        List<OshCourseMaterial> courseMaterials = oshCourseMapper.getCourseMaterials(courseId);
+        return courseMaterials;
     }
 
     @Override

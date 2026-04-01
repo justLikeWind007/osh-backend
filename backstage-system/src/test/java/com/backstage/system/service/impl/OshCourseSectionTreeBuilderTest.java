@@ -16,7 +16,7 @@ public class OshCourseSectionTreeBuilderTest {
         OshCourseSectionVo sectionB = createNode(4L, 100L, 1L, "第一节", 20);
         OshCourseSectionVo sectionA = createNode(3L, 100L, 1L, "前言", 10);
 
-        List<OshCourseSectionVo> tree = OshCouresServiceImpl.buildSectionTree(Arrays.asList(
+        List<OshCourseSectionVo> tree = OshCourseServiceImpl.buildSectionTree(Arrays.asList(
                 chapterB, sectionB, chapterA, sectionA));
         System.out.println(chapterA);
         Assert.assertEquals(2, tree.size());

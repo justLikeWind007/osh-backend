@@ -1,6 +1,7 @@
 package com.backstage.system.mapper.course;
 
 import com.backstage.system.domain.course.OshCourse;
+import com.backstage.system.domain.course.OshCourseMaterial;
 import com.backstage.system.domain.course.vo.OshCourseDetailVo;
 import com.backstage.system.domain.course.vo.OshCourseSectionVo;
 import com.backstage.system.request.CourseSearchRequest;
@@ -67,9 +68,23 @@ public interface OshCourseMapper
      */
     int deleteCourseByIds(Long[] ids);
 
-    OshCourseDetailVo getCourseDetail(@Param("id") Long id);
+    OshCourseDetailVo getCourseDetail(@Param("id") Long id, @Param("userId") Long userId);
+
+    Integer isUserBuyCourseOrFreeCourse(Long courseId, Long userId);
+
+    Integer countUserBoughtCourse(@Param("courseId") Long courseId, @Param("userId") Long userId);
+
+    Integer countFreeCourse(@Param("courseId") Long courseId);
+
+    Integer countFreeSectionInCourse(@Param("courseId") Long courseId, @Param("sectionId") Long sectionId);
 
     List<OshCourseSectionVo> selectCourseSectionList(@Param("courseId") Long courseId);
 
+    Integer countCourseSectionInCourse(@Param("courseId") Long courseId, @Param("sectionId") Long sectionId);
+
     String selectTextCourseSectionContent(@Param("sectionId") Long sectionId);
+
+    String getCourseSectionContent(@Param("sectionId") Long sectionId);
+
+    List<OshCourseMaterial> getCourseMaterials(Long courseId);
 }

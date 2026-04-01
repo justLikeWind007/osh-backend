@@ -64,10 +64,12 @@ public class OshCourseDetailVo {
 
     private List<OshCourseTagSimpleVo> tags;
 
+    private Integer buyFlag;
+
     public OshCourseDetailVo() {
     }
 
-    public OshCourseDetailVo(Long id, String title, String cover, String intro, String serviceContent, BigDecimal price, BigDecimal tPrice, Integer subCount, Integer buyCount, String remark, Integer totalDuration, Integer videoCount, Integer freeLessonCount, Long viewCount, Integer goodCount, Integer midCount, Integer badCount, Integer commentCount, Integer collectionCount, BigDecimal ratingScore, Integer freeType, Integer afterServiceDays, Integer status, Integer examId, String createBy, Date createTime, String updateBy, Date updateTime, List<OshCourseTagSimpleVo> tags) {
+    public OshCourseDetailVo(Long id, String title, String cover, String intro, String serviceContent, BigDecimal price, BigDecimal tPrice, Integer subCount, Integer buyCount, String remark, Integer totalDuration, Integer videoCount, Integer freeLessonCount, Long viewCount, Integer goodCount, Integer midCount, Integer badCount, Integer commentCount, Integer collectionCount, BigDecimal ratingScore, Integer freeType, Integer afterServiceDays, Integer status, Integer examId, String createBy, Date createTime, String updateBy, Date updateTime, List<OshCourseTagSimpleVo> tags, Integer buyFlag) {
         this.id = id;
         this.title = title;
         this.cover = cover;
@@ -97,6 +99,23 @@ public class OshCourseDetailVo {
         this.updateBy = updateBy;
         this.updateTime = updateTime;
         this.tags = tags;
+        this.buyFlag = buyFlag;
+    }
+
+    public BigDecimal gettPrice() {
+        return tPrice;
+    }
+
+    public void settPrice(BigDecimal tPrice) {
+        this.tPrice = tPrice;
+    }
+
+    public Integer getBuyFlag() {
+        return buyFlag;
+    }
+
+    public void setBuyFlag(Integer buyFlag) {
+        this.buyFlag = buyFlag;
     }
 
     public Long getId() {
