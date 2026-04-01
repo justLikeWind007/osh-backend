@@ -25,6 +25,7 @@ target/
 hs_err_pid*
 replay_pid*
 
+
 # IntelliJ IDEA
 .idea/
 *.iml
@@ -72,5 +73,39 @@ build/
 Thumbs.db
 Desktop.ini
 
-# Windows special files
-nul
+# Application specific
+logs/
+*.sql
+doc/
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn.lock
+
+# Environment variables
+.env
+*.env.local
+*.env.*.local
+
+# IDE - JetBrains IDEs (specific)
+.idea/tasks.xml
+.idea/workspace.xml
+.idea/dictionaries/
+.idea/shelf/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*.backup
+
+
+*.js
+backstage-ui/

@@ -1,0 +1,531 @@
+package com.backstage.system.domain.course;
+
+import com.backstage.common.annotation.Excel;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
+
+import java.math.BigDecimal;
+import java.util.Date;
+
+/**
+ * 课程信息对象 osh_coures
+ * 
+ * @author ruoyi
+ * @date 2026-01-XX
+ */
+@ApiModel(description = "课程信息")
+public class OshCourse
+{// 课程信息
+    private static final long serialVersionUID = 1L;
+
+    /** 课程 ID */
+    @ApiModelProperty("课程 ID")
+    private Long id;
+
+    /** 课程标题 */
+    @Excel(name = "课程标题")
+    @ApiModelProperty("课程标题")
+    private String title;
+
+    /** 课程封面图 URL */
+    @Excel(name = "课程封面图 URL")
+    @ApiModelProperty("课程封面图 URL")
+    private String cover;
+
+    /** 课程介绍/试看内容 */
+    @Excel(name = "课程介绍")
+    @ApiModelProperty("课程介绍/试看内容")
+    private String tryContent;
+
+    /** 当前价格 */
+    @Excel(name = "当前价格")
+    @ApiModelProperty("当前价格")
+    private BigDecimal price;
+
+    /** 原价/市场价 */
+    @Excel(name = "原价")
+    @ApiModelProperty("原价/市场价")
+    private BigDecimal tPrice;
+
+    /** 课程类型：media-视频课，live-直播课，text-图文课 */
+    @Excel(name = "课程类型")
+    @ApiModelProperty("课程类型：media-视频课，live-直播课，text-图文课")
+    private String type;
+
+    /** 标签 ID 列表（非数据库字段，用于前后端交互） */
+    @ApiModelProperty("标签 ID 列表")
+    private Long[] tagIds;
+
+    /** 好评数量 */
+    @ApiModelProperty("好评数量")
+    private Integer goodCount;
+
+    /** 中评数量 */
+    @ApiModelProperty("中评数量")
+    private Integer midCount;
+
+    /** 差评数量 */
+    @ApiModelProperty("差评数量")
+    private Integer badCount;
+
+    /** 收藏数量 */
+    @ApiModelProperty("收藏数量")
+    private Integer favaCount;
+
+    /** 购买数量 */
+    @ApiModelProperty("购买数量")
+    private Integer buyCount;
+
+    /** 章节数量 */
+    @ApiModelProperty("章节数量")
+    private Integer subCount;
+
+    /** 免费试看章节数 */
+    @ApiModelProperty("免费试看章节数")
+    private Integer freeLessonCount;
+
+    /** 课程状态：0-草稿 1-已发布 2-已下架 */
+    @ApiModelProperty("课程状态")
+    private Integer status;
+
+    /** 是否已购买：0-否，1-是 */
+    @Excel(name = "是否已购买", readConverterExp = "0=否，1=是")
+    @ApiModelProperty("是否已购买：0-否，1-是")
+    private Boolean isbuy;
+
+    /** 是否已收藏：0-否，1-是 */
+    @Excel(name = "是否已收藏", readConverterExp = "0=否，1=是")
+    @ApiModelProperty("是否已收藏：0-否，1-是")
+    private Boolean isfava;
+//
+//    /** 备用字段 1 */
+//    @ApiModelProperty("备用字段 1")
+//    private String extField1;
+//
+//    /** 备用字段 2 */
+//    @ApiModelProperty("备用字段 2")
+//    private String extField2;
+//
+//    /** 备用字段 3 */
+//    @ApiModelProperty("备用字段 3")
+//    private String extField3;
+//
+//    /** 备用字段 4 */
+//    @ApiModelProperty("备用字段 4")
+//    private String extField4;
+//
+//    /** 备用字段 5 */
+//    @ApiModelProperty("备用字段 5")
+//    private Integer extField5;
+//
+//    /** 备用字段 6 */
+//    @ApiModelProperty("备用字段 6")
+//    private Integer extField6;
+//
+//    /** 备用字段 7 */
+//    @ApiModelProperty("备用字段 7")
+//    private BigDecimal extField7;
+//
+//    /** 备用字段 8 */
+//    @ApiModelProperty("备用字段 8")
+//    private Date extField8;
+
+
+    /** 搜索值 */
+    private String searchValue;
+
+    /** 创建者 */
+    private String createBy;
+
+    /** 更新者 */
+    private String updateBy;
+
+    /** 备注 */
+    private String remark;
+
+    /** 创建时间 */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @ApiModelProperty("创建时间")
+    private Date createTime;
+
+    /** 更新时间 */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @ApiModelProperty("更新时间")
+    private Date updateTime;
+
+    public void setId(Long id) 
+    {
+        this.id = id;
+    }
+
+    public Long getId() 
+    {
+        return id;
+    }
+
+    public void setTitle(String title) 
+    {
+        this.title = title;
+    }
+
+    public String getTitle() 
+    {
+        return title;
+    }
+
+    public void setCover(String cover) 
+    {
+        this.cover = cover;
+    }
+
+    public String getCover() 
+    {
+        return cover;
+    }
+
+    public void setTryContent(String tryContent) 
+    {
+        this.tryContent = tryContent;
+    }
+
+    public String getTryContent() 
+    {
+        return tryContent;
+    }
+
+    public void setPrice(BigDecimal price) 
+    {
+        this.price = price;
+    }
+
+    public BigDecimal getPrice() 
+    {
+        return price;
+    }
+
+    public void setTPrice(BigDecimal tPrice) 
+    {
+        this.tPrice = tPrice;
+    }
+
+    public BigDecimal getTPrice() 
+    {
+        return tPrice;
+    }
+
+    public void setType(String type) 
+    {
+        this.type = type;
+    }
+
+    public String getType() 
+    {
+        return type;
+    }
+
+    public void setTagIds(Long[] tagIds)
+    {
+        this.tagIds = tagIds;
+    }
+
+    public Long[] getTagIds()
+    {
+        return tagIds;
+    }
+
+    public void setGoodCount(Integer goodCount)
+    {
+        this.goodCount = goodCount;
+    }
+
+    public Integer getGoodCount()
+    {
+        return goodCount;
+    }
+
+    public void setMidCount(Integer midCount)
+    {
+        this.midCount = midCount;
+    }
+
+    public Integer getMidCount()
+    {
+        return midCount;
+    }
+
+    public void setBadCount(Integer badCount)
+    {
+        this.badCount = badCount;
+    }
+
+    public Integer getBadCount()
+    {
+        return badCount;
+    }
+
+    public void setFavaCount(Integer favaCount)
+    {
+        this.favaCount = favaCount;
+    }
+
+    public Integer getFavaCount()
+    {
+        return favaCount;
+    }
+
+    public void setBuyCount(Integer buyCount)
+    {
+        this.buyCount = buyCount;
+    }
+
+    public Integer getBuyCount()
+    {
+        return buyCount;
+    }
+
+    public void setSubCount(Integer subCount)
+    {
+        this.subCount = subCount;
+    }
+
+    public Integer getSubCount()
+    {
+        return subCount;
+    }
+
+    public void setFreeLessonCount(Integer freeLessonCount)
+    {
+        this.freeLessonCount = freeLessonCount;
+    }
+
+    public Integer getFreeLessonCount()
+    {
+        return freeLessonCount;
+    }
+
+    public void setStatus(Integer status)
+    {
+        this.status = status;
+    }
+
+    public Integer getStatus()
+    {
+        return status;
+    }
+
+//    public void setSubCount(Integer subCount)
+//    {
+//        this.subCount = subCount;
+//    }
+//
+//    public Integer getSubCount()
+//    {
+//        return subCount;
+//    }
+//
+//    public void setColumnId(Long columnId)
+//    {
+//        this.columnId = columnId;
+//    }
+//
+//    public Long getColumnId()
+//    {
+//        return columnId;
+//    }
+//
+//    public void setAppid(String appid)
+//    {
+//        this.appid = appid;
+//    }
+//
+//    public String getAppid()
+//    {
+//        return appid;
+//    }
+//
+    public void setIsbuy(Boolean isbuy)
+    {
+        this.isbuy = isbuy;
+    }
+
+    public Boolean getIsbuy()
+    {
+        return isbuy;
+    }
+
+    public void setIsfava(Boolean isfava)
+    {
+        this.isfava = isfava;
+    }
+
+    public Boolean getIsfava()
+    {
+        return isfava;
+    }
+//
+//    public String getExtField1()
+//    {
+//        return extField1;
+//    }
+//
+//    public void setExtField1(String extField1)
+//    {
+//        this.extField1 = extField1;
+//    }
+//
+//    public String getExtField2()
+//    {
+//        return extField2;
+//    }
+//
+//    public void setExtField2(String extField2)
+//    {
+//        this.extField2 = extField2;
+//    }
+//
+//    public String getExtField3()
+//    {
+//        return extField3;
+//    }
+//
+//    public void setExtField3(String extField3)
+//    {
+//        this.extField3 = extField3;
+//    }
+//
+//    public String getExtField4()
+//    {
+//        return extField4;
+//    }
+//
+//    public void setExtField4(String extField4)
+//    {
+//        this.extField4 = extField4;
+//    }
+//
+//    public Integer getExtField5()
+//    {
+//        return extField5;
+//    }
+//
+//    public void setExtField5(Integer extField5)
+//    {
+//        this.extField5 = extField5;
+//    }
+//
+//    public Integer getExtField6()
+//    {
+//        return extField6;
+//    }
+//
+//    public void setExtField6(Integer extField6)
+//    {
+//        this.extField6 = extField6;
+//    }
+//
+//    public BigDecimal getExtField7()
+//    {
+//        return extField7;
+//    }
+//
+//    public void setExtField7(BigDecimal extField7)
+//    {
+//        this.extField7 = extField7;
+//    }
+//
+//    public Date getExtField8()
+//    {
+//        return extField8;
+//    }
+//
+//    public void setExtField8(Date extField8)
+//    {
+//        this.extField8 = extField8;
+//    }
+
+    public String getSearchValue()
+    {
+        return searchValue;
+    }
+
+    public void setSearchValue(String searchValue)
+    {
+        this.searchValue = searchValue;
+    }
+
+    public String getCreateBy()
+    {
+        return createBy;
+    }
+
+    public void setCreateBy(String createBy)
+    {
+        this.createBy = createBy;
+    }
+
+    public String getUpdateBy()
+    {
+        return updateBy;
+    }
+
+    public void setUpdateBy(String updateBy)
+    {
+        this.updateBy = updateBy;
+    }
+
+    public String getRemark()
+    {
+        return remark;
+    }
+
+    public void setRemark(String remark)
+    {
+        this.remark = remark;
+    }
+
+    public Date getCreateTime()
+    {
+        return createTime;
+    }
+
+    public void setCreateTime(Date createTime)
+    {
+        this.createTime = createTime;
+    }
+
+    public Date getUpdateTime()
+    {
+        return updateTime;
+    }
+
+    public void setUpdateTime(Date updateTime)
+    {
+        this.updateTime = updateTime;
+    }
+
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
+            .append("id", getId())
+            .append("title", getTitle())
+            .append("cover", getCover())
+            .append("tryContent", getTryContent())
+            .append("price", getPrice())
+            .append("tPrice", getTPrice())
+            .append("type", getType())
+            .append("isbuy", getIsbuy())
+            .append("isfava", getIsfava())
+            .append("searchValue", getSearchValue())
+            .append("createBy", getCreateBy())
+            .append("updateBy", getUpdateBy())
+            .append("createTime", getCreateTime())
+            .append("updateTime", getUpdateTime())
+            .append("remark", getRemark())
+            .toString();
+    }
+
+
+}

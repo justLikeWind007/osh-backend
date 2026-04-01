@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.info_gap.OshInfoGapMapper">
+
+    <resultMap id="InfoGapVOResult" type="com.backstage.system.domain.vo.info_gap.InfoGapVO">
+        <id column="id" property="id" />
+        <result column="user_id" property="userId" />
+        <result column="title" property="title" />
+        <result column="tag" property="tag" />
+        <result column="content" property="content" />
+        <result column="good_count" property="goodCount" />
+        <result column="middle_count" property="middleCount" />
+        <result column="bad_count" property="badCount" />
+        <result column="create_time" property="createTime" />
+        <result column="nickname" property="nickname" />
+        <result column="avatar" property="avatar" />
+        <result column="isFollowed" property="isFollowed" />
+    </resultMap>
+
+    <select id="selectInfoGapPage" resultMap="InfoGapVOResult">
+        SELECT
+        g.id,
+        g.user_id,
+        g.title,
+        g.tag,
+        g.content,
+        g.good_count,
+        g.middle_count,
+        g.bad_count,
+        g.create_time,
+        u.nickname AS nickname,
+        u.avatar AS avatar,
+        <choose>
+            <when test="currentUserId != null">
+                (SELECT COUNT(1) FROM osh_info_gap_follow f
+                WHERE f.user_id = #{currentUserId} AND f.target_user_id = g.user_id) > 0
+            </when>
+            <otherwise>
+                0
+            </otherwise>
+        </choose> AS isFollowed
+        FROM osh_info_gap g
+        LEFT JOIN osh_user u ON g.user_id = u.id
+        WHERE g.status = 0
+        AND g.is_deleted = 0
+        <choose>
+            <when test="type == 'hot'">
+                ORDER BY g.good_count DESC, g.create_time DESC
+            </when>
+            <otherwise>
+                ORDER BY g.create_time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <insert id="insertInfoGap" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO osh_info_gap (user_id, title, tag, content, status, create_time)
+        VALUES (#{userId}, #{title}, #{tag}, #{content}, #{status}, NOW())
+    </insert>
+
+    <update id="updateCountAtomically">
+        UPDATE osh_info_gap
+        SET ${column} = ${column} + 1
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <update id="decrementCountAtomically">
+        UPDATE osh_info_gap
+        SET ${column} = GREATEST(${column} - 1, 0)
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <select id="selectInfoGapPage" resultMap="InfoGapVOResult">
+        SELECT
+        g.*, u.nickname, u.avatar,
+        (SELECT type FROM osh_info_gap_vote v WHERE v.info_gap_id = g.id AND v.user_id = #{currentUserId} LIMIT 1) AS isVoted,
+        FROM osh_info_gap g ...
+    </select>
+
+</mapper>

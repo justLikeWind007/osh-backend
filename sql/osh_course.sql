@@ -12,8 +12,8 @@
 -- 1.使用专栏页面改过来 详情部分包含 课程介绍 课程服务周期 具体包含服务等
 -- 9.查询列表界面 右上角显示新增课程 仅内部成员或者年vip用户 发起新增课程的流程，普通用户不行
 
-DROP TABLE IF EXISTS `osh_coures`;
-CREATE TABLE `osh_coures` (
+DROP TABLE IF EXISTS `osh_course`;
+CREATE TABLE `osh_course` (
     `id`                  bigint(20)      NOT NULL AUTO_INCREMENT         COMMENT '课程ID',
     `title`               varchar(200)    NOT NULL                        COMMENT '课程标题',
     `cover`               varchar(500)    DEFAULT NULL                    COMMENT '课程封面图URL',
