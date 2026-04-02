@@ -1,13 +1,17 @@
-package com.backstage.system.domain;
+package com.backstage.system.domain.book;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Date;
 
 /**
@@ -17,8 +21,7 @@ import java.util.Date;
  */
 
 @TableName("osh_book")
-public class Book
-{
+public class BookDO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /** 电子书ID */
@@ -53,7 +56,7 @@ public class Book
     /** 状态（0正常 1下架） */
     private String status;
 
-    /** 删除标志（0代表存在 2代表删除） */
+    /** 删除标志（0代表存在 1代表删除） */
     @TableLogic
     private String delFlag;
 
@@ -61,15 +64,17 @@ public class Book
     private String createBy;
 
     /** 创建时间 */
+    @TableField(fill = FieldFill.INSERT)
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private Date createTime;
+    private LocalDateTime createTime;
+
+    /** 更新时间 */
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime updateTime;
 
     /** 更新者 */
     private String updateBy;
-
-    /** 更新时间 */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private Date updateTime;
 
     /** 备注 */
     private String remark;
@@ -162,14 +167,6 @@ public class Book
         this.createBy = createBy;
     }
 
-    public Date getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(Date createTime) {
-        this.createTime = createTime;
-    }
-
     public String getUpdateBy() {
         return updateBy;
     }
@@ -178,11 +175,19 @@ public class Book
         this.updateBy = updateBy;
     }
 
-    public Date getUpdateTime() {
+    public LocalDateTime getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(LocalDateTime createTime) {
+        this.createTime = createTime;
+    }
+
+    public LocalDateTime getUpdateTime() {
         return updateTime;
     }
 
-    public void setUpdateTime(Date updateTime) {
+    public void setUpdateTime(LocalDateTime updateTime) {
         this.updateTime = updateTime;
     }
 

@@ -1,16 +1,16 @@
-package com.backstage.web.controller.pc;
+package com.backstage.system.controller.book;
 
 import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.R;
+import com.backstage.common.utils.SecurityUtils;
 import com.backstage.common.utils.StringUtils;
-import com.backstage.system.domain.Book;
+import com.backstage.system.domain.book.BookDO;
 import com.backstage.system.service.IBookService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import javax.annotation.Resource;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -20,9 +20,8 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/pc")
-public class MyBookController extends BaseBookController
-{
-    @Autowired
+public class MyBookController {
+    @Resource
     private IBookService bookService;
 
     /**
@@ -30,17 +29,17 @@ public class MyBookController extends BaseBookController
      */
     @GetMapping("/mybook")
     @Anonymous
-    public R<Map<String, Object>> mybook(@RequestParam(defaultValue = "1") Integer page)
+    public R<Map<String, Object>> myBook(@RequestParam(defaultValue = "1") Integer page)
     {
-        Long userId = getCurrentUserId();
+        Long userId = SecurityUtils.getUserId();
         if (StringUtils.isNull(userId))
         {
             return R.fail("请先登录");
         }
 
         // 使用 MyBatis Plus 分页
-        Page<Book> pageParam = new Page<>(page, 10);
-        Page<Book> pageResult = bookService.selectUserBookListPage(userId, pageParam);
+        Page<BookDO> pageParam = new Page<>(page, 10);
+        Page<BookDO> pageResult = bookService.selectUserBookListPage(userId, pageParam);
 
         Map<String, Object> data = new HashMap<>();
         data.put("count", pageResult.getTotal());
