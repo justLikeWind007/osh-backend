@@ -1,7 +1,11 @@
 package com.backstage.system.domain.order;
 
 import java.util.Date;
+
+import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import com.backstage.common.annotation.Excel;
@@ -13,11 +17,14 @@ import com.backstage.common.core.domain.BaseEntity;
  * @author ruoyi
  * @date 2026-03-11
  */
+@ApiModel("图片上传实体")
+@TableName("osh_upload_image")
 public class OshUploadImage extends BaseEntity
 {
-    private static final long serialVersionUID = 1L;
 
     /** 主键ID */
+    @ApiModelProperty("id")
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     /** 所属网校ID（关联school表） */
@@ -49,13 +56,15 @@ public class OshUploadImage extends BaseEntity
     private Long status;
 
     /** 上传时间 */
-    @JsonFormat(pattern = "yyyy-MM-dd")
+    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
     @Excel(name = "上传时间", width = 30, dateFormat = "yyyy-MM-dd")
+    @TableField(fill = FieldFill.INSERT)
     private Date createdTime;
 
     /** 更新时间 */
-    @JsonFormat(pattern = "yyyy-MM-dd")
+    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
     @Excel(name = "更新时间", width = 30, dateFormat = "yyyy-MM-dd")
+    @TableField(fill = FieldFill.INSERT_UPDATE)
     private Date updatedTime;
 
     public void setId(Long id) 
