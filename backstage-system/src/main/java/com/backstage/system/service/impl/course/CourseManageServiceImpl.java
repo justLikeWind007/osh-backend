@@ -22,6 +22,7 @@ import com.backstage.system.mapper.course.OshCourseReviewMapper;
 import com.backstage.system.domain.fava.OshFava;
 import com.backstage.system.mapper.fava.OshFavaMapper;
 import com.backstage.system.service.course.ICourseManageService;
+import com.backstage.system.service.common.OssService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +31,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
-import java.util.Set;
 
 /**
  * 课程管理 Service 业务层处理
@@ -69,6 +69,9 @@ public class CourseManageServiceImpl implements ICourseManageService {
     
     @Autowired
     private OshFavaMapper favaMapper;
+    
+    @Autowired
+    private OssService ossService;
     
     // ==================== 课程查询接口实现 ====================
     
@@ -1554,7 +1557,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long uploadSectionMaterial(MultipartFile file, Long courseId, String materialName, Long userId) {
-        // 1. 校验文件类型
+        // 校验文件类型
         String fileName = file.getOriginalFilename();
         String extension = "";
         if (fileName != null && fileName.contains(".")) {
@@ -1566,40 +1569,37 @@ public class CourseManageServiceImpl implements ICourseManageService {
             throw new ServiceException("仅支持压缩包格式（zip/rar/tar/gz/7z）");
         }
         
-        // 2. 校验文件大小（100MB）
-        long maxArchiveSize = 100 * 1024 * 1024;
-        if (file.getSize() > maxArchiveSize) {
-            throw new ServiceException("压缩包文件大小不能超过 100MB");
+
+        try {
+            // 返回相对路径："common/material/course/courseId/当前年月/ 文件名.zip"
+            String fileUrl = ossService.upload(file, com.backstage.common.enums.UploadPathEnum.COURSE_MATERIAL, String.valueOf(courseId));
+            
+            if (fileUrl == null || fileUrl.contains("不能超过") || fileUrl.contains("类型不正确")) {
+                throw new ServiceException(fileUrl);
+            }
+            
+            // 保存课程资料和 课程的关联关系
+            Map<String, Object> params = new HashMap<>();
+            params.put("courseId", courseId);
+            params.put("materialName", StringUtils.defaultIfEmpty(materialName, fileName));
+            params.put("fileUrl", fileUrl);
+            params.put("fileType", extension);
+            params.put("fileSize", file.getSize());
+            params.put("isPayOnly", 1); // 默认仅购买后可下载
+            params.put("sort", 0);
+            params.put("createBy", String.valueOf(userId));
+            params.put("createTime", DateUtils.getNowDate());
+            
+            materialMapper.insertMaterial(params);
+            
+            // 6. 返回资料 ID
+            return (Long) params.get("id");
+            
+        } catch (ServiceException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ServiceException("上传资料失败：" + e.getMessage());
         }
-        
-        // 3. 安全检查：检查文件名是否包含非法字符
-        if (fileName != null && (fileName.contains("..") || fileName.contains("/") || fileName.contains("\\"))) {
-            throw new ServiceException("文件名包含非法字符");
-        }
-        
-        // 4. 生成存储路径
-        String savePath = "/upload/course/" + courseId + "/materials/" + DateUtils.datePath() + "/" + System.currentTimeMillis() + "." + extension;
-        
-        // 5. TODO: 实际上传文件到存储服务
-        // 实际需要使用 FileUploadUtils.upload() 或调用 OSS 服务
-        // String fileUrl = FileUploadUtils.upload(RuoYiConfig.getProfile(), file, new String[]{"zip", "rar", "tar", "gz", "7z"});
-        
-        // 6. 保存资料信息到数据库
-        Map<String, Object> params = new HashMap<>();
-        params.put("courseId", courseId);
-        params.put("materialName", StringUtils.defaultIfEmpty(materialName, fileName));
-        params.put("fileUrl", savePath);
-        params.put("fileType", extension);
-        params.put("fileSize", file.getSize());
-        params.put("isPayOnly", 1); // 默认仅购买后可下载
-        params.put("sort", 0);
-        params.put("createBy", String.valueOf(userId));
-        params.put("createTime", DateUtils.getNowDate());
-        
-        materialMapper.insertMaterial(params);
-        
-        // 7. 返回资料 ID
-        return (Long) params.get("id");
     }
     
     
