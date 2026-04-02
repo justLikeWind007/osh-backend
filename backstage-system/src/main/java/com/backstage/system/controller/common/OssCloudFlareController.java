@@ -57,8 +57,6 @@ public class OssCloudFlareController {
             @RequestParam("type") String type,
             @RequestParam(value = "id", required = false) String id) {
 
-        System.out.println("用户id"+userContextUtil.getCurrentUser());
-
         if (file.isEmpty()) {
             return R.fail("上传文件不能为空");
         }

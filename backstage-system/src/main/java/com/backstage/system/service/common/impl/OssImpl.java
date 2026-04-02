@@ -5,6 +5,7 @@ import com.backstage.common.utils.DateUtils;
 import com.backstage.common.utils.ServletUtils;
 import com.backstage.common.utils.ip.IpUtils;
 import com.backstage.system.domain.vo.common.OssOperationLogVo;
+import com.backstage.system.exception.UpLoadException;
 import com.backstage.system.mapper.common.OssMapper;
 import com.backstage.system.service.common.OssService;
 import com.backstage.system.utils.OssUtil;
@@ -64,7 +65,7 @@ public class OssImpl implements OssService {
      * @return oss服务的文件路径
      * @throws Exception
      */
-    public String upload(MultipartFile file, UploadPathEnum pathEnum, String id) throws  Exception{
+    public String upload(MultipartFile file, UploadPathEnum pathEnum, String id) throws UpLoadException, Exception {
 
 
         String customPath;
@@ -81,13 +82,13 @@ public class OssImpl implements OssService {
         if(UploadPathEnum.IMAGE.equals(pathEnum)){
             customPath = UploadPathEnum.IMAGE.getPath()+id+ym+"/";
             if(file.getSize() > 1024 * 1024 * 3){
-                return "图片大小不能超过3M";
+                throw new UpLoadException("图片大小不能超过3M");
             }
 
         }else if(UploadPathEnum.COURSE_VIDEO.equals(pathEnum)){
             customPath = UploadPathEnum.COURSE_VIDEO.getPath()+id+ym+"/";
             if(file.getSize() > 1024 * 1024 * 200){
-                return "视频大小不能超过200MB";
+                throw new UpLoadException("视频大小不能超过200MB");
             }
         }else {
             return "类型不正确";
@@ -135,6 +136,7 @@ public class OssImpl implements OssService {
                     ServletUtils.getRequest().getHeader("User-Agent")
             );
             // 获取客户端IP
+            // getRemoteAddr
             String ip = IpUtils.getIpAddr();
             // 原始文件名
             log.setOriginalName(file.getOriginalFilename());
