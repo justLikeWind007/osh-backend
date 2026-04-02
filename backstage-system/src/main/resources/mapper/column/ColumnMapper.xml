@@ -6,7 +6,7 @@
     <resultMap id="columnDetail" type="com.backstage.system.domain.vo.ColumnDetailVo">
         <id property="id" column="id"/>
         <result property="title" column="title"/>
-        <result property="cover" column="cover_column"/>
+        <result property="cover" column="cover"/>
         <result property="colTry" column="col_try"/>
         <result property="content" column="content"/>
         <result property="price" column="price"/>
@@ -39,7 +39,7 @@
         select
         oc1.id,
         oc1.title,
-        ifnull(oc1.cover,'') as cover_column,
+        oc1.cover as cover,
         oc1.col_try,
         oc1.content,
         oc1.price,
@@ -67,7 +67,7 @@
     <select id="listColumnPage" resultMap="columnListItem">
         select oc.id,
                oc.title,
-               CAST(oc.cover AS CHAR) as cover,
+               oc.cover,
                oc.col_try,
                oc.price,
                oc.t_price,

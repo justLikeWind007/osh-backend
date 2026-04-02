@@ -35,13 +35,12 @@ public class SysCourseServiceImpl implements ISysCourseService
     /**
      * 查询课程列表
      *
-     * @param columnId 专栏 ID
      * @return 课程集合
      */
     @Override
-    public List<OshCourse> selectCourseList(Long columnId)
+    public List<OshCourse> selectCourseList()
     {
-        return sysCourseMapper.selectCourseList(columnId);
+        return sysCourseMapper.selectCourseList();
     }
 
     /**
