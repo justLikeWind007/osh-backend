@@ -1,4 +1,4 @@
-package com.backstage.system.service.impl.order;
+package com.backstage.system.service.order.impl;
 
 import com.backstage.system.domain.order.WxPay;
 import com.backstage.system.mapper.order.WxPayMapper;

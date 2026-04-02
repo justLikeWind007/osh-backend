@@ -1,9 +1,10 @@
-package com.backstage.system.service.impl.order;
+package com.backstage.system.service.order.impl;
 
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 
+import com.backstage.system.domain.order.Coupon;
 import com.backstage.system.mapper.order.ColumnPriceMapper;
 import com.backstage.system.mapper.order.OshBookMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,9 +12,8 @@ import org.springframework.stereotype.Service;
 import com.backstage.system.mapper.order.OshOrderSaveMapper;
 import com.backstage.system.domain.order.OshOrderSave;
 import com.backstage.system.domain.order.OrderCreateRequest;
-import com.backstage.system.domain.order.Card;
 import com.backstage.system.service.order.IOshOrderSaveService;
-import com.backstage.system.service.order.ICardService;
+import com.backstage.system.service.order.ICouponListService;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.common.utils.DateUtils;
 import com.backstage.common.utils.uuid.UUID;
@@ -32,7 +32,7 @@ public class OshOrderSaveServiceImpl implements IOshOrderSaveService
     private OshOrderSaveMapper oshOrderSaveMapper;
 
     @Autowired
-    private ICardService cardService;
+    private ICouponListService cardService;
 
     @Autowired(required = false)
     private CourseMapper courseMapper;
@@ -143,7 +143,7 @@ public class OshOrderSaveServiceImpl implements IOshOrderSaveService
 
 
         // 2. 查询优惠券信息
-        Card coupon = cardService.selectCardById(request.getUserCouponId());
+        Coupon coupon = cardService.selectCardById(request.getUserCouponId());
         if (coupon == null) {
             throw new ServiceException("优惠券不存在");
         }
@@ -201,7 +201,7 @@ public class OshOrderSaveServiceImpl implements IOshOrderSaveService
         oshOrderSaveMapper.insertOshOrderSave(order);
 
         // 9. 更新优惠券状态为已使用
-        Card updateCoupon = new Card();
+        Coupon updateCoupon = new Coupon();
         updateCoupon.setId(request.getUserCouponId());
         updateCoupon.setUsed(1);
         cardService.updateCard(updateCoupon);

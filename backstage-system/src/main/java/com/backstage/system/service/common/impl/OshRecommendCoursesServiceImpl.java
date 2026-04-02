@@ -1,4 +1,4 @@
-package com.backstage.system.service.impl.common;
+package com.backstage.system.service.common.impl;
 
 import java.util.List;
 import com.backstage.common.utils.DateUtils;
