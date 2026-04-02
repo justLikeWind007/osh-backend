@@ -4,7 +4,12 @@ import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.course.OshCourseMaterial;
 import com.backstage.system.domain.course.vo.OshCourseDetailVo;
 import com.backstage.system.domain.course.vo.OshCourseSectionVo;
+import com.backstage.system.domain.user.User;
+import com.backstage.system.request.CourseCreateRequest;
+import com.backstage.system.request.CourseChapterCreateRequest;
 import com.backstage.system.request.CourseSearchRequest;
+import com.backstage.system.request.CourseTextSectionCreateRequest;
+import com.backstage.system.request.CourseVideoSectionCreateRequest;
 
 import java.util.List;
 
@@ -39,6 +44,14 @@ public interface IOshCourseService {
      * @return 结果
      */
     int insertCourse(OshCourse course);
+
+    Long createCourse(CourseCreateRequest request, User operator);
+
+    Long createCourseChapter(CourseChapterCreateRequest request, User operator);
+
+    Long createCourseVideoSection(CourseVideoSectionCreateRequest request, User operator);
+
+    Long createCourseTextSection(CourseTextSectionCreateRequest request, User operator);
 
     /**
      * 修改课程

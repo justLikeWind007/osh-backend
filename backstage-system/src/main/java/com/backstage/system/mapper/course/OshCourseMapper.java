@@ -1,6 +1,7 @@
 package com.backstage.system.mapper.course;
 
 import com.backstage.system.domain.course.OshCourse;
+import com.backstage.system.domain.course.OshCourseSection;
 import com.backstage.system.domain.course.OshCourseMaterial;
 import com.backstage.system.domain.course.vo.OshCourseDetailVo;
 import com.backstage.system.domain.course.vo.OshCourseSectionVo;
@@ -83,6 +84,10 @@ public interface OshCourseMapper
     Integer countCourseSectionInCourse(@Param("courseId") Long courseId, @Param("sectionId") Long sectionId);
 
     String selectTextCourseSectionContent(@Param("sectionId") Long sectionId);
+
+    OshCourseSection selectCourseSectionById(@Param("id") Long id);
+
+    int insertCourseSection(OshCourseSection section);
 
     String getCourseSectionContent(@Param("sectionId") Long sectionId);
 

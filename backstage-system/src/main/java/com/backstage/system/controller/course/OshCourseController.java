@@ -12,9 +12,13 @@ import com.backstage.system.domain.course.vo.OshCourseDetailVo;
 import com.backstage.system.domain.course.vo.OshCourseSectionVo;
 import com.backstage.system.domain.user.User;
 import com.backstage.system.domain.vo.CourseDetailVO;
+import com.backstage.system.request.CourseCreateRequest;
+import com.backstage.system.request.CourseChapterCreateRequest;
 import com.backstage.system.request.CourseQuestionAnswerRequest;
 import com.backstage.system.request.CourseSearchRequest;
 import com.backstage.system.request.CourseSectionQuestionRequest;
+import com.backstage.system.request.CourseTextSectionCreateRequest;
+import com.backstage.system.request.CourseVideoSectionCreateRequest;
 import com.backstage.system.service.IOshCourseService;
 import com.backstage.system.service.IOshCourseQuestionService;
 import com.backstage.system.utils.UserContextUtil;
@@ -119,7 +123,7 @@ public class OshCourseController extends BaseController {
 
     @ApiOperation("课程提问提交")
     @PostMapping("/section/submit")
-    public R<Long> submitCourseSectionQuestion(@Validated @RequestBody CourseSectionQuestionRequest request){
+    public R<Long> submitCourseSectionQuestion(@Validated @RequestBody CourseSectionQuestionRequest request) {
         User currentUser = userContextUtil.getCurrentUser();
         if (currentUser == null) {
             return R.fail("请先登录");
@@ -141,21 +145,63 @@ public class OshCourseController extends BaseController {
         return R.ok(oshCourseQuestionService.answerQuestion(currentUser.getId(), currentUser.getUsername(), request));
     }
 
-    // TODO 待做,还没真实确定入参具体结构
-    @ApiOperation("保存课程")
+    @ApiOperation("新增课程")
     @PostMapping("/save")
-    public R save(@RequestBody OshCourse course) {
+    public R<Long> save(@Validated @RequestBody CourseCreateRequest request) {
         User currentUser = userContextUtil.getCurrentUser();
         if (currentUser == null) {
             return R.fail("请先登录");
         }
-        if (course == null || course.getId() == null) {
-            return R.fail("课程ID不能为空");
+        Long courseId = oshCouresService.createCourse(request, currentUser);
+        if (courseId == null) {
+            return R.fail("新增课程失败");
         }
-        if (!oshCouresService.hasUserBoughtCourse(course.getId(), currentUser.getId())) {
-            return R.fail("您还未购买该课程，无法保存课程");
+        return R.ok(courseId);
+    }
+
+    @ApiOperation("一级章节添加")
+    @PostMapping("/section/chapter/save")
+    public R<Long> saveChapterSection(@Validated @RequestBody CourseChapterCreateRequest request) {
+        User currentUser = userContextUtil.getCurrentUser();
+        if (currentUser == null) {
+            return R.fail("请先登录");
         }
-        return R.ok();
+        try {
+            Long sectionId = oshCouresService.createCourseChapter(request, currentUser);
+            return sectionId == null ? R.fail("新增一级章节失败") : R.ok(sectionId);
+        } catch (IllegalArgumentException ex) {
+            return R.fail(ex.getMessage());
+        }
+    }
+
+    @ApiOperation("视频小节添加")
+    @PostMapping("/section/video/save")
+    public R<Long> saveVideoSection(@Validated @RequestBody CourseVideoSectionCreateRequest request) {
+        User currentUser = userContextUtil.getCurrentUser();
+        if (currentUser == null) {
+            return R.fail("请先登录");
+        }
+        try {
+            Long sectionId = oshCouresService.createCourseVideoSection(request, currentUser);
+            return sectionId == null ? R.fail("新增视频小节失败") : R.ok(sectionId);
+        } catch (IllegalArgumentException ex) {
+            return R.fail(ex.getMessage());
+        }
+    }
+
+    @ApiOperation("图文小节添加")
+    @PostMapping("/section/text/save")
+    public R<Long> saveTextSection(@Validated @RequestBody CourseTextSectionCreateRequest request) {
+        User currentUser = userContextUtil.getCurrentUser();
+        if (currentUser == null) {
+            return R.fail("请先登录");
+        }
+        try {
+            Long sectionId = oshCouresService.createCourseTextSection(request, currentUser);
+            return sectionId == null ? R.fail("新增图文小节失败") : R.ok(sectionId);
+        } catch (IllegalArgumentException ex) {
+            return R.fail(ex.getMessage());
+        }
     }
 
     /**
@@ -172,14 +218,12 @@ public class OshCourseController extends BaseController {
         return R.ok(textContent);
     }
 
-
     @ApiOperation("获取视频小节内容")
     @GetMapping("/section/video/{sectionId}")
     public R getVideoSection(@PathVariable Long sectionId) {
-
-
         return R.ok();
     }
+
 
     /**
      * 获取课程详细信息

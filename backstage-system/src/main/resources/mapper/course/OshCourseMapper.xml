@@ -156,6 +156,33 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="updateTime" column="update_time"/>
     </resultMap>
 
+    <resultMap type="com.backstage.system.domain.course.OshCourseSection" id="OshCourseSectionEntityResult">
+        <id property="id" column="id"/>
+        <result property="courseId" column="course_id"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="title" column="title"/>
+        <result property="sort" column="sort"/>
+        <result property="freeFlag" column="free_flag"/>
+        <result property="duration" column="duration"/>
+        <result property="mediaUrl" column="media_url"/>
+        <result property="cover" column="cover"/>
+        <result property="textContent" column="text_content"/>
+        <result property="videoDesc" column="video_desc"/>
+        <result property="videoCodec" column="video_codec"/>
+        <result property="videoBitrate" column="video_bitrate"/>
+        <result property="videoResolution" column="video_resolution"/>
+        <result property="fileSize" column="file_size"/>
+        <result property="subtitleUrl" column="subtitle_url"/>
+        <result property="type" column="type"/>
+        <result property="status" column="status"/>
+        <result property="examId" column="exam_id"/>
+        <result property="deleteFlag" column="delete_flag"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
     <resultMap id="OshCourseMaterial" type="com.backstage.system.domain.course.OshCourseMaterial">
         <id property="id" column="id"/>
         <result property="courseId" column="course_id"/>
@@ -304,6 +331,35 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
           and delete_flag = 0
     </select>
 
+    <select id="selectCourseSectionById" resultMap="OshCourseSectionEntityResult">
+        select id,
+               course_id,
+               parent_id,
+               title,
+               sort,
+               free_flag,
+               duration,
+               media_url,
+               cover,
+               text_content,
+               video_desc,
+               video_codec,
+               video_bitrate,
+               video_resolution,
+               file_size,
+               subtitle_url,
+               type,
+               status,
+               exam_id,
+               delete_flag,
+               create_by,
+               create_time,
+               update_by,
+               update_time
+        from osh_course_section
+        where id = #{id}
+    </select>
+
     <select id="selectTextCourseSectionContent" parameterType="Long" resultType="java.lang.String">
         select text_content
         from osh_course_section
@@ -312,6 +368,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
           and status = 1
           and delete_flag = 0
     </select>
+
 
     <select id="getCourseSectionContent" resultType="java.lang.String">
         select case
@@ -383,78 +440,140 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <!-- 新增课程 -->
-    <insert id="insertCourse" parameterType="OshCourse" useGeneratedKeys="true" keyProperty="id">
+    <insert id="insertCourse" parameterType="com.backstage.system.domain.course.OshCourse" useGeneratedKeys="true" keyProperty="id">
         insert into osh_course
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="title != null and title != ''">title,</if>
             <if test="cover != null and cover != ''">cover,</if>
-            <if test="tryContent != null">try,</if>
+            <if test="intro != null and intro != ''">intro,</if>
+            <if test="serviceContent != null and serviceContent != ''">service_content,</if>
             <if test="price != null">price,</if>
             <if test="tPrice != null">t_price,</if>
             <if test="type != null and type != ''">type,</if>
-<!--            <if test="subCount != null">sub_count,</if>-->
-<!--            <if test="columnId != null">column_id,</if>-->
-<!--            <if test="appid != null and appid != ''">appid,</if>-->
-<!--            <if test="isbuy != null">isbuy,</if>-->
-<!--            <if test="isfava != null">isfava,</if>-->
-<!--            <if test="extField1 != null and extField1 != ''">ext1,</if>-->
-<!--            <if test="extField2 != null and extField2 != ''">ext2,</if>-->
-<!--            <if test="extField3 != null">ext3,</if>-->
-<!--            <if test="extField4 != null">ext4,</if>-->
-<!--            <if test="extField5 != null">ext5,</if>-->
-<!--            <if test="extField6 != null">ext6,</if>-->
-<!--            <if test="extField7 != null">ext7,</if>-->
-<!--            <if test="extField8 != null">ext8,</if>-->
+            <if test="subCount != null">sub_count,</if>
             <if test="remark != null and remark != ''">remark,</if>
+            <if test="totalDuration != null">total_duration,</if>
+            <if test="videoCount != null">video_count,</if>
+            <if test="salesCount != null">sales_count,</if>
+            <if test="viewCount != null">view_count,</if>
+            <if test="freeLessonCount != null">free_lesson_count,</if>
+            <if test="likeCount != null">like_count,</if>
+            <if test="commentCount != null">comment_count,</if>
+            <if test="ratingScore != null">rating_score,</if>
+            <if test="freeType != null">free_type,</if>
+            <if test="afterServiceDays != null">after_service_days,</if>
+            <if test="status != null">status,</if>
+            <if test="examId != null">exam_id,</if>
+            <if test="createBy != null and createBy != ''">create_by,</if>
+            <if test="updateBy != null and updateBy != ''">update_by,</if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="title != null and title != ''">#{title},</if>
             <if test="cover != null and cover != ''">#{cover},</if>
-            <if test="tryContent != null">#{tryContent},</if>
+            <if test="intro != null and intro != ''">#{intro},</if>
+            <if test="serviceContent != null and serviceContent != ''">#{serviceContent},</if>
             <if test="price != null">#{price},</if>
             <if test="tPrice != null">#{tPrice},</if>
             <if test="type != null and type != ''">#{type},</if>
-<!--            <if test="subCount != null">#{subCount},</if>-->
-<!--            <if test="columnId != null">#{columnId},</if>-->
-<!--            <if test="appid != null and appid != ''">#{appid},</if>-->
-<!--            <if test="isbuy != null">#{isbuy},</if>-->
-<!--            <if test="isfava != null">#{isfava},</if>-->
-<!--            <if test="extField1 != null and extField1 != ''">#{extField1},</if>-->
-<!--            <if test="extField2 != null and extField2 != ''">#{extField2},</if>-->
-<!--            <if test="extField3 != null">#{extField3},</if>-->
-<!--            <if test="extField4 != null">#{extField4},</if>-->
-<!--            <if test="extField5 != null">#{extField5},</if>-->
-<!--            <if test="extField6 != null">#{extField6},</if>-->
-<!--            <if test="extField7 != null">#{extField7},</if>-->
-<!--            <if test="extField8 != null">#{extField8},</if>-->
+            <if test="subCount != null">#{subCount},</if>
             <if test="remark != null and remark != ''">#{remark},</if>
+            <if test="totalDuration != null">#{totalDuration},</if>
+            <if test="videoCount != null">#{videoCount},</if>
+            <if test="salesCount != null">#{salesCount},</if>
+            <if test="viewCount != null">#{viewCount},</if>
+            <if test="freeLessonCount != null">#{freeLessonCount},</if>
+            <if test="likeCount != null">#{likeCount},</if>
+            <if test="commentCount != null">#{commentCount},</if>
+            <if test="ratingScore != null">#{ratingScore},</if>
+            <if test="freeType != null">#{freeType},</if>
+            <if test="afterServiceDays != null">#{afterServiceDays},</if>
+            <if test="status != null">#{status},</if>
+            <if test="examId != null">#{examId},</if>
+            <if test="createBy != null and createBy != ''">#{createBy},</if>
+            <if test="updateBy != null and updateBy != ''">#{updateBy},</if>
          </trim>
     </insert>
 
+    <insert id="insertCourseSection" parameterType="com.backstage.system.domain.course.OshCourseSection" useGeneratedKeys="true" keyProperty="id">
+        insert into osh_course_section
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="courseId != null">course_id,</if>
+            <if test="parentId != null">parent_id,</if>
+            <if test="title != null and title != ''">title,</if>
+            <if test="sort != null">sort,</if>
+            <if test="freeFlag != null">free_flag,</if>
+            <if test="duration != null">duration,</if>
+            <if test="mediaUrl != null and mediaUrl != ''">media_url,</if>
+            <if test="cover != null and cover != ''">cover,</if>
+            <if test="textContent != null and textContent != ''">text_content,</if>
+            <if test="videoDesc != null and videoDesc != ''">video_desc,</if>
+            <if test="videoCodec != null and videoCodec != ''">video_codec,</if>
+            <if test="videoBitrate != null">video_bitrate,</if>
+            <if test="videoResolution != null and videoResolution != ''">video_resolution,</if>
+            <if test="fileSize != null">file_size,</if>
+            <if test="subtitleUrl != null and subtitleUrl != ''">subtitle_url,</if>
+            <if test="type != null and type != ''">type,</if>
+            <if test="status != null">status,</if>
+            <if test="examId != null">exam_id,</if>
+            <if test="deleteFlag != null">delete_flag,</if>
+            <if test="createBy != null and createBy != ''">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null and updateBy != ''">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="courseId != null">#{courseId},</if>
+            <if test="parentId != null">#{parentId},</if>
+            <if test="title != null and title != ''">#{title},</if>
+            <if test="sort != null">#{sort},</if>
+            <if test="freeFlag != null">#{freeFlag},</if>
+            <if test="duration != null">#{duration},</if>
+            <if test="mediaUrl != null and mediaUrl != ''">#{mediaUrl},</if>
+            <if test="cover != null and cover != ''">#{cover},</if>
+            <if test="textContent != null and textContent != ''">#{textContent},</if>
+            <if test="videoDesc != null and videoDesc != ''">#{videoDesc},</if>
+            <if test="videoCodec != null and videoCodec != ''">#{videoCodec},</if>
+            <if test="videoBitrate != null">#{videoBitrate},</if>
+            <if test="videoResolution != null and videoResolution != ''">#{videoResolution},</if>
+            <if test="fileSize != null">#{fileSize},</if>
+            <if test="subtitleUrl != null and subtitleUrl != ''">#{subtitleUrl},</if>
+            <if test="type != null and type != ''">#{type},</if>
+            <if test="status != null">#{status},</if>
+            <if test="examId != null">#{examId},</if>
+            <if test="deleteFlag != null">#{deleteFlag},</if>
+            <if test="createBy != null and createBy != ''">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null and updateBy != ''">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+        </trim>
+    </insert>
+
     <!-- 修改课程 -->
-    <update id="updateCourse" parameterType="OshCourse">
+    <update id="updateCourse" parameterType="com.backstage.system.domain.course.OshCourse">
         update osh_course
         <trim prefix="SET" suffixOverrides=",">
             <if test="title != null and title != ''">title = #{title},</if>
             <if test="cover != null and cover != ''">cover = #{cover},</if>
-            <if test="tryContent != null">try = #{tryContent},</if>
+            <if test="intro != null and intro != ''">intro = #{intro},</if>
+            <if test="serviceContent != null and serviceContent != ''">service_content = #{serviceContent},</if>
             <if test="price != null">price = #{price},</if>
             <if test="tPrice != null">t_price = #{tPrice},</if>
             <if test="type != null and type != ''">type = #{type},</if>
-<!--            <if test="subCount != null">sub_count = #{subCount},</if>-->
-<!--            <if test="columnId != null">column_id = #{columnId},</if>-->
-<!--            <if test="appid != null and appid != ''">appid = #{appid},</if>-->
-<!--            <if test="isbuy != null">isbuy = #{isbuy},</if>-->
-<!--            <if test="isfava != null">isfava = #{isfava},</if>-->
-<!--            <if test="extField1 != null and extField1 != ''">ext1 = #{extField1},</if>-->
-<!--            <if test="extField2 != null and extField2 != ''">ext2 = #{extField2},</if>-->
-<!--            <if test="extField3 != null">ext3 = #{extField3},</if>-->
-<!--            <if test="extField4 != null">ext4 = #{extField4},</if>-->
-<!--            <if test="extField5 != null">ext5 = #{extField5},</if>-->
-<!--            <if test="extField6 != null">ext6 = #{extField6},</if>-->
-<!--            <if test="extField7 != null">ext7 = #{extField7},</if>-->
-<!--            <if test="extField8 != null">ext8 = #{extField8},</if>-->
+            <if test="subCount != null">sub_count = #{subCount},</if>
             <if test="remark != null and remark != ''">remark = #{remark},</if>
+            <if test="totalDuration != null">total_duration = #{totalDuration},</if>
+            <if test="videoCount != null">video_count = #{videoCount},</if>
+            <if test="salesCount != null">sales_count = #{salesCount},</if>
+            <if test="viewCount != null">view_count = #{viewCount},</if>
+            <if test="freeLessonCount != null">free_lesson_count = #{freeLessonCount},</if>
+            <if test="likeCount != null">like_count = #{likeCount},</if>
+            <if test="commentCount != null">comment_count = #{commentCount},</if>
+            <if test="ratingScore != null">rating_score = #{ratingScore},</if>
+            <if test="freeType != null">free_type = #{freeType},</if>
+            <if test="afterServiceDays != null">after_service_days = #{afterServiceDays},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="examId != null">exam_id = #{examId},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
         </trim>
         where id = #{id}
     </update>
