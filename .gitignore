@@ -106,6 +106,4 @@ yarn.lock
 *.backup
 
 
-*.js
-backstage-ui/
-*.vue
+/backstage-ui/
