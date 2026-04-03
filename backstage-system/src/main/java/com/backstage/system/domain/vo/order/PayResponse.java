@@ -7,6 +7,9 @@ public class PayResponse {
     private String qrcode;
     private String payurl;
 
+    // 前端轮询用
+    private String out_trade_no;
+
     public int getCode() {
         return code;
     }
@@ -38,8 +41,15 @@ public class PayResponse {
         this.payurl = payurl;
     }
 
+    public String getOut_trade_no() {
+        return out_trade_no;
+    }
+    public void setOut_trade_no(String out_trade_no) {
+        this.out_trade_no = out_trade_no;
+    }
+
     public String toString() {
         return "PayResponse [code=" + code + ", msg=" + msg + ", trade_no=" + trade_no + ", qrcode=" + qrcode
-                + ", payurl=" + payurl + "]";
+                + ", payurl=" + payurl + ", out_trade_no=" + out_trade_no + "]";
     }
 }
