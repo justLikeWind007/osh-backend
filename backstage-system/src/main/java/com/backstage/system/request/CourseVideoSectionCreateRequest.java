@@ -46,13 +46,13 @@ public class CourseVideoSectionCreateRequest {
     @ApiModelProperty(value = "视频描述", example = "1080P 视频")
     private String videoDesc;
 
+    @ApiModelProperty(value = "视频配套文本内容", example = "这里是视频对应的补充说明")
+    private String textContent;
+
     @ApiModelProperty(value = "文件大小，单位字节", required = true, example = "123456")
     @NotNull(message = "文件大小不能为空")
     @PositiveOrZero(message = "文件大小不能小于0")
     private Long fileSize;
-
-    @ApiModelProperty(value = "字幕文件地址", example = "https://oss.example.com/subtitle.vtt")
-    private String subtitleUrl;
 
     public Long getCourseId() {
         return courseId;
@@ -126,6 +126,14 @@ public class CourseVideoSectionCreateRequest {
         this.videoDesc = StringUtils.trimToNull(videoDesc);
     }
 
+    public String getTextContent() {
+        return textContent;
+    }
+
+    public void setTextContent(String textContent) {
+        this.textContent = StringUtils.trimToNull(textContent);
+    }
+
     public Long getFileSize() {
         return fileSize;
     }
@@ -134,11 +142,4 @@ public class CourseVideoSectionCreateRequest {
         this.fileSize = fileSize;
     }
 
-    public String getSubtitleUrl() {
-        return subtitleUrl;
-    }
-
-    public void setSubtitleUrl(String subtitleUrl) {
-        this.subtitleUrl = StringUtils.trimToNull(subtitleUrl);
-    }
 }

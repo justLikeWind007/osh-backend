@@ -45,8 +45,8 @@ public class OshCourseSectionCreateBuilderTest {
         request.setMediaUrl("  https://oss.example.com/video.mp4  ");
         request.setCover("  https://oss.example.com/cover.png ");
         request.setVideoDesc("  1080P 视频  ");
+        request.setTextContent("  视频补充说明  ");
         request.setFileSize(123456L);
-        request.setSubtitleUrl("  https://oss.example.com/subtitle.vtt ");
 
         User operator = new User();
         operator.setUsername("teacher_hope");
@@ -62,8 +62,8 @@ public class OshCourseSectionCreateBuilderTest {
         Assert.assertEquals("https://oss.example.com/video.mp4", section.getMediaUrl());
         Assert.assertEquals("https://oss.example.com/cover.png", section.getCover());
         Assert.assertEquals("1080P 视频", section.getVideoDesc());
+        Assert.assertEquals("视频补充说明", section.getTextContent());
         Assert.assertEquals(Long.valueOf(123456L), section.getFileSize());
-        Assert.assertEquals("https://oss.example.com/subtitle.vtt", section.getSubtitleUrl());
         Assert.assertEquals("video", section.getType());
         Assert.assertEquals(Integer.valueOf(1), section.getStatus());
         Assert.assertEquals(Integer.valueOf(0), section.getDeleteFlag());

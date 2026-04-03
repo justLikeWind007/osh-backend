@@ -511,7 +511,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="videoBitrate != null">video_bitrate,</if>
             <if test="videoResolution != null and videoResolution != ''">video_resolution,</if>
             <if test="fileSize != null">file_size,</if>
-            <if test="subtitleUrl != null and subtitleUrl != ''">subtitle_url,</if>
             <if test="type != null and type != ''">type,</if>
             <if test="status != null">status,</if>
             <if test="examId != null">exam_id,</if>
@@ -536,7 +535,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="videoBitrate != null">#{videoBitrate},</if>
             <if test="videoResolution != null and videoResolution != ''">#{videoResolution},</if>
             <if test="fileSize != null">#{fileSize},</if>
-            <if test="subtitleUrl != null and subtitleUrl != ''">#{subtitleUrl},</if>
             <if test="type != null and type != ''">#{type},</if>
             <if test="status != null">#{status},</if>
             <if test="examId != null">#{examId},</if>

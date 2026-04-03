@@ -275,8 +275,8 @@ public class OshCourseServiceImpl implements IOshCourseService {
         section.setMediaUrl(StringUtils.trimToNull(request.getMediaUrl()));
         section.setCover(StringUtils.trimToNull(request.getCover()));
         section.setVideoDesc(StringUtils.trimToNull(request.getVideoDesc()));
+        section.setTextContent(StringUtils.trimToNull(request.getTextContent()));
         section.setFileSize(request.getFileSize());
-        section.setSubtitleUrl(StringUtils.trimToNull(request.getSubtitleUrl()));
         section.setType(CourseSectionConstants.TYPE_VIDEO);
         return section;
     }
