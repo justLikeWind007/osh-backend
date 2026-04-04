@@ -1,6 +1,6 @@
 package com.backstage.system.service;
 
-import com.backstage.system.domain.Book;
+import com.backstage.system.domain.book.BookDO;
 import com.backstage.system.domain.vo.*;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -11,7 +11,7 @@ import java.util.List;
  *
  * @author backstage
  */
-public interface IBookService extends IService<Book>
+public interface IBookService extends IService<BookDO>
 {
     /**
      * 查询电子书列表
@@ -19,7 +19,7 @@ public interface IBookService extends IService<Book>
      * @param book 电子书
      * @return 电子书集合
      */
-    List<BookListVO> selectBookList(Book book);
+    List<BookListVO> selectBookList(BookDO book);
 
     /**
      * 查询电子书详情
@@ -55,7 +55,7 @@ public interface IBookService extends IService<Book>
      * @param userId 用户ID
      * @return 电子书集合
      */
-    List<Book> selectUserBookList(Long userId);
+    List<BookDO> selectUserBookList(Long userId);
 
     /**
      * 分页查询用户购买的电子书列表
@@ -64,5 +64,28 @@ public interface IBookService extends IService<Book>
      * @param page 分页参数
      * @return 电子书分页集合
      */
-    Page<Book> selectUserBookListPage(Long userId, Page<Book> page);
+    Page<BookDO> selectUserBookListPage(Long userId, Page<BookDO> page);
+
+    /**
+     * 新增电子书
+     *
+     * @param reqVO 电子书请求VO
+     * @return 电子书响应VO
+     */
+     void createBook(BookSaveReqVO reqVO);
+
+    /**
+     * 修改电子书
+     *
+     * @param reqVO 电子书请求VO
+     * @return 电子书响应VO
+     */
+    void updateBook(BookSaveReqVO reqVO);
+
+    /**
+     * 删除电子书（逻辑删除）
+     *
+     * @param id 电子书ID
+     */
+    void deleteBook(Long id);
 }

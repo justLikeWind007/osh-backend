@@ -1,0 +1,62 @@
+/**
+  网站信息表
+ */
+DROP TABLE IF EXISTS `osh_site_info`;
+CREATE TABLE `osh_site_info`
+(
+    `id`          bigint unsigned                         NOT NULL AUTO_INCREMENT COMMENT '网站编号（主键）',
+    `site_name`   varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '网站名称',
+    `cover`       varchar(500) COLLATE utf8mb4_unicode_ci          DEFAULT NULL COMMENT '网站封面地址',
+    `site_url`    varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '网站访问路径',
+    `description` varchar(2000) COLLATE utf8mb4_unicode_ci         DEFAULT NULL COMMENT '网站描述信息',
+    `status`      tinyint                                          DEFAULT '1' COMMENT '状态：1=启用，0=禁用',
+    `created_by`  bigint unsigned                         NOT NULL COMMENT '创建人ID/账号',
+    `create_time` timestamp                               NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_by`   bigint unsigned                                  DEFAULT NULL COMMENT '更新人ID/账号',
+    `update_time` timestamp                               NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `is_deleted`  tinyint                                 NOT NULL DEFAULT '0' COMMENT '是否删除：0=未删除，1=已删除',
+    PRIMARY KEY (`id`),
+    KEY `idx_site_name` (`site_name`, `is_deleted`)
+) ENGINE = InnoDB
+  AUTO_INCREMENT = 6
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='网站信息表';
+
+
+/**
+  网站用户点击统计表
+ */
+DROP TABLE IF EXISTS `osh_site_usage`;
+CREATE TABLE `osh_site_usage`
+(
+    `id`          bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '记录ID',
+    `site_id`     bigint unsigned NOT NULL COMMENT '关联网站ID（website_info.id）',
+    `user_id`     bigint unsigned NOT NULL COMMENT '操作用户ID/账号',
+    `create_time` datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '首次点击时间',
+    `update_time` datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `is_deleted`  tinyint         NOT NULL DEFAULT '0' COMMENT '是否删除：0=未删除，1=已删除',
+    PRIMARY KEY (`id`)
+) ENGINE = InnoDB
+  AUTO_INCREMENT = 9
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='网站用户点击统计表';
+
+/**
+  网站信息标签表
+ */
+DROP TABLE IF EXISTS `osh_site_tags`;
+CREATE TABLE `osh_site_tags`
+(
+    `id`          bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '记录ID',
+    `site_id`     bigint unsigned NOT NULL COMMENT '关联网站ID（website_info.id）',
+    `tag_name`    varchar(100)    NOT NULL COMMENT '标签名称',
+    `created_by`  bigint unsigned NOT NULL COMMENT '创建人ID/账号',
+    `create_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_by`   bigint unsigned          DEFAULT NULL COMMENT '更新人ID/账号',
+    `update_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `is_deleted`  tinyint         NOT NULL DEFAULT '0' COMMENT '是否删除：0=未删除，1=已删除',
+    PRIMARY KEY (`id`)
+) ENGINE = InnoDB
+  AUTO_INCREMENT = 9
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='网站用户点击统计表';

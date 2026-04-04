@@ -14,7 +14,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="subCount" column="sub_count" />
     </resultMap>
 
-    <select id="selectBookList" parameterType="Book" resultMap="BookListResult">
+    <select id="selectBookList" parameterType="BookDO" resultMap="BookListResult">
         select id, title, cover, description, price, original_price, sub_count
         from osh_book
         <where>

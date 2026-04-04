@@ -1,5 +1,6 @@
 package com.backstage.system.service.comment;
 
+import com.backstage.system.component.CommentForbiddenWordFilter;
 import org.junit.Assert;
 import org.junit.Test;
 

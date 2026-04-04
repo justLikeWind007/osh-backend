@@ -1,0 +1,36 @@
+package com.backstage.system.service.common;
+
+
+import com.backstage.common.enums.UploadPathEnum;
+import org.springframework.web.multipart.MultipartFile;
+
+public interface OssService {
+
+    // 上传文件 不带路径
+//    String addFile(MultipartFile file);
+//
+    // 上传文件 带路径
+    String upload(MultipartFile file, UploadPathEnum pathEnum, String id) throws Exception;
+
+    void insertMapper(MultipartFile file, String customPath);
+
+
+    String getLimitedUrl(String path, int minute);
+
+    // 判断文件是否存在
+    public boolean existsFileKey(String fileKey);
+
+
+    public int incrementOperationCount(String fileKey);
+
+    // 删除文件 不带路径
+//    String deleteFile(String fileName);
+//
+    // 删除文件 带路径
+//    String deleteFile(String fileName, String customPath);
+
+
+    // 更新文件 带自定义路径
+//    String updateFile(MultipartFile file, String oldFileName, String customPath);
+
+}
