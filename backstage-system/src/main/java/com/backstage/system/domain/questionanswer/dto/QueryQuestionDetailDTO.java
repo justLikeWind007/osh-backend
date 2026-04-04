@@ -1,15 +1,22 @@
 package com.backstage.system.domain.questionanswer.dto;
 
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+
 /**
  * Created with IntelliJ IDEA.
  * Description:
  * User: 九转苍翎
- * Date: 2026/3/29
- * Time: 18:39
+ * Date: 2026/4/4
+ * Time: 15:19
  */
-public class MarkResolveDTO {
+@ApiModel(description = "查看问题详情实体类")
+public class QueryQuestionDetailDTO {
+    @ApiModelProperty(
+            value = "问题id",
+            required = true
+    )
     private Long questionId;
-    private Long answerId;
 
     public Long getQuestionId() {
         return questionId;
@@ -19,19 +26,10 @@ public class MarkResolveDTO {
         this.questionId = questionId;
     }
 
-    public Long getAnswerId() {
-        return answerId;
-    }
-
-    public void setAnswerId(Long answerId) {
-        this.answerId = answerId;
-    }
-
     @Override
     public String toString() {
-        return "MarkResolveDTO{" +
+        return "QueryQuestionDetailDTO{" +
                 "questionId=" + questionId +
-                ", answerId=" + answerId +
                 '}';
     }
 }

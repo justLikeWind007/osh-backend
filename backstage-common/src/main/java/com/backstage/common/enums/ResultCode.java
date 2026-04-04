@@ -34,6 +34,7 @@ public enum ResultCode {
     FAILED_USER_NAME_OR_PASSWORD_EMPTY (3200, "用户名或密码为空"),
     FAILED_USER_PASSWORD_NOT_MATCHES (3201, "密码不符合要求"),
     FAILED_USER_USERNAME_NOT_IN_RANGE (3202, "用户名不符合要求"),
+    FAILED_USER_PERMISSION_DENIED (3203, "用户权限不足"),
     ;
     private final int code;
     private final String msg;
