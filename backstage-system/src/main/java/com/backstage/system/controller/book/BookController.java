@@ -44,8 +44,8 @@ public class BookController {
      * 查看电子书详情
      */
     @Anonymous
-    @GetMapping("/read")
-    public R<BookDetailVO> read(@RequestParam Long id) {
+    @GetMapping("/getById")
+    public R<BookDetailVO> getById(@RequestParam Long id) {
         Long userId = getCurrentUserId();
         BookDetailVO detail = bookService.selectBookDetail(id, userId);
         return R.ok(detail);
