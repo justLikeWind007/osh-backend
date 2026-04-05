@@ -1,10 +1,10 @@
-package com.backstage.system.service.impl;
+package com.backstage.system.service.site.impl;
 
 import com.alibaba.fastjson2.JSON;
 import com.backstage.system.domain.site.OshSiteInfo;
 import com.backstage.system.domain.site.OshSiteUsage;
 import com.backstage.system.mapper.site.OshSiteInfoMapper;
-import com.backstage.system.service.IOshSiteInfoService;
+import com.backstage.system.service.site.IOshSiteInfoService;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.apache.commons.lang3.StringUtils;

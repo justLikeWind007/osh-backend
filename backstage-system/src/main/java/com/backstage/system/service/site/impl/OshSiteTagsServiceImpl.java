@@ -1,8 +1,8 @@
-package com.backstage.system.service.impl;
+package com.backstage.system.service.site.impl;
 
 import com.backstage.system.domain.site.OshSiteTags;
 import com.backstage.system.mapper.OshSiteTagsMapper;
-import com.backstage.system.service.IOshSiteTagsService;
+import com.backstage.system.service.site.IOshSiteTagsService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;

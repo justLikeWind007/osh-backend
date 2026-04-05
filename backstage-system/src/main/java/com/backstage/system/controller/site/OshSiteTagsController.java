@@ -7,7 +7,7 @@ import com.backstage.common.core.domain.R;
 import com.backstage.common.enums.BusinessType;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.system.domain.site.OshSiteTags;
-import com.backstage.system.service.IOshSiteTagsService;
+import com.backstage.system.service.site.IOshSiteTagsService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
