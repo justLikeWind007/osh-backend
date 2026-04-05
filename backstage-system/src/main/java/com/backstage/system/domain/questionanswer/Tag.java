@@ -1,5 +1,8 @@
 package com.backstage.system.domain.questionanswer;
 
+import com.backstage.common.core.domain.entity.OSHBaseEntity;
+import com.baomidou.mybatisplus.annotation.*;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Date;
@@ -10,13 +13,15 @@ import java.util.Date;
  * Date: 2026/3/24
  * Time: 21:20
  */
-public class Tag implements Serializable {
+@TableName("osh_question_answer_tag")
+public class Tag extends OSHBaseEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
     /**
      * 标签id
      */
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
     /**
@@ -25,34 +30,14 @@ public class Tag implements Serializable {
     private String name;
 
     /**
+     * 标签类型
+     */
+    private String type;
+
+    /**
      * 使用次数
      */
     private Integer useCount;
-
-    /**
-     * 创建时间
-     */
-    private LocalDateTime createdTime;
-
-    /**
-     * 创建人
-     */
-    private String createdBy;
-
-    /**
-     * 更新时间
-     */
-    private LocalDateTime updatedTime;
-
-    /**
-     * 更新人
-     */
-    private String updatedBy;
-
-    /**
-     * 逻辑删除：0=未删除，1=已删除
-     */
-    private Integer isDelete;
 
     public Long getId() {
         return id;
@@ -78,57 +63,21 @@ public class Tag implements Serializable {
         this.useCount = useCount;
     }
 
-    public LocalDateTime getCreatedTime() {
-        return createdTime;
-    }
-
-    public void setCreatedTime(LocalDateTime createdTime) {
-        this.createdTime = createdTime;
-    }
-
-    public String getCreatedBy() {
-        return createdBy;
-    }
-
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
-    }
-
-    public LocalDateTime getUpdatedTime() {
-        return updatedTime;
-    }
-
-    public void setUpdatedTime(LocalDateTime updatedTime) {
-        this.updatedTime = updatedTime;
-    }
-
-    public String getUpdatedBy() {
-        return updatedBy;
-    }
-
-    public void setUpdatedBy(String updatedBy) {
-        this.updatedBy = updatedBy;
-    }
-
-    public Integer getIsDelete() {
-        return isDelete;
-    }
-
-    public void setIsDelete(Integer isDelete) {
-        this.isDelete = isDelete;
-    }
-
     @Override
     public String toString() {
         return "Tag{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
+                ", type='" + type + '\'' +
                 ", useCount=" + useCount +
-                ", createdTime=" + createdTime +
-                ", createdBy='" + createdBy + '\'' +
-                ", updatedTime=" + updatedTime +
-                ", updatedBy='" + updatedBy + '\'' +
-                ", isDelete=" + isDelete +
                 '}';
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 }
