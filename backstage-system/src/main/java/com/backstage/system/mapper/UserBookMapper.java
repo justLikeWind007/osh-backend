@@ -1,6 +1,6 @@
 package com.backstage.system.mapper;
 
-import com.backstage.system.domain.Book;
+import com.backstage.system.domain.book.BookDO;
 import com.backstage.system.domain.UserBook;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -29,7 +29,7 @@ public interface UserBookMapper extends BaseMapper<UserBook>
      * @param userId 用户ID
      * @return 电子书集合
      */
-    List<Book> selectUserBookList(Long userId);
+    List<BookDO> selectUserBookList(Long userId);
 
     /**
      * 分页查询用户购买的电子书列表
@@ -38,5 +38,5 @@ public interface UserBookMapper extends BaseMapper<UserBook>
      * @param page 分页参数
      * @return 电子书分页集合
      */
-    Page<Book> selectUserBookListPage(@Param("userId") Long userId, Page<Book> page);
+    Page<BookDO> selectUserBookListPage(@Param("userId") Long userId, Page<BookDO> page);
 }

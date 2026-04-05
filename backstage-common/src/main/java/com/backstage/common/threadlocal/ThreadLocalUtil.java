@@ -2,8 +2,10 @@ package com.backstage.common.threadlocal;
 
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.ttl.TransmittableThreadLocal;
+import com.backstage.common.constant.OshUserConstants;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -34,5 +36,9 @@ public class ThreadLocalUtil {
     }
     public static void remove() {
         THREAD_LOCAL.remove();
+    }
+
+    public static long getCurrentUserId() {
+        return Objects.requireNonNull(ThreadLocalUtil.get(OshUserConstants.USER_ID, Long.class), "user is not logged in");
     }
 }

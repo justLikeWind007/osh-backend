@@ -1,15 +1,21 @@
 package com.backstage.framework.web.service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import javax.servlet.http.HttpServletRequest;
+
+import com.backstage.common.constant.OshUserConstants;
+import com.backstage.common.core.domain.entity.SysUser;
+import com.backstage.system.domain.user.User;
+import com.backstage.system.mapper.user.OshUserMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import com.backstage.common.constant.CacheConstants;
 import com.backstage.common.constant.Constants;
 import com.backstage.common.core.domain.model.LoginUser;
 import com.backstage.common.core.redis.RedisCache;
@@ -54,6 +60,9 @@ public class TokenService
     @Autowired
     private RedisCache redisCache;
 
+    @Autowired
+    private OshUserMapper oshUserMapper;
+
     /**
      * 获取用户身份信息
      * 
@@ -69,10 +78,22 @@ public class TokenService
             {
                 Claims claims = parseToken(token);
                 // 解析对应的权限以及用户信息
-                String uuid = (String) claims.get(Constants.LOGIN_USER_KEY);
+                String uuid = String.valueOf(claims.get(OshUserConstants.USER_ID));
                 String userKey = getTokenKey(uuid);
-                LoginUser user = redisCache.getCacheObject(userKey);
-                return user;
+                String jwtTokenInServer = redisCache.getCacheObject(userKey);
+                if (!StringUtils.equals(token, jwtTokenInServer)) {
+                    return null;
+                }
+                User currentUser = oshUserMapper.getUserInfoById(Long.valueOf(uuid));
+                // TODO 临时绕过
+                LoginUser loginUser = new LoginUser();
+                loginUser.setUserId(currentUser.getId());
+                loginUser.setExpireTime(LocalDateTime.now().minusMinutes(30).atZone(ZoneId.systemDefault()).toInstant().getEpochSecond());
+                SysUser sysUser = new SysUser();
+                sysUser.setUserId(currentUser.getId());
+                sysUser.setUserName(currentUser.getUsername());
+                loginUser.setUser(sysUser);
+                return loginUser;
             }
             catch (Exception e)
             {
@@ -227,6 +248,6 @@ public class TokenService
 
     private String getTokenKey(String uuid)
     {
-        return CacheConstants.LOGIN_TOKEN_KEY + uuid;
+        return OshUserConstants.LOGIN_USER + uuid;
     }
 }
