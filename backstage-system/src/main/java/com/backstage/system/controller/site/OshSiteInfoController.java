@@ -95,6 +95,7 @@ public class OshSiteInfoController extends BaseController {
     siteInfo.setCreationTime(new Date());
     siteInfo.setUpdateTime(new Date());
     siteInfo.setUpdateBy(currentUserId);
+    siteInfo.setStatus(1);
     if (oshSiteInfoService.save(siteInfo)) {
       // 保存标签
       if (siteInfo.getTags() != null && !siteInfo.getTags().isEmpty()) {

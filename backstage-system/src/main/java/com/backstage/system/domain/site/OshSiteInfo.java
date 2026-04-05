@@ -21,28 +21,33 @@ public class OshSiteInfo implements Serializable {
    * 网站编号（主键）
    */
   @TableId(type = IdType.AUTO)
+  @TableField(value = "id", updateStrategy = FieldStrategy.NEVER)
   private Long id;
 
   /**
    * 网站名称
    */
   @NotBlank(message = "请输入网站名称")
+  @TableField(value = "site_name", updateStrategy = FieldStrategy.NOT_EMPTY)
   private String siteName;
 
   /**
    * 网站封面地址
    */
+  @TableField(value = "cover", updateStrategy = FieldStrategy.NOT_EMPTY)
   private String cover;
 
   /**
    * 网站访问路径
    */
   @NotBlank(message = "请输入网站访问路径")
+  @TableField(value = "site_url", updateStrategy = FieldStrategy.NOT_EMPTY)
   private String siteUrl;
 
   /**
    * 网站描述信息
    */
+  @TableField(value = "description", updateStrategy = FieldStrategy.NOT_EMPTY)
   private String description;
 
   /**
@@ -52,22 +57,22 @@ public class OshSiteInfo implements Serializable {
   private String tags;
 
   /**
-   * 状态：1=启用，0=禁用
+   * 状态
    */
-  @TableField(value = "status")
+  @TableField(value = "status", updateStrategy = FieldStrategy.NOT_NULL)
   private Integer status;
 
   /**
    * 创建人ID/账号
    */
-  @TableField(value = "created_by")
+  @TableField(value = "created_by", updateStrategy = FieldStrategy.NEVER)
   private Long createdBy;
 
   /**
    * 创建时间
    */
   @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-  @TableField(value = "create_time")
+  @TableField(value = "create_time", updateStrategy = FieldStrategy.NEVER)
   private Date creationTime;
 
   /**
@@ -86,6 +91,7 @@ public class OshSiteInfo implements Serializable {
    * 是否删除：0=未删除，1=已删除
    */
   @TableLogic
+  @TableField(value = "is_deleted")
   private Integer isDeleted;
 
   public Long getId() {
