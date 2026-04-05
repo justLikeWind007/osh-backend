@@ -1,7 +1,7 @@
 package com.backstage.system.service.course;
 
 import com.backstage.common.core.page.TableDataInfo;
-import com.backstage.system.domain.course.OshCoures;
+import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.course.OshCourseTag;
 import com.backstage.system.domain.dto.*;
 import com.backstage.system.domain.vo.*;
@@ -42,8 +42,6 @@ public interface ICourseManageService {
 
 
 
-
-
     /**
      * 获取课程标签列表（供前端多选下拉框使用）
      * 实现效果：返回所有启用标签，按课程使用数量（use_count）降序排列
@@ -72,7 +70,7 @@ public interface ICourseManageService {
      * @param userId 用户 ID
      * @return 结果
      */
-    Long insertCourse(OshCoures course, Long userId);
+    Long insertCourse(OshCourse course, Long userId);
     
     /**
      * 修改课程
@@ -83,7 +81,7 @@ public interface ICourseManageService {
      * @param userId 用户 ID
      * @return 结果
      */
-    int updateCourse(OshCoures course, Long userId);
+    int updateCourse(OshCourse course, Long userId);
     
     /**
      * 删除课程
@@ -206,19 +204,7 @@ public interface ICourseManageService {
      */
     List<CourseMaterialVO> getCourseMaterials(Long courseId, Long userId);
     
-    /**
-     * 上传课程资料
-     * 语法逻辑：校验文件类型→上传文件→保存资料信息
-     * 实现效果：仅允许压缩包格式，限制文件大小 100MB
-     * 
-     * @param courseId 课程 ID
-     * @param file 文件
-     * @param materialName 资料名称
-     * @param userId 用户 ID
-     * @return 资料 ID
-     */
-    Long uploadMaterial(Long courseId, MultipartFile file, String materialName, Long userId);
-    
+
     /**
      * 删除课程资料
      * 语法逻辑：校验权限→删除文件记录
@@ -411,21 +397,10 @@ public interface ICourseManageService {
      */
     void uploadCourseCover(MultipartFile file, Long courseId, Long userId);
     
-    /**
-     * 上传课时视频
-     * 语法逻辑：校验文件→上传视频→提取元数据→生成封面→返回视频信息
-     * 实现效果：提取视频时长、分辨率、编码格式等信息，自动生成预览封面
-     * 
-     * @param file 视频文件
-     * @param courseId 课程 ID
-     * @param userId 用户 ID
-     * @return 视频上传结果 VO
-     */
-    VideoUploadVO uploadSectionVideo(MultipartFile file, Long courseId, Long userId);
+
     
     /**
      * 上传课时视频（指定章节 ID）
-     * 语法逻辑：校验文件→上传视频→更新章节 mediaUrl→提取元数据→返回视频信息
      * 实现效果：将视频上传到文件服务器，并更新章节表的 mediaUrl 字段
      * 
      * @param file 视频文件

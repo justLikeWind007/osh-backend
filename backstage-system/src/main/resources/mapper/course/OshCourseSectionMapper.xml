@@ -6,15 +6,15 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     
     <!-- 查询章节列表 -->
     <select id="selectSectionsByCourseId" parameterType="Long" resultType="java.util.Map">
-        SELECT id, course_id, section_title, section_content, section_type, duration, sort_order, is_free, is_published
+        SELECT id, course_id, title, media_url, type, duration, sort, free_flag, status
         FROM osh_course_section
         WHERE course_id = #{courseId} AND delete_flag = 0
-        ORDER BY sort_order ASC
+        ORDER BY sort ASC
     </select>
     
     <!-- 查询章节详情 -->
     <select id="selectSectionById" parameterType="Long" resultType="java.util.Map">
-        SELECT id, course_id, section_title, section_content, section_type, duration, sort_order, is_free, is_published
+        SELECT id, course_id, title, media_url, type, duration, sort, free_flag, status
         FROM osh_course_section
         WHERE id = #{sectionId} AND delete_flag = 0
     </select>
@@ -34,14 +34,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             s.file_size,
             s.subtitle_url,
             s.type,
-            s.is_free,
+            s.free_flag,
             s.status,
             s.exam_id,
             c.title AS course_name,
             c.price,
             c.status AS course_status
         FROM osh_course_section s
-        LEFT JOIN osh_coures c ON s.course_id = c.id
+        LEFT JOIN osh_course c ON s.course_id = c.id
         WHERE s.id = #{sectionId} AND s.delete_flag = 0
     </select>
     
@@ -53,11 +53,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <!-- 新增章节 -->
     <insert id="insertSection" parameterType="java.util.Map" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO osh_course_section (
-            course_id, parent_id, title, sort, is_free, type, duration, 
+            course_id, parent_id, title, sort, free_flag, type, duration, 
             media_url, cover, video_codec, video_bitrate, video_resolution, 
             file_size, subtitle_url, status, exam_id, create_time
         ) VALUES (
-            #{courseId}, #{parentId}, #{title}, #{sort}, #{isFree}, #{sectionType}, #{duration},
+            #{courseId}, #{parentId}, #{title}, #{sort}, #{freeFlag}, #{sectionType}, #{duration},
             #{mediaUrl}, #{cover}, #{videoCodec}, #{videoBitrate}, #{videoResolution},
             #{fileSize}, #{subtitleUrl}, #{status}, #{examId}, NOW()
         )
@@ -66,11 +66,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <!-- 新增章节（使用实体对象） -->
     <insert id="insertSectionEntity" parameterType="com.backstage.system.domain.course.OshCourseSection" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO osh_course_section (
-            course_id, parent_id, title, sort, is_free, type, duration, 
+            course_id, parent_id, title, sort, free_flag, type, duration, 
             media_url, cover, video_codec, video_bitrate, video_resolution, 
             subtitle_url, status, exam_id, create_by, create_time, update_time
         ) VALUES (
-            #{courseId}, #{parentId}, #{title}, #{sort}, #{isFree}, #{sectionType}, #{duration},
+            #{courseId}, #{parentId}, #{title}, #{sort}, #{freeFlag}, #{sectionType}, #{duration},
             #{mediaUrl}, #{cover}, #{videoCodec}, #{videoBitrate}, #{videoResolution},
             #{subtitleUrl}, #{status}, #{examId}, #{createBy}, NOW(), NOW()
         )
@@ -80,13 +80,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <update id="updateSection" parameterType="java.util.Map">
         UPDATE osh_course_section
         <set>
-            <if test="section_title != null">section_title = #{section_title},</if>
-            <if test="section_content != null">section_content = #{section_content},</if>
-            <if test="section_type != null">section_type = #{section_type},</if>
+            <if test="title != null">title = #{title},</if>
+            <if test="mediaUrl != null">media_url = #{mediaUrl},</if>
+            <if test="type != null">type = #{type},</if>
             <if test="duration != null">duration = #{duration},</if>
-            <if test="sort_order != null">sort_order = #{sort_order},</if>
-            <if test="is_free != null">is_free = #{is_free},</if>
-            <if test="is_published != null">is_published = #{is_published},</if>
+            <if test="sort != null">sort = #{sort},</if>
+            <if test="freeFlag != null">free_flag = #{freeFlag},</if>
+            <if test="status != null">status = #{status},</if>
             update_time = NOW()
         </set>
         WHERE id = #{id}

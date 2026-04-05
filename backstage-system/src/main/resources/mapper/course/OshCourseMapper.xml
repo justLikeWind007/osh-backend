@@ -20,8 +20,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="subCount"   column="sub_count"    />
         <result property="freeLessonCount"   column="free_lesson_count"    />
         <result property="status"   column="status"    />
-        <result property="isfava"   column="isfava"    />
-        <result property="isbuy"   column="isbuy"    />
         <result property="remark"   column="remark"    />
         <result property="createTime"   column="create_time"    />
         <result property="updateTime"   column="update_time"    />
@@ -29,7 +27,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <sql id="selectCourseVo">
         select id, title, cover, price, t_price, type, status, buy_count, good_count, mid_count, bad_count,
-               free_lesson_count, sub_count, isfava, isbuy, remark, create_time, update_time from osh_course
+               free_lesson_count, sub_count, remark, create_time, update_time from osh_course
     </sql>
 
     <!-- 查询课程详情 -->
@@ -53,7 +51,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <select id="selectCourseListByCondition" parameterType="java.util.Map" resultMap="OshCouresResult">
         SELECT DISTINCT c.id, c.title, c.cover, c.price, c.t_price, c.type, c.status,
                         c.buy_count, c.good_count, c.mid_count, c.bad_count, c.fava_count,
-                        c.free_lesson_count, c.sub_count, c.isfava,c.isbuy,c.remark, c.create_time, c.update_time
+                        c.free_lesson_count, c.sub_count, c.remark, c.create_time, c.update_time
         FROM osh_course c
         <if test="tagIds != null and tagIds.size() > 0">
             INNER JOIN osh_course_tag_rel tr ON c.id = tr.course_id AND tr.delete_flag = 0

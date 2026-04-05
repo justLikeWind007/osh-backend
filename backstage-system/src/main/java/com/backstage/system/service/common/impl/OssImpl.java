@@ -89,6 +89,16 @@ public class OssImpl implements OssService {
             if(file.getSize() > 1024 * 1024 * 200){
                 return "视频大小不能超过200MB";
             }
+        }else if(UploadPathEnum.COURSE_MATERIAL.equals(pathEnum)){
+            customPath = UploadPathEnum.COURSE_MATERIAL.getPath()+id+ym+"/";
+            if(file.getSize() > 1024 * 1024 * 100){
+                return "资料大小不能超过100MB";
+            }
+        }else if(UploadPathEnum.COURSE_COVER.equals(pathEnum)){
+            customPath = UploadPathEnum.COURSE_COVER.getPath()+id+ym+"/";
+            if(file.getSize() > 1024 * 1024 * 5){
+                return "封面图片大小不能超过5MB";
+            }
         }else {
             return "类型不正确";
         }

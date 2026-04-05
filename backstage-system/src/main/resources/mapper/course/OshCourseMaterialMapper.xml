@@ -6,10 +6,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     
     <!-- 查询资料列表 -->
     <select id="selectMaterialsByCourseId" parameterType="Long" resultType="java.util.Map">
-        SELECT id, course_id, material_name, file_url, file_type, file_size, download_count, is_downloadable, sort_order
+        SELECT id, course_id, name, url, file_type, file_size, download_count, sort
         FROM osh_course_material
-        WHERE course_id = #{courseId}
-        ORDER BY sort_order ASC
+        WHERE course_id = #{courseId} AND delete_flag = 0
+        ORDER BY sort ASC
     </select>
     
     <!-- 查询资料详情 -->
@@ -20,20 +20,18 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <!-- 新增资料 -->
     <insert id="insertMaterial" parameterType="java.util.Map">
         INSERT INTO osh_course_material (
-            course_id, material_name, file_url, file_type, file_size, is_downloadable, sort_order, create_time
+            course_id, name, url, file_type, file_size, sort, delete_flag, create_by, update_by, create_time, update_time
         ) VALUES (
-            #{courseId}, #{material_name}, #{file_url}, #{file_type}, #{file_size}, #{is_downloadable}, #{sort_order}, NOW()
+            #{courseId}, #{materialName}, #{fileUrl}, #{fileType}, #{fileSize}, #{sort}, 0, #{createBy}, #{createBy}, NOW(), NOW()
         )
     </insert>
     
     <!-- 新增资料（使用实体对象） -->
     <insert id="insertMaterialEntity" parameterType="com.backstage.system.domain.course.OshCourseMaterial" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO osh_course_material (
-            course_id, section_id, material_name, file_url, file_type, file_size, 
-            is_pay_only, sort, create_by, create_time, update_time
+            course_id, name, url, file_type, file_size, sort, delete_flag, create_by, update_by, create_time, update_time
         ) VALUES (
-            #{courseId}, #{sectionId}, #{materialName}, #{fileUrl}, #{fileType}, #{fileSize},
-            #{isPayOnly}, #{sort}, #{createBy}, NOW(), NOW()
+            #{courseId}, #{materialName}, #{fileUrl}, #{fileType}, #{fileSize}, #{sort}, 0, #{createBy}, #{createBy}, NOW(), NOW()
         )
     </insert>
     
@@ -41,27 +39,27 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <update id="updateMaterial" parameterType="java.util.Map">
         UPDATE osh_course_material
         <set>
-            <if test="material_name != null">material_name = #{material_name},</if>
-            <if test="file_url != null">file_url = #{file_url},</if>
-            <if test="file_type != null">file_type = #{file_type},</if>
-            <if test="file_size != null">file_size = #{file_size},</if>
-            <if test="download_count != null">download_count = #{download_count},</if>
-            <if test="is_downloadable != null">is_downloadable = #{is_downloadable},</if>
-            <if test="sort_order != null">sort_order = #{sort_order},</if>
+            <if test="materialName != null">name = #{materialName},</if>
+            <if test="fileUrl != null">url = #{fileUrl},</if>
+            <if test="fileType != null">file_type = #{fileType},</if>
+            <if test="fileSize != null">file_size = #{fileSize},</if>
+            <if test="downloadCount != null">download_count = #{downloadCount},</if>
+            <if test="sort != null">sort = #{sort},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
             update_time = NOW()
         </set>
-        WHERE id = #{id}
+        WHERE id = #{id} AND delete_flag = 0
     </update>
     
-    <!-- 删除资料 -->
-    <delete id="deleteMaterialById" parameterType="Long">
-        DELETE FROM osh_course_material WHERE id = #{id}
-    </delete>
+    <!-- 删除资料（逻辑删除） -->
+    <update id="deleteMaterialById" parameterType="Long">
+        UPDATE osh_course_material SET delete_flag = 1, update_time = NOW() WHERE id = #{id}
+    </update>
     
-    <!-- 批量删除资料 -->
-    <delete id="deleteMaterialsByCourseId" parameterType="Long">
-        DELETE FROM osh_course_material WHERE course_id = #{courseId}
-    </delete>
+    <!-- 批量删除资料（逻辑删除） -->
+    <update id="deleteMaterialsByCourseId" parameterType="Long">
+        UPDATE osh_course_material SET delete_flag = 1, update_time = NOW() WHERE course_id = #{courseId}
+    </update>
     
     <!-- 增加下载次数 -->
     <update id="incrementDownloadCount" parameterType="Long">

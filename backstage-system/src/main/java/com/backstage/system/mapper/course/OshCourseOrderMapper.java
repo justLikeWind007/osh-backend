@@ -13,7 +13,7 @@ import java.util.Map;
  * @date 2026-03-31
  */
 @Mapper
-public interface OshOrderSaveMapper {
+public interface OshCourseOrderMapper {
 
     /**
      * 查询用户的课程订单

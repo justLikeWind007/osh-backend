@@ -65,19 +65,7 @@ public class CourseManageController extends BaseController {
         Long userId = getUserId();
         return R.ok(courseManageService.getCourseDetail(courseId, userId));
     }
-    
-    // /**
-    //  * 新增课程
-    //  */
-    // @Log(title = "课程管理", businessType = BusinessType.INSERT)
-    // @PreAuthorize("@ss.hasPermi('system:course:add')")
-    // @ApiOperation("新增课程")
-    // @PostMapping
-    // public R<Void> add(@RequestBody OshCoures course) {
-    //     Long userId = getUserId();
-    //     courseManageService.insertCourse(course, userId);
-    //     return R.ok();
-    // }
+
     
     /**
      * 新增课程（含章节）
@@ -95,38 +83,81 @@ public class CourseManageController extends BaseController {
     }
     
     /**
-     * 上传课时视频
-     * 接收视频文件上传，提取视频元数据，生成预览封面
+     * 上传 课程中的 章节 视频
      */
-    @Log(title = "课时视频", businessType = BusinessType.INSERT)
-    @PreAuthorize("@ss.hasPermi('system:course:video:upload')")
-    @ApiOperation("上传课时视频")
+    @Log(title = "章节视频", businessType = BusinessType.INSERT)
+   // @PreAuthorize("@ss.hasPermi('system:course:video:upload')")
+    @ApiOperation("上传章节视频")
     @PostMapping("/section/video/upload")
     public R<VideoUploadVO> uploadSectionVideo(
             @ApiParam("视频文件") @RequestParam("file") MultipartFile file,
-            @ApiParam("课程 ID") @RequestParam("courseId") Long courseId) {
+            @ApiParam("课程 ID") @RequestParam("courseId") Long courseId,
+            @ApiParam("章节 ID") @RequestParam("sectionId") Long sectionId) {
         Long userId = getUserId();
-        VideoUploadVO result = courseManageService.uploadSectionVideo(file, courseId, userId);
+        VideoUploadVO result = courseManageService.uploadSectionVideo(file, courseId, sectionId, userId);
         return R.ok(result);
     }
-        
+
+
     /**
-     * 上传课时资料
-     * 接收课时相关资料文件（压缩包）上传，存储到指定目录
+     * 上传课程资料：与课程绑定
      */
-    @Log(title = "课时资料", businessType = BusinessType.INSERT)
-    @PreAuthorize("@ss.hasPermi('system:course:material:upload')")
-    @ApiOperation("上传课时资料")
-    @PostMapping("/section/material/upload")
-    public R<Long> uploadSectionMaterial(
+    @Log(title = "课程资料", businessType = BusinessType.UPDATE)
+    //  @PreAuthorize("@ss.hasPermi('system:course:material:upload')")
+    @ApiOperation("上传课程资料")
+    @PostMapping("/{courseId}/material/upload")
+    public R<Void> uploadMaterial(
+            @ApiParam("课程 ID") @PathVariable Long courseId,
             @ApiParam("资料文件") @RequestParam("file") MultipartFile file,
-            @ApiParam("课程 ID") @RequestParam("courseId") Long courseId,
             @ApiParam("资料名称") @RequestParam("materialName") String materialName) {
         Long userId = getUserId();
-        Long materialId = courseManageService.uploadSectionMaterial(file, courseId, materialName, userId);
-        return R.ok(materialId);
+        courseManageService.uploadSectionMaterial( file,courseId, materialName, userId);
+        return R.ok();
     }
-        
+
+    /**
+     * 上传课程封面：与课程进行一对一绑定
+     */
+    @Log(title = "课程封面", businessType = BusinessType.UPDATE)
+    //  @PreAuthorize("@ss.hasPermi('system:course:cover:upload')")
+    @ApiOperation("上传课程封面")
+    @PostMapping("/{courseId}/cover/upload")
+    public R<Void> uploadCourseCover(
+            @ApiParam("课程 ID") @PathVariable Long courseId,
+            @ApiParam("封面文件") @RequestParam("file") MultipartFile file) {
+        Long userId = getUserId();
+        courseManageService.uploadCourseCover(file, courseId, userId);
+        return R.ok();
+    }
+
+    /**
+     * 获取课程资料列表
+     */
+    @Anonymous
+    @ApiOperation("获取课程资料列表")
+    @GetMapping("/{courseId}/materials")
+    public R<List<CourseMaterialVO>> getCourseMaterials(
+            @ApiParam("课程 ID") @PathVariable Long courseId) {
+        Long userId = getUserId();
+        return R.ok(courseManageService.getCourseMaterials(courseId, userId));
+    }
+
+    /**
+     * 删除课程资料
+     */
+    @Log(title = "课程资料", businessType = BusinessType.DELETE)
+    @PreAuthorize("@ss.hasPermi('system:course:material:delete')")
+    @ApiOperation("删除课程资料")
+    @DeleteMapping("/material/{materialId}")
+    public R<Void> deleteMaterial(
+            @ApiParam("资料 ID") @PathVariable Long materialId) {
+        Long userId = getUserId();
+        courseManageService.deleteMaterial(materialId, userId);
+        return R.ok();
+    }
+
+
+
     /**
      * 编辑：添加章节/课时
      * 为已存在的课程追加新的章节或课时内容
@@ -285,50 +316,7 @@ public class CourseManageController extends BaseController {
     }
     
     
-    // ==================== 课程资料接口 ====================
-    
-    /**
-     * 获取课程资料列表
-     */
-    @Anonymous
-    @ApiOperation("获取课程资料列表")
-    @GetMapping("/{courseId}/materials")
-    public R<List<CourseMaterialVO>> getCourseMaterials(
-            @ApiParam("课程 ID") @PathVariable Long courseId) {
-        Long userId = getUserId();
-        return R.ok(courseManageService.getCourseMaterials(courseId, userId));
-    }
-    
-    /**
-     * 上传课程资料
-     */
-    @Log(title = "课程资料", businessType = BusinessType.UPDATE)
-    @PreAuthorize("@ss.hasPermi('system:course:material:upload')")
-    @ApiOperation("上传课程资料")
-    @PostMapping("/{courseId}/material/upload")
-    public R<Void> uploadMaterial(
-            @ApiParam("课程 ID") @PathVariable Long courseId,
-            @ApiParam("资料文件") @RequestParam("file") MultipartFile file,
-            @ApiParam("资料名称") @RequestParam("materialName") String materialName) {
-        Long userId = getUserId();
-        courseManageService.uploadMaterial(courseId, file, materialName, userId);
-        return R.ok();
-    }
-    
-    /**
-     * 删除课程资料
-     */
-    @Log(title = "课程资料", businessType = BusinessType.DELETE)
-    @PreAuthorize("@ss.hasPermi('system:course:material:delete')")
-    @ApiOperation("删除课程资料")
-    @DeleteMapping("/material/{materialId}")
-    public R<Void> deleteMaterial(
-            @ApiParam("资料 ID") @PathVariable Long materialId) {
-        Long userId = getUserId();
-        courseManageService.deleteMaterial(materialId, userId);
-        return R.ok();
-    }
-    
+
     
     // ==================== 课程问答接口 ====================
     

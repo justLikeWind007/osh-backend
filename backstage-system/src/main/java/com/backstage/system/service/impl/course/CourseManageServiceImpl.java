@@ -1,6 +1,7 @@
 package com.backstage.system.service.impl.course;
 
 import com.backstage.common.core.page.TableDataInfo;
+import com.backstage.common.enums.UploadPathEnum;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.common.utils.DateUtils;
 import com.backstage.common.utils.StringUtils;
@@ -22,7 +23,7 @@ import com.backstage.system.mapper.course.OshCourseStaffMapper;
 import com.backstage.system.mapper.course.OshCourseReviewMapper;
 import com.backstage.system.domain.fava.OshFava;
 import com.backstage.system.mapper.fava.OshFavaMapper;
-import com.backstage.system.mapper.course.OshOrderSaveMapper;
+import com.backstage.system.mapper.course.OshCourseOrderMapper;
 import com.backstage.system.service.course.ICourseManageService;
 import com.backstage.system.service.common.OssService;
 import org.slf4j.Logger;
@@ -68,7 +69,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
     
     @Autowired
     private OssService ossService;
->>>>>>> feature/course_hero_local
+
     
     // ==================== 课程查询接口实现 ====================
     private OshCourseReviewMapper reviewMapper;
@@ -77,15 +78,9 @@ public class CourseManageServiceImpl implements ICourseManageService {
     private OshFavaMapper favaMapper;
     
     @Autowired
-    private OshOrderSaveMapper orderMapper;
-    
-    @Autowired
-    private OssService ossService;
-    
-    // ==================== 课程查询接口实现 ====================
-=======
-    private OssService ossService;
->>>>>>> feature/course_hero_local
+    private OshCourseOrderMapper orderMapper;
+
+
     
     // ==================== 课程查询接口实现 ====================
     
@@ -177,8 +172,9 @@ public class CourseManageServiceImpl implements ICourseManageService {
         boolean isPurchased = checkUserPurchased(courseId, userId);
         vo.setIsBuy(isPurchased);
         
-        // 6. 判断用户是否已收藏
-        Boolean isFavorited = course.getIsfava() != null ? course.getIsfava() : false;
+        // 6. 判断用户是否已收藏（从其他地方获取收藏状态）
+        // 如果需要获取收藏状态，可从收藏表中查询
+        Boolean isFavorited = false;
         vo.setIsfava(isFavorited);
         
         // 7. 查询章节列表（仅显示前几节免费章节用于试看）
@@ -187,7 +183,245 @@ public class CourseManageServiceImpl implements ICourseManageService {
         
         return vo;
     }
-    
+
+
+    // ==================== 封面、视频、资料上传接口实现 ====================
+
+    /**
+     * 上传课程封面图片
+     * 语法逻辑:
+     * 1. 校验课程是否存在
+     * 2. 校验文件类型（仅允许常见图片格式）
+     * 3. 校验文件大小（不超过 5MB）
+     * 4. 调用 OSS 服务上传文件
+     * 5. 更新课程 cover 字段
+     *
+     * 实现效果:
+     * - 将封面图片上传到 OSS 文件服务器
+     * - 更新课程表的 cover 字段
+     * - 支持常见图片格式（bmp/gif/jpg/jpeg/png）
+     * - 文件大小限制 5MB
+     *
+     * @param file 封面文件
+     * @param courseId 课程 ID
+     * @param userId 用户 ID
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void uploadCourseCover(MultipartFile file, Long courseId, Long userId) {
+        // 1. 校验课程是否存在
+        OshCourse course = courseMapper.selectCourseById(courseId);
+        if (course == null) {
+            throw new ServiceException("课程不存在");
+        }
+
+        // 2. 校验文件类型（仅允许图片格式）
+        String fileName = file.getOriginalFilename();
+        String extension = "";
+        if (fileName != null && fileName.contains(".")) {
+            extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
+        }
+
+        List<String> allowedImageExtensions = Arrays.asList("bmp", "gif", "jpg", "jpeg", "png");
+        if (!allowedImageExtensions.contains(extension)) {
+            throw new ServiceException("封面图片仅支持 bmp、gif、jpg、jpeg、png 格式");
+        }
+
+        // 3. 校验文件大小（5MB）
+        long maxImageSize = 5 * 1024 * 1024;
+        if (file.getSize() > maxImageSize) {
+            throw new ServiceException("封面图片大小不能超过 5MB");
+        }
+
+        // 4. 调用 OSS 服务上传文件，使用 courseId 作为子目录
+        String coverUrl;
+        try {
+            coverUrl = ossService.upload(file, UploadPathEnum.COURSE_COVER, String.valueOf(courseId));
+
+            // 检查上传结果是否包含错误信息
+            if (coverUrl == null || coverUrl.contains("不能超过") || coverUrl.contains("类型不正确")) {
+                throw new ServiceException(coverUrl);
+            }
+        } catch (ServiceException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ServiceException("上传封面失败：" + e.getMessage());
+        }
+
+        // 5. 更新课程封面 URL
+        OshCourse updateCourse = new OshCourse();
+        updateCourse.setId(courseId);
+        updateCourse.setCover(coverUrl);
+        updateCourse.setUpdateTime(DateUtils.getNowDate());
+        updateCourse.setUpdateBy(String.valueOf(userId));
+
+        int result = courseMapper.updateCourse(updateCourse);
+        if (result <= 0) {
+            throw new ServiceException("更新课程封面失败");
+        }
+
+        log.info("课程封面上传成功：courseId={}, url={}", courseId, coverUrl);
+    }
+
+    /**
+     * 上传课时视频（指定章节 ID）
+     * 语法逻辑:
+     * 1. 校验章节是否存在且属于该课程
+     * 2. 校验文件类型和大小
+     * 3. 调用文件上传接口
+     * 4. 更新章节的 mediaUrl 字段
+     * 5. 返回视频信息
+     *
+     * 实现效果:
+     * - 支持 mp4、avi、mov、mkv 等常见视频格式
+     * - 将视频 URL 保存到章节表
+     * - 限制文件大小 500MB
+     *
+     * @param file 视频文件
+     * @param courseId 课程 ID
+     * @param sectionId 章节 ID
+     * @param userId 用户 ID
+     * @return 视频上传结果 VO
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public VideoUploadVO uploadSectionVideo(MultipartFile file, Long courseId, Long sectionId, Long userId) {
+        //  校验章节是否存在且属于该课程
+        Map<String, Object> section = sectionMapper.selectSectionById(sectionId);
+        if (section == null || !section.get("course_id").equals(courseId)) {
+            throw new ServiceException("章节不存在或不属于该课程");
+        }
+
+        // 2. 校验文件类型（仅允许视频格式）
+        String fileName = file.getOriginalFilename();
+        String extension = "";
+        if (fileName != null && fileName.contains(".")) {
+            extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
+        }
+
+        List<String> allowedVideoExtensions = Arrays.asList("mp4", "avi", "mov", "mkv", "wmv", "flv", "webm");
+        if (!allowedVideoExtensions.contains(extension)) {
+            throw new ServiceException("仅支持视频格式（mp4/avi/mov/mkv/wmv/flv/webm）");
+        }
+
+        //  校验文件大小（500MB）
+        long maxVideoSize = 500 * 1024 * 1024;
+        if (file.getSize() > maxVideoSize) {
+            throw new ServiceException("视频文件大小不能超过 500MB");
+        }
+
+        // 调用文件上传接口，使用 courseId 作为子目录
+        String savePath;
+        try {
+            savePath = ossService.upload(file, UploadPathEnum.COURSE_VIDEO, String.valueOf(courseId));
+
+            // 检查上传结果是否包含错误信息
+            if (savePath == null || savePath.contains("不能超过") || savePath.contains("类型不正确")) {
+                throw new ServiceException(savePath);
+            }
+        } catch (ServiceException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ServiceException("上传视频失败：" + e.getMessage());
+        }
+
+        // 5. 更新章节的视频 URL（使用 Map 方式）
+        Map<String, Object> params = new HashMap<>();
+        params.put("id", sectionId);
+        params.put("mediaUrl", savePath);
+        params.put("updateTime", DateUtils.getNowDate());
+        params.put("updateBy", String.valueOf(userId));
+
+        int result = sectionMapper.updateSection(params);
+        if (result <= 0) {
+            throw new ServiceException("更新章节视频失败");
+        }
+
+        // 6. 构建返回结果
+        VideoUploadVO vo = new VideoUploadVO();
+        vo.setVideoUrl(savePath);
+        vo.setOriginalFileName(fileName);
+        vo.setFileSize(file.getSize());
+        // TODO: 实际需要调用视频处理服务提取元数据
+        vo.setDuration(0);  // 实际需要从视频中提取
+        vo.setVideoCodec("h264");
+        vo.setVideoResolution("1080p");
+        vo.setVideoBitrate(0);
+
+        log.info("课时视频上传成功：courseId={}, sectionId={}, url={}", courseId, sectionId, savePath);
+        return vo;
+    }
+
+
+
+    /**
+     * 上传课时资料
+     * 语法逻辑：
+     * 1. 校验文件类型（仅允许压缩包 zip/rar/tar/gz）
+     * 2. 校验文件大小（不超过 100MB）
+     * 3. 安全检查（防止恶意文件上传）
+     * 4. 存储到指定目录
+     *
+     * 实现效果：
+     * - 支持 zip/rar/tar/gz 格式
+     * - 自动检查文件名和后缀，防止恶意文件
+     * - 存储到课程专属目录，便于管理
+     *
+     * @param file 资料文件
+     * @param courseId 课程 ID
+     * @param materialName 资料名称
+     * @param userId 用户 ID
+     * @return 资料 ID
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long uploadSectionMaterial(MultipartFile file, Long courseId, String materialName, Long userId) {
+        // 校验文件类型
+        String fileName = file.getOriginalFilename();
+        String extension = "";
+        if (fileName != null && fileName.contains(".")) {
+            extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
+        }
+
+        List<String> allowedArchiveExtensions = Arrays.asList("zip", "rar", "tar", "gz", "7z");
+        if (!allowedArchiveExtensions.contains(extension)) {
+            throw new ServiceException("仅支持压缩包格式（zip/rar/tar/gz/7z）");
+        }
+
+
+        try {
+            // 返回相对路径："common/material/course/courseId/当前年月/ 文件名.zip"
+            String fileUrl = ossService.upload(file, com.backstage.common.enums.UploadPathEnum.COURSE_MATERIAL, String.valueOf(courseId));
+
+            if (fileUrl == null || fileUrl.contains("不能超过") || fileUrl.contains("类型不正确")) {
+                throw new ServiceException(fileUrl);
+            }
+
+            // 保存课程资料和 课程的关联关系
+            Map<String, Object> params = new HashMap<>();
+            params.put("courseId", courseId);
+            params.put("materialName", StringUtils.defaultIfEmpty(materialName, fileName));
+            params.put("fileUrl", fileUrl);
+            params.put("fileType", extension);
+            params.put("fileSize", file.getSize());
+            // params.put("isPayOnly", 1); // 默认仅购买后可下载 - 表中无此字段
+            params.put("sort", 0);
+            params.put("createBy", String.valueOf(userId));
+            params.put("createTime", DateUtils.getNowDate());
+
+            materialMapper.insertMaterial(params);
+
+            // 6. 返回资料 ID
+            return (Long) params.get("id");
+
+        } catch (ServiceException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ServiceException("上传资料失败：" + e.getMessage());
+        }
+    }
+
+
     /**
      * 新增课程
      * 保存 章节、标签关联关系
@@ -353,10 +587,10 @@ public class CourseManageServiceImpl implements ICourseManageService {
         for (Map<String, Object> section : sections) {
             CourseSectionVO vo = new CourseSectionVO();
             vo.setId((Long) section.get("id"));
-            vo.setTitle((String) section.get("section_title"));
-            vo.setSectionType((String) section.get("section_type"));
+            vo.setTitle((String) section.get("title"));
+            vo.setSectionType((String) section.get("type"));
             vo.setDuration((Integer) section.get("duration"));
-            vo.setFree((Boolean) section.get("is_free"));
+            vo.setFree((Boolean) section.get("free_flag"));
             
             // 判断是否已学习
             if (progressMap != null && progressMap.containsKey(vo.getId())) {
@@ -417,7 +651,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
         dto.setId(sectionId);
         
         // 4. 判断是否免费
-        boolean isFree = (Boolean) section.get("is_free");
+        boolean isFree = (Boolean) section.get("free_flag");
         dto.setFree(isFree);
         
         // 5. 如果免费，直接返回内容
@@ -425,11 +659,11 @@ public class CourseManageServiceImpl implements ICourseManageService {
             dto.setCanLearn(true);
             dto.setNeedPurchase(false);
             
-            String sectionType = (String) section.get("section_type");
+            String sectionType = (String) section.get("type");
             if ("video".equals(sectionType)) {
-                dto.setVideoUrl((String) section.get("section_content"));
+                dto.setVideoUrl((String) section.get("media_url"));
             } else if ("text".equals(sectionType)) {
-                dto.setTextContent((String) section.get("section_content"));
+                dto.setTextContent((String) section.get("media_url"));
             }
         } else {
             // 6. 付费章节，检查是否已购买
@@ -438,11 +672,11 @@ public class CourseManageServiceImpl implements ICourseManageService {
                 dto.setCanLearn(true);
                 dto.setNeedPurchase(false);
                 
-                String sectionType = (String) section.get("section_type");
+                String sectionType = (String) section.get("type");
                 if ("video".equals(sectionType)) {
-                    dto.setVideoUrl((String) section.get("section_content"));
+                    dto.setVideoUrl((String) section.get("media_url"));
                 } else if ("text".equals(sectionType)) {
-                    dto.setTextContent((String) section.get("section_content"));
+                    dto.setTextContent((String) section.get("media_url"));
                 }
             } else {
                 dto.setCanLearn(false);
@@ -583,7 +817,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
         }
         
         // 4. 检查是否免费
-        Boolean isFree = (Boolean) section.get("is_free");
+        Boolean isFree = (Boolean) section.get("free_flag");
         vo.setIsFree(isFree != null && isFree);
         
         // 5. 检查访问权限
@@ -820,7 +1054,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
         vo.setSectionId(sectionId);
         
         // 3. 检查是否免费
-        Boolean isFree = (Boolean) section.get("is_free");
+        Boolean isFree = (Boolean) section.get("free_flag");
         vo.setIsFree(isFree != null && isFree);
         
         // 4. 免费章节直接有权限
@@ -924,16 +1158,16 @@ public class CourseManageServiceImpl implements ICourseManageService {
      */
     @Override
     public List<CourseMaterialVO> getCourseMaterials(Long courseId, Long userId) {
-        // 1. 检查是否已购买
+        // 检查是否已购买
         boolean isPurchased = checkUserPurchased(courseId, userId);
         if (!isPurchased) {
             throw new ServiceException("请先购买课程");
         }
         
-        // 2. 查询资料列表
+        // 查询课程资料列表
         List<Map<String, Object>> materials = materialMapper.selectMaterialsByCourseId(courseId);
         
-        // 3. 封装返回结果
+        // 封装课程资料列表
         List<CourseMaterialVO> result = new ArrayList<>();
         for (Map<String, Object> material : materials) {
             CourseMaterialVO vo = new CourseMaterialVO();
@@ -950,66 +1184,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
         return result;
     }
     
-    /**
-     * 上传课程资料
-     * 语法逻辑：
-     * 1. 校验文件类型和大小
-     * 2. 上传文件到服务器
-     * 3. 保存资料信息
-     * 
-     * 实现效果：
-     * - 仅允许压缩包格式（zip/rar/7z）
-     * - 文件大小限制 100MB
-     * - 返回资料 ID
-     * - 权限控制由 Controller 层@RequiresPermissions 注解处理
-     * 
-     * @param courseId 课程 ID
-     * @param file 文件
-     * @param materialName 资料名称
-     * @param userId 用户 ID
-     * @return 资料 ID
-     */
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public Long uploadMaterial(Long courseId, MultipartFile file, String materialName, Long userId) {
-        // 1. 校验文件类型
-        String fileName = file.getOriginalFilename();
-        String extension = "";
-        if (fileName != null && fileName.contains(".")) {
-            extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
-        }
-        
-        List<String> allowedExtensions = Arrays.asList("zip", "rar", "7z");
-        if (!allowedExtensions.contains(extension)) {
-            throw new ServiceException("仅支持压缩包格式（zip/rar/7z）");
-        }
-        
-        // 2. 校验文件大小（100MB）
-        long maxSize = 100 * 1024 * 1024;
-        if (file.getSize() > maxSize) {
-            throw new ServiceException("文件大小不能超过 100MB");
-        }
-        
-        // 3. 上传文件（这里简化处理，实际需要调用文件上传服务）
-        // String fileUrl = fileService.upload(file);
-        String fileUrl = "/upload/course/" + courseId + "/" + System.currentTimeMillis() + "." + extension;
-        
-        // 4. 保存资料信息
-        Map<String, Object> params = new HashMap<>();
-        params.put("courseId", courseId);
-        params.put("materialName", materialName);
-        params.put("fileUrl", fileUrl);
-        params.put("fileType", extension);
-        params.put("fileSize", file.getSize());
-        params.put("isDownloadable", 1);
-        params.put("sortOrder", 0);
-        
-        materialMapper.insertMaterial(params);
-        
-        // 5. 返回资料 ID（从 params 中获取）
-        return (Long) params.get("id");
-    }
-    
+
     /**
      * 删除课程资料
      * 语法逻辑：
@@ -1493,298 +1668,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
         return favaMapper.countFava(userId, courseId, "course") > 0;
     }
     
-    
-    // ==================== 视频上传接口实现 ====================
-        
-    /**
-     * 上传课程封面图片
-     * 语法逻辑:
-     * 1. 校验课程是否存在
-     * 2. 校验权限（仅课程创建者或管理员可上传）
-     * 3. 调用文件上传接口
-     * 4. 更新课程 cover 字段
-     * 
-     * 实现效果:
-     * - 将封面图片上传到文件服务器
-     * - 更新课程表的 cover 字段
-     * - 支持常见图片格式（bmp/gif/jpg/jpeg/png）
-     * - 文件大小限制 5MB
-     * 
-     * @param file 封面文件
-     * @param courseId 课程 ID
-     * @param userId 用户 ID
-     */
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void uploadCourseCover(MultipartFile file, Long courseId, Long userId) {
-        // 1. 校验课程是否存在
-        OshCoures course = courseMapper.selectCourseById(courseId);
-        if (course == null) {
-            throw new ServiceException("课程不存在");
-        }
-            
-        // 2. 校验权限（仅课程创建者或管理员可上传）
-        // TODO: 实际项目中需要集成 Spring Security 或 Shiro 进行权限校验
-        // 这里简化处理，仅检查 createBy 字段
-        if (course.getCreateBy() != null && !course.getCreateBy().equals(String.valueOf(userId))) {
-            throw new ServiceException("无权限上传该课程的封面");
-        }
-            
-        // 3. 校验文件类型（仅允许图片格式）
-        String fileName = file.getOriginalFilename();
-        String extension = "";
-        if (fileName != null && fileName.contains(".")) {
-            extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
-        }
-            
-        List<String> allowedImageExtensions = Arrays.asList("bmp", "gif", "jpg", "jpeg", "png");
-        if (!allowedImageExtensions.contains(extension)) {
-            throw new ServiceException("封面图片仅支持 bmp、gif、jpg、jpeg、png 格式");
-        }
-            
-        // 4. 校验文件大小（5MB）
-        long maxImageSize = 5 * 1024 * 1024;
-        if (file.getSize() > maxImageSize) {
-            throw new ServiceException("封面图片大小不能超过 5MB");
-        }
-            
-        // 5. 调用文件上传接口（等待文件模块提供）
-        // TODO: 实际需要使用 FileUploadUtils.upload(file, UploadPathEnum.COURSE_COVER)
-        // 这里先使用临时实现，后续替换为正式接口
-        String savePath = "/upload/course/cover/" + DateUtils.datePath() + "/" + System.currentTimeMillis() + "." + extension;
-        // String coverUrl = FileUploadUtils.upload(file, UploadPathEnum.COURSE_COVER);
-            
-        // 6. 更新课程封面 URL
-        OshCoures updateCourse = new OshCoures();
-        updateCourse.setId(courseId);
-        updateCourse.setCover(savePath);
-        updateCourse.setUpdateTime(DateUtils.getNowDate());
-        updateCourse.setUpdateBy(String.valueOf(userId));
-            
-        int result = courseMapper.updateCourse(updateCourse);
-        if (result <= 0) {
-            throw new ServiceException("更新课程封面失败");
-        }
-            
-        log.info("课程封面上传成功：courseId={}, url={}", courseId, savePath);
-    }
-    
-    /**
-     * 上传课时视频（指定章节 ID）
-     * 语法逻辑:
-     * 1. 校验章节是否存在且属于该课程
-     * 2. 校验文件类型和大小
-     * 3. 调用文件上传接口
-     * 4. 更新章节的 mediaUrl 字段
-     * 5. 返回视频信息
-     * 
-     * 实现效果:
-     * - 支持 mp4、avi、mov、mkv 等常见视频格式
-     * - 将视频 URL 保存到章节表
-     * - 限制文件大小 500MB
-     * 
-     * @param file 视频文件
-     * @param courseId 课程 ID
-     * @param sectionId 章节 ID
-     * @param userId 用户 ID
-     * @return 视频上传结果 VO
-     */
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public VideoUploadVO uploadSectionVideo(MultipartFile file, Long courseId, Long sectionId, Long userId) {
-        // 1. 校验章节是否存在且属于该课程
-        Map<String, Object> section = sectionMapper.selectSectionById(sectionId);
-        if (section == null || !section.get("course_id").equals(courseId)) {
-            throw new ServiceException("章节不存在或不属于该课程");
-        }
-        
-        // 2. 校验文件类型（仅允许视频格式）
-        String fileName = file.getOriginalFilename();
-        String extension = "";
-        if (fileName != null && fileName.contains(".")) {
-            extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
-        }
-        
-        List<String> allowedVideoExtensions = Arrays.asList("mp4", "avi", "mov", "mkv", "wmv", "flv", "webm");
-        if (!allowedVideoExtensions.contains(extension)) {
-            throw new ServiceException("仅支持视频格式（mp4/avi/mov/mkv/wmv/flv/webm）");
-        }
-        
-        // 3. 校验文件大小（500MB）
-        long maxVideoSize = 500 * 1024 * 1024;
-        if (file.getSize() > maxVideoSize) {
-            throw new ServiceException("视频文件大小不能超过 500MB");
-        }
-        
-        // 4. 调用文件上传接口（等待文件模块提供）
-        // TODO: 实际需要使用 FileUploadUtils.upload(file, UploadPathEnum.COURSE_VIDEO)
-        // 这里先使用临时实现，后续替换为正式接口
-        String savePath = "/upload/course/video/" + courseId + "/" + DateUtils.datePath() + "/" + System.currentTimeMillis() + "." + extension;
-        // String videoUrl = FileUploadUtils.upload(file, UploadPathEnum.COURSE_VIDEO);
-        
-        // 5. 更新章节的视频 URL（使用 Map 方式）
-        Map<String, Object> params = new HashMap<>();
-        params.put("id", sectionId);
-        params.put("mediaUrl", savePath);
-        params.put("updateTime", DateUtils.getNowDate());
-        params.put("updateBy", String.valueOf(userId));
-        
-        int result = sectionMapper.updateSection(params);
-        if (result <= 0) {
-            throw new ServiceException("更新章节视频失败");
-        }
-        
-        // 6. 构建返回结果
-        VideoUploadVO vo = new VideoUploadVO();
-        vo.setVideoUrl(savePath);
-        vo.setOriginalFileName(fileName);
-        vo.setFileSize(file.getSize());
-        // TODO: 实际需要调用视频处理服务提取元数据
-        vo.setDuration(0);  // 实际需要从视频中提取
-        vo.setVideoCodec("h264");
-        vo.setVideoResolution("1080p");
-        vo.setVideoBitrate(0);
-        
-        log.info("课时视频上传成功：courseId={}, sectionId={}, url={}", courseId, sectionId, savePath);
-        return vo;
-    }
-    
-    /**
-     * 上传课时视频
-     * 语法逻辑:
-     * 1. 校验文件类型和大小
-     * 2. 上传文件到存储服务
-     * 3. 提取视频元数据（时长、分辨率、编码格式等）
-     * 4. 生成视频预览封面
-     * 5. 返回视频信息
-     * 
-     * 实现效果:
-     * - 支持 mp4、avi、mov、mkv 等常见视频格式
-     * - 自动提取视频时长、分辨率等元数据
-     * - 自动生成视频封面图
-     * - 限制文件大小 500MB
-     * 
-     * @param file 视频文件
-     * @param courseId 课程 ID
-     * @param userId 用户 ID
-     * @return 视频上传结果 VO
-     */
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public VideoUploadVO uploadSectionVideo(MultipartFile file, Long courseId, Long userId) {
-        // 1. 校验文件类型
-        String fileName = file.getOriginalFilename();
-        String extension = "";
-        if (fileName != null && fileName.contains(".")) {
-            extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
-        }
-        
-        List<String> allowedVideoExtensions = Arrays.asList("mp4", "avi", "mov", "mkv", "wmv", "flv", "webm");
-        if (!allowedVideoExtensions.contains(extension)) {
-            throw new ServiceException("仅支持视频格式（mp4/avi/mov/mkv/wmv/flv/webm）");
-        }
-        
-        // 2. 校验文件大小（500MB）
-        long maxVideoSize = 500 * 1024 * 1024;
-        if (file.getSize() > maxVideoSize) {
-            throw new ServiceException("视频文件大小不能超过 500MB");
-        }
-        
-        // 3. 生成存储路径（使用日期分目录）
-        String savePath = "/upload/video/" + courseId + "/" + DateUtils.datePath() + "/" + System.currentTimeMillis() + "." + extension;
-        
-        // 4. TODO: 实际上传文件到存储服务（OSS/本地存储）
-        // 实际需要使用 FileUploadUtils.upload() 或调用 OSS 服务
-        // String videoUrl = FileUploadUtils.upload(RuoYiConfig.getProfile(), file, VIDEO_EXTENSION);
-        
-        // 5. 提取视频元数据（实际需要使用 FFmpeg 或第三方服务）
-        VideoUploadVO vo = new VideoUploadVO();
-        vo.setVideoUrl(savePath);
-        vo.setOriginalFileName(fileName);
-        vo.setFileSize(file.getSize());
-        
-        // TODO: 实际需要调用视频处理服务提取元数据
-        // 以下为模拟数据，实际开发需集成 FFmpeg 或视频处理服务
-        // 示例：FFmpeg 命令提取信息
-        // ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 input.mp4
-        // ffprobe -v error -select_streams v:0 -show_entries stream=width,height,codec_name,bit_rate -of default=noprint_wrappers=1:nokey=1 input.mp4
-        vo.setDuration(0);  // 实际需要从视频中提取
-        vo.setVideoCodec("h264");
-        vo.setVideoResolution("1080p");
-        vo.setVideoBitrate(0);
-        vo.setCoverUrl("/upload/cover/default.png"); // 实际需要生成封面
-        
-        // 返回结果
-        return vo;
-    }
-    
-    /**
-     * 上传课时资料
-     * 语法逻辑：
-     * 1. 校验文件类型（仅允许压缩包 zip/rar/tar/gz）
-     * 2. 校验文件大小（不超过 100MB）
-     * 3. 安全检查（防止恶意文件上传）
-     * 4. 存储到指定目录
-     * 
-     * 实现效果：
-     * - 支持 zip/rar/tar/gz 格式
-     * - 自动检查文件名和后缀，防止恶意文件
-     * - 存储到课程专属目录，便于管理
-     * 
-     * @param file 资料文件
-     * @param courseId 课程 ID
-     * @param materialName 资料名称
-     * @param userId 用户 ID
-     * @return 资料 ID
-     */
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public Long uploadSectionMaterial(MultipartFile file, Long courseId, String materialName, Long userId) {
-        // 校验文件类型
-        String fileName = file.getOriginalFilename();
-        String extension = "";
-        if (fileName != null && fileName.contains(".")) {
-            extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
-        }
-        
-        List<String> allowedArchiveExtensions = Arrays.asList("zip", "rar", "tar", "gz", "7z");
-        if (!allowedArchiveExtensions.contains(extension)) {
-            throw new ServiceException("仅支持压缩包格式（zip/rar/tar/gz/7z）");
-        }
-        
 
-        try {
-            // 返回相对路径："common/material/course/courseId/当前年月/ 文件名.zip"
-            String fileUrl = ossService.upload(file, com.backstage.common.enums.UploadPathEnum.COURSE_MATERIAL, String.valueOf(courseId));
-            
-            if (fileUrl == null || fileUrl.contains("不能超过") || fileUrl.contains("类型不正确")) {
-                throw new ServiceException(fileUrl);
-            }
-            
-            // 保存课程资料和 课程的关联关系
-            Map<String, Object> params = new HashMap<>();
-            params.put("courseId", courseId);
-            params.put("materialName", StringUtils.defaultIfEmpty(materialName, fileName));
-            params.put("fileUrl", fileUrl);
-            params.put("fileType", extension);
-            params.put("fileSize", file.getSize());
-            params.put("isPayOnly", 1); // 默认仅购买后可下载
-            params.put("sort", 0);
-            params.put("createBy", String.valueOf(userId));
-            params.put("createTime", DateUtils.getNowDate());
-            
-            materialMapper.insertMaterial(params);
-            
-            // 6. 返回资料 ID
-            return (Long) params.get("id");
-            
-        } catch (ServiceException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new ServiceException("上传资料失败：" + e.getMessage());
-        }
-    }
-    
     
     /**
      * 新增课程、章节及相关资料
@@ -1899,7 +1783,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
         // 设置关联
         material.setCourseId(courseId);
         material.setSectionId(sectionId);
-        material.setIsPayOnly(sectionDTO.getIsFree() != null && sectionDTO.getIsFree() == 1 ? 0 : 1);
+        // material.setIsPayOnly(sectionDTO.getIsFree() != null && sectionDTO.getIsFree() == 1 ? 0 : 1); // 表中无此字段
         material.setSort(0);
         
         materialMapper.insertMaterialEntity(material);
@@ -1945,9 +1829,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
             material.setCourseId(courseId);
             material.setSectionId(sectionId);
             // 设置默认值
-            if (material.getIsPayOnly() == null) {
-                material.setIsPayOnly(1);
-            }
+            // material.setIsPayOnly(1); // 表中无此字段
             if (material.getSort() == null) {
                 material.setSort(0);
             }
@@ -2052,7 +1934,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
         vo.setCourseId(courseId);
         
         // 1. 检查课程是否存在
-        OshCoures course = courseMapper.selectCourseById(courseId);
+        OshCourse course = courseMapper.selectCourseById(courseId);
         if (course == null) {
             vo.setIsPurchased(false);
             vo.setReason("课程不存在");
