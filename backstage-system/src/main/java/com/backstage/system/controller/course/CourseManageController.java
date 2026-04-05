@@ -94,8 +94,8 @@ public class CourseManageController extends BaseController {
             @ApiParam("课程 ID") @RequestParam("courseId") Long courseId,
             @ApiParam("章节 ID") @RequestParam("sectionId") Long sectionId) {
         Long userId = getUserId();
-        VideoUploadVO result = courseManageService.uploadSectionVideo(file, courseId, sectionId, userId);
-        return R.ok(result);
+         courseManageService.uploadSectionVideo(file, courseId, sectionId, userId);
+        return R.ok();
     }
 
 
@@ -105,7 +105,7 @@ public class CourseManageController extends BaseController {
     @Log(title = "课程资料", businessType = BusinessType.UPDATE)
     //  @PreAuthorize("@ss.hasPermi('system:course:material:upload')")
     @ApiOperation("上传课程资料")
-    @PostMapping("/{courseId}/material/upload")
+    @PostMapping("/material/upload/{courseId}")
     public R<Void> uploadMaterial(
             @ApiParam("课程 ID") @PathVariable Long courseId,
             @ApiParam("资料文件") @RequestParam("file") MultipartFile file,
@@ -121,7 +121,7 @@ public class CourseManageController extends BaseController {
     @Log(title = "课程封面", businessType = BusinessType.UPDATE)
     //  @PreAuthorize("@ss.hasPermi('system:course:cover:upload')")
     @ApiOperation("上传课程封面")
-    @PostMapping("/{courseId}/cover/upload")
+    @PostMapping("/cover/upload/{courseId}")
     public R<Void> uploadCourseCover(
             @ApiParam("课程 ID") @PathVariable Long courseId,
             @ApiParam("封面文件") @RequestParam("file") MultipartFile file) {

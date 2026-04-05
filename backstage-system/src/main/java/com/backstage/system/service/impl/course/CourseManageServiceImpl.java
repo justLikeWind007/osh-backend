@@ -7,9 +7,12 @@ import com.backstage.common.utils.DateUtils;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.common.utils.PageUtils;
 import com.backstage.common.utils.bean.BeanUtils;
-import com.backstage.system.domain.course.OshCourse;
-import com.backstage.system.domain.course.OshCourseSection;
-import com.backstage.system.domain.course.OshCourseMaterial;
+import com.backstage.system.constants.CourseUploadConstants;
+import com.backstage.system.constants.CourseLearningConstants;
+import com.backstage.system.constants.CourseQuestionConstants;
+import com.backstage.system.constants.CourseReviewConstants;
+import com.backstage.system.constants.CourseTagConstants;
+import com.backstage.system.domain.course.*;
 import com.backstage.system.domain.dto.*;
 import com.backstage.system.domain.vo.*;
 import com.backstage.system.mapper.course.OshCourseMapper;
@@ -17,7 +20,6 @@ import com.backstage.system.mapper.course.OshCourseSectionMapper;
 import com.backstage.system.mapper.course.OshCourseMaterialMapper;
 import com.backstage.system.mapper.course.OshCourseQuestionMapper;
 import com.backstage.system.mapper.course.OshCourseTagMapper;
-import com.backstage.system.domain.course.OshCourseTag;
 import com.backstage.system.mapper.course.OshUserCourseProgressMapper;
 import com.backstage.system.mapper.course.OshCourseStaffMapper;
 import com.backstage.system.mapper.course.OshCourseReviewMapper;
@@ -222,15 +224,13 @@ public class CourseManageServiceImpl implements ICourseManageService {
             extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
         }
 
-        List<String> allowedImageExtensions = Arrays.asList("bmp", "gif", "jpg", "jpeg", "png");
-        if (!allowedImageExtensions.contains(extension)) {
-            throw new ServiceException("封面图片仅支持 bmp、gif、jpg、jpeg、png 格式");
+        if (!CourseUploadConstants.ALLOWED_IMAGE_EXTENSIONS.contains(extension)) {
+            throw new ServiceException(CourseUploadConstants.IMAGE_FORMAT_ERROR);
         }
 
-        // 3. 校验文件大小（5MB）
-        long maxImageSize = 5 * 1024 * 1024;
-        if (file.getSize() > maxImageSize) {
-            throw new ServiceException("封面图片大小不能超过 5MB");
+        // 3. 校验文件大小
+        if (file.getSize() > CourseUploadConstants.MAX_IMAGE_SIZE) {
+            throw new ServiceException(CourseUploadConstants.IMAGE_SIZE_ERROR);
         }
 
         // 4. 调用 OSS 服务上传文件，使用 courseId 作为子目录
@@ -239,7 +239,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
             coverUrl = ossService.upload(file, UploadPathEnum.COURSE_COVER, String.valueOf(courseId));
 
             // 检查上传结果是否包含错误信息
-            if (coverUrl == null || coverUrl.contains("不能超过") || coverUrl.contains("类型不正确")) {
+            if (coverUrl == null || CourseUploadConstants.isUploadError(coverUrl)) {
                 throw new ServiceException(coverUrl);
             }
         } catch (ServiceException e) {
@@ -265,13 +265,6 @@ public class CourseManageServiceImpl implements ICourseManageService {
 
     /**
      * 上传课时视频（指定章节 ID）
-     * 语法逻辑:
-     * 1. 校验章节是否存在且属于该课程
-     * 2. 校验文件类型和大小
-     * 3. 调用文件上传接口
-     * 4. 更新章节的 mediaUrl 字段
-     * 5. 返回视频信息
-     *
      * 实现效果:
      * - 支持 mp4、avi、mov、mkv 等常见视频格式
      * - 将视频 URL 保存到章节表
@@ -299,15 +292,13 @@ public class CourseManageServiceImpl implements ICourseManageService {
             extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
         }
 
-        List<String> allowedVideoExtensions = Arrays.asList("mp4", "avi", "mov", "mkv", "wmv", "flv", "webm");
-        if (!allowedVideoExtensions.contains(extension)) {
-            throw new ServiceException("仅支持视频格式（mp4/avi/mov/mkv/wmv/flv/webm）");
+        if (!CourseUploadConstants.ALLOWED_VIDEO_EXTENSIONS.contains(extension)) {
+            throw new ServiceException(CourseUploadConstants.VIDEO_FORMAT_ERROR);
         }
 
-        //  校验文件大小（500MB）
-        long maxVideoSize = 500 * 1024 * 1024;
-        if (file.getSize() > maxVideoSize) {
-            throw new ServiceException("视频文件大小不能超过 500MB");
+        //  校验文件大小
+        if (file.getSize() > CourseUploadConstants.MAX_VIDEO_SIZE) {
+            throw new ServiceException(CourseUploadConstants.VIDEO_SIZE_ERROR);
         }
 
         // 调用文件上传接口，使用 courseId 作为子目录
@@ -316,7 +307,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
             savePath = ossService.upload(file, UploadPathEnum.COURSE_VIDEO, String.valueOf(courseId));
 
             // 检查上传结果是否包含错误信息
-            if (savePath == null || savePath.contains("不能超过") || savePath.contains("类型不正确")) {
+            if (savePath == null || CourseUploadConstants.isUploadError(savePath)) {
                 throw new ServiceException(savePath);
             }
         } catch (ServiceException e) {
@@ -383,9 +374,8 @@ public class CourseManageServiceImpl implements ICourseManageService {
             extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
         }
 
-        List<String> allowedArchiveExtensions = Arrays.asList("zip", "rar", "tar", "gz", "7z");
-        if (!allowedArchiveExtensions.contains(extension)) {
-            throw new ServiceException("仅支持压缩包格式（zip/rar/tar/gz/7z）");
+        if (!CourseUploadConstants.ALLOWED_ARCHIVE_EXTENSIONS.contains(extension)) {
+            throw new ServiceException(CourseUploadConstants.ARCHIVE_FORMAT_ERROR);
         }
 
 
@@ -393,7 +383,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
             // 返回相对路径："common/material/course/courseId/当前年月/ 文件名.zip"
             String fileUrl = ossService.upload(file, com.backstage.common.enums.UploadPathEnum.COURSE_MATERIAL, String.valueOf(courseId));
 
-            if (fileUrl == null || fileUrl.contains("不能超过") || fileUrl.contains("类型不正确")) {
+            if (fileUrl == null || CourseUploadConstants.isUploadError(fileUrl)) {
                 throw new ServiceException(fileUrl);
             }
 
@@ -883,10 +873,10 @@ public class CourseManageServiceImpl implements ICourseManageService {
         Map<String, Object> currentProgress = progressMapper.selectSectionProgress(userId, sectionId);
         
         // 3. 判断是否完成
-        boolean isCompleted = progressDTO.getProgress() != null && progressDTO.getProgress() >= 100;
+        boolean isCompleted = progressDTO.getProgress() != null && progressDTO.getProgress() >= CourseLearningConstants.PROGRESS_COMPLETED_THRESHOLD;
         Integer status = progressDTO.getStatus();
         if (status == null) {
-            status = isCompleted ? 3 : 1; // 3-已完成 1-学习中
+            status = isCompleted ? CourseLearningConstants.STATUS_COMPLETED : CourseLearningConstants.STATUS_LEARNING;
         }
         
         if (currentProgress == null) {
@@ -899,7 +889,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
             params.put("progress", progressDTO.getProgress());
             params.put("lastPosition", progressDTO.getLastPosition());
             params.put("learnTime", progressDTO.getLearnTime());
-            params.put("isCompleted", isCompleted ? 1 : 0);
+            params.put(CourseLearningConstants.FIELD_IS_COMPLETED, isCompleted ? CourseLearningConstants.COMPLETED_FLAG_YES : CourseLearningConstants.COMPLETED_FLAG_NO);
             
             progressMapper.insertSectionProgress(params);
         } else {
@@ -911,7 +901,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
             params.put("progress", progressDTO.getProgress());
             params.put("lastPosition", progressDTO.getLastPosition());
             params.put("learnTime", progressDTO.getLearnTime());
-            params.put("isCompleted", isCompleted ? 1 : 0);
+            params.put(CourseLearningConstants.FIELD_IS_COMPLETED, isCompleted ? CourseLearningConstants.COMPLETED_FLAG_YES : CourseLearningConstants.COMPLETED_FLAG_NO);
             
             progressMapper.updateSectionProgress(params);
         }
@@ -994,24 +984,24 @@ public class CourseManageServiceImpl implements ICourseManageService {
         
         // 2. 更新章节学习状态
         Map<String, Object> params = new HashMap<>();
-        params.put("userId", userId);
-        params.put("sectionId", sectionId);
-        params.put("status", 3); // 3-已完成
-        params.put("isCompleted", 1);
+        params.put(CourseLearningConstants.FIELD_USER_ID, userId);
+        params.put(CourseLearningConstants.FIELD_SECTION_ID, sectionId);
+        params.put(CourseLearningConstants.FIELD_STATUS, CourseLearningConstants.STATUS_COMPLETED);
+        params.put(CourseLearningConstants.FIELD_IS_COMPLETED, CourseLearningConstants.COMPLETED_FLAG_YES);
         
         // 检查是否已有进度记录
         Map<String, Object> progress = progressMapper.selectSectionProgress(userId, sectionId);
         if (progress == null) {
             // 创建进度记录
             Map<String, Object> newParams = new HashMap<>();
-            newParams.put("userId", userId);
-            newParams.put("courseId", courseId);
-            newParams.put("sectionId", sectionId);
-            newParams.put("status", 3);
-            newParams.put("progress", 100);
-            newParams.put("lastPosition", 0);
-            newParams.put("learnTime", 0);
-            newParams.put("isCompleted", 1);
+            newParams.put(CourseLearningConstants.FIELD_USER_ID, userId);
+            newParams.put(CourseLearningConstants.FIELD_COURSE_ID, courseId);
+            newParams.put(CourseLearningConstants.FIELD_SECTION_ID, sectionId);
+            newParams.put(CourseLearningConstants.FIELD_STATUS, CourseLearningConstants.STATUS_COMPLETED);
+            newParams.put(CourseLearningConstants.FIELD_PROGRESS, CourseLearningConstants.PROGRESS_COMPLETED_THRESHOLD);
+            newParams.put(CourseLearningConstants.FIELD_LAST_POSITION, CourseLearningConstants.INITIAL_LAST_POSITION);
+            newParams.put(CourseLearningConstants.FIELD_LEARN_TIME, CourseLearningConstants.INITIAL_LEARN_TIME);
+            newParams.put(CourseLearningConstants.FIELD_IS_COMPLETED, CourseLearningConstants.COMPLETED_FLAG_YES);
             
             progressMapper.insertSectionProgress(newParams);
         } else {
@@ -1309,18 +1299,18 @@ public class CourseManageServiceImpl implements ICourseManageService {
     @Transactional(rollbackFor = Exception.class)
     public int answerQuestion(Long questionId, String answerContent, Long userId) {
         // 1. 查询问题信息
-        Map<String, Object> question = questionMapper.selectQuestionById(questionId);
+        OshCourseQuestion question = questionMapper.selectQuestionById(questionId);
         if (question == null) {
             throw new ServiceException("问题不存在");
         }
         
         // 2. 更新问题和答案
         Map<String, Object> params = new HashMap<>();
-        params.put("id", questionId);
-        params.put("answerContent", answerContent);
-        params.put("answerUserId", userId);
-        params.put("answerTime", DateUtils.getNowDate());
-        params.put("status", "answered");
+        params.put(CourseQuestionConstants.FIELD_ID, questionId);
+        params.put(CourseQuestionConstants.FIELD_ANSWER_CONTENT, answerContent);
+        params.put(CourseQuestionConstants.FIELD_ANSWER_USER_ID, userId);
+        params.put(CourseQuestionConstants.FIELD_ANSWER_TIME, DateUtils.getNowDate());
+        params.put(CourseQuestionConstants.FIELD_STATUS, CourseQuestionConstants.STATUS_ANSWERED);
         
         return questionMapper.updateQuestion(params);
     }
@@ -1340,7 +1330,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
     @Override
     public QuestionDTO getQuestionDetail(Long questionId) {
         // 1. 查询问题详情
-        Map<String, Object> question = questionMapper.selectQuestionById(questionId);
+        OshCourseQuestion question = questionMapper.selectQuestionById(questionId);
         if (question == null) {
             throw new ServiceException("问题不存在");
         }
@@ -1348,10 +1338,10 @@ public class CourseManageServiceImpl implements ICourseManageService {
         // 2. 构建返回结果
         QuestionDTO dto = new QuestionDTO();
         dto.setId(questionId);
-        dto.setCourseId((Long) question.get("course_id"));
-        dto.setSectionId((Long) question.get("section_id"));
-        dto.setQuestionTitle((String) question.get("question_title"));
-        dto.setQuestionContent((String) question.get("question_content"));
+        dto.setCourseId(question.getCourseId().longValue());
+        dto.setSectionId(question.getSectionId().longValue());
+      //  dto.setQuestionTitle(question.getQuestionTitle());
+       // dto.setQuestionContent(question.getQuestionContent( ));
         
         return dto;
     }
@@ -1385,10 +1375,10 @@ public class CourseManageServiceImpl implements ICourseManageService {
         
         // 2. 保存评价
         Map<String, Object> params = new HashMap<>();
-        params.put("courseId", reviewDTO.getCourseId());
-        params.put("userId", userId);
-        params.put("rating", reviewDTO.getRating());
-        params.put("reviewContent", reviewDTO.getReviewContent());
+        params.put(CourseReviewConstants.FIELD_COURSE_ID, reviewDTO.getCourseId());
+        params.put(CourseReviewConstants.FIELD_USER_ID, userId);
+        params.put(CourseReviewConstants.FIELD_RATING, reviewDTO.getRating());
+        params.put(CourseReviewConstants.FIELD_REVIEW_CONTENT, reviewDTO.getReviewContent());
         
         return reviewMapper.insertReview(params);
     }
@@ -1414,17 +1404,17 @@ public class CourseManageServiceImpl implements ICourseManageService {
         // 2. 构建返回结果
         Map<String, Object> result = new HashMap<>();
         if (stats != null) {
-            result.put("goodCount", stats.getOrDefault("good_count", 0));
-            result.put("mediumCount", stats.getOrDefault("medium_count", 0));
-            result.put("badCount", stats.getOrDefault("bad_count", 0));
-            result.put("totalCount", stats.getOrDefault("total_count", 0));
-            result.put("averageRating", stats.getOrDefault("average_rating", 0.0));
+            result.put(CourseReviewConstants.FIELD_GOOD_COUNT, stats.getOrDefault(CourseReviewConstants.DB_FIELD_GOOD_COUNT, CourseReviewConstants.DEFAULT_COUNT));
+            result.put(CourseReviewConstants.FIELD_MEDIUM_COUNT, stats.getOrDefault(CourseReviewConstants.DB_FIELD_MEDIUM_COUNT, CourseReviewConstants.DEFAULT_COUNT));
+            result.put(CourseReviewConstants.FIELD_BAD_COUNT, stats.getOrDefault(CourseReviewConstants.DB_FIELD_BAD_COUNT, CourseReviewConstants.DEFAULT_COUNT));
+            result.put(CourseReviewConstants.FIELD_TOTAL_COUNT, stats.getOrDefault(CourseReviewConstants.DB_FIELD_TOTAL_COUNT, CourseReviewConstants.DEFAULT_COUNT));
+            result.put(CourseReviewConstants.FIELD_AVERAGE_RATING, stats.getOrDefault(CourseReviewConstants.DB_FIELD_AVERAGE_RATING, CourseReviewConstants.DEFAULT_AVERAGE_RATING));
         } else {
-            result.put("goodCount", 0);
-            result.put("mediumCount", 0);
-            result.put("badCount", 0);
-            result.put("totalCount", 0);
-            result.put("averageRating", 0.0);
+            result.put(CourseReviewConstants.FIELD_GOOD_COUNT, CourseReviewConstants.DEFAULT_COUNT);
+            result.put(CourseReviewConstants.FIELD_MEDIUM_COUNT, CourseReviewConstants.DEFAULT_COUNT);
+            result.put(CourseReviewConstants.FIELD_BAD_COUNT, CourseReviewConstants.DEFAULT_COUNT);
+            result.put(CourseReviewConstants.FIELD_TOTAL_COUNT, CourseReviewConstants.DEFAULT_COUNT);
+            result.put(CourseReviewConstants.FIELD_AVERAGE_RATING, CourseReviewConstants.DEFAULT_AVERAGE_RATING);
         }
         
         return result;
@@ -1454,18 +1444,18 @@ public class CourseManageServiceImpl implements ICourseManageService {
         // 1. 检查是否已申请
         Map<String, Object> existingStaff = staffMapper.selectStaffByUserIdAndCourseId(userId, courseId);
         if (existingStaff != null) {
-            String auditStatus = (String) existingStaff.get("audit_status");
-            if ("approved".equals(auditStatus)) {
+            String auditStatus = (String) existingStaff.get(CourseQuestionConstants.FIELD_AUDIT_STATUS);
+            if (CourseQuestionConstants.AUDIT_STATUS_APPROVED.equals(auditStatus)) {
                 throw new ServiceException("您已经是该课程的服务人员");
-            } else if ("pending".equals(auditStatus)) {
+            } else if (CourseQuestionConstants.AUDIT_STATUS_PENDING.equals(auditStatus)) {
                 throw new ServiceException("您的申请正在审核中");
             }
         }
         
         // 2. 保存申请记录
         Map<String, Object> params = new HashMap<>();
-        params.put("userId", userId);
-        params.put("courseId", courseId);
+        params.put(CourseLearningConstants.FIELD_USER_ID, userId);
+        params.put(CourseReviewConstants.FIELD_COURSE_ID, courseId);
         params.put("staffType", staffType);
         params.put("examScore", examScore);
         
@@ -1495,10 +1485,10 @@ public class CourseManageServiceImpl implements ICourseManageService {
     public int auditStaff(Long applyId, String auditStatus, String auditRemark, Long userId) {
         // 1. 更新审核状态
         Map<String, Object> params = new HashMap<>();
-        params.put("id", applyId);
-        params.put("auditStatus", auditStatus);
-        params.put("auditUserId", userId);
-        params.put("auditRemark", auditRemark);
+        params.put(CourseQuestionConstants.FIELD_ID, applyId);
+        params.put(CourseQuestionConstants.FIELD_AUDIT_STATUS, auditStatus);
+        params.put(CourseQuestionConstants.FIELD_AUDIT_USER_ID, userId);
+        params.put(CourseQuestionConstants.FIELD_AUDIT_REMARK, auditRemark);
         
         return staffMapper.updateStaffAudit(params);
     }
@@ -1573,13 +1563,13 @@ public class CourseManageServiceImpl implements ICourseManageService {
         tag.setCreateTime(DateUtils.getNowDate());
         tag.setUpdateTime(DateUtils.getNowDate());
         if (tag.getSort() == null) {
-            tag.setSort(0);
+            tag.setSort(CourseTagConstants.DEFAULT_SORT);
         }
         if (tag.getStatus() == null) {
-            tag.setStatus(1); // 默认启用
+            tag.setStatus(CourseTagConstants.DEFAULT_STATUS_ENABLED);
         }
         if (tag.getUseCount() == null) {
-            tag.setUseCount(0);
+            tag.setUseCount(CourseTagConstants.DEFAULT_USE_COUNT);
         }
         
         // 3. 插入标签
@@ -1604,7 +1594,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
     @Transactional(rollbackFor = Exception.class)
     public int addFavorite(Long courseId, Long userId) {
         // 1. 检查是否已收藏
-        int count = favaMapper.countFava(userId, courseId, "course");
+        int count = favaMapper.countFava(userId, courseId, CourseQuestionConstants.FAVORITE_TYPE_COURSE);
         if (count > 0) {
             return 1; // 已收藏，直接返回成功
         }
@@ -1613,15 +1603,10 @@ public class CourseManageServiceImpl implements ICourseManageService {
         OshFava fava = new OshFava();
         fava.setUserId(userId);
         fava.setGoodsId(courseId);
-        fava.setType("course");
+        fava.setType(CourseQuestionConstants.FAVORITE_TYPE_COURSE);
         int result = favaMapper.insertFava(fava);
         
-        // 3. 更新课程收藏计数
-        if (result > 0) {
-            Map<String, Object> params = new HashMap<>();
-            params.put("courseId", courseId);
-            courseMapper.incrementFavaCount(params);
-        }
+        // 注：收藏数由osh_fava表统计查询，不再维护osh_course表的冗余字段
         
         return result;
     }
@@ -1640,15 +1625,10 @@ public class CourseManageServiceImpl implements ICourseManageService {
         OshFava fava = new OshFava();
         fava.setUserId(userId);
         fava.setGoodsId(courseId);
-        fava.setType("course");
+        fava.setType(CourseQuestionConstants.FAVORITE_TYPE_COURSE);
         int result = favaMapper.deleteFava(fava);
         
-        // 2. 更新课程收藏计数（减少）
-        if (result > 0) {
-            Map<String, Object> params = new HashMap<>();
-            params.put("courseId", courseId);
-            courseMapper.decrementFavaCount(params);
-        }
+        // 注：收藏数由osh_fava表统计查询，不再维护osh_course表的冗余字段
         
         return result;
     }

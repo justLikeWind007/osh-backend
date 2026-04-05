@@ -3,70 +3,52 @@ package com.backstage.system.domain.course;
 import java.util.Date;
 
 /**
- * 课程资料实体对象 osh_course_material
- * 
- * @author ruoyi
- * @date 2026-03-24
+ * @Author: hope
+ * @createTime: 2026年04月01日 18:42:52
+ * @version:
+ * @Description:
  */
 public class OshCourseMaterial {
-    private static final long serialVersionUID = 1L;
 
-    /** 资料 ID */
     private Long id;
-
-    /** 课程 ID */
     private Long courseId;
-
-    /** 章节 ID */
     private Long sectionId;
-
-    /** 资料名称 */
+    private String name;
+    private String url;
     private String materialName;
-
-    /** 文件 URL */
     private String fileUrl;
 
-    /** 文件大小（字节） */
     private Long fileSize;
-
-    /** 文件类型（扩展名） */
     private String fileType;
-
-    /** 是否仅付费可见（0-公开，1-仅付费） */
-    private Integer isPayOnly;
-
-    /** 排序 */
-    private Integer sort;
-
-    /** 下载次数 */
     private Integer downloadCount;
+    private Integer payOnly;
 
-    /** 创建者 */
+    private Integer sort;
+    private Integer deleteFlag;
     private String createBy;
-
-    /** 创建时间 */
     private Date createTime;
-
-    /** 更新者 */
     private String updateBy;
-
-    /** 更新时间 */
     private Date updateTime;
 
-    public Long getId() {
-        return id;
+
+    public OshCourseMaterial() {
     }
 
-    public void setId(Long id) {
+    public OshCourseMaterial(Long id, Long courseId, String name, String url, Long fileSize, String fileType, Integer downloadCount, Integer payOnly, Integer sort, Integer deleteFlag, String createBy, Date createTime, String updateBy, Date updateTime) {
         this.id = id;
-    }
-
-    public Long getCourseId() {
-        return courseId;
-    }
-
-    public void setCourseId(Long courseId) {
         this.courseId = courseId;
+        this.name = name;
+        this.url = url;
+        this.fileSize = fileSize;
+        this.fileType = fileType;
+        this.downloadCount = downloadCount;
+        this.payOnly = payOnly;
+        this.sort = sort;
+        this.deleteFlag = deleteFlag;
+        this.createBy = createBy;
+        this.createTime = createTime;
+        this.updateBy = updateBy;
+        this.updateTime = updateTime;
     }
 
     public Long getSectionId() {
@@ -93,6 +75,38 @@ public class OshCourseMaterial {
         this.fileUrl = fileUrl;
     }
 
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Long getCourseId() {
+        return courseId;
+    }
+
+    public void setCourseId(Long courseId) {
+        this.courseId = courseId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
     public Long getFileSize() {
         return fileSize;
     }
@@ -109,12 +123,20 @@ public class OshCourseMaterial {
         this.fileType = fileType;
     }
 
-    public Integer getIsPayOnly() {
-        return isPayOnly;
+    public Integer getDownloadCount() {
+        return downloadCount;
     }
 
-    public void setIsPayOnly(Integer isPayOnly) {
-        this.isPayOnly = isPayOnly;
+    public void setDownloadCount(Integer downloadCount) {
+        this.downloadCount = downloadCount;
+    }
+
+    public Integer getPayOnly() {
+        return payOnly;
+    }
+
+    public void setPayOnly(Integer payOnly) {
+        this.payOnly = payOnly;
     }
 
     public Integer getSort() {
@@ -125,12 +147,12 @@ public class OshCourseMaterial {
         this.sort = sort;
     }
 
-    public Integer getDownloadCount() {
-        return downloadCount;
+    public Integer getDeleteFlag() {
+        return deleteFlag;
     }
 
-    public void setDownloadCount(Integer downloadCount) {
-        this.downloadCount = downloadCount;
+    public void setDeleteFlag(Integer deleteFlag) {
+        this.deleteFlag = deleteFlag;
     }
 
     public String getCreateBy() {
@@ -163,25 +185,5 @@ public class OshCourseMaterial {
 
     public void setUpdateTime(Date updateTime) {
         this.updateTime = updateTime;
-    }
-
-    @Override
-    public String toString() {
-        return "OshCourseMaterial{" +
-                "id=" + id +
-                ", courseId=" + courseId +
-                ", sectionId=" + sectionId +
-                ", materialName='" + materialName + '\'' +
-                ", fileUrl='" + fileUrl + '\'' +
-                ", fileSize=" + fileSize +
-                ", fileType='" + fileType + '\'' +
-                ", isPayOnly=" + isPayOnly +
-                ", sort=" + sort +
-                ", downloadCount=" + downloadCount +
-                ", createBy='" + createBy + '\'' +
-                ", createTime=" + createTime +
-                ", updateBy='" + updateBy + '\'' +
-                ", updateTime=" + updateTime +
-                '}';
     }
 }

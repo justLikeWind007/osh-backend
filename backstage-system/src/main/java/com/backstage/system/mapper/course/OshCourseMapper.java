@@ -1,9 +1,13 @@
 package com.backstage.system.mapper.course;
 
 import com.backstage.system.domain.course.OshCourse;
+import com.backstage.system.domain.course.OshCourseSection;
+import com.backstage.system.domain.course.OshCourseMaterial;
+import com.backstage.system.domain.course.vo.OshCourseDetailVo;
+import com.backstage.system.domain.course.vo.OshCourseSectionVo;
+import com.backstage.system.request.CourseSearchRequest;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-
 import java.util.List;
 import java.util.Map;
 
@@ -16,6 +20,9 @@ import java.util.Map;
 @Mapper
 public interface OshCourseMapper
 {
+
+
+    List<OshCourse> pageQuerySearchCourse(CourseSearchRequest request);
     /**
      * 查询课程信息
      *
@@ -25,12 +32,11 @@ public interface OshCourseMapper
     OshCourse selectCourseById(Long id);
 
     /**
-     * 根据 appid 和专栏 ID 查询课程列表
+     * 查询课程列表
      *
-     * @param columnId 专栏 ID
      * @return 课程列表
      */
-    List<OshCourse> selectCourseList(@Param("columnId") Long columnId);
+    List<OshCourse> selectCourseList();
 
     /**
      * 根据条件查询课程列表（支持多标签筛选 + 关键字搜索 + 动态排序）
@@ -71,28 +77,36 @@ public interface OshCourseMapper
      * @return 结果
      */
     int deleteCourseByIds(Long[] ids);
-    
+
+    OshCourseDetailVo getCourseDetail(@Param("id") Long id, @Param("userId") Long userId);
+
+    Integer isUserBuyCourseOrFreeCourse(Long courseId, Long userId);
+
+    Integer countUserBoughtCourse(@Param("courseId") Long courseId, @Param("userId") Long userId);
+
+    Integer countFreeCourse(@Param("courseId") Long courseId);
+
+    Integer countFreeSectionInCourse(@Param("courseId") Long courseId, @Param("sectionId") Long sectionId);
+
+    List<OshCourseSectionVo> selectCourseSectionList(@Param("courseId") Long courseId);
+
+    Integer countCourseSectionInCourse(@Param("courseId") Long courseId, @Param("sectionId") Long sectionId);
+
+    String selectTextCourseSectionContent(@Param("sectionId") Long sectionId);
+
+    OshCourseSection selectCourseSectionById(@Param("id") Long id);
+
+    int insertCourseSection(OshCourseSection section);
+
+    String getCourseSectionContent(@Param("sectionId") Long sectionId);
+
+    List<OshCourseMaterial> getCourseMaterials(Long courseId);
+
     /**
-     * 增加课程收藏计数
+     * 更新课程章节数统计
      *
-     * @param params 包含 courseId
-     * @return 结果
-     */
-    int incrementFavaCount(Map<String, Object> params);
-    
-    /**
-     * 减少课程收藏计数
-     *
-     * @param params 包含 courseId
-     * @return 结果
-     */
-    int decrementFavaCount(Map<String, Object> params);
-    
-    /**
-     * 更新课程章节数量
-     *
-     * @param params 参数（包含 id 和 subCount）
-     * @return 结果
+     * @param params 包含courseId等参数的Map
+     * @return 更新结果
      */
     int updateCourseSubCount(Map<String, Object> params);
 }

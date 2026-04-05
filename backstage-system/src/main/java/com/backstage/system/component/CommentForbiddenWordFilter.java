@@ -1,4 +1,4 @@
-package com.backstage.system.service.comment;
+package com.backstage.system.component;
 
 import com.backstage.common.utils.StringUtils;
 import com.github.houbb.sensitive.word.bs.SensitiveWordBs;

@@ -23,10 +23,9 @@ public interface ISysCourseService
     /**
      * 查询课程列表
      *
-     * @param columnId 专栏 ID
      * @return 课程集合
      */
-    List<OshCourse> selectCourseList(Long columnId);
+    List<OshCourse> selectCourseList();
 
     /**
      * 新增课程

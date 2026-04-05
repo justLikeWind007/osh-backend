@@ -1,38 +1,96 @@
-package com.backstage.system.domain.course;
+package com.backstage.system.domain.course.vo;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
-/**
- * @Author:
- * @createTime: 2026年03月29日 20:55:05
- * @version:
- * @Description:
- */
-public class OshCourseSection {
+public class OshCourseSectionVo {
+
     private Long id;
+
     private Long courseId;
+
     private Long parentId;
+
     private String title;
+
     private Integer sort;
+
     private Integer freeFlag;
+
     private Integer duration;
+
     private String mediaUrl;
-    private String cover;
+
     private String textContent;
-    private String videoDesc;
+
+    private String cover;
+
     private String videoCodec;
+
     private Integer videoBitrate;
+
     private String videoResolution;
+
     private Long fileSize;
+
     private String subtitleUrl;
+
     private String type;
+
     private Integer status;
+
     private Long examId;
+
     private Integer deleteFlag;
+
     private String createBy;
+
     private Date createTime;
+
     private String updateBy;
+
     private Date updateTime;
+
+    private List<OshCourseSectionVo> children = new ArrayList<>();
+
+    public OshCourseSectionVo() {
+    }
+
+    public OshCourseSectionVo(Long id, Long courseId, Long parentId, String title, Integer sort, Integer freeFlag, Integer duration, String mediaUrl, String textContent, String cover, String videoCodec, Integer videoBitrate, String videoResolution, Long fileSize, String subtitleUrl, String type, Integer status, Long examId, Integer deleteFlag, String createBy, Date createTime, String updateBy, Date updateTime, List<OshCourseSectionVo> children) {
+        this.id = id;
+        this.courseId = courseId;
+        this.parentId = parentId;
+        this.title = title;
+        this.sort = sort;
+        this.freeFlag = freeFlag;
+        this.duration = duration;
+        this.mediaUrl = mediaUrl;
+        this.textContent = textContent;
+        this.cover = cover;
+        this.videoCodec = videoCodec;
+        this.videoBitrate = videoBitrate;
+        this.videoResolution = videoResolution;
+        this.fileSize = fileSize;
+        this.subtitleUrl = subtitleUrl;
+        this.type = type;
+        this.status = status;
+        this.examId = examId;
+        this.deleteFlag = deleteFlag;
+        this.createBy = createBy;
+        this.createTime = createTime;
+        this.updateBy = updateBy;
+        this.updateTime = updateTime;
+        this.children = children;
+    }
+
+    public String getTextContent() {
+        return textContent;
+    }
+
+    public void setTextContent(String textContent) {
+        this.textContent = textContent;
+    }
 
     public Long getId() {
         return id;
@@ -49,9 +107,6 @@ public class OshCourseSection {
     public void setCourseId(Long courseId) {
         this.courseId = courseId;
     }
-
-
-
 
     public Long getParentId() {
         return parentId;
@@ -85,14 +140,6 @@ public class OshCourseSection {
         this.freeFlag = freeFlag;
     }
 
-    public Integer getIsFree() {
-        return freeFlag;
-    }
-
-    public void setIsFree(int isFree) {
-        this.freeFlag = isFree;
-    }
-
     public Integer getDuration() {
         return duration;
     }
@@ -115,22 +162,6 @@ public class OshCourseSection {
 
     public void setCover(String cover) {
         this.cover = cover;
-    }
-
-    public String getTextContent() {
-        return textContent;
-    }
-
-    public void setTextContent(String textContent) {
-        this.textContent = textContent;
-    }
-
-    public String getVideoDesc() {
-        return videoDesc;
-    }
-
-    public void setVideoDesc(String videoDesc) {
-        this.videoDesc = videoDesc;
     }
 
     public String getVideoCodec() {
@@ -237,28 +268,41 @@ public class OshCourseSection {
         this.updateTime = updateTime;
     }
 
+    public List<OshCourseSectionVo> getChildren() {
+        return children;
+    }
+
+    public void setChildren(List<OshCourseSectionVo> children) {
+        this.children = children;
+    }
+
     @Override
     public String toString() {
-        return "OshCourseSection{" +
+        return "OshCourseSectionVo{" +
                 "id=" + id +
                 ", courseId=" + courseId +
-                ", title='" + title + '\'' +
                 ", parentId=" + parentId +
+                ", title='" + title + '\'' +
                 ", sort=" + sort +
                 ", freeFlag=" + freeFlag +
                 ", duration=" + duration +
                 ", mediaUrl='" + mediaUrl + '\'' +
+                ", textContent='" + textContent + '\'' +
                 ", cover='" + cover + '\'' +
                 ", videoCodec='" + videoCodec + '\'' +
                 ", videoBitrate=" + videoBitrate +
                 ", videoResolution='" + videoResolution + '\'' +
+                ", fileSize=" + fileSize +
                 ", subtitleUrl='" + subtitleUrl + '\'' +
+                ", type='" + type + '\'' +
                 ", status=" + status +
                 ", examId=" + examId +
+                ", deleteFlag=" + deleteFlag +
                 ", createBy='" + createBy + '\'' +
                 ", createTime=" + createTime +
                 ", updateBy='" + updateBy + '\'' +
                 ", updateTime=" + updateTime +
+                ", children=" + children +
                 '}';
     }
 }
