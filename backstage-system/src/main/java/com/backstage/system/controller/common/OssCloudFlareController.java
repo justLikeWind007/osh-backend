@@ -57,8 +57,6 @@ public class OssCloudFlareController {
             @RequestParam("type") String type,
             @RequestParam(value = "id", required = false) String id) {
 
-        System.out.println("用户id"+userContextUtil.getCurrentUser());
-
         if (file.isEmpty()) {
             return R.fail("上传文件不能为空");
         }
@@ -77,7 +75,7 @@ public class OssCloudFlareController {
         }else{
             try {
                 String url = ossService.upload(file, UploadPathEnum.IMAGE, id);
-                if (url == "图片大小不能超过3M") {
+                if (url != null && url.contains("图片大小不能超过3M")) {
                     return R.fail(url);
                 }
                 OshUploadImage uploadImage = new OshUploadImage();

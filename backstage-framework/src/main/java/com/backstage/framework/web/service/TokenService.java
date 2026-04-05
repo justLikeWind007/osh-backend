@@ -77,6 +77,7 @@ public class TokenService
             catch (Exception e)
             {
                 log.error("获取用户信息异常'{}'", e.getMessage());
+                log.debug("Token解析失败的详细信息", e);  // 新增：DEBUG级别打印堆栈信息
             }
         }
         return null;
@@ -221,6 +222,11 @@ public class TokenService
         if (StringUtils.isNotEmpty(token) && token.startsWith(Constants.TOKEN_PREFIX))
         {
             token = token.replace(Constants.TOKEN_PREFIX, "");
+            log.debug("Token extracted successfully");
+        }
+        else if (StringUtils.isNotEmpty(token))
+        {
+            log.warn("Token format is invalid, expected Bearer prefix");
         }
         return token;
     }

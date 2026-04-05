@@ -2,6 +2,7 @@ package com.backstage.system.mapper.course;
 
 import com.backstage.system.domain.course.OshCourseTag;
 import org.apache.ibatis.annotations.MapKey;
+import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
@@ -13,6 +14,8 @@ import java.util.Map;
  * @author ruoyi
  * @date 2026-03-24
  */
+
+@Mapper
 public interface OshCourseTagMapper {
     
     /**

@@ -7,9 +7,10 @@ import java.util.Date;
 
 /**
  * 课程问答 VO
+ * 对应表: osh_question_answer_question
  * 
  * @author ruoyi
- * @date 2026-03-24
+ * @date 2026-03-31
  */
 @ApiModel(description = "课程问答 VO")
 public class CourseQuestionVO {
@@ -17,6 +18,14 @@ public class CourseQuestionVO {
     /** 问题 ID */
     @ApiModelProperty("问题 ID")
     private Long id;
+    
+    /** 资源类型: 1=课程问答, 2=章节问答 */
+    @ApiModelProperty("资源类型: 1=课程问答, 2=章节问答")
+    private Integer resourceType;
+    
+    /** 资源ID (课程ID或章节ID) */
+    @ApiModelProperty("资源ID (课程ID或章节ID)")
+    private Long resourceNo;
     
     /** 章节标题 */
     @ApiModelProperty("章节标题")
@@ -34,29 +43,17 @@ public class CourseQuestionVO {
     @ApiModelProperty("提问者姓名")
     private String askerName;
     
-    /** 回答内容 */
-    @ApiModelProperty("回答内容")
-    private String answerContent;
+    /** 状态: 0=待回答, 1=已回答, 2=已解决 */
+    @ApiModelProperty("状态: 0=待回答, 1=已回答, 2=已解决")
+    private Integer status;
     
-    /** 回答者姓名 */
-    @ApiModelProperty("回答者姓名")
-    private String answererName;
+    /** 浏览数 */
+    @ApiModelProperty("浏览数")
+    private Integer viewCount;
     
-    /** 回答时间 */
-    @ApiModelProperty("回答时间")
-    private Date answerTime;
-    
-    /** 状态 */
-    @ApiModelProperty("状态：pending-待回答，answered-已回答，resolved-已解决")
-    private String status;
-    
-    /** 点赞数 */
-    @ApiModelProperty("点赞数")
-    private Integer likeCount;
-    
-    /** 是否置顶 */
-    @ApiModelProperty("是否置顶")
-    private Boolean isTop;
+    /** 关注数 */
+    @ApiModelProperty("关注数")
+    private Integer followCount;
     
     /** 创建时间 */
     @ApiModelProperty("创建时间")
@@ -68,6 +65,22 @@ public class CourseQuestionVO {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Integer getResourceType() {
+        return resourceType;
+    }
+
+    public void setResourceType(Integer resourceType) {
+        this.resourceType = resourceType;
+    }
+
+    public Long getResourceNo() {
+        return resourceNo;
+    }
+
+    public void setResourceNo(Long resourceNo) {
+        this.resourceNo = resourceNo;
     }
 
     public String getSectionTitle() {
@@ -102,52 +115,28 @@ public class CourseQuestionVO {
         this.askerName = askerName;
     }
 
-    public String getAnswerContent() {
-        return answerContent;
-    }
-
-    public void setAnswerContent(String answerContent) {
-        this.answerContent = answerContent;
-    }
-
-    public String getAnswererName() {
-        return answererName;
-    }
-
-    public void setAnswererName(String answererName) {
-        this.answererName = answererName;
-    }
-
-    public Date getAnswerTime() {
-        return answerTime;
-    }
-
-    public void setAnswerTime(Date answerTime) {
-        this.answerTime = answerTime;
-    }
-
-    public String getStatus() {
+    public Integer getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(Integer status) {
         this.status = status;
     }
 
-    public Integer getLikeCount() {
-        return likeCount;
+    public Integer getViewCount() {
+        return viewCount;
     }
 
-    public void setLikeCount(Integer likeCount) {
-        this.likeCount = likeCount;
+    public void setViewCount(Integer viewCount) {
+        this.viewCount = viewCount;
     }
 
-    public Boolean getIsTop() {
-        return isTop;
+    public Integer getFollowCount() {
+        return followCount;
     }
 
-    public void setIsTop(Boolean isTop) {
-        this.isTop = isTop;
+    public void setFollowCount(Integer followCount) {
+        this.followCount = followCount;
     }
 
     public Date getCreateTime() {
