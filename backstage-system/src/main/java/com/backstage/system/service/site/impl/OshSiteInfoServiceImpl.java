@@ -18,6 +18,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 内部网站信息 Service 业务层处理
@@ -49,6 +50,9 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
     return oshSiteInfoMapper.insertUsage(oshSiteUsage);
   }
 
+  /**
+   * 每10分钟测试1次
+   */
   @Scheduled(cron = "0 0/10 * * * ?")
   public void testSiteInfoResponseStatus() {
     List<OshSiteInfo> oshSiteInfos = oshSiteInfoMapper.selectList(Wrappers.<OshSiteInfo>lambdaQuery()
@@ -58,9 +62,16 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
         continue;
       }
       try {
-        if (!testUrlConnection(siteInfo.getSiteUrl(), 5000, 5000)) {
-          siteInfo.setStatus(0);
-          oshSiteInfoMapper.updateById(siteInfo);
+        if (testUrlConnection(siteInfo.getSiteUrl(), 5000, 5000)) {
+          if (Objects.equals(0, siteInfo.getStatus())) {
+            siteInfo.setStatus(1);
+            oshSiteInfoMapper.updateById(siteInfo);
+          }
+        } else {
+          if (!Objects.equals(0, siteInfo.getStatus())) {
+            siteInfo.setStatus(0);
+            oshSiteInfoMapper.updateById(siteInfo);
+          }
         }
       } catch (Throwable throwable) {
         LOG.error("failed to test site connection, {}", JSON.toJSONString(siteInfo));
@@ -83,8 +94,7 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
       conn = (HttpURLConnection) url.openConnection();
       // 设置请求方式（HEAD 比 GET 更快，只拿响应头不拿内容）
       conn.setRequestMethod("HEAD");
-      // 也可以用 GET：conn.setRequestMethod("GET");
-      // 设置超时时间（核心！）
+      // 设置超时时间
       conn.setConnectTimeout(connectTimeout);
       conn.setReadTimeout(readTimeout);
       // 获取响应码，200 ~ 399 都算正常连通
