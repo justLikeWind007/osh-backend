@@ -58,7 +58,6 @@ spring:
     username: 18482663265@163.com
     password: ZWsCZpBXab3hVGSS
     host: smtp.163.com
-    port: 465
 
   # 模板引擎配置
   thymeleaf:
