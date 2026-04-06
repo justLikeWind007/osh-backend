@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.site.OshSiteTagsMapper">
+    <insert id="saveSiteTags">
+        insert into osh_site_tag_relation
+        (site_id, tag_id, is_deleted, create_time, update_time, created_by,
+        update_by)
+        values
+        <foreach collection="tagIds" item="tagId" separator=",">
+            (#{siteId}, #{tagId}, 0, now(), now(), #{userId}, #{userId})
+        </foreach>
+    </insert>
+
+    <update id="deleteAllSiteTags">
+        update osh_site_tag_relation
+        set is_deleted = 1,
+        update_time = now(),
+        update_by = #{userId}
+        where is_deleted = 0 AND site_id IN
+        <foreach collection="siteIds" item="item" open="(" close=")" separator=",">
+            #{item}
+        </foreach>
+    </update>
+
+    <select id="countTagUsage" resultType="com.backstage.system.domain.site.OshSiteTag">
+        SELECT tag_id as id, COUNT(DISTINCT site_id) AS usageCount
+        FROM osh_site_tag_relation
+        WHERE is_deleted = 0 AND tag_id IN
+        <foreach collection="tagIds" item="item" open="(" close=")" separator=",">
+            #{item}
+        </foreach>
+        GROUP BY tag_id
+    </select>
+
+    <select id="selectSiteTagsById" resultType="com.backstage.system.domain.site.OshSiteTag">
+        select tag.id, tag.tag_name, ostr.site_id
+        FROM osh_site_tag_relation ostr
+        left join osh_site_tag tag ON ostr.tag_id = tag.id
+        where ostr.is_deleted = 0 and tag.is_deleted = 0 and ostr.site_id IN
+        <foreach collection="siteIds" open="(" close=")" separator="," item="item">
+            #{item}
+        </foreach>
+    </select>
+
+</mapper>
