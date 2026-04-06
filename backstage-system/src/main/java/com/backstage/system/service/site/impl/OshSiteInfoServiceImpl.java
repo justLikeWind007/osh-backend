@@ -3,6 +3,7 @@ package com.backstage.system.service.site.impl;
 import com.alibaba.fastjson2.JSON;
 import com.backstage.system.domain.site.OshSiteInfo;
 import com.backstage.system.domain.site.OshSiteUsage;
+import com.backstage.system.domain.user.User;
 import com.backstage.system.mapper.site.OshSiteInfoMapper;
 import com.backstage.system.service.site.IOshSiteInfoService;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -40,11 +41,11 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
    * @return 结果
    */
   @Override
-  public int insertUsage(OshSiteInfo siteInfo) {
+  public int insertUsage(OshSiteInfo siteInfo, User user) {
     OshSiteUsage oshSiteUsage = new OshSiteUsage();
     oshSiteUsage.setSiteId(siteInfo.getId());
-    oshSiteUsage.setUserId(1L);
-    oshSiteUsage.setCreatedBy("1");
+    oshSiteUsage.setUserId(user.getId());
+    oshSiteUsage.setCreatedBy(user.getUsername());
     oshSiteUsage.setCreationTime(new Date());
     oshSiteUsage.setUpdateTime(new Date());
     return oshSiteInfoMapper.insertUsage(oshSiteUsage);

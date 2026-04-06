@@ -42,13 +42,12 @@ CREATE TABLE `osh_site_usage`
   COLLATE = utf8mb4_unicode_ci COMMENT ='网站用户点击统计表';
 
 /**
-  网站信息标签表
+  网站标签表
  */
-DROP TABLE IF EXISTS `osh_site_tags`;
-CREATE TABLE `osh_site_tags`
+DROP TABLE IF EXISTS `osh_site_tag`;
+CREATE TABLE `osh_site_tag`
 (
     `id`          bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '记录ID',
-    `site_id`     bigint unsigned NOT NULL COMMENT '关联网站ID（website_info.id）',
     `tag_name`    varchar(100)    NOT NULL COMMENT '标签名称',
     `created_by`  bigint unsigned NOT NULL COMMENT '创建人ID/账号',
     `create_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -57,6 +56,26 @@ CREATE TABLE `osh_site_tags`
     `is_deleted`  tinyint         NOT NULL DEFAULT '0' COMMENT '是否删除：0=未删除，1=已删除',
     PRIMARY KEY (`id`)
 ) ENGINE = InnoDB
-  AUTO_INCREMENT = 9
+  AUTO_INCREMENT = 1
   DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='网站用户点击统计表';
+  COLLATE = utf8mb4_unicode_ci COMMENT ='网站标签表';
+
+/**
+  网站-网站标签关联表
+ */
+DROP TABLE IF EXISTS `osh_site_tag_relation`;
+CREATE TABLE `osh_site_tag_relation`
+(
+    `id`          bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '记录ID',
+    `tag_id`      bigint unsigned NOT NULL COMMENT '标签ID',
+    `site_id`     bigint unsigned NOT NULL COMMENT '关联网站ID',
+    `created_by`  bigint unsigned NOT NULL COMMENT '创建人ID/账号',
+    `create_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_by`   bigint unsigned          DEFAULT NULL COMMENT '更新人ID/账号',
+    `update_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `is_deleted`  tinyint         NOT NULL DEFAULT '0' COMMENT '是否删除：0=未删除，1=已删除',
+    PRIMARY KEY (`id`)
+) ENGINE = InnoDB
+  AUTO_INCREMENT = 1
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='网站-网站标签关联表';

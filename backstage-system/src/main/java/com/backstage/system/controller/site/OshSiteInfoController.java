@@ -6,24 +6,23 @@ import com.backstage.common.core.controller.BaseController;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.enums.BusinessType;
-import com.backstage.common.enums.UploadPathEnum;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.system.domain.site.OshSiteInfo;
+import com.backstage.system.domain.site.OshSiteTag;
+import com.backstage.system.domain.user.User;
 import com.backstage.system.service.site.IOshSiteInfoService;
 import com.backstage.system.service.site.IOshSiteTagsService;
 import com.backstage.system.service.common.OssService;
-import com.backstage.system.utils.UserContextUtil;
+import com.backstage.system.service.user.IOshUserService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 内部网站信息 Controller
@@ -45,7 +44,7 @@ public class OshSiteInfoController extends BaseController {
   OssService ossService;
 
   @Autowired
-  UserContextUtil userContextUtil;
+  IOshUserService oshUserService;
 
   /**
    * 查询网站列表
@@ -58,27 +57,56 @@ public class OshSiteInfoController extends BaseController {
             .select(OshSiteInfo::getId,
                     OshSiteInfo::getSiteName,
                     OshSiteInfo::getCover,
-                    // OshSiteInfo::getSiteUrl,
                     OshSiteInfo::getDescription,
                     OshSiteInfo::getStatus)
             .like(StringUtils.hasText(siteInfo.getSiteName()), OshSiteInfo::getSiteName, siteInfo.getSiteName())
             .eq(siteInfo.getStatus() != null, OshSiteInfo::getStatus, siteInfo.getStatus())
             .list();
+    // 获取封面图片访问
+    for (OshSiteInfo oshSiteInfo : list) {
+      if (StringUtils.isNotEmpty(oshSiteInfo.getCover())) {
+        // 30 分钟过期
+        oshSiteInfo.setCover(ossService.getLimitedUrl(oshSiteInfo.getCover(), 30));
+      }
+    }
+    Set<Long> siteIds = list.stream().map(OshSiteInfo::getId).collect(Collectors.toSet());
+    Map<Long, List<OshSiteTag>> siteTagMap = oshSiteTagsService.getAllTag(siteIds)
+            .stream()
+            .collect(Collectors.groupingBy(OshSiteTag::getSiteId));
+    for (OshSiteInfo oshSiteInfo : list) {
+      oshSiteInfo.setTagList(siteTagMap.get(oshSiteInfo.getId()));
+    }
     return R.ok(getDataTable(list));
   }
 
-  /**
-   * 获取网站详细信息
-   */
   @Anonymous
   @ApiOperation("获取网站详细信息")
-  @PostMapping(value = "/use/{id}")
-  public R<OshSiteInfo> getInfo(@PathVariable Long id) {
+  @GetMapping(value = "/{id}")
+  public R<OshSiteInfo> getSiteInfo(@PathVariable Long id, @RequestParam(required = false, defaultValue = "false") Boolean needUrl) {
     OshSiteInfo siteInfo = oshSiteInfoService.getById(id);
     if (siteInfo == null) {
       return R.fail("网站不存在");
     }
-    int i = oshSiteInfoService.insertUsage(siteInfo);
+    if (!needUrl) {
+      siteInfo.setSiteUrl(null);
+    }
+    siteInfo.setTagList(oshSiteTagsService.getTagsBySiteId(id));
+    return R.ok(siteInfo);
+  }
+
+  /**
+   * 点击网站，统计网站使用
+   */
+  @Anonymous
+  @ApiOperation("获取网站详细信息")
+  @PostMapping(value = "/use/{id}")
+  public R<OshSiteInfo> useSite(@PathVariable Long id) {
+    OshSiteInfo siteInfo = oshSiteInfoService.getById(id);
+    if (siteInfo == null) {
+      return R.fail("网站不存在");
+    }
+    R<User> userInfo = oshUserService.getUserInfo();
+    oshSiteInfoService.insertUsage(siteInfo, userInfo.getData());
     return R.ok(siteInfo);
   }
 
@@ -98,9 +126,8 @@ public class OshSiteInfoController extends BaseController {
     siteInfo.setStatus(1);
     if (oshSiteInfoService.save(siteInfo)) {
       // 保存标签
-      if (siteInfo.getTags() != null && !siteInfo.getTags().isEmpty()) {
-        List<String> tagList = Arrays.asList(siteInfo.getTags().split("\\s*,\\s*"));
-        oshSiteTagsService.saveSiteTags(siteInfo.getId(), tagList, currentUserId);
+      if (siteInfo.getTagList() != null && !siteInfo.getTagList().isEmpty()) {
+        oshSiteTagsService.saveSiteTags(siteInfo.getId(), siteInfo.getTagList(), currentUserId);
       }
       return R.ok();
     } else {
@@ -121,11 +148,8 @@ public class OshSiteInfoController extends BaseController {
     siteInfo.setUpdateTime(new Date());
     if (oshSiteInfoService.updateById(siteInfo)) {
       // 更新标签
-      if (siteInfo.getTags() != null) {
-        List<String> tagList = siteInfo.getTags().isEmpty() ? 
-          java.util.Collections.emptyList() : 
-          Arrays.asList(siteInfo.getTags().split("\\s*,\\s*"));
-        oshSiteTagsService.saveSiteTags(siteInfo.getId(), tagList, currentUserId);
+      if (siteInfo.getTagList() != null) {
+        oshSiteTagsService.saveSiteTags(siteInfo.getId(), siteInfo.getTagList(), currentUserId);
       }
       return R.ok();
     } else {
@@ -146,15 +170,5 @@ public class OshSiteInfoController extends BaseController {
     } else {
       return R.fail("删除失败");
     }
-  }
-
-  /**
-   * 上传网站封面图片
-   */
-  @Anonymous
-  @PostMapping("/cover/upload")
-  public R<String> uploadCover(MultipartFile file) throws Exception {
-    String path = ossService.upload(file, UploadPathEnum.INNER_SITE, "");
-    return R.ok(path);
   }
 }

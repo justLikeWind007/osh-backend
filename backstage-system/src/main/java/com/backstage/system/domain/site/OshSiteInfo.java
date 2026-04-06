@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import javax.validation.constraints.NotBlank;
 import java.io.Serializable;
 import java.util.Date;
+import java.util.List;
 
 /**
  * 内部网站信息对象 osh_site_info
@@ -54,7 +55,7 @@ public class OshSiteInfo implements Serializable {
    * 标签（多个标签用逗号分隔）
    */
   @TableField(exist = false)
-  private String tags;
+  private List<OshSiteTag> tagList;
 
   /**
    * 状态
@@ -134,12 +135,12 @@ public class OshSiteInfo implements Serializable {
     this.description = description;
   }
 
-  public String getTags() {
-    return tags;
+  public List<OshSiteTag> getTagList() {
+    return tagList;
   }
 
-  public void setTags(String tags) {
-    this.tags = tags;
+  public void setTagList(List<OshSiteTag> tagList) {
+    this.tagList = tagList;
   }
 
   public Integer getStatus() {
