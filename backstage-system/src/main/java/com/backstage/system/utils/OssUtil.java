@@ -66,8 +66,6 @@ public class OssUtil {
 
         String path = customPath != null ? customPath : ossProperties.getBasePath();
 
-
-
         String fileName = path + UUID.randomUUID() + "_" + file.getOriginalFilename();
 
         ObjectMetadata metadata = new ObjectMetadata();
@@ -87,7 +85,7 @@ public class OssUtil {
 
         ossService.insertMapper(file, fileName);
 
-        return "/" + fileName;
+        return fileName;
     }
 
     // 生成文件名 不带前缀

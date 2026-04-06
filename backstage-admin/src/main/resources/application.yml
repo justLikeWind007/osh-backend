@@ -159,8 +159,8 @@ elasticsearch:
 # cloude flare OSS
 x-file-storage:
   cloudflare-r2:
-    access-key: 57d33560810af6e5e58b7529eed60236
-    secret-key: 09a82e5a301c1c520e87f995581e064d6f4a2d60bdb22e9f0e10089f784b9902
+    access-key: 219c0e021c95bb90651219b377ee1f88
+    secret-key: c71b961381071bc9b0b51d80757c7d2cf0efcd609054f10f8ad0c1de493b1102
     endpoint: https://645fe29b30ebce3e940e06365ce74872.r2.cloudflarestorage.com
     bucket-name: osh
     public-domain: https://pub-cc2625f0659a489793764180efc40d08.r2.dev

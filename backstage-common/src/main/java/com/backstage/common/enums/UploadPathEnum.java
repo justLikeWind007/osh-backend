@@ -32,6 +32,8 @@ public enum UploadPathEnum {
         }
 
 
+
+
     public static UploadPathEnum fromPath(String path) {
         if (path == null || path.isEmpty()) {
             return DEFAULT;

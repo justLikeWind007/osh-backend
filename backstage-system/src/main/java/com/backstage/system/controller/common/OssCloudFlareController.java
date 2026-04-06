@@ -90,6 +90,7 @@ public class OssCloudFlareController {
                 if (result > 0) {
                     R r = new R();
                     AvaterVo avaterVo = new AvaterVo();
+                    url = ossService.getLimitedUrl(url,1);
                     avaterVo.setUrl(url);
                     avaterVo.setFileName(file.getOriginalFilename());
                     avaterVo.setFileSize(String.valueOf(file.getSize()));
@@ -110,10 +111,8 @@ public class OssCloudFlareController {
     @Anonymous
     @GetMapping("/upload/avatar")
     public R getUrl() {
-        String signedUrl = ossService.getLimitedUrl("common/image/avatar/微信图片_20260327163452_147_8.jpg", 1);
-
+        String signedUrl = ossService.getLimitedUrl("common/image/202603/微信图片_20260327163452_147_8.jpg", 1);
         return R.ok(signedUrl);
-
     }
 
 
