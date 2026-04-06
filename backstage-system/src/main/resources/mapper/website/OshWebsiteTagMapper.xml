@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.website.OshWebsiteTagMapper">
+
+    <resultMap id="BaseResultMap" type="com.backstage.system.domain.website.OshWebsiteTag">
+            <id property="id" column="id" jdbcType="BIGINT"/>
+            <result property="tagName" column="tag_name" jdbcType="VARCHAR"/>
+            <result property="tagCode" column="tag_code" jdbcType="VARCHAR"/>
+            <result property="sortOrder" column="sort_order" jdbcType="INTEGER"/>
+            <result property="createBy" column="create_by" jdbcType="VARCHAR"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="updateBy" column="update_by" jdbcType="VARCHAR"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+            <result property="delFlag" column="del_flag" jdbcType="CHAR"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,tag_name,tag_code,
+        sort_order,create_by,create_time,
+        update_by,update_time,del_flag
+    </sql>
+    <delete id="batchDeleteWebsiteTag">
+        UPDATE osh_website_tag_rel
+        SET del_flag = 1
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>
