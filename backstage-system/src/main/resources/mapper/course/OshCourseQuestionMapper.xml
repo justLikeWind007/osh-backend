@@ -26,6 +26,27 @@
         <result property="updateTime" column="update_time"/>
     </resultMap>
 
+    <resultMap id="CourseQuestionListItemResult" type="com.backstage.system.domain.course.vo.CourseQuestionListItemVo">
+        <id property="id" column="id"/>
+        <result property="courseId" column="course_id"/>
+        <result property="sectionId" column="section_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="title" column="title"/>
+        <result property="content" column="content"/>
+        <result property="solveStatus" column="solve_status"/>
+        <result property="replyCount" column="reply_count"/>
+        <result property="lastReplyTime" column="last_reply_time"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <resultMap id="CourseQuestionAnswerItemResult" type="com.backstage.system.domain.course.vo.CourseQuestionAnswerItemVo">
+        <id property="id" column="id"/>
+        <result property="questionId" column="question_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="content" column="content"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
     <insert id="insertCourseQuestion" parameterType="com.backstage.system.domain.course.OshCourseQuestion"
             useGeneratedKeys="true" keyProperty="id">
         insert into osh_course_question (
@@ -92,6 +113,40 @@
         from osh_course_question
         where id = #{id}
           and delete_flag = 0
+    </select>
+
+    <select id="selectSectionQuestionPage" resultMap="CourseQuestionListItemResult">
+        select id,
+               course_id,
+               section_id,
+               user_id,
+               title,
+               content,
+               solve_status,
+               reply_count,
+               last_reply_time,
+               create_time
+        from osh_course_question
+        where course_id = #{courseId}
+          and section_id = #{sectionId}
+          and record_type = 1
+          and delete_flag = 0
+          and status = 1
+        order by create_time desc
+    </select>
+
+    <select id="selectQuestionAnswers" resultMap="CourseQuestionAnswerItemResult">
+        select id,
+               question_id,
+               user_id,
+               content,
+               create_time
+        from osh_course_question
+        where question_id = #{questionId}
+          and record_type = 2
+          and delete_flag = 0
+          and status = 1
+        order by create_time asc
     </select>
 
     <update id="updateQuestionReplyMeta">

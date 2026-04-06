@@ -31,6 +31,7 @@ import java.math.BigDecimal;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -157,6 +158,8 @@ public class OshCourseControllerSectionApiTest {
     @Test
     public void shouldSubmitQuestionForCourse935Section2WithUser1() throws Exception {
         when(userContextUtil.getCurrentUser()).thenReturn(buildUserOne());
+        OshCourse beforeCourse = oshCourseMapper.selectCourseById(935L);
+        int beforeQuestionCount = beforeCourse.getQuestionCount() == null ? 0 : beforeCourse.getQuestionCount();
 
         String suffix = String.valueOf(System.currentTimeMillis());
         CourseSectionQuestionRequest request = new CourseSectionQuestionRequest();
@@ -181,6 +184,8 @@ public class OshCourseControllerSectionApiTest {
         assertEquals(Integer.valueOf(1), saved.getRecordType());
         assertEquals("集成测试提问-" + suffix, saved.getTitle());
         assertEquals("这是用户1针对课程935章节2写入的测试提问-" + suffix, saved.getContent());
+        OshCourse afterCourse = oshCourseMapper.selectCourseById(935L);
+        assertEquals(beforeQuestionCount + 1, afterCourse.getQuestionCount().intValue());
     }
 
     @Test
@@ -228,6 +233,99 @@ public class OshCourseControllerSectionApiTest {
         OshCourseQuestion question = oshCourseQuestionMapper.selectQuestionById(questionId);
         assertNotNull(question);
         assertEquals(Integer.valueOf(1), question.getReplyCount());
+    }
+
+    @Test
+    public void shouldPageSectionQuestionsOrderedByCreateTimeDesc() throws Exception {
+        when(userContextUtil.getCurrentUser()).thenReturn(buildUserOne());
+
+        String suffix = String.valueOf(System.currentTimeMillis());
+
+        CourseSectionQuestionRequest firstRequest = new CourseSectionQuestionRequest();
+        firstRequest.setCourseId(935L);
+        firstRequest.setSectionId(2L);
+        firstRequest.setTitle("较早提问-" + suffix);
+        firstRequest.setContent("较早提问内容-" + suffix);
+
+        CourseSectionQuestionRequest secondRequest = new CourseSectionQuestionRequest();
+        secondRequest.setCourseId(935L);
+        secondRequest.setSectionId(2L);
+        secondRequest.setTitle("较晚提问-" + suffix);
+        secondRequest.setContent("较晚提问内容-" + suffix);
+
+        mockMvc.perform(post("/pc/course/section/submit")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(firstRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        Thread.sleep(5L);
+
+        mockMvc.perform(post("/pc/course/section/submit")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(secondRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        mockMvc.perform(get("/pc/course/section/questions/935/2")
+                        .param("pageNum", "1")
+                        .param("pageSize", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.total").exists())
+                .andExpect(jsonPath("$.data.pageNum").value(1))
+                .andExpect(jsonPath("$.data.pageSize").value(2))
+                .andExpect(jsonPath("$.data.rows[0].title").value("较晚提问-" + suffix))
+                .andExpect(jsonPath("$.data.rows[1].title").value("较早提问-" + suffix));
+    }
+
+    @Test
+    public void shouldListQuestionAnswersInCreateTimeOrder() throws Exception {
+        when(userContextUtil.getCurrentUser()).thenReturn(buildUserOne());
+
+        String suffix = String.valueOf(System.currentTimeMillis());
+        CourseSectionQuestionRequest questionRequest = new CourseSectionQuestionRequest();
+        questionRequest.setCourseId(935L);
+        questionRequest.setSectionId(2L);
+        questionRequest.setTitle("回答列表测试提问-" + suffix);
+        questionRequest.setContent("回答列表测试提问内容-" + suffix);
+
+        MvcResult questionResult = mockMvc.perform(post("/pc/course/section/submit")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(questionRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andReturn();
+
+        Long questionId = extractDataId(questionResult);
+
+        CourseQuestionAnswerRequest firstAnswerRequest = new CourseQuestionAnswerRequest();
+        firstAnswerRequest.setQuestionId(questionId);
+        firstAnswerRequest.setContent("第一条回答-" + suffix);
+
+        CourseQuestionAnswerRequest secondAnswerRequest = new CourseQuestionAnswerRequest();
+        secondAnswerRequest.setQuestionId(questionId);
+        secondAnswerRequest.setContent("第二条回答-" + suffix);
+
+        mockMvc.perform(post("/pc/course/question/answer")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(firstAnswerRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        Thread.sleep(5L);
+
+        mockMvc.perform(post("/pc/course/question/answer")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(secondAnswerRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        mockMvc.perform(get("/pc/course/question/answers/" + questionId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data[0].content").value("第一条回答-" + suffix))
+                .andExpect(jsonPath("$.data[1].content").value("第二条回答-" + suffix));
     }
 
     private Long extractDataId(MvcResult mvcResult) throws Exception {

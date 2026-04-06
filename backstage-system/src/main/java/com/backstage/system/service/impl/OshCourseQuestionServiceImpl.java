@@ -1,17 +1,23 @@
 package com.backstage.system.service.impl;
 
 import com.backstage.common.exception.ServiceException;
+import com.backstage.system.component.CommentForbiddenWordFilter;
 import com.backstage.system.domain.course.OshCourseQuestion;
+import com.backstage.system.domain.course.vo.CourseQuestionAnswerItemVo;
+import com.backstage.system.domain.course.vo.CourseQuestionListItemVo;
 import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.course.OshCourseQuestionMapper;
 import com.backstage.system.request.CourseQuestionAnswerRequest;
+import com.backstage.system.request.CourseQuestionPageRequest;
 import com.backstage.system.request.CourseSectionQuestionRequest;
 import com.backstage.system.service.IOshCourseQuestionService;
+import com.github.pagehelper.PageHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
+import java.util.List;
 
 @Service
 public class OshCourseQuestionServiceImpl implements IOshCourseQuestionService {
@@ -25,13 +31,17 @@ public class OshCourseQuestionServiceImpl implements IOshCourseQuestionService {
     @Autowired
     private OshCourseMapper oshCourseMapper;
 
+    @Autowired
+    private CommentForbiddenWordFilter commentForbiddenWordFilter;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long submitQuestion(Long userId, String operator, CourseSectionQuestionRequest request) {
-        Integer sectionCount = request.getSectionId() == null
-                ? null
-                : oshCourseMapper.countCourseSectionInCourse(request.getCourseId(), request.getSectionId());
-        if (request.getSectionId() != null && (sectionCount == null || sectionCount <= 0)) {
+        validateQuestionContent(request.getTitle(), "问题标题");
+        validateQuestionContent(request.getContent(), "问题内容");
+
+        Integer sectionCount = oshCourseMapper.countCourseSectionInCourse(request.getCourseId(), request.getSectionId());
+        if (sectionCount == null || sectionCount <= 0) {
             throw new ServiceException("章节不存在或不属于当前课程");
         }
 
@@ -58,6 +68,7 @@ public class OshCourseQuestionServiceImpl implements IOshCourseQuestionService {
         if (oshCourseQuestionMapper.insertCourseQuestion(question) <= 0) {
             throw new ServiceException("提交问题失败");
         }
+        oshCourseMapper.increaseQuestionCount(request.getCourseId());
         return question.getId();
     }
 
@@ -95,7 +106,33 @@ public class OshCourseQuestionServiceImpl implements IOshCourseQuestionService {
         return answer.getId();
     }
 
+    @Override
+    public List<CourseQuestionListItemVo> listSectionQuestions(CourseQuestionPageRequest request) {
+        PageHelper.startPage(request.getPageNum(), request.getPageSize());
+        return oshCourseQuestionMapper.selectSectionQuestionPage(request);
+    }
+
+    @Override
+    public List<CourseQuestionAnswerItemVo> listQuestionAnswers(Long questionId) {
+        OshCourseQuestion question = oshCourseQuestionMapper.selectQuestionById(questionId);
+        if (question == null || !isQuestionRecord(question.getRecordType())) {
+            throw new ServiceException("问题不存在");
+        }
+        return oshCourseQuestionMapper.selectQuestionAnswers(questionId);
+    }
+
     private boolean isQuestionRecord(Integer recordType) {
         return recordType != null && recordType == RECORD_TYPE_QUESTION;
+    }
+
+    private void validateQuestionContent(String content, String fieldName) {
+        if (!commentForbiddenWordFilter.containsForbiddenWord(content)) {
+            return;
+        }
+        String forbiddenWord = commentForbiddenWordFilter.matchForbiddenWord(content);
+        if (forbiddenWord == null) {
+            throw new ServiceException(fieldName + "包含违规内容");
+        }
+        throw new ServiceException(fieldName + "包含违规内容：" + forbiddenWord);
     }
 }

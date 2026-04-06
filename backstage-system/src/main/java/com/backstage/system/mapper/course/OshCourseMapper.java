@@ -22,6 +22,8 @@ public interface OshCourseMapper
 
 
     List<OshCourse> pageQuerySearchCourse(CourseSearchRequest request);
+
+    List<OshCourse> pageQueryUserCollectionCourse(@Param("userId") Long userId, @Param("request") CourseSearchRequest request);
     /**
      * 查询课程信息
      *
@@ -78,6 +80,12 @@ public interface OshCourseMapper
     Integer countFreeCourse(@Param("courseId") Long courseId);
 
     Integer countFreeSectionInCourse(@Param("courseId") Long courseId, @Param("sectionId") Long sectionId);
+
+    int increaseQuestionCount(@Param("courseId") Long courseId);
+
+    int increaseCollectionCount(@Param("courseId") Long courseId);
+
+    int decreaseCollectionCount(@Param("courseId") Long courseId);
 
     List<OshCourseSectionVo> selectCourseSectionList(@Param("courseId") Long courseId);
 
