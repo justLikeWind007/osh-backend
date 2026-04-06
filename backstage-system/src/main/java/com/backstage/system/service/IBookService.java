@@ -1,7 +1,8 @@
 package com.backstage.system.service;
 
+import com.backstage.system.controller.book.BookListReqVO;
 import com.backstage.system.domain.book.BookDO;
-import com.backstage.system.domain.vo.*;
+import com.backstage.system.domain.vo.book.*;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import java.util.List;
@@ -11,15 +12,8 @@ import java.util.List;
  *
  * @author backstage
  */
-public interface IBookService extends IService<BookDO>
-{
-    /**
-     * 查询电子书列表
-     *
-     * @param book 电子书
-     * @return 电子书集合
-     */
-    List<BookListVO> selectBookList(BookDO book);
+public interface IBookService extends IService<BookDO> {
+
 
     /**
      * 查询电子书详情
@@ -88,4 +82,14 @@ public interface IBookService extends IService<BookDO>
      * @param id 电子书ID
      */
     void deleteBook(Long id);
+
+
+    Page<BookListVO> getBookPageList(BookListReqVO reqVO);
+
+    /**
+     * 查询所有电子书标签名称（去重）
+     *
+     * @return 标签名称列表
+     */
+    List<String> getTagList();
 }

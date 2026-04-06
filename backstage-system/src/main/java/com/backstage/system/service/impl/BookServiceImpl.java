@@ -2,18 +2,18 @@ package com.backstage.system.service.impl;
 
 import com.backstage.common.exception.ServiceException;
 import com.backstage.common.utils.StringUtils;
+import com.backstage.system.controller.book.BookListReqVO;
 import com.backstage.system.domain.book.BookDO;
 import com.backstage.system.domain.BookChapter;
 import com.backstage.system.domain.UserBook;
 import com.backstage.system.domain.book.BookTagDO;
-import com.backstage.system.domain.vo.*;
+import com.backstage.system.domain.vo.book.*;
 import com.backstage.system.mapper.book.BookChapterMapper;
 import com.backstage.system.mapper.book.BookMapper;
 import com.backstage.system.mapper.UserBookMapper;
 import com.backstage.system.mapper.book.BookTagDOMapper;
 import com.backstage.system.service.IBookService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.BeanUtils;
@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,10 +53,33 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
      * @param book 电子书
      * @return 电子书集合
      */
+    /**
+     * 查询电子书列表
+     *
+     * @param reqVO 电子书
+     * @return 电子书集合
+     */
+
     @Override
-    public List<BookListVO> selectBookList(BookDO book)
-    {
-        return bookMapper.selectBookList(book);
+    public Page<BookListVO> getBookPageList(BookListReqVO reqVO) {
+        Page<BookDO> pageParam = new Page<>(reqVO.getPageNum(), reqVO.getPageSize());
+        List<BookListVO> bookListVOS = bookMapper.getBookPageList(pageParam, reqVO);
+
+        // tagNames 逗号字符串 -> tagNameList 数组
+        for (BookListVO vo : bookListVOS) {
+            if (StringUtils.isNotEmpty(vo.getTagNames())) {
+                vo.setTagNameList(Arrays.asList(vo.getTagNames().split(",")));
+            }
+        }
+
+        Page<BookListVO> result = new Page<>(pageParam.getCurrent(), pageParam.getSize(), pageParam.getTotal());
+        result.setRecords(bookListVOS);
+        return result;
+    }
+
+    @Override
+    public List<String> getTagList() {
+        return bookTagDOMapper.getTagList();
     }
 
     /**
