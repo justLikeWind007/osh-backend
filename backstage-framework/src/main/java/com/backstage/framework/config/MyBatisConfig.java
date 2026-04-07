@@ -8,8 +8,10 @@ import java.util.List;
 import javax.sql.DataSource;
 
 import com.baomidou.mybatisplus.annotation.DbType;
+import com.baomidou.mybatisplus.core.config.GlobalConfig;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
+import com.backstage.framework.handler.MyBatisPlusMetaObjectHandler;
 import org.apache.ibatis.io.VFS;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.boot.autoconfigure.SpringBootVFS;
@@ -118,7 +120,14 @@ public class MyBatisConfig
     }
 
     @Bean
-    public SqlSessionFactory sqlSessionFactory(DataSource dataSource, MybatisPlusInterceptor mybatisPlusInterceptor) throws Exception
+    public MyBatisPlusMetaObjectHandler myBatisPlusMetaObjectHandler() {
+        return new MyBatisPlusMetaObjectHandler();
+    }
+
+    @Bean
+    public SqlSessionFactory sqlSessionFactory(DataSource dataSource,
+                                               MybatisPlusInterceptor mybatisPlusInterceptor,
+                                               MyBatisPlusMetaObjectHandler metaObjectHandler) throws Exception
     {
         String typeAliasesPackage = env.getProperty("mybatis.typeAliasesPackage");
         String mapperLocations = env.getProperty("mybatis.mapperLocations");
@@ -135,6 +144,11 @@ public class MyBatisConfig
 
         // 添加 MyBatis Plus 插件
         sessionFactory.setPlugins(mybatisPlusInterceptor);
+
+        // 配置自动填充
+        GlobalConfig globalConfig = new GlobalConfig();
+        globalConfig.setMetaObjectHandler(metaObjectHandler);
+        sessionFactory.setGlobalConfig(globalConfig);
 
         return sessionFactory.getObject();
     }

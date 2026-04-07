@@ -3,6 +3,8 @@ package com.backstage.system.controller.order;
 import com.alibaba.fastjson2.JSON;
 import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.R;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestHighLevelClient;
@@ -14,6 +16,7 @@ import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
 
+@Api("ES 测试")
 @RestController
 @RequestMapping("/es")
 public class EsTestController {
@@ -27,6 +30,7 @@ public class EsTestController {
      * 测试 ES 是否连通
      * 访问：http://localhost:8080/es/test
      */
+    @ApiOperation("测试 ES 是否连通")
     @Anonymous
     @GetMapping("/test")
     public R testEs() throws IOException {
@@ -43,19 +47,24 @@ public class EsTestController {
      * 查看集群健康状态
      * 访问：http://localhost:8080/es/health
      */
+    @ApiOperation("查看集群健康状态")
     @Anonymous
     @GetMapping("/health")
     public R health() throws IOException {
         Request request = new Request("GET", "/_cat/health?v");
         Response response = client.getLowLevelClient().performRequest(request);
+
         String jsonStr = EntityUtils.toString(response.getEntity(), "UTF-8");
-        return R.ok(jsonStr);
+
+        Object json = JSON.parse(jsonStr);
+        return R.ok(json);
     }
 
     /**
      * 查看集群节点
      * 访问：http://localhost:8080/es/nodes
      */
+    @ApiOperation("查看集群节点")
     @Anonymous
     @GetMapping("/nodes")
     public R nodes() throws IOException {
@@ -69,6 +78,7 @@ public class EsTestController {
      * 查看所有索引（表）
      * 访问：http://localhost:8080/es/indices
      */
+    @ApiOperation("查看所有索引")
     @Anonymous
     @GetMapping("/indices")
     public R indices() throws IOException {
@@ -82,12 +92,14 @@ public class EsTestController {
      * 查看集群详细状态
      * 访问：http://localhost:8080/es/cluster
      */
+    @ApiOperation("查看集群详细状态")
     @Anonymous
     @GetMapping("/cluster")
     public R cluster() throws IOException {
         Request request = new Request("GET", "/_cluster/health?pretty");
         Response response = client.getLowLevelClient().performRequest(request);
         String jsonStr = EntityUtils.toString(response.getEntity(), "UTF-8");
-        return R.ok(jsonStr);
+        Object json = JSON.parse(jsonStr);
+        return R.ok(json);
     }
 }

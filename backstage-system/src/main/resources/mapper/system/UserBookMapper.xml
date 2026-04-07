@@ -14,7 +14,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where user_id = #{userId} and book_id = #{bookId} and del_flag = '0'
     </select>
 
-    <select id="selectUserBookList" parameterType="Long" resultType="com.backstage.system.domain.Book">
+    <select id="selectUserBookList" parameterType="Long" resultType="com.backstage.system.domain.book.BookDO">
         select b.id, b.title, b.cover, b.description
         from osh_user_book ub
         left join osh_book b on ub.book_id = b.id
@@ -22,7 +22,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         order by ub.create_time desc
     </select>
 
-    <select id="selectUserBookListPage" resultType="com.backstage.system.domain.Book">
+    <select id="selectUserBookListPage" resultType="com.backstage.system.domain.book.BookDO">
         select b.id, b.title, b.cover, b.description
         from osh_user_book ub
         left join osh_book b on ub.book_id = b.id

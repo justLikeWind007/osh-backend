@@ -1,0 +1,168 @@
+package com.backstage.system.service.website.impl;
+
+import com.backstage.common.core.page.TableDataInfo;
+import com.backstage.common.utils.StringUtils;
+import com.backstage.common.utils.email.EmailUtil;
+import com.backstage.system.domain.dto.website.WebsiteAuditDto;
+import com.backstage.system.domain.dto.website.WebsiteQueryDto;
+import com.backstage.system.domain.dto.website.WebsiteSubmitDto;
+import com.backstage.system.domain.vo.website.OshPracticalWebsiteVo;
+import com.backstage.system.domain.website.OshPracticalWebsite;
+import com.backstage.system.domain.website.OshWebsiteTag;
+import com.backstage.system.mapper.website.OshPracticalWebsiteMapper;
+import com.backstage.system.mapper.website.OshWebsiteTagMapper;
+import com.backstage.system.service.website.OshPracticalWebsiteService;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.text.SimpleDateFormat;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+
+/**
+ * @author 24333
+ * @description 针对表【osh_practical_website(实用网站表)】的数据库操作Service实现
+ * @createDate 2026-03-26 19:22:13
+ */
+@Service
+public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteService {
+    @Autowired
+    private OshPracticalWebsiteMapper oshPracticalWebsiteMapper;
+    @Autowired
+    private OshWebsiteTagMapper oshWebsiteTagMapper;
+    @Autowired
+    private EmailUtil emailUtil;
+
+    @Override
+    public List<OshPracticalWebsiteVo> selectWebsitePage(WebsiteQueryDto queryDTO) {
+        if (queryDTO == null) {
+            return Collections.emptyList();
+        }
+        Integer pageNum = queryDTO.getPageNum();
+        Integer pageSize = queryDTO.getPageSize();
+        PageHelper.startPage(pageNum, pageSize);
+        List<OshPracticalWebsiteVo> list = oshPracticalWebsiteMapper.selectWebsitePage(queryDTO);
+        PageInfo<OshPracticalWebsiteVo> pageInfo = new PageInfo<>(list);
+        return pageInfo.getList();
+    }
+
+    @Override
+    public int incrementClickCount(Long websiteId) {
+        if (websiteId == null) {
+            return 0;
+        }
+        return oshPracticalWebsiteMapper.incrementClickCount(websiteId);
+    }
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public int submitWebsite(WebsiteSubmitDto submitDto) {
+        // 1. 参数校验（必填字段检查）
+        if (submitDto == null ||
+                submitDto.getName() == null || submitDto.getName().trim().isEmpty() ||
+                submitDto.getUrl() == null || submitDto.getUrl().trim().isEmpty()) {
+            throw new IllegalArgumentException("网站名称和链接不能为空");
+        }
+        OshPracticalWebsite website = new OshPracticalWebsite();
+         OshWebsiteTag  tag = new OshWebsiteTag();
+        website.setName(submitDto.getName());
+        website.setUrl(submitDto.getUrl());
+        website.setDescription(submitDto.getDescription());
+        website.setLogoUrl(submitDto.getLogoUrl());
+        website.setStatus(0);  // 0=待审核状态
+        website.setClickCount(0); // 初始点击次数为 0
+        website.setDelFlag(0);  // 0=正常，未删除
+        //保存到数据库
+        int result = oshPracticalWebsiteMapper.insertWebsite(website);
+        website.getId();
+        if (result > 0) {
+            try {
+                //emailUtil.sendEmailCommon("新网站提交", "新网站提交，请审核");
+                emailUtil.sendNewWebsiteSubmitEmail(
+                        website.getId(),
+                        website.getName(),
+                        website.getUrl(),
+                        website.getDescription(),
+                        website.getCreateBy(),
+                        new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(website.getCreateTime())
+                );
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+
+        tag.setId(website.getId());
+        tag.setTagName(submitDto.getTagNames());
+        tag.setDelFlag(0);
+        return oshWebsiteTagMapper.insertWebsiteTag(tag);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean auditWebsite(WebsiteAuditDto auditDto) {
+        if (auditDto == null || auditDto.getWebsiteId() == null) {
+            throw new IllegalArgumentException("网站 ID 不能为空");
+        }
+        if (auditDto.getStatus() == null ||
+                (auditDto.getStatus() != 1 && auditDto.getStatus() != 2)) {
+            throw new IllegalArgumentException("审核状态必须是 1（通过）或 2（拒绝）");
+        }
+        if (auditDto.getStatus() == 2 &&
+                StringUtils.isEmpty(auditDto.getRejectReason())) {
+            throw new IllegalArgumentException("拒绝时必须填写拒绝原因");
+        }
+        // 2. 查询网站是否存在
+        OshPracticalWebsite website = oshPracticalWebsiteMapper.selectById(auditDto.getWebsiteId());
+        if (website == null) {
+            throw new IllegalArgumentException("网站不存在");
+        }
+
+        // 更新审核信息
+        website.setStatus(auditDto.getStatus());
+        website.setAuditBy("admin");
+        website.setAuditTime(new Date());
+        if (auditDto.getStatus() == 2) {
+            // 如果拒绝，记录拒绝原因
+            website.setRejectReason(auditDto.getRejectReason());
+            oshPracticalWebsiteMapper.updateStatusById(website);
+            return false;
+        }
+
+        // 5. 更新对应数据库
+       return oshPracticalWebsiteMapper.updateStatusById(website);
+
+    }
+
+    @Override
+    public TableDataInfo selectAuditList(Integer pageNum, Integer pageSize) {
+        PageHelper.startPage(pageNum, pageSize);
+        // 查询待审核的网站（status = 0）
+        List<OshPracticalWebsite> list = oshPracticalWebsiteMapper.selectAuditList();
+        PageInfo<OshPracticalWebsite> pageInfo = new PageInfo<>(list);
+        return new TableDataInfo(pageInfo.getList(), pageInfo.getTotal());
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public int batchDeleteWebsite(List<Integer> websiteIds) {
+        // 1. 批量删除网站信息
+        oshPracticalWebsiteMapper.batchDeleteWebsite(websiteIds);
+        // 2. 批量删除网站标签信息
+        return oshWebsiteTagMapper.batchDeleteWebsiteTag(websiteIds);
+    }
+
+    @Override
+    public OshPracticalWebsiteVo getAuditDetail(Long websiteId) {
+        if (websiteId == null) {
+            return null;
+        }
+        return oshPracticalWebsiteMapper.selectByIdAndStatus(websiteId, 0);
+    }
+}
+
+
+
+

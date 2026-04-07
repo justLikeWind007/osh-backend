@@ -75,7 +75,6 @@ Desktop.ini
 
 # Application specific
 logs/
-*.sql
 doc/
 
 # Node.js
@@ -109,3 +108,4 @@ yarn.lock
 
 *.js
 backstage-ui/
+*.vue

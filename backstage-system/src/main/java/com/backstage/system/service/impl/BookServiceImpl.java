@@ -2,20 +2,27 @@ package com.backstage.system.service.impl;
 
 import com.backstage.common.exception.ServiceException;
 import com.backstage.common.utils.StringUtils;
-import com.backstage.system.domain.Book;
+import com.backstage.system.domain.book.BookDO;
 import com.backstage.system.domain.BookChapter;
 import com.backstage.system.domain.UserBook;
+import com.backstage.system.domain.book.BookTagDO;
 import com.backstage.system.domain.vo.*;
 import com.backstage.system.mapper.book.BookChapterMapper;
 import com.backstage.system.mapper.book.BookMapper;
 import com.backstage.system.mapper.UserBookMapper;
+import com.backstage.system.mapper.book.BookTagDOMapper;
 import com.backstage.system.service.IBookService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.Resource;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,7 +32,7 @@ import java.util.Optional;
  * @author backstage
  */
 @Service
-public class BookServiceImpl extends ServiceImpl<BookMapper, Book> implements IBookService
+public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements IBookService
 {
     @Autowired
     private BookMapper bookMapper;
@@ -36,6 +43,9 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, Book> implements IB
     @Autowired
     private UserBookMapper userBookMapper;
 
+    @Resource
+    private BookTagDOMapper bookTagDOMapper;
+
     /**
      * 查询电子书列表
      *
@@ -43,7 +53,7 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, Book> implements IB
      * @return 电子书集合
      */
     @Override
-    public List<BookListVO> selectBookList(Book book)
+    public List<BookListVO> selectBookList(BookDO book)
     {
         return bookMapper.selectBookList(book);
     }
@@ -56,18 +66,17 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, Book> implements IB
      * @return 电子书详情
      */
     @Override
-    public BookDetailVO selectBookDetail(Long id, Long userId)
-    {
-        Book book = getById(id);
-        checkEntityNotNull(book, "该记录不存在");
+    public BookDetailVO selectBookDetail(Long id, Long userId) {
+        BookDO bookDO = getById(id);
+        checkEntityNotNull(bookDO, "该记录不存在");
 
         BookDetailVO vo = new BookDetailVO();
-        BeanUtils.copyProperties(book, vo);
-        vo.setDesc(book.getDescription());
-        vo.setTryContent(book.getTryContent());
-        vo.setPrice(Optional.ofNullable(book.getPrice()).map(Object::toString).orElse("0"));
-        vo.setTPrice(Optional.ofNullable(book.getOriginalPrice()).map(Object::toString).orElse("0"));
-        vo.setSubCount(Optional.ofNullable(book.getSubCount()).orElse(0));
+        BeanUtils.copyProperties(bookDO, vo);
+        vo.setDesc(bookDO.getDescription());
+        vo.setTryContent(bookDO.getTryContent());
+        vo.setPrice(Optional.ofNullable(bookDO.getPrice()).map(Object::toString).orElse("0"));
+        vo.setTPrice(Optional.ofNullable(bookDO.getOriginalPrice()).map(Object::toString).orElse("0"));
+        vo.setSubCount(Optional.ofNullable(bookDO.getSubCount()).orElse(0));
 
         // 查询章节列表
         List<BookChapterVO> chapters = bookChapterMapper.selectBookChapterListByBookId(id);
@@ -75,6 +84,8 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, Book> implements IB
 
         // 检查用户是否购买
         vo.setIsbuy(checkUserHasBought(userId, id));
+        // 获取标签列表
+        vo.setTags(bookTagDOMapper.selectBookTagListByBookId(id));
 
         return vo;
     }
@@ -88,8 +99,7 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, Book> implements IB
      * @return 章节内容
      */
     @Override
-    public BookChapterContentVO selectBookChapterContent(Long bookId, Long id, Long userId)
-    {
+    public BookChapterContentVO selectBookChapterContent(Long bookId, Long id, Long userId) {
         BookChapter chapter = bookChapterMapper.selectBookChapterByBookIdAndId(bookId, id);
         checkEntityNotNull(chapter, "该记录不存在");
 
@@ -113,16 +123,15 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, Book> implements IB
      * @return 章节菜单
      */
     @Override
-    public BookMenuVO selectBookMenu(Long id, Long userId)
-    {
-        Book book = getById(id);
-        checkEntityNotNull(book, "该记录不存在");
+    public BookMenuVO selectBookMenu(Long id, Long userId) {
+        BookDO bookDO = getById(id);
+        checkEntityNotNull(bookDO, "该记录不存在");
 
         BookMenuVO vo = new BookMenuVO();
 
         // 设置电子书基本信息
         BookSimpleVO simpleVO = new BookSimpleVO();
-        BeanUtils.copyProperties(book, simpleVO);
+        BeanUtils.copyProperties(bookDO, simpleVO);
         vo.setDetail(simpleVO);
 
         // 查询章节列表
@@ -139,7 +148,7 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, Book> implements IB
      * @return 电子书集合
      */
     @Override
-    public List<Book> selectUserBookList(Long userId)
+    public List<BookDO> selectUserBookList(Long userId)
     {
         return userBookMapper.selectUserBookList(userId);
     }
@@ -152,9 +161,85 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, Book> implements IB
      * @return 电子书分页集合
      */
     @Override
-    public Page<Book> selectUserBookListPage(Long userId, Page<Book> page)
-    {
+    public Page<BookDO> selectUserBookListPage(Long userId, Page<BookDO> page) {
         return userBookMapper.selectUserBookListPage(userId, page);
+    }
+
+    /**
+     * 新增电子书
+     *
+     * @param reqVO 电子书请求VO
+     * @return 电子书响应VO
+     */
+    @Override
+    @Transactional
+    public void createBook(BookSaveReqVO reqVO) {
+
+        BookDO bookDO = new BookDO();
+        BeanUtils.copyProperties(reqVO, bookDO);
+        bookDO.setStatus("0");
+        // 新增电子书
+        bookMapper.insert(bookDO);
+        // 新增电子书标签表记录
+        List<BookTagDO> bookTagDOS = packageBookTagInsertDOList(bookDO.getId(), reqVO);
+        bookTagDOMapper.insert(bookTagDOS);
+    }
+
+    /**
+     * 封装标签数据
+     *
+     * @param reqVO 电子书DO
+     */
+    private List<BookTagDO> packageBookTagInsertDOList(Long id, BookSaveReqVO reqVO) {
+        List<BookTagDO> insertList = new ArrayList<>();
+        for (int i = 0; i < reqVO.getTags().size(); i++) {
+            BookTagDO bookTagInsertDO = new BookTagDO();
+            bookTagInsertDO.setBookId(id);
+            bookTagInsertDO.setTagName(reqVO.getTags().get(i));
+            bookTagInsertDO.setSortOrder(i + 1);
+            insertList.add(bookTagInsertDO);
+        }
+        return insertList;
+    }
+
+    /**
+     * 修改电子书
+     *
+     * @param reqVO 电子书请求VO
+     * @return 电子书响应VO
+     */
+    @Override
+    public void updateBook(BookSaveReqVO reqVO)
+    {
+        BookDO book = getById(reqVO.getId());
+        checkEntityNotNull(book, "电子书不存在");
+        // 新增
+        BookDO bookDO = new BookDO();
+        BeanUtils.copyProperties(reqVO, bookDO);
+        bookMapper.updateById(bookDO);
+
+        // 更新电子书标签
+        // 先删除该电子书原有的标签
+        bookTagDOMapper.delete(
+                new LambdaQueryWrapper<BookTagDO>()
+                        .eq(BookTagDO::getBookId, reqVO.getId())
+        );
+        // 再删除新的标签
+        List<BookTagDO> bookTagDOS = packageBookTagInsertDOList(reqVO.getId(), reqVO);
+        bookTagDOMapper.insert(bookTagDOS);
+    }
+
+    /**
+     * 删除电子书（逻辑删除）
+     *
+     * @param id 电子书ID
+     */
+    @Override
+    public void deleteBook(Long id)
+    {
+        BookDO bookDO = getById(id);
+        checkEntityNotNull(bookDO, "电子书不存在");
+        bookMapper.deleteById(id);
     }
 
     /**
@@ -165,8 +250,7 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, Book> implements IB
      */
     private void checkEntityNotNull(Object entity, String message)
     {
-        if (StringUtils.isNull(entity))
-        {
+        if (StringUtils.isNull(entity)) {
             throw new ServiceException(message);
         }
     }
@@ -180,8 +264,7 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, Book> implements IB
      */
     private boolean checkUserHasBought(Long userId, Long bookId)
     {
-        if (StringUtils.isNull(userId))
-        {
+        if (StringUtils.isNull(userId)) {
             return false;
         }
         UserBook userBook = userBookMapper.selectUserBookByUserIdAndBookId(userId, bookId);
@@ -196,13 +279,11 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, Book> implements IB
      */
     private void checkUserHasBoughtOrThrow(Long userId, Long bookId)
     {
-        if (StringUtils.isNull(userId))
-        {
+        if (StringUtils.isNull(userId)) {
             throw new ServiceException("请先购买该电子书");
         }
         UserBook userBook = userBookMapper.selectUserBookByUserIdAndBookId(userId, bookId);
-        if (StringUtils.isNull(userBook))
-        {
+        if (StringUtils.isNull(userBook)) {
             throw new ServiceException("请先购买该电子书");
         }
     }

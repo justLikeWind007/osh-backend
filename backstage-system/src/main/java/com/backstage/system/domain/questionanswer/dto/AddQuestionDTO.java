@@ -1,5 +1,8 @@
 package com.backstage.system.domain.questionanswer.dto;
 
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+
 import java.util.List;
 
 /**
@@ -9,13 +12,35 @@ import java.util.List;
  * Date: 2026/3/28
  * Time: 21:12
  */
+@ApiModel(description = "新增问题实体类")
 public class AddQuestionDTO {
+    @ApiModelProperty(
+            value = "资源类型",
+            required = true
+    )
     private String resourceType;
+    @ApiModelProperty(
+            value = "资源编号"
+    )
     private Long resourceNo;
-    private String title;
+    @ApiModelProperty(
+            value = "问题描述",
+            required = true
+    )
     private String content;
-    private Integer isPaidOnly;
+    @ApiModelProperty(
+            value = "是否为付费资源",
+            required = true
+    )
+    private Byte isPaidOnly;
+    @ApiModelProperty(
+            value = "标签id集合"
+    )
     private List<Long> tags;
+    @ApiModelProperty(
+            value = "状态"
+    )
+    private Byte status;
 
     public String getResourceType() {
         return resourceType;
@@ -33,14 +58,6 @@ public class AddQuestionDTO {
         this.resourceNo = resourceNo;
     }
 
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
     public String getContent() {
         return content;
     }
@@ -49,11 +66,11 @@ public class AddQuestionDTO {
         this.content = content;
     }
 
-    public Integer getIsPaidOnly() {
+    public Byte getIsPaidOnly() {
         return isPaidOnly;
     }
 
-    public void setIsPaidOnly(Integer isPaidOnly) {
+    public void setIsPaidOnly(Byte isPaidOnly) {
         this.isPaidOnly = isPaidOnly;
     }
 
@@ -65,15 +82,23 @@ public class AddQuestionDTO {
         this.tags = tags;
     }
 
+    public Byte getStatus() {
+        return status;
+    }
+
+    public void setStatus(Byte status) {
+        this.status = status;
+    }
+
     @Override
     public String toString() {
         return "AddQuestionDTO{" +
                 "resourceType='" + resourceType + '\'' +
                 ", resourceId=" + resourceNo +
-                ", title='" + title + '\'' +
                 ", content='" + content + '\'' +
                 ", isPaidOnly=" + isPaidOnly +
                 ", tags=" + tags +
+                ", status=" + status +
                 '}';
     }
 }

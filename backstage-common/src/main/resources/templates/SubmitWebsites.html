@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新网站提交通知</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background-color: #f5f7fa;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            padding: 30px 20px;
+        }
+        .info-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .info-value {
+            color: #666;
+            font-size: 14px;
+            word-break: break-all;
+        }
+        .info-value a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .info-value a:hover {
+            text-decoration: underline;
+        }
+        .button-container {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+        .audit-button {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        .audit-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .footer {
+            padding: 20px;
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            background-color: #f8f9fa;
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo img {
+            max-width: 150px;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- 头部 -->
+    <div class="header">
+        <h1>🎉 有新网站提交审核</h1>
+    </div>
+
+    <!-- 内容区域 -->
+    <div class="content">
+        <!-- Logo -->
+        <div class="logo">
+            <img src="cid:logoImage" alt="Open Source Helper" />
+        </div>
+
+        <!-- 网站信息 -->
+        <div class="info-item">
+            <div class="info-label">📌 网站名称</div>
+            <div class="info-value" th:text="${websiteName}"></div>
+        </div>
+
+        <div class="info-item">
+            <div class="info-label">🔗 网站链接</div>
+            <div class="info-value">
+                <a th:href="${websiteUrl}" th:text="${websiteUrl}" target="_blank"></a>
+            </div>
+        </div>
+
+        <div class="info-item">
+            <div class="info-label">📝 网站描述</div>
+            <div class="info-value" th:text="${websiteDescription}"></div>
+        </div>
+
+        <div class="info-item">
+            <div class="info-label">👤 提交人</div>
+            <div class="info-value" th:text="${submitter}"></div>
+        </div>
+
+        <div class="info-item">
+            <div class="info-label">⏰ 提交时间</div>
+            <div class="info-value" th:text="${submitTime}"></div>
+        </div>
+
+        <!-- 审核按钮 -->
+        <div class="button-container">
+            <p style="color: #666; margin-bottom: 15px;">请点击下方按钮前往后台进行审核：</p>
+            <a th:href="${auditUrl}" class="audit-button" target="_blank">前往审核</a>
+        </div>
+    </div>
+
+    <!-- 底部 -->
+    <div class="footer">
+        <p>此邮件由系统自动发送，请勿回复</p>
+        <p>© 2026 Open Source Helper. All rights reserved.</p>
+    </div>
+</div>
+</body>
+</html>

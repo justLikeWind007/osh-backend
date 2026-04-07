@@ -1,0 +1,173 @@
+package com.backstage.system.service.common.impl;
+
+import com.backstage.common.enums.UploadPathEnum;
+import com.backstage.common.utils.DateUtils;
+import com.backstage.common.utils.ServletUtils;
+import com.backstage.common.utils.ip.IpUtils;
+import com.backstage.system.domain.vo.common.OssOperationLogVo;
+import com.backstage.system.mapper.common.OssMapper;
+import com.backstage.system.service.common.OssService;
+import com.backstage.system.utils.OssUtil;
+import com.backstage.system.utils.UserContextUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import eu.bitwalker.useragentutils.UserAgent;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
+
+@Service
+public class OssImpl implements OssService {
+
+    @Autowired
+    private OssUtil ossUtil;
+
+    @Autowired
+    private OssMapper ossMapper;
+
+    @Autowired
+    private OssService ossService;
+
+    @Autowired
+    private UserContextUtil userContextUtil;
+
+
+    // 需要OSS的文件路径，怎么存的就怎么从数据库里面取
+    /**
+     * @param path oss存储路径如 common/image/avatar/202604/12345asdaasd_file.jpg
+     * @param minute 分钟数，表示URL的有效期
+     * @return 临时访问URL
+    */
+    public String getLimitedUrl(String path, int minute) {
+        if (path.startsWith("/")) {
+            path = path.substring(1);
+        }
+        return ossUtil.getSignedUrl(path, minute);
+    }
+
+
+    // TODO
+    // enum 固定路径类型 course_code.zip 7z
+
+    /**
+     * 上传文件
+     * @param file  文件
+     * @param pathEnum  枚举路径固定
+     * @param id    自定义目录下的子文件夹
+     * @return oss服务的文件路径
+     * @throws Exception
+     */
+    public String upload(MultipartFile file, UploadPathEnum pathEnum, String id) throws  Exception{
+
+
+        String customPath;
+        if(id== null){
+            id="";
+        }else {
+            id=id+"/";
+        }
+
+        // 获取年月
+        String ym = DateUtils.getDate().substring(0,7).replace("-", "");;
+
+
+        if(UploadPathEnum.IMAGE.equals(pathEnum)){
+            customPath = UploadPathEnum.IMAGE.getPath()+id+ym+"/";
+            if(file.getSize() > 1024 * 1024 * 3){
+                return "图片大小不能超过3M";
+            }
+
+        }else if(UploadPathEnum.COURSE_VIDEO.equals(pathEnum)){
+            customPath = UploadPathEnum.COURSE_VIDEO.getPath()+id+ym+"/";
+            if(file.getSize() > 1024 * 1024 * 200){
+                return "视频大小不能超过200MB";
+            }
+        }else {
+            return "类型不正确";
+        }
+
+
+        return ossUtil.uploadFile(file, customPath);
+    }
+
+
+
+    public boolean existsFileKey(String fileKey) {
+        if (fileKey == null || fileKey.trim().isEmpty()) {
+            return false;
+        }
+
+        LambdaQueryWrapper<OssOperationLogVo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(OssOperationLogVo::getFileKey, fileKey);
+        return ossMapper.exists(wrapper);
+    }
+
+
+
+    public int incrementOperationCount(String fileKey) {
+        if (fileKey == null || fileKey.trim().isEmpty()) {
+            return 0;
+        }
+
+        // 直接使用 updateWrapper 让 operation_count + 1
+        LambdaUpdateWrapper<OssOperationLogVo> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(OssOperationLogVo::getFileKey, fileKey)
+                .setSql("operation_count = operation_count + 1");
+
+        return ossMapper.update(null, updateWrapper);
+    }
+
+
+    public void insertMapper(MultipartFile file, String customPath) {
+
+        OssOperationLogVo log = new OssOperationLogVo();
+
+        if (!ossService.existsFileKey(file.getOriginalFilename())) {
+            // 获取浏览器 User-Agent
+            UserAgent userAgent = UserAgent.parseUserAgentString(
+                    ServletUtils.getRequest().getHeader("User-Agent")
+            );
+            // 获取客户端IP
+            String ip = IpUtils.getIpAddr();
+            // 原始文件名
+            log.setOriginalName(file.getOriginalFilename());
+            log.setFileKey(customPath);
+            // 文件后缀
+            log.setFileSuffix(file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf(".") + 1, file.getOriginalFilename().length()));
+            // 文件大小字节
+            log.setFileSize(file.getSize() / 1024 / 1024);
+            log.setFileType(file.getContentType());
+            log.setOperationType("upload");
+            log.setOperationCount(1);
+            try {
+                if (userContextUtil.getCurrentUser().getUsername()!= null)
+                    log.setUsername(userContextUtil.getCurrentUser().getUsername());
+            } catch (Exception e) {
+                log.setUsername("");
+            }
+
+            log.setIp(ip);
+            // 浏览器的userAgent
+            log.setUserAgent(userAgent.toString());
+            log.setBucket(ossUtil.getOssProperties().getBucketName());
+
+        }else {
+            ossService.incrementOperationCount(file.getOriginalFilename());
+        }
+
+
+        ossMapper.insert(log);
+    }
+
+
+}

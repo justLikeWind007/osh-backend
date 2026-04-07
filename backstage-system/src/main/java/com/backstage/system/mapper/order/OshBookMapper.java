@@ -2,7 +2,7 @@ package com.backstage.system.mapper.order;
 
 import java.math.BigDecimal;
 
-import com.backstage.system.domain.Book;
+import com.backstage.system.domain.book.BookDO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -22,5 +22,5 @@ public interface OshBookMapper {
     BigDecimal selectPriceById(@Param("id") Long id);
 
     @Select("SELECT * FROM osh_book WHERE id = #{id}")
-    Book selectById(@Param("id") Long id);
+    BookDO selectById(@Param("id") Long id);
 }

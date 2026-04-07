@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring5.SpringTemplateEngine;
@@ -29,7 +30,6 @@ public class EmailUtil {
     public final String from = "18482663265@163.com";
     // 收件人
     public final String[] to = new String[]{"3210728077@qq.com","3891715998@qq.com"};
-
     @Autowired
     private JavaMailSender javaMailSender;
     @Autowired
@@ -87,6 +87,53 @@ public class EmailUtil {
         //
         ClassPathResource imageResource = new ClassPathResource("static/open-source-helper.jpg");
         mimeMessageHelper.addInline("logoImage", imageResource);
+        javaMailSender.send(mimeMessage);
+    }
+    /**
+     * 发送新网站提交通知邮件
+     * @param websiteName 网站名称
+     * @param websiteUrl 网站链接
+     * @param websiteDescription 网站描述
+     * @param submitter 提交人
+     * @param submitTime 提交时间
+     */
+    @Async
+    public void sendNewWebsiteSubmitEmail(
+            Long websiteId,
+            String websiteName,
+            String websiteUrl,
+            String websiteDescription,
+            String submitter,
+            String submitTime
+    ) throws MessagingException {
+        MimeMessage mimeMessage = javaMailSender.createMimeMessage();
+        MimeMessageHelper mimeMessageHelper = new MimeMessageHelper(mimeMessage, true);
+
+        // 准备模板数据
+        Context context = new Context();
+        context.setVariable("websiteId", websiteId);
+        context.setVariable("websiteName", websiteName);
+        context.setVariable("websiteUrl", websiteUrl);
+        context.setVariable("websiteDescription", websiteDescription);
+        context.setVariable("submitter", submitter);
+        context.setVariable("submitTime", submitTime);
+        // 审核链接
+        context.setVariable("auditUrl",  "http://localhost:8080/api/website/audit/detail/" + websiteId);
+
+        // 通过模板引擎生成HTML内容
+        String content = springTemplateEngine.process("SubmitWebsites", context);
+
+        // 设置邮件内容
+        mimeMessageHelper.setSubject("【新网站提交】" + websiteName);
+        mimeMessageHelper.setText(content, true);
+        mimeMessageHelper.setTo(to);  // 发送给所有管理员
+        mimeMessageHelper.setFrom(from);
+
+        //
+        ClassPathResource imageResource = new ClassPathResource("static/open-source-helper.jpg");
+        mimeMessageHelper.addInline("logoImage", imageResource);
+
+        // 发送邮件
         javaMailSender.send(mimeMessage);
     }
 
