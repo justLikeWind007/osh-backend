@@ -90,7 +90,7 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
      * @return 电子书详情
      */
     @Override
-    public BookDetailVO selectBookDetail(Long id, Long userId) {
+    public BookDetailVO selectBookDetail(Long id) {
         BookDO bookDO = getById(id);
         checkEntityNotNull(bookDO, "该记录不存在");
 
@@ -107,7 +107,7 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
         vo.setBookDetails(chapters);
 
         // 检查用户是否购买
-        vo.setIsbuy(checkUserHasBought(userId, id));
+//        vo.setIsbuy(checkUserHasBought(userId, id));
         // 获取标签列表
         vo.setTags(bookTagDOMapper.selectBookTagListByBookId(id));
 
@@ -123,15 +123,15 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
      * @return 章节内容
      */
     @Override
-    public BookChapterContentVO selectBookChapterContent(Long bookId, Long id, Long userId) {
+    public BookChapterContentVO selectBookChapterContent(Long bookId, Long id) {
         BookChapter chapter = bookChapterMapper.selectBookChapterByBookIdAndId(bookId, id);
         checkEntityNotNull(chapter, "该记录不存在");
 
-        // 如果不是免费章节，检查用户是否购买
-        if (chapter.getIsfree() == 0)
-        {
-            checkUserHasBoughtOrThrow(userId, bookId);
-        }
+//        // 如果不是免费章节，检查用户是否购买
+//        if (chapter.getIsfree() == 0)
+//        {
+//            checkUserHasBoughtOrThrow(userId, bookId);
+//        }
 
         BookChapterContentVO vo = new BookChapterContentVO();
         BeanUtils.copyProperties(chapter, vo);
@@ -147,7 +147,7 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
      * @return 章节菜单
      */
     @Override
-    public BookMenuVO selectBookMenu(Long id, Long userId) {
+    public BookMenuVO selectBookMenu(Long id) {
         BookDO bookDO = getById(id);
         checkEntityNotNull(bookDO, "该记录不存在");
 

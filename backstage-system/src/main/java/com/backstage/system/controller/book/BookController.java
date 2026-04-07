@@ -42,8 +42,7 @@ public class BookController {
     @Anonymous
     @GetMapping("/getById")
     public R<BookDetailVO> getById(@RequestParam Long id) {
-        Long userId = getCurrentUserId();
-        BookDetailVO detail = bookService.selectBookDetail(id, userId);
+        BookDetailVO detail = bookService.selectBookDetail(id);
         return R.ok(detail);
     }
 
@@ -53,8 +52,7 @@ public class BookController {
     @Anonymous
     @GetMapping("/detail")
     public R<BookChapterContentVO> detail(@RequestParam Long book_id, @RequestParam Long id) {
-        Long userId = getCurrentUserId();
-        BookChapterContentVO content = bookService.selectBookChapterContent(book_id, id, userId);
+        BookChapterContentVO content = bookService.selectBookChapterContent(book_id, id);
         return R.ok(content);
     }
 
@@ -64,17 +62,10 @@ public class BookController {
     @Anonymous
     @GetMapping("/menus")
     public R<BookMenuVO> menus(@RequestParam Long id) {
-        Long userId = getCurrentUserId();
-        BookMenuVO menu = bookService.selectBookMenu(id, userId);
+        BookMenuVO menu = bookService.selectBookMenu(id);
         return R.ok(menu);
     }
 
-    /**
-     * 获取当前登录用户ID
-     */
-    private Long getCurrentUserId() {
-        return SecurityUtils.getUserId();
-    }
 
     /**
      * 新增电子书
