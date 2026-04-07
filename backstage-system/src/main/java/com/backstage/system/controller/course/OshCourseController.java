@@ -260,7 +260,7 @@ public class OshCourseController extends BaseController {
 
     @ApiOperation("收藏课程")
     @PostMapping("/collection/add")
-    public R<Void> collectCourse(@Validated @RequestBody CourseCollectionRequest request) {
+    public R<String> collectCourse(@Validated @RequestBody CourseCollectionRequest request) {
         User currentUser = userContextUtil.getCurrentUser();
         if (currentUser == null) {
             return R.fail("请先登录");
@@ -271,7 +271,7 @@ public class OshCourseController extends BaseController {
 
     @ApiOperation("取消收藏课程")
     @PostMapping("/collection/remove")
-    public R<Void> removeCourseCollection(@Validated @RequestBody CourseCollectionRequest request) {
+    public R<String> removeCourseCollection(@Validated @RequestBody CourseCollectionRequest request) {
         User currentUser = userContextUtil.getCurrentUser();
         if (currentUser == null) {
             return R.fail("请先登录");
