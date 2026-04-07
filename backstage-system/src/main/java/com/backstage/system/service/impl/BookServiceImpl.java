@@ -2,18 +2,18 @@ package com.backstage.system.service.impl;
 
 import com.backstage.common.exception.ServiceException;
 import com.backstage.common.utils.StringUtils;
+import com.backstage.system.controller.book.BookListReqVO;
 import com.backstage.system.domain.book.BookDO;
 import com.backstage.system.domain.BookChapter;
 import com.backstage.system.domain.UserBook;
 import com.backstage.system.domain.book.BookTagDO;
-import com.backstage.system.domain.vo.*;
+import com.backstage.system.domain.vo.book.*;
 import com.backstage.system.mapper.book.BookChapterMapper;
 import com.backstage.system.mapper.book.BookMapper;
 import com.backstage.system.mapper.UserBookMapper;
 import com.backstage.system.mapper.book.BookTagDOMapper;
 import com.backstage.system.service.IBookService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.BeanUtils;
@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,10 +53,33 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
      * @param book 电子书
      * @return 电子书集合
      */
+    /**
+     * 查询电子书列表
+     *
+     * @param reqVO 电子书
+     * @return 电子书集合
+     */
+
     @Override
-    public List<BookListVO> selectBookList(BookDO book)
-    {
-        return bookMapper.selectBookList(book);
+    public Page<BookListVO> getBookPageList(BookListReqVO reqVO) {
+        Page<BookDO> pageParam = new Page<>(reqVO.getPageNum(), reqVO.getPageSize());
+        List<BookListVO> bookListVOS = bookMapper.getBookPageList(pageParam, reqVO);
+
+        // tagNames 逗号字符串 -> tagNameList 数组
+        for (BookListVO vo : bookListVOS) {
+            if (StringUtils.isNotEmpty(vo.getTagNames())) {
+                vo.setTagNameList(Arrays.asList(vo.getTagNames().split(",")));
+            }
+        }
+
+        Page<BookListVO> result = new Page<>(pageParam.getCurrent(), pageParam.getSize(), pageParam.getTotal());
+        result.setRecords(bookListVOS);
+        return result;
+    }
+
+    @Override
+    public List<String> getTagList() {
+        return bookTagDOMapper.getTagList();
     }
 
     /**
@@ -66,7 +90,7 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
      * @return 电子书详情
      */
     @Override
-    public BookDetailVO selectBookDetail(Long id, Long userId) {
+    public BookDetailVO selectBookDetail(Long id) {
         BookDO bookDO = getById(id);
         checkEntityNotNull(bookDO, "该记录不存在");
 
@@ -83,7 +107,7 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
         vo.setBookDetails(chapters);
 
         // 检查用户是否购买
-        vo.setIsbuy(checkUserHasBought(userId, id));
+//        vo.setIsbuy(checkUserHasBought(userId, id));
         // 获取标签列表
         vo.setTags(bookTagDOMapper.selectBookTagListByBookId(id));
 
@@ -99,15 +123,15 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
      * @return 章节内容
      */
     @Override
-    public BookChapterContentVO selectBookChapterContent(Long bookId, Long id, Long userId) {
+    public BookChapterContentVO selectBookChapterContent(Long bookId, Long id) {
         BookChapter chapter = bookChapterMapper.selectBookChapterByBookIdAndId(bookId, id);
         checkEntityNotNull(chapter, "该记录不存在");
 
-        // 如果不是免费章节，检查用户是否购买
-        if (chapter.getIsfree() == 0)
-        {
-            checkUserHasBoughtOrThrow(userId, bookId);
-        }
+//        // 如果不是免费章节，检查用户是否购买
+//        if (chapter.getIsfree() == 0)
+//        {
+//            checkUserHasBoughtOrThrow(userId, bookId);
+//        }
 
         BookChapterContentVO vo = new BookChapterContentVO();
         BeanUtils.copyProperties(chapter, vo);
@@ -123,7 +147,7 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
      * @return 章节菜单
      */
     @Override
-    public BookMenuVO selectBookMenu(Long id, Long userId) {
+    public BookMenuVO selectBookMenu(Long id) {
         BookDO bookDO = getById(id);
         checkEntityNotNull(bookDO, "该记录不存在");
 

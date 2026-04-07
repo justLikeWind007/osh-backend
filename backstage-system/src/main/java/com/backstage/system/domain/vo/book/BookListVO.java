@@ -1,16 +1,17 @@
-package com.backstage.system.domain.vo;
+package com.backstage.system.domain.vo.book;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
-import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 电子书列表视图对象
  *
  * @author backstage
  */
-public class BookListVO implements Serializable
-{
+public class BookListVO implements Serializable {
+
     private static final long serialVersionUID = 1L;
 
     /** 电子书ID */
@@ -36,6 +37,12 @@ public class BookListVO implements Serializable
     /** 订阅数 */
     @JsonProperty("sub_count")
     private Integer subCount;
+
+    private List<String> tagNameList;
+
+    /** SQL 返回的逗号拼接字符串（不返回给前端） */
+    @JsonIgnore
+    private String tagNames;
 
     public Long getId()
     {
@@ -105,5 +112,29 @@ public class BookListVO implements Serializable
     public void setSubCount(Integer subCount)
     {
         this.subCount = subCount;
+    }
+
+    public String gettPrice() {
+        return tPrice;
+    }
+
+    public void settPrice(String tPrice) {
+        this.tPrice = tPrice;
+    }
+
+    public List<String> getTagNameList() {
+        return tagNameList;
+    }
+
+    public void setTagNameList(List<String> tagNameList) {
+        this.tagNameList = tagNameList;
+    }
+
+    public String getTagNames() {
+        return tagNames;
+    }
+
+    public void setTagNames(String tagNames) {
+        this.tagNames = tagNames;
     }
 }
