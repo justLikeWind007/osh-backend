@@ -13,6 +13,8 @@ import com.backstage.system.service.order.IOshUploadImageService;
 import com.backstage.system.utils.UserContextUtil;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,12 +26,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Objects;
 
 
 @ApiOperation("上传接口")
 @RestController
 @RequestMapping("/pc")
 public class OssCloudFlareController {
+
+    private final Logger log = LoggerFactory.getLogger(OssCloudFlareController.class);
 
     @Autowired
     private IOshUploadImageService oshUploadImageService;
@@ -43,22 +48,30 @@ public class OssCloudFlareController {
     @Autowired
     private UserContextUtil userContextUtil;
 
-
-    // 限制IP 没60秒 10次 如果加key可以相同的配额限制
+    /**
+     * 限制IP 每60秒 10次 如果加key可以相同的配额限制
+     *
+     * @param file        文件
+     * @param type        上传场景模块类型
+     * @param id          用户 id
+     * @param previewFlag 是否需要预览, 默认false
+     * @param limitMinute 生成文件预览链接的超时时间, 分钟数, 默认30分钟
+     */
     @RateLimiter(limitType = LimitType.IP, time = 60, count = 10)
     @Anonymous
     @ApiParam(value = "上传文件", required = true)
     @ApiOperation("上传接口")
     @PostMapping("/upload")
-    public R upload(
+    public R<Object> upload(
             @RequestParam("file") MultipartFile file,
             @RequestParam("type") String type,
-            @RequestParam(value = "id", required = false) String id) {
-
+            @RequestParam(value = "id", required = false) String id,
+            @RequestParam(value = "preview", required = false, defaultValue = "false") Boolean previewFlag,
+            @RequestParam(value = "minute", required = false, defaultValue = "30") Integer limitMinute) {
         if (file.isEmpty()) {
             return R.fail("上传文件不能为空");
         }
-        if(type.equals("video")) {
+        if (type.equals("video")) {
             try {
                 String url = ossService.upload(file, UploadPathEnum.COURSE_VIDEO, id);
                 // 判断是否返回了错误信息
@@ -67,13 +80,13 @@ public class OssCloudFlareController {
                 }
                 return R.ok(url);
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("上传失败", e);
                 return R.fail("上传失败：" + e.getMessage());
             }
-        }else{
+        } else {
             try {
                 String url = ossService.upload(file, UploadPathEnum.IMAGE, id);
-                if (url == "图片大小不能超过3M") {
+                if (Objects.equals(url, "图片大小不能超过3M")) {
                     return R.fail(url);
                 }
                 OshUploadImage uploadImage = new OshUploadImage();
@@ -84,25 +97,22 @@ public class OssCloudFlareController {
                 uploadImage.setFileSize(file.getSize());
                 uploadImage.setFileType(file.getContentType());
                 uploadImage.setStatus(1L);
-
                 int result = oshUploadImageService.insertOshUploadImage(uploadImage);
-
                 if (result > 0) {
-                    R r = new R();
                     AvaterVo avaterVo = new AvaterVo();
-                    url = ossService.getLimitedUrl(url,1);
+                    if (previewFlag) {
+                        avaterVo.setPreviewUrl(ossService.getLimitedUrl(url, limitMinute));
+                    }
                     avaterVo.setUrl(url);
                     avaterVo.setFileName(file.getOriginalFilename());
                     avaterVo.setFileSize(String.valueOf(file.getSize()));
                     avaterVo.setFileType(file.getContentType());
-                    r.setMsg("ok");
-                    return r.ok(avaterVo);
+                    return R.ok(avaterVo);
                 } else {
                     return R.fail(file.getOriginalFilename());
                 }
-
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("上传失败", e);
                 return R.fail(e.getMessage());
             }
         }
@@ -111,8 +121,10 @@ public class OssCloudFlareController {
     @Anonymous
     @GetMapping("/upload/avatar")
     public R getUrl() {
-        String signedUrl = ossService.getLimitedUrl("common/image/202603/微信图片_20260327163452_147_8.jpg", 1);
+        String signedUrl = ossService.getLimitedUrl("common/image/avatar/微信图片_20260327163452_147_8.jpg", 1);
+
         return R.ok(signedUrl);
+
     }
 
 

@@ -1,7 +1,7 @@
-package com.backstage.system.service;
+package com.backstage.system.service.site;
 
 import com.backstage.system.domain.site.OshSiteInfo;
-import com.backstage.system.domain.site.OshSiteUsage;
+import com.backstage.system.domain.user.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 /**
@@ -17,6 +17,5 @@ public interface IOshSiteInfoService extends IService<OshSiteInfo> {
      * @param siteInfo 网站信息
      * @return 结果
      */
-    int insertUsage(OshSiteInfo siteInfo);
-
+  int insertUsage(OshSiteInfo siteInfo, User user);
 }

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.website.OshPracticalWebsiteMapper">
+
+    <resultMap id="WebsiteVoResultMap" type="com.backstage.system.domain.vo.website.OshPracticalWebsiteVo">
+        <id property="id" column="id" />
+        <result property="name" column="name" />
+        <result property="url" column="url" />
+        <result property="description" column="description" />
+        <result property="logoUrl" column="logo_url" />
+        <result property="tags" column="tags" />
+        <result property="clickCount" column="click_count" />
+        <result property="auditTime" column="audit_time" />
+    </resultMap>
+    <!--根据网站id批量删除网站信息-->
+    <delete id="batchDeleteWebsite">
+        UPDATE osh_practical_website
+        SET del_flag = 1
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+    <select id="selectWebsitePage" resultMap="WebsiteVoResultMap">
+        SELECT
+        w.id,
+        w.name,
+        w.url,
+        w.description,
+        w.logo_url,
+        w.click_count,
+        w.audit_time,
+        GROUP_CONCAT(t.tag_name ORDER BY t.tag_name SEPARATOR ',') as tags
+        FROM osh_practical_website w
+        LEFT JOIN osh_website_tag_rel wt ON w.id = wt.website_id AND wt.del_flag = 0
+        LEFT JOIN osh_website_tag t ON wt.tag_id = t.id AND t.del_flag = 0
+        WHERE w.del_flag = 0
+        AND w.status = 1
+        <if test="queryDTO.websiteName != null and queryDTO.websiteName != ''">
+            AND w.name LIKE CONCAT('%', #{queryDTO.websiteName}, '%')
+        </if>
+        <if test="queryDTO.tagNames != null and queryDTO.tagNames != ''">
+            AND t.tag_name IN
+            <foreach item="tagName" collection="@org.apache.commons.lang3.StringUtils@split(queryDTO.tagNames, ',')" open="(" separator="," close=")">
+                #{tagName}
+            </foreach>
+        </if>
+        GROUP BY w.id, w.name, w.url, w.description, w.logo_url, w.click_count, w.audit_time
+        <if test="queryDTO.tagNameCount != null and queryDTO.tagNameCount > 0">
+            HAVING COUNT(DISTINCT t.tag_name) = #{queryDTO.tagNameCount}
+        </if>
+        ORDER BY w.click_count DESC, w.audit_time DESC
+    </select>
+
+    <update id="incrementClickCount">
+        UPDATE osh_practical_website
+        SET click_count = click_count + 1
+        WHERE id = #{websiteId}
+    </update>
+
+</mapper>

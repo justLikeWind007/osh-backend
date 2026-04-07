@@ -43,6 +43,9 @@ public class OssImpl implements OssService {
      * @return 临时访问URL
     */
     public String getLimitedUrl(String path, int minute) {
+        if (path.startsWith("/")) {
+            path = path.substring(1);
+        }
         return ossUtil.getSignedUrl(path, minute);
     }
 

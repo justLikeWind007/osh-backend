@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 电子书保存请求视图对象（新增/修改）
@@ -37,6 +38,9 @@ public class BookSaveReqVO implements Serializable
     /** 原价 */
     @JsonProperty("t_price")
     private BigDecimal tPrice;
+
+    /** 标签列表 */
+    private List<String> tags;
 
     public Long getId()
     {
@@ -104,5 +108,21 @@ public class BookSaveReqVO implements Serializable
     public void setTPrice(BigDecimal tPrice)
     {
         this.tPrice = tPrice;
+    }
+
+    public BigDecimal gettPrice() {
+        return tPrice;
+    }
+
+    public void settPrice(BigDecimal tPrice) {
+        this.tPrice = tPrice;
+    }
+
+    public List<String> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<String> tags) {
+        this.tags = tags;
     }
 }
