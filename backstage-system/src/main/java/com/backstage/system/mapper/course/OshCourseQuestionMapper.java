@@ -1,6 +1,9 @@
 package com.backstage.system.mapper.course;
 
 import com.backstage.system.domain.course.OshCourseQuestion;
+import com.backstage.system.domain.course.vo.CourseQuestionAnswerItemVo;
+import com.backstage.system.domain.course.vo.CourseQuestionListItemVo;
+import com.backstage.system.request.CourseQuestionPageRequest;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -15,8 +18,9 @@ public interface OshCourseQuestionMapper {
 
     OshCourseQuestion selectQuestionById(@Param("id") Long id);
 
-    List<OshCourseQuestion> selectQuestionList(@Param("question") OshCourseQuestion question);
+    List<CourseQuestionListItemVo> selectSectionQuestionPage(CourseQuestionPageRequest request);
 
+    List<CourseQuestionAnswerItemVo> selectQuestionAnswers(@Param("questionId") Long questionId);
 
     int updateQuestionReplyMeta(@Param("questionId") Long questionId,
                                 @Param("lastReplyTime") Date lastReplyTime,

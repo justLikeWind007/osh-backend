@@ -26,6 +26,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         c.view_count,
         c.like_count,
         c.comment_count,
+        c.question_count,
         c.rating_score,
         c.free_type,
         c.after_service_days,
@@ -42,11 +43,17 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         c.price,
         c.t_price,
         c.sub_count,
+        c.buy_count,
         c.remark,
         c.total_duration,
         c.video_count,
         c.free_lesson_count,
         c.view_count,
+        c.good_count,
+        c.mid_count,
+        c.bad_count,
+        c.comment_count,
+        c.collection_count,
         c.rating_score,
         c.free_type,
         c.after_service_days,
@@ -57,7 +64,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         c.update_by,
         c.update_time
     </sql>
-
+    
     <resultMap type="com.backstage.system.domain.course.OshCourse" id="OshCouresResult">
         <result property="id"   column="id"    />
         <result property="title"   column="title"    />
@@ -80,6 +87,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="viewCount"   column="view_count"    />
         <result property="likeCount"   column="like_count"    />
         <result property="commentCount"   column="comment_count"    />
+        <result property="questionCount"   column="question_count"    />
         <result property="ratingScore"   column="rating_score"    />
         <result property="freeType"   column="free_type"    />
         <result property="afterServiceDays"   column="after_service_days"    />
@@ -96,11 +104,17 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="price" column="price"/>
         <result property="tPrice" column="t_price"/>
         <result property="subCount" column="sub_count"/>
+        <result property="buyCount" column="buy_count"/>
         <result property="remark" column="remark"/>
         <result property="totalDuration" column="total_duration"/>
         <result property="videoCount" column="video_count"/>
         <result property="freeLessonCount" column="free_lesson_count"/>
         <result property="viewCount" column="view_count"/>
+        <result property="goodCount" column="good_count"/>
+        <result property="midCount" column="mid_count"/>
+        <result property="badCount" column="bad_count"/>
+        <result property="commentCount" column="comment_count"/>
+        <result property="collectionCount" column="collection_count"/>
         <result property="ratingScore" column="rating_score"/>
         <result property="freeType" column="free_type"/>
         <result property="afterServiceDays" column="after_service_days"/>
@@ -220,18 +234,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <!-- 查询课程详情 -->
     <select id="selectCourseById" parameterType="Long" resultMap="OshCouresResult">
         <include refid="selectCourseVo"/>
-        where id = #{id} AND delete_flag = 0
+        where id = #{id}
     </select>
 
     <!-- 根据条件查询课程列表 -->
     <select id="selectCourseList" resultMap="OshCouresResult">
         <include refid="selectCourseVo"/>
-        <where>
-            AND delete_flag = 0
-            <if test="columnId != null">
-                and column_id = #{columnId}
-            </if>
-        </where>
         order by create_time
     </select>
 
@@ -258,6 +266,34 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             </if>
         </where>
         order by c.create_time desc, c.id desc
+    </select>
+
+    <select id="pageQueryUserCollectionCourse" resultMap="OshCouresResult">
+        select distinct
+        <include refid="searchCourseColumns"/>
+        from osh_course c
+        inner join osh_course_collection occ on occ.course_id = c.id
+            and occ.user_id = #{userId}
+            and occ.delete_flag = 0
+        left join osh_course_tag_rel ctr on ctr.course_id = c.id
+            and ctr.delete_flag = 0
+        left join osh_course_tag ct on ct.id = ctr.tag_id
+            and ct.delete_flag = 0
+            and ct.status = 1
+        <where>
+            c.delete_flag = 0
+            and c.status = 2
+            <if test="request.keyword != null and request.keyword != ''">
+                and c.title like concat('%', #{request.keyword}, '%')
+            </if>
+            <if test="request.tags != null and request.tags.size() > 0">
+                and ct.name in
+                <foreach collection="request.tags" item="tag" open="(" separator="," close=")">
+                    #{tag}
+                </foreach>
+            </if>
+        </where>
+        order by occ.create_time desc, c.id desc
     </select>
 
     <select id="getCourseDetail" resultMap="OshCourseDetailResult">
@@ -433,6 +469,27 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
           and free_flag = 1
     </select>
 
+    <update id="increaseQuestionCount">
+        update osh_course
+        set question_count = ifnull(question_count, 0) + 1
+        where id = #{courseId}
+          and delete_flag = 0
+    </update>
+
+    <update id="increaseCollectionCount">
+        update osh_course
+        set collection_count = ifnull(collection_count, 0) + 1
+        where id = #{courseId}
+          and delete_flag = 0
+    </update>
+
+    <update id="decreaseCollectionCount">
+        update osh_course
+        set collection_count = if(ifnull(collection_count, 0) > 0, collection_count - 1, 0)
+        where id = #{courseId}
+          and delete_flag = 0
+    </update>
+
     <!-- 多标签 + 关键字 + 动态排序查询课程列表 -->
     <select id="selectCourseListByCondition" parameterType="java.util.Map" resultMap="OshCouresResult">
         SELECT DISTINCT c.id, c.title, c.cover, c.price, c.t_price, c.type, c.status,
@@ -487,6 +544,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="freeLessonCount != null">free_lesson_count,</if>
             <if test="likeCount != null">like_count,</if>
             <if test="commentCount != null">comment_count,</if>
+            <if test="questionCount != null">question_count,</if>
             <if test="ratingScore != null">rating_score,</if>
             <if test="freeType != null">free_type,</if>
             <if test="afterServiceDays != null">after_service_days,</if>
@@ -512,6 +570,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="freeLessonCount != null">#{freeLessonCount},</if>
             <if test="likeCount != null">#{likeCount},</if>
             <if test="commentCount != null">#{commentCount},</if>
+            <if test="questionCount != null">#{questionCount},</if>
             <if test="ratingScore != null">#{ratingScore},</if>
             <if test="freeType != null">#{freeType},</if>
             <if test="afterServiceDays != null">#{afterServiceDays},</if>

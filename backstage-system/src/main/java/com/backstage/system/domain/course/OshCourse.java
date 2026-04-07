@@ -87,6 +87,10 @@ public class OshCourse {
     @ApiModelProperty("评论数")
     private Integer commentCount;
 
+    @Excel(name = "提问数")
+    @ApiModelProperty("提问数")
+    private Integer questionCount;
+
 
     @Excel(name = "平均评分")
     @ApiModelProperty("平均评分")
@@ -293,6 +297,14 @@ public class OshCourse {
 
     public void setCommentCount(Integer commentCount) {
         this.commentCount = commentCount;
+    }
+
+    public Integer getQuestionCount() {
+        return questionCount;
+    }
+
+    public void setQuestionCount(Integer questionCount) {
+        this.questionCount = questionCount;
     }
 
     public BigDecimal getRatingScore() {

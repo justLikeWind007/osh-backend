@@ -22,6 +22,8 @@ import java.util.List;
 public interface IOshCourseService {
     List<OshCourse> pageQuerySearchCourse(CourseSearchRequest request);
 
+    List<OshCourse> pageQueryUserCollectionCourse(Long userId, CourseSearchRequest request);
+
     /**
      * 查询课程详情
      *

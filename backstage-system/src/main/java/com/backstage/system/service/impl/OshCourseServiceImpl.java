@@ -40,6 +40,12 @@ public class OshCourseServiceImpl implements IOshCourseService {
     }
 
     @Override
+    public List<OshCourse> pageQueryUserCollectionCourse(Long userId, CourseSearchRequest request) {
+        PageHelper.startPage(request.getPageNum(), request.getPageSize());
+        return oshCourseMapper.pageQueryUserCollectionCourse(userId, request);
+    }
+
+    @Override
     public OshCourseDetailVo getCourseDetail(Long id, Long userId) {
         OshCourseDetailVo oshCourseDetailVo = oshCourseMapper.getCourseDetail(id, userId);
         return oshCourseDetailVo;
