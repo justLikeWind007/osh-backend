@@ -74,10 +74,7 @@ public class OssCloudFlareController {
         if (type.equals("video")) {
             try {
                 String url = ossService.upload(file, UploadPathEnum.COURSE_VIDEO, id);
-                // 判断是否返回了错误信息
-                if (url == null || url.contains("不能超过") || url.contains("类型不正确")) {
-                    return R.fail(url);
-                }
+
                 return R.ok(url);
             } catch (Exception e) {
                 log.error("上传失败", e);
@@ -86,9 +83,7 @@ public class OssCloudFlareController {
         } else {
             try {
                 String url = ossService.upload(file, UploadPathEnum.IMAGE, id);
-                if (Objects.equals(url, "图片大小不能超过3M")) {
-                    return R.fail(url);
-                }
+
                 OshUploadImage uploadImage = new OshUploadImage();
                 uploadImage.setUserId(1L);
                 uploadImage.setSchoolId(1L);
