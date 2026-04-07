@@ -1,29 +1,25 @@
 package com.backstage.system.controller.website;
 
 import com.backstage.common.annotation.Anonymous;
-import com.backstage.common.constant.OshUserConstants;
 import com.backstage.common.core.controller.BaseController;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
-import com.backstage.common.utils.SecurityUtils;
-import com.backstage.system.domain.dto.website.WebsiteAuditDto;
-import com.backstage.system.domain.dto.website.WebsiteQueryDto;
-import com.backstage.system.domain.dto.website.WebsiteSubmitDto;
-import com.backstage.system.domain.vo.website.OshPracticalWebsiteVo;
-import com.backstage.system.domain.vo.website.UserFavoriteWebsiteVo;
-import com.backstage.system.domain.website.OshPracticalWebsite;
-import com.backstage.system.mapper.website.OshUserFavoriteWebsiteMapper;
+import com.backstage.system.domain.dto.website.WebsiteAuditDTO;
+import com.backstage.system.domain.dto.website.WebsiteQueryDTO;
+import com.backstage.system.domain.dto.website.WebsiteSubmitDTO;
+import com.backstage.system.domain.vo.website.OshPracticalWebsiteVO;
 import com.backstage.system.service.website.OshPracticalWebsiteService;
 import com.backstage.system.service.website.OshUserFavoriteWebsiteService;
 import com.github.pagehelper.PageInfo;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 实用网站 Controller
@@ -43,18 +39,21 @@ public class OshPracticalWebsiteController extends BaseController {
      */
     @Anonymous
     @ApiOperation("查询实用网站列表")
-    @GetMapping("/list")
-    public R<TableDataInfo> list(@RequestParam(value = "websiteName", required = false) String websiteName,
-                                 @RequestParam(value = "tagNames", required = false) String tagNames,
-                                 @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
-                                 @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
-
-        WebsiteQueryDto queryDTO = new WebsiteQueryDto();
+    @PostMapping("/list")
+    public R<Map<String, Object>> list(@RequestBody WebsiteQueryDTO queryDTO) {
+       /* WebsiteQueryDto queryDTO = new WebsiteQueryDto();
         queryDTO.setWebsiteName(websiteName);
         queryDTO.setTagNames(tagNames);
         queryDTO.setPageNum(pageNum);
-        queryDTO.setPageSize(pageSize);
-        return R.ok(getDataTable(oshPracticalWebsiteService.selectWebsitePage(queryDTO)));
+        queryDTO.setPageSize(pageSize);*/
+         List<OshPracticalWebsiteVO> list = oshPracticalWebsiteService.selectWebsitePage(queryDTO);
+        PageInfo<OshPracticalWebsiteVO> oshPracticalWebsiteVoPageInfo = new PageInfo<>(list);
+        Map<String, Object> data = new LinkedHashMap<>(4);
+        data.put("rows", list);
+        data.put("total", oshPracticalWebsiteVoPageInfo.getTotal());
+        data.put("pageNum", oshPracticalWebsiteVoPageInfo.getPageNum());
+        data.put("pageSize", oshPracticalWebsiteVoPageInfo.getPageSize());
+        return R.ok(data, "ok");
     }
 
     /**
@@ -74,7 +73,7 @@ public class OshPracticalWebsiteController extends BaseController {
     @Anonymous
     @ApiOperation("用户提交网站")
     @PostMapping("/submit")
-    public R submit(@RequestBody WebsiteSubmitDto submitDto) {
+    public R submit(@RequestBody WebsiteSubmitDTO submitDto) {
         try {
             // 调用 Service 层保存网站信息
             int result = oshPracticalWebsiteService.submitWebsite(submitDto);
@@ -171,7 +170,7 @@ public class OshPracticalWebsiteController extends BaseController {
     @ApiOperation("管理员审核网站")
     @Anonymous
     @PostMapping("/audit")
-    public R<String> audit(@RequestBody WebsiteAuditDto auditDto) {
+    public R<String> audit(@RequestBody WebsiteAuditDTO auditDto) {
         try {
             //从拦截器获取当前登录的管理员 ID
              //Long adminId = ThreadLocalUtil.get("admin",Long.class);
@@ -219,13 +218,13 @@ public class OshPracticalWebsiteController extends BaseController {
     @ApiOperation("查询待审核网站详情")
     @Anonymous
     @GetMapping("/audit/detail/{websiteId}")
-    public R<OshPracticalWebsiteVo> getAuditDetail(@PathVariable Long websiteId) {
+    public R<OshPracticalWebsiteVO> getAuditDetail(@PathVariable Long websiteId) {
         try {
             if (websiteId == null) {
                 return R.fail("网站ID不能为空");
             }
 
-            OshPracticalWebsiteVo website = oshPracticalWebsiteService.getAuditDetail(websiteId);
+            OshPracticalWebsiteVO website = oshPracticalWebsiteService.getAuditDetail(websiteId);
 
             if (website == null) {
                 return R.fail("网站不存在或已审核");

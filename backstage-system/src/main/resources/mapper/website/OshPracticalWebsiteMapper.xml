@@ -4,7 +4,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.backstage.system.mapper.website.OshPracticalWebsiteMapper">
 
-    <resultMap id="WebsiteVoResultMap" type="com.backstage.system.domain.vo.website.OshPracticalWebsiteVo">
+    <resultMap id="WebsiteVoResultMap" type="com.backstage.system.domain.vo.website.OshPracticalWebsiteVO">
         <id property="id" column="id" />
         <result property="name" column="name" />
         <result property="url" column="url" />
@@ -24,7 +24,7 @@
         </foreach>
     </delete>
     <select id="selectWebsitePage" resultMap="WebsiteVoResultMap">
-        SELECT
+        SELECT DISTINCT
         w.id,
         w.name,
         w.url,
@@ -41,18 +41,16 @@
         <if test="queryDTO.websiteName != null and queryDTO.websiteName != ''">
             AND w.name LIKE CONCAT('%', #{queryDTO.websiteName}, '%')
         </if>
-        <if test="queryDTO.tagNames != null and queryDTO.tagNames != ''">
+        <if test="queryDTO.tagNames != null and queryDTO.tagNames.size() > 0">
             AND t.tag_name IN
-            <foreach item="tagName" collection="@org.apache.commons.lang3.StringUtils@split(queryDTO.tagNames, ',')" open="(" separator="," close=")">
+            <foreach item="tagName" collection="queryDTO.tagNames" open="(" separator="," close=")">
                 #{tagName}
             </foreach>
         </if>
         GROUP BY w.id, w.name, w.url, w.description, w.logo_url, w.click_count, w.audit_time
-        <if test="queryDTO.tagNameCount != null and queryDTO.tagNameCount > 0">
-            HAVING COUNT(DISTINCT t.tag_name) = #{queryDTO.tagNameCount}
-        </if>
         ORDER BY w.click_count DESC, w.audit_time DESC
     </select>
+
 
     <update id="incrementClickCount">
         UPDATE osh_practical_website

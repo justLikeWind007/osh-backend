@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 /**
  * 实用网站视图对象（带标签信息）
  */
-public class OshPracticalWebsiteVo {
+public class OshPracticalWebsiteVO {
 
     /** 主键 ID */
     private Long id;

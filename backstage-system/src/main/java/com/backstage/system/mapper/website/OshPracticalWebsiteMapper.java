@@ -1,7 +1,7 @@
 package com.backstage.system.mapper.website;
 
-import com.backstage.system.domain.dto.website.WebsiteQueryDto;
-import com.backstage.system.domain.vo.website.OshPracticalWebsiteVo;
+import com.backstage.system.domain.dto.website.WebsiteQueryDTO;
+import com.backstage.system.domain.vo.website.OshPracticalWebsiteVO;
 import com.backstage.system.domain.website.OshPracticalWebsite;
 import org.apache.ibatis.annotations.*;
 
@@ -19,7 +19,7 @@ public interface OshPracticalWebsiteMapper  {
      * @param queryDTO 查询参数
      * @return 网站 VO 列表
      */
-    List<OshPracticalWebsiteVo> selectWebsitePage(@Param("queryDTO") WebsiteQueryDto queryDTO);
+    List<OshPracticalWebsiteVO> selectWebsitePage(@Param("queryDTO") WebsiteQueryDTO queryDTO);
 
     /**
      * 增加网站点击次数
@@ -76,7 +76,7 @@ public interface OshPracticalWebsiteMapper  {
     int batchDeleteWebsite(List<Integer> websiteIds);
 
     @Select("SELECT * FROM osh_practical_website WHERE id = #{websiteId} AND del_flag = 0 AND status = #{status}")
-    OshPracticalWebsiteVo selectByIdAndStatus(@Param("websiteId") Long websiteId, @Param("status") Integer status);
+    OshPracticalWebsiteVO selectByIdAndStatus(@Param("websiteId") Long websiteId, @Param("status") Integer status);
 
 }
 
