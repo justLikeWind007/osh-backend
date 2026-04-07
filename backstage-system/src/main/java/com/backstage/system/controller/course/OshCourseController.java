@@ -60,7 +60,6 @@ public class OshCourseController extends BaseController {
     public R<Map<String, Object>> courseSearch(@RequestBody CourseSearchRequest request) {
         List<OshCourse> list = oshCouresService.pageQuerySearchCourse(request);
         PageInfo<OshCourse> pageInfo = new PageInfo<>(list);
-
         Map<String, Object> data = new LinkedHashMap<>(4);
         data.put("rows", list);
         data.put("total", pageInfo.getTotal());
@@ -75,6 +74,7 @@ public class OshCourseController extends BaseController {
     public R<OshCourseDetailVo> getCourseDetail(@NotNull @PathVariable("id") Long id) {
 
         User currentUser = userContextUtil.getCurrentUser();
+
         OshCourseDetailVo oshCourseDetailVo = oshCouresService.getCourseDetail(id, currentUser.getId());
         if (oshCourseDetailVo == null) {
             return R.fail("课程不存在");
