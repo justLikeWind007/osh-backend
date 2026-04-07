@@ -1,5 +1,10 @@
 package com.backstage.system.domain.questionanswer;
 
+import com.backstage.common.core.domain.entity.OSHBaseEntity;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Date;
@@ -10,13 +15,15 @@ import java.util.Date;
  * Date: 2026/3/24
  * Time: 21:20
  */
-public class Answer implements Serializable {
+@TableName("osh_question_answer_answer")
+public class Answer extends OSHBaseEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
     /**
      * 主键id
      */
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
     /**
@@ -45,39 +52,9 @@ public class Answer implements Serializable {
     private Byte isSolution;
 
     /**
-     * 是否被标记为乱答/违规：0=否，1=是
-     */
-    private Byte isFlagged;
-
-    /**
      * 状态：0=正常，1=已删除，2=违规锁定
      */
     private Byte status;
-
-    /**
-     * 创建时间
-     */
-    private LocalDateTime createdTime;
-
-    /**
-     * 创建人
-     */
-    private String createdBy;
-
-    /**
-     * 更新时间
-     */
-    private LocalDateTime updatedTime;
-
-    /**
-     * 更新人
-     */
-    private String updatedBy;
-
-    /**
-     * 逻辑删除：0=未删除，1=已删除
-     */
-    private Integer isDelete;
 
     public Long getId() {
         return id;
@@ -127,60 +104,12 @@ public class Answer implements Serializable {
         this.isSolution = isSolution;
     }
 
-    public Byte getIsFlagged() {
-        return isFlagged;
-    }
-
-    public void setIsFlagged(Byte isFlagged) {
-        this.isFlagged = isFlagged;
-    }
-
     public Byte getStatus() {
         return status;
     }
 
     public void setStatus(Byte status) {
         this.status = status;
-    }
-
-    public LocalDateTime getCreatedTime() {
-        return createdTime;
-    }
-
-    public void setCreatedTime(LocalDateTime createdTime) {
-        this.createdTime = createdTime;
-    }
-
-    public String getCreatedBy() {
-        return createdBy;
-    }
-
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
-    }
-
-    public LocalDateTime getUpdatedTime() {
-        return updatedTime;
-    }
-
-    public void setUpdatedTime(LocalDateTime updatedTime) {
-        this.updatedTime = updatedTime;
-    }
-
-    public String getUpdatedBy() {
-        return updatedBy;
-    }
-
-    public void setUpdatedBy(String updatedBy) {
-        this.updatedBy = updatedBy;
-    }
-
-    public Integer getIsDelete() {
-        return isDelete;
-    }
-
-    public void setIsDelete(Integer isDelete) {
-        this.isDelete = isDelete;
     }
 
     @Override
@@ -192,13 +121,7 @@ public class Answer implements Serializable {
                 ", content='" + content + '\'' +
                 ", voteCount=" + voteCount +
                 ", isSolution=" + isSolution +
-                ", isFlagged=" + isFlagged +
                 ", status=" + status +
-                ", createdTime=" + createdTime +
-                ", createdBy='" + createdBy + '\'' +
-                ", updatedTime=" + updatedTime +
-                ", updatedBy='" + updatedBy + '\'' +
-                ", isDelete=" + isDelete +
                 '}';
     }
 }

@@ -19,6 +19,8 @@ public class AvaterVo {
     @ApiModelProperty("图片类型")
     private String fileType;
 
+    @ApiModelProperty("预览地址")
+    private String previewUrl;
 
     public String getUrl() {
         return url;
@@ -45,5 +47,11 @@ public class AvaterVo {
         this.fileType = fileType;
     }
 
+    public String getPreviewUrl() {
+        return previewUrl;
+    }
 
+    public void setPreviewUrl(String previewUrl) {
+        this.previewUrl = previewUrl;
+    }
 }

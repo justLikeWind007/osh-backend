@@ -45,6 +45,11 @@ public class BookDetailVO implements Serializable
     @JsonProperty("book_details")
     private List<BookChapterVO> bookDetails;
 
+    /**
+     * 标签
+     */
+    private List<String> tags;
+
     /** 是否已购买 */
     private Boolean isbuy;
 
@@ -146,5 +151,21 @@ public class BookDetailVO implements Serializable
     public void setIsbuy(Boolean isbuy)
     {
         this.isbuy = isbuy;
+    }
+
+    public String gettPrice() {
+        return tPrice;
+    }
+
+    public void settPrice(String tPrice) {
+        this.tPrice = tPrice;
+    }
+
+    public List<String> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<String> tags) {
+        this.tags = tags;
     }
 }

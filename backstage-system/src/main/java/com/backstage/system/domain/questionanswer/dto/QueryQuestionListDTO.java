@@ -1,5 +1,8 @@
 package com.backstage.system.domain.questionanswer.dto;
 
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+
 /**
  * Created with IntelliJ IDEA.
  * Description:
@@ -7,19 +10,41 @@ package com.backstage.system.domain.questionanswer.dto;
  * Date: 2026/3/29
  * Time: 18:08
  */
+@ApiModel(description = "查询问题列表实体类")
 public class QueryQuestionListDTO {
-    private String resourceNo;
+    @ApiModelProperty(
+            value = "资源编号"
+    )
+    private Long resourceNo;
+    @ApiModelProperty(
+            value = "资源类型"
+    )
     private String resourceType;
+    @ApiModelProperty(
+            value = "搜索类型",
+            required = true
+    )
     private String type;
+    @ApiModelProperty(
+            value = "搜索关键字"
+    )
     private String keyword;
+    @ApiModelProperty(
+            value = "页码",
+            required = true
+    )
     private Integer pageNum;
+    @ApiModelProperty(
+            value = "每页数量",
+            required = true
+    )
     private Integer pageSize;
 
-    public String getResourceNo() {
+    public Long getResourceNo() {
         return resourceNo;
     }
 
-    public void setResourceNo(String resourceNo) {
+    public void setResourceNo(Long resourceNo) {
         this.resourceNo = resourceNo;
     }
 

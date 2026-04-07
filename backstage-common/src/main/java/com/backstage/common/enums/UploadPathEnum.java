@@ -18,6 +18,7 @@ public enum UploadPathEnum {
 
         TEMP("temp/"),
 
+        INNER_SITE("site/"),
 
         DEFAULT("common/");
 

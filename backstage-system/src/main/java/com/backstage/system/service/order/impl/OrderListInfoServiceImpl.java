@@ -1,6 +1,6 @@
 package com.backstage.system.service.order.impl;
 
-import com.backstage.system.domain.Book;
+import com.backstage.system.domain.book.BookDO;
 import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.group.GroupActivity;
 import com.backstage.system.domain.vo.ColumnDetailVo;
@@ -63,10 +63,10 @@ public class OrderListInfoServiceImpl implements OrderListInfoService {
             }
         }else if (type.equals("book")) {
             // 电子书
-            Book book = oshBookMapper.selectById(id);
-            if (book!=null){
-                String cover = book.getCover();
-                String title = book.getTitle();
+            BookDO bookDO = oshBookMapper.selectById(id);
+            if (bookDO !=null){
+                String cover = bookDO.getCover();
+                String title = bookDO.getTitle();
                 ctList.add(cover);
                 ctList.add(title);
             }
@@ -84,7 +84,7 @@ public class OrderListInfoServiceImpl implements OrderListInfoService {
             LiveDetailVo live;
             FlashColumnVo flash;
             GroupActivity group;
-            Book book;
+            BookDO bookDO;
 
             if (s instanceof OshCourse) {
                 course = (OshCourse) s;
@@ -94,13 +94,13 @@ public class OrderListInfoServiceImpl implements OrderListInfoService {
                 a.setCover(course.getCover());
                 a.setPrice(course.getPrice().toString());
                 a.setType(course.getType());
-            } else if (s instanceof Book) {
-                book = (Book) s;
-                Long id = book.getId();
+            } else if (s instanceof BookDO) {
+                bookDO = (BookDO) s;
+                Long id = bookDO.getId();
                 a.setId(id.intValue());
-                a.setTitle(book.getTitle());
-                a.setCover(book.getCover());
-                a.setPrice(book.getPrice().toString());
+                a.setTitle(bookDO.getTitle());
+                a.setCover(bookDO.getCover());
+                a.setPrice(bookDO.getPrice().toString());
                 a.setType("book");
             } else if (s instanceof ColumnDetailVo) {
                 column = (ColumnDetailVo) s;
@@ -153,7 +153,7 @@ public class OrderListInfoServiceImpl implements OrderListInfoService {
             ColumnDetailVo cd = columnMapper.getColumnDetail(Long.valueOf(id));
             return CreateOrderInfo(cd);
         }else if (type.equals("book")){
-            Book b = oshBookMapper.selectById(Long.valueOf(id));
+            BookDO b = oshBookMapper.selectById(Long.valueOf(id));
             return CreateOrderInfo(b);
         }else if (type.equals("live")){
             LiveDetailVo ld =  liveMapper.getLiveInfoById(Long.valueOf(id));
