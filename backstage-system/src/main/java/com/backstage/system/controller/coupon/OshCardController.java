@@ -1,16 +1,14 @@
 package com.backstage.system.controller.coupon;
 
 import java.util.List;
-import javax.naming.ldap.PagedResultsControl;
 import javax.servlet.http.HttpServletResponse;
 
 import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.R;
-import com.backstage.system.domain.vo.OshCardVo;
+import com.backstage.system.domain.vo.OshCardVO;
 import com.github.pagehelper.PageInfo;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
-import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -48,9 +46,9 @@ public class OshCardController extends BaseController
 
         //TODO: 校验请求中的 appid 的有效性
         startPage();
-        List<OshCardVo> list = oshCardService.getOshCardList();
+        List<OshCardVO> list = oshCardService.getOshCardList();
         //Page<OshCardVo> count = (Page<OshCardVo>) list;
-        PageInfo<OshCardVo> pageInfo = new PageInfo<>(list);
+        PageInfo<OshCardVO> pageInfo = new PageInfo<>(list);
         return R.ok(new TableDataInfo(list, pageInfo.getTotal()));
     }
 

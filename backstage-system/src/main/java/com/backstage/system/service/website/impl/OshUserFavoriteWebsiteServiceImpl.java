@@ -3,7 +3,7 @@ package com.backstage.system.service.website.impl;
 import com.backstage.common.constant.OshUserConstants;
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
-import com.backstage.system.domain.vo.website.UserFavoriteWebsiteVo;
+import com.backstage.system.domain.vo.website.UserFavoriteWebsiteVO;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.backstage.system.domain.website.OshUserFavoriteWebsite;
 import com.backstage.system.mapper.website.OshUserFavoriteWebsiteMapper;
@@ -67,8 +67,8 @@ public class OshUserFavoriteWebsiteServiceImpl extends ServiceImpl<OshUserFavori
         // 开启分页
         PageHelper.startPage(pageNum, pageSize);
         // 执行查询
-        List<UserFavoriteWebsiteVo> list = userFavoriteWebsiteMapper.selectUserFavoriteList(userId);
-         PageInfo<UserFavoriteWebsiteVo> pageInfo = new PageInfo<>(list);
+        List<UserFavoriteWebsiteVO> list = userFavoriteWebsiteMapper.selectUserFavoriteList(userId);
+         PageInfo<UserFavoriteWebsiteVO> pageInfo = new PageInfo<>(list);
 
         return new TableDataInfo(pageInfo.getList(), pageInfo.getTotal());
     }

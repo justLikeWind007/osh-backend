@@ -10,7 +10,7 @@ import java.io.Serializable;
 /**
  * 网站审核 DTO
  */
-public class WebsiteAuditDto implements Serializable {
+public class WebsiteAuditDTO implements Serializable {
 
     private static final long serialVersionUID = 1L;
 

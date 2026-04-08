@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
  * 用户收藏网站 VO类
  * 用于前端展示收藏的网站信息
  */
-public class UserFavoriteWebsiteVo {
+public class UserFavoriteWebsiteVO {
 
     // 网站名称
     private String websiteName;
@@ -24,11 +24,11 @@ public class UserFavoriteWebsiteVo {
     private String remark;
 
     // 无参构造函数（必须）
-    public UserFavoriteWebsiteVo() {
+    public UserFavoriteWebsiteVO() {
     }
 
     // 全参构造函数（可选，方便赋值）
-    public UserFavoriteWebsiteVo(String websiteName, String websiteUrl, String websiteDescription, LocalDateTime favoriteTime, String remark) {
+    public UserFavoriteWebsiteVO(String websiteName, String websiteUrl, String websiteDescription, LocalDateTime favoriteTime, String remark) {
         this.websiteName = websiteName;
         this.websiteUrl = websiteUrl;
         this.websiteDescription = websiteDescription;

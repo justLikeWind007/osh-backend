@@ -3,10 +3,10 @@ package com.backstage.system.service.website.impl;
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.common.utils.email.EmailUtil;
-import com.backstage.system.domain.dto.website.WebsiteAuditDto;
-import com.backstage.system.domain.dto.website.WebsiteQueryDto;
-import com.backstage.system.domain.dto.website.WebsiteSubmitDto;
-import com.backstage.system.domain.vo.website.OshPracticalWebsiteVo;
+import com.backstage.system.domain.dto.website.WebsiteAuditDTO;
+import com.backstage.system.domain.dto.website.WebsiteQueryDTO;
+import com.backstage.system.domain.dto.website.WebsiteSubmitDTO;
+import com.backstage.system.domain.vo.website.OshPracticalWebsiteVO;
 import com.backstage.system.domain.website.OshPracticalWebsite;
 import com.backstage.system.domain.website.OshWebsiteTag;
 import com.backstage.system.mapper.website.OshPracticalWebsiteMapper;
@@ -38,16 +38,17 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
     private EmailUtil emailUtil;
 
     @Override
-    public List<OshPracticalWebsiteVo> selectWebsitePage(WebsiteQueryDto queryDTO) {
+    public List<OshPracticalWebsiteVO> selectWebsitePage(WebsiteQueryDTO queryDTO) {
         if (queryDTO == null) {
             return Collections.emptyList();
         }
         Integer pageNum = queryDTO.getPageNum();
         Integer pageSize = queryDTO.getPageSize();
         PageHelper.startPage(pageNum, pageSize);
-        List<OshPracticalWebsiteVo> list = oshPracticalWebsiteMapper.selectWebsitePage(queryDTO);
-        PageInfo<OshPracticalWebsiteVo> pageInfo = new PageInfo<>(list);
-        return pageInfo.getList();
+        return oshPracticalWebsiteMapper.selectWebsitePage(queryDTO);
+        //PageInfo<OshPracticalWebsiteVo> pageInfo = new PageInfo<>(list);
+        //pageInfo.getList();
+
     }
 
     @Override
@@ -59,7 +60,7 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
     }
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public int submitWebsite(WebsiteSubmitDto submitDto) {
+    public int submitWebsite(WebsiteSubmitDTO submitDto) {
         // 1. 参数校验（必填字段检查）
         if (submitDto == null ||
                 submitDto.getName() == null || submitDto.getName().trim().isEmpty() ||
@@ -74,7 +75,7 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
         website.setLogoUrl(submitDto.getLogoUrl());
         website.setStatus(0);  // 0=待审核状态
         website.setClickCount(0); // 初始点击次数为 0
-        website.setDelFlag(0);  // 0=正常，未删除
+        website.setDeleteFlag(0);  // 0=正常，未删除
         //保存到数据库
         int result = oshPracticalWebsiteMapper.insertWebsite(website);
         website.getId();
@@ -96,13 +97,13 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
 
         tag.setId(website.getId());
         tag.setTagName(submitDto.getTagNames());
-        tag.setDelFlag(0);
+        tag.setDeleteFlag(0);
         return oshWebsiteTagMapper.insertWebsiteTag(tag);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Boolean auditWebsite(WebsiteAuditDto auditDto) {
+    public Boolean auditWebsite(WebsiteAuditDTO auditDto) {
         if (auditDto == null || auditDto.getWebsiteId() == null) {
             throw new IllegalArgumentException("网站 ID 不能为空");
         }
@@ -155,7 +156,7 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
     }
 
     @Override
-    public OshPracticalWebsiteVo getAuditDetail(Long websiteId) {
+    public OshPracticalWebsiteVO getAuditDetail(Long websiteId) {
         if (websiteId == null) {
             return null;
         }
