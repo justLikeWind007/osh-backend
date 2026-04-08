@@ -191,18 +191,8 @@ public class CourseManageServiceImpl implements ICourseManageService {
 
     /**
      * 上传课程封面图片
-     * 语法逻辑:
-     * 1. 校验课程是否存在
-     * 2. 校验文件类型（仅允许常见图片格式）
-     * 3. 校验文件大小（不超过 5MB）
-     * 4. 调用 OSS 服务上传文件
-     * 5. 更新课程 cover 字段
-     *
-     * 实现效果:
-     * - 将封面图片上传到 OSS 文件服务器
      * - 更新课程表的 cover 字段
      * - 支持常见图片格式（bmp/gif/jpg/jpeg/png）
-     * - 文件大小限制 5MB
      *
      * @param file 封面文件
      * @param courseId 课程 ID
@@ -211,13 +201,13 @@ public class CourseManageServiceImpl implements ICourseManageService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void uploadCourseCover(MultipartFile file, Long courseId, Long userId) {
-        // 1. 校验课程是否存在
+        // 校验课程是否存在
         OshCourse course = courseMapper.selectCourseById(courseId);
         if (course == null) {
             throw new ServiceException("课程不存在");
         }
 
-        // 2. 校验文件类型（仅允许图片格式）
+        // 校验文件类型（仅允许图片格式）
         String fileName = file.getOriginalFilename();
         String extension = "";
         if (fileName != null && fileName.contains(".")) {
@@ -228,12 +218,12 @@ public class CourseManageServiceImpl implements ICourseManageService {
             throw new ServiceException(CourseUploadConstants.IMAGE_FORMAT_ERROR);
         }
 
-        // 3. 校验文件大小
+        // 校验文件大小
         if (file.getSize() > CourseUploadConstants.MAX_IMAGE_SIZE) {
             throw new ServiceException(CourseUploadConstants.IMAGE_SIZE_ERROR);
         }
 
-        // 4. 调用 OSS 服务上传文件，使用 courseId 作为子目录
+        // 调用 OSS 服务上传文件，使用 courseId 作为子目录
         String coverUrl;
         try {
             coverUrl = ossService.upload(file, UploadPathEnum.COURSE_COVER, String.valueOf(courseId));
@@ -248,7 +238,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
             throw new ServiceException("上传封面失败：" + e.getMessage());
         }
 
-        // 5. 更新课程封面 URL
+        // 更新课程封面 URL
         OshCourse updateCourse = new OshCourse();
         updateCourse.setId(courseId);
         updateCourse.setCover(coverUrl);
@@ -267,8 +257,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
      * 上传课时视频（指定章节 ID）
      * 实现效果:
      * - 支持 mp4、avi、mov、mkv 等常见视频格式
-     * - 将视频 URL 保存到章节表
-     * - 限制文件大小 500MB
+     * - 将视频 URL 保存到章节表  一对一
      *
      * @param file 视频文件
      * @param courseId 课程 ID
@@ -281,7 +270,10 @@ public class CourseManageServiceImpl implements ICourseManageService {
     public VideoUploadVO uploadSectionVideo(MultipartFile file, Long courseId, Long sectionId, Long userId) {
         //  校验章节是否存在且属于该课程
         Map<String, Object> section = sectionMapper.selectSectionById(sectionId);
-        if (section == null || !section.get("course_id").equals(courseId)) {
+        if (section == null) {
+            throw new ServiceException("章节不存在");
+        }
+        if (section == null || !courseId.equals(section.get("course_id"))) {
             throw new ServiceException("章节不存在或不属于该课程");
         }
 
@@ -316,7 +308,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
             throw new ServiceException("上传视频失败：" + e.getMessage());
         }
 
-        // 5. 更新章节的视频 URL（使用 Map 方式）
+        // 更新章节的视频 URL
         Map<String, Object> params = new HashMap<>();
         params.put("id", sectionId);
         params.put("mediaUrl", savePath);
@@ -328,16 +320,11 @@ public class CourseManageServiceImpl implements ICourseManageService {
             throw new ServiceException("更新章节视频失败");
         }
 
-        // 6. 构建返回结果
+        // 构建返回结果
         VideoUploadVO vo = new VideoUploadVO();
         vo.setVideoUrl(savePath);
         vo.setOriginalFileName(fileName);
         vo.setFileSize(file.getSize());
-        // TODO: 实际需要调用视频处理服务提取元数据
-        vo.setDuration(0);  // 实际需要从视频中提取
-        vo.setVideoCodec("h264");
-        vo.setVideoResolution("1080p");
-        vo.setVideoBitrate(0);
 
         log.info("课时视频上传成功：courseId={}, sectionId={}, url={}", courseId, sectionId, savePath);
         return vo;
@@ -346,17 +333,10 @@ public class CourseManageServiceImpl implements ICourseManageService {
 
 
     /**
-     * 上传课时资料
-     * 语法逻辑：
-     * 1. 校验文件类型（仅允许压缩包 zip/rar/tar/gz）
-     * 2. 校验文件大小（不超过 100MB）
-     * 3. 安全检查（防止恶意文件上传）
-     * 4. 存储到指定目录
-     *
-     * 实现效果：
-     * - 支持 zip/rar/tar/gz 格式
-     * - 自动检查文件名和后缀，防止恶意文件
-     * - 存储到课程专属目录，便于管理
+     * 上传课程资料  一对多
+     * 校验文件类型（仅允许压缩包 zip/rar/tar/gz）
+     * 存储到课程专属目录
+     * 保存课程资料和 课程的关联关系
      *
      * @param file 资料文件
      * @param courseId 课程 ID
@@ -1234,49 +1214,6 @@ public class CourseManageServiceImpl implements ICourseManageService {
         
         // 3. 返回问题 ID
         return (Long) params.get("id");
-    }
-    
-    /**
-     * 获取课程问答列表
-     * 语法逻辑：
-     * 1. 查询问题列表
-     * 2. 关联用户信息
-     * 
-     * 实现效果：
-     * - 显示该课程下所有问题
-     * - 包含提问者、回答者信息
-     * 
-     * @param courseId 课程 ID
-     * @param sectionId 章节 ID（可选）
-     * @param status 状态（可选）
-     * @return 问答列表
-     */
-    @Override
-    public List<CourseQuestionVO> getQuestions(Long courseId, Long sectionId, String status) {
-        // 1. 查询问题列表
-        List<Map<String, Object>> questions = questionMapper.selectQuestionsByCourseId(courseId, sectionId, status);
-        
-        // 2. 封装返回结果
-        List<CourseQuestionVO> result = new ArrayList<>();
-        for (Map<String, Object> question : questions) {
-            CourseQuestionVO vo = new CourseQuestionVO();
-            vo.setId((Long) question.get("id"));
-            vo.setSectionTitle((String) question.get("section_title"));
-            vo.setQuestionTitle((String) question.get("question_title"));
-            vo.setQuestionContent((String) question.get("question_content"));
-            vo.setAskerName((String) question.get("asker_name"));
-            vo.setAnswerContent((String) question.get("answer_content"));
-            vo.setAnswererName((String) question.get("answerer_name"));
-            vo.setAnswerTime((Date) question.get("answer_time"));
-            vo.setStatus((String) question.get("status"));
-            vo.setLikeCount((Integer) question.get("like_count"));
-            vo.setIsTop((Boolean) question.get("is_top"));
-            vo.setCreateTime((Date) question.get("create_time"));
-            
-            result.add(vo);
-        }
-        
-        return result;
     }
     
     /**

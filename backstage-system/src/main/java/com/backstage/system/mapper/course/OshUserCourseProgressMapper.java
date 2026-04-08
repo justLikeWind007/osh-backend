@@ -1,5 +1,6 @@
 package com.backstage.system.mapper.course;
 
+import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.Map;
@@ -10,6 +11,8 @@ import java.util.Map;
  * @author ruoyi
  * @date 2026-03-24
  */
+
+@Mapper
 public interface OshUserCourseProgressMapper {
     
     /**

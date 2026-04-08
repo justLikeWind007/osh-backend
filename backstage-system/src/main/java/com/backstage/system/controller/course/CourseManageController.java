@@ -29,7 +29,7 @@ import java.util.Map;
  */
 @Api(tags = "课程管理")
 @RestController
-@RequestMapping("/system/course")
+@RequestMapping("/pc/course")
 public class CourseManageController extends BaseController {
     
     @Autowired
@@ -65,23 +65,6 @@ public class CourseManageController extends BaseController {
         Long userId = getUserId();
         return R.ok(courseManageService.getCourseDetail(courseId, userId));
     }
-
-    
-    /**
-     * 新增课程（含章节）
-     * 一次性保存课程基本信息、章节结构、课时内容及相关资料
-     */
-    @Log(title = "课程管理", businessType = BusinessType.INSERT)
-    @PreAuthorize("@ss.hasPermi('system:course:add')")
-    @ApiOperation("新增课程（含章节）")
-    @PostMapping("/addcourse")
-    public R<Long> createCourseWithSections(
-            @ApiParam("课程创建DTO") @Valid @RequestBody CourseCreateDTO courseCreateDTO) {
-        Long userId = getUserId();
-        Long courseId = courseManageService.createCourseWithSections(courseCreateDTO, userId);
-        return R.ok(courseId);
-    }
-    
     /**
      * 上传 课程中的 章节 视频
      */
@@ -143,10 +126,10 @@ public class CourseManageController extends BaseController {
     }
 
     /**
-     * 删除课程资料
+     * 删除文件
      */
     @Log(title = "课程资料", businessType = BusinessType.DELETE)
-    @PreAuthorize("@ss.hasPermi('system:course:material:delete')")
+    //@PreAuthorize("@ss.hasPermi('system:course:material:delete')")
     @ApiOperation("删除课程资料")
     @DeleteMapping("/material/{materialId}")
     public R<Void> deleteMaterial(
@@ -199,8 +182,22 @@ public class CourseManageController extends BaseController {
         courseManageService.deleteCourse(courseId, userId);
         return R.ok();
     }
-    
-    
+
+    /**
+     * 检查购买权限
+     * 检查用户是否有权限观看此章节
+     */
+    @Anonymous
+    @ApiOperation("检查购买权限")
+    @GetMapping("/section/{sectionId}/access")
+    public R<SectionAccessVO> checkSectionAccess(
+            @ApiParam("章节ID") @PathVariable Long sectionId) {
+        Long userId = getUserId();
+        return R.ok(courseManageService.checkSectionAccess(sectionId, userId));
+    }
+
+
+
     // ==================== 课程章节接口 ====================
     
     /**
@@ -301,20 +298,7 @@ public class CourseManageController extends BaseController {
         Long examId = courseManageService.markSectionComplete(sectionId, userId);
         return R.ok(examId, examId != null ? "章节已完成，请参加考试" : "章节已完成");
     }
-    
-    /**
-     * 检查购买权限
-     * 检查用户是否有权限观看此章节
-     */
-    @Anonymous
-    @ApiOperation("检查购买权限")
-    @GetMapping("/section/{sectionId}/access")
-    public R<SectionAccessVO> checkSectionAccess(
-            @ApiParam("章节ID") @PathVariable Long sectionId) {
-        Long userId = getUserId();
-        return R.ok(courseManageService.checkSectionAccess(sectionId, userId));
-    }
-    
+
     
 
     
@@ -330,19 +314,6 @@ public class CourseManageController extends BaseController {
         Long userId = getUserId();
         Long questionId = courseManageService.askQuestion(questionDTO, userId);
         return R.ok(questionId);
-    }
-    
-    /**
-     * 获取课程问答列表
-     */
-    @Anonymous
-    @ApiOperation("获取课程问答列表")
-    @GetMapping("/{courseId}/questions")
-    public R<List<CourseQuestionVO>> getQuestions(
-            @ApiParam("课程 ID") @PathVariable Long courseId,
-            @ApiParam("章节 ID") @RequestParam(required = false) Long sectionId,
-            @ApiParam("状态") @RequestParam(required = false) String status) {
-        return R.ok(courseManageService.getQuestions(courseId, sectionId, status));
     }
     
     /**

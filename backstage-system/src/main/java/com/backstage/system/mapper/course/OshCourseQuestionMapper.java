@@ -51,18 +51,6 @@ public interface OshCourseQuestionMapper {
     int insertQuestion(Map<String, Object> params);
 
     /**
-     * 按课程和章节查询问题列表
-     *
-     * @param courseId 课程ID
-     * @param sectionId 章节ID
-     * @param status 问题状态
-     * @return 问题列表
-     */
-    List<Map<String, Object>> selectQuestionsByCourseId(@Param("courseId") Long courseId,
-                                                       @Param("sectionId") Long sectionId,
-                                                       @Param("status") String status);
-
-    /**
      * 更新问题
      *
      * @param params 问题参数Map

@@ -5,7 +5,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 <mapper namespace="com.backstage.system.mapper.course.OshOrderSaveMapper">
 
     <!-- 查询用户的课程订单（仅返回已支付的订单） -->
-    <select id="selectOrderByUserIdAndCourseId" resultType="map">
+    <select id="selectOrderByUserIdAndCourseId" resultType="java.util.Map">
         SELECT
             id as orderId,
             school_id as schoolId,
@@ -28,7 +28,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <!-- 查询用户的课程订单（包含所有状态，用于管理） -->
-    <select id="selectOrderByUserIdAndCourseIdAllStatus" resultType="map">
+    <select id="selectOrderByUserIdAndCourseIdAllStatus" resultType="java.util.Map">
         SELECT
             id as orderId,
             school_id as schoolId,
@@ -50,7 +50,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <!-- 查询用户的有效订单（未过期的） -->
-    <select id="selectValidOrderByUserIdAndCourseId" resultType="map">
+    <select id="selectValidOrderByUserIdAndCourseId" resultType="java.util.Map">
         SELECT
             id as orderId,
             school_id as schoolId,

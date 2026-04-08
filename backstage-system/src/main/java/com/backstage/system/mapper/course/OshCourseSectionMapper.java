@@ -1,6 +1,8 @@
 package com.backstage.system.mapper.course;
 
 import com.backstage.system.domain.course.OshCourseSection;
+import org.apache.ibatis.annotations.MapKey;
+import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
@@ -12,16 +14,19 @@ import java.util.Map;
  * @author ruoyi
  * @date 2026-03-24
  */
+@Mapper
 public interface OshCourseSectionMapper {
     
     /**
      * 查询章节列表
      */
+    @MapKey("id")
     List<Map<String, Object>> selectSectionsByCourseId(@Param("courseId") Long courseId);
     
     /**
      * 查询章节详情
      */
+
     Map<String, Object> selectSectionById(@Param("sectionId") Long sectionId);
     
     /**
@@ -30,6 +35,7 @@ public interface OshCourseSectionMapper {
      * @param sectionId 章节 ID
      * @return 章节视频信息
      */
+    @MapKey("id")
     Map<String, Object> selectSectionVideoById(@Param("sectionId") Long sectionId);
     
     /**

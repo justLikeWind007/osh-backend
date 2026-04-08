@@ -1,6 +1,7 @@
 package com.backstage.system.mapper.course;
 
 import com.backstage.system.domain.course.OshCourseMaterial;
+import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.Map;
  * @author ruoyi
  * @date 2026-03-24
  */
+@Mapper
 public interface OshCourseMaterialMapper {
     
     /**

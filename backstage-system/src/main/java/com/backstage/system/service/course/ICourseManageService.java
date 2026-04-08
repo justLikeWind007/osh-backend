@@ -231,18 +231,6 @@ public interface ICourseManageService {
     Long askQuestion(QuestionDTO questionDTO, Long userId);
     
     /**
-     * 获取课程问答列表
-     * 语法逻辑：查询问题→关联用户信息→统计点赞数
-     * 实现效果：显示该课程下所有问题
-     * 
-     * @param courseId 课程 ID
-     * @param sectionId 章节 ID（可选）
-     * @param status 状态（可选）
-     * @return 问答列表
-     */
-    List<CourseQuestionVO> getQuestions(Long courseId, Long sectionId, String status);
-    
-    /**
      * 回答问题（仅课程服务人员）
      * 语法逻辑：校验服务人员身份→保存答案→更新状态
      * 实现效果：仅课程服务人员可回答
