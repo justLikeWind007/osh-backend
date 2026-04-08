@@ -8,10 +8,12 @@ import com.backstage.common.core.domain.R;
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.enums.BusinessType;
 import com.backstage.common.utils.poi.ExcelUtil;
+import com.backstage.system.domain.user.CurrentUser;
 import com.backstage.system.domain.user.User;
 import com.backstage.system.domain.user.dto.*;
 import com.backstage.system.domain.user.vo.UserLoginVo;
 import com.backstage.system.service.user.IOshUserService;
+import com.backstage.system.utils.UserContextUtil;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +37,9 @@ public class
 OshUserController extends BaseController {
 
     private final IOshUserService userService;
+
+    @Autowired
+    private UserContextUtil userContextUtil;
 
     @Autowired
     public OshUserController(IOshUserService userService) {
@@ -127,6 +132,12 @@ OshUserController extends BaseController {
     public R<User> getUserInfo(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid) {
         return userService.getUserInfo();
+    }
+
+    @Anonymous
+    @RequestMapping("/test")
+    public R<CurrentUser> test() {
+        return R.ok(userContextUtil.getCurrentUserInfo());
     }
 
 

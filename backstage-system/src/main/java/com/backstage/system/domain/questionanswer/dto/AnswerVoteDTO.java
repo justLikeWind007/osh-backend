@@ -13,7 +13,7 @@ import io.swagger.annotations.ApiModelProperty;
 @ApiModel(description = "点赞回答实体类")
 public class AnswerVoteDTO {
     @ApiModelProperty(
-            value = "回答的内容",
+            value = "回答的id",
             required = true
     )
     private Long answerId;
