@@ -389,14 +389,13 @@ public interface ICourseManageService {
     
     /**
      * 上传课时视频（指定章节 ID）
-     * 实现效果：将视频上传到文件服务器，并创建章节视频资源记录（一对多关系）
-     * 支持一个章节绑定多个视频，通过 sort 字段实现排序
+     * 实现效果：将视频上传到文件服务器，并更新章节表的 mediaUrl 字段
      * 
      * @param file 视频文件
      * @param courseId 课程 ID
      * @param sectionId 章节 ID
      * @param userId 用户 ID
-     * @return 视频上传结果 VO（包含新插入的视频资源 ID）
+     * @return 视频上传结果 VO
      */
     VideoUploadVO uploadSectionVideo(MultipartFile file, Long courseId, Long sectionId, Long userId);
     
@@ -412,16 +411,6 @@ public interface ICourseManageService {
      * @return 资料 ID
      */
     Long uploadSectionMaterial(MultipartFile file, Long courseId, String materialName, Long userId);
-    
-    /**
-     * 获取章节下所有视频资源
-     * 语法逻辑：查询视频资源表→按 sort 排序→返回视频列表
-     * 实现效果：返回指定章节下的所有未删除视频，支持视频排序
-     * 
-     * @param sectionId 章节 ID
-     * @return 视频资源列表 VO
-     */
-    List<VideoUploadVO> getSectionVideos(Long sectionId);
     
     
     // ==================== 课程新增（含章节）接口 ====================

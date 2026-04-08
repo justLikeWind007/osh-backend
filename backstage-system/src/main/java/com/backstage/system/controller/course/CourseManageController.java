@@ -70,28 +70,23 @@ public class CourseManageController extends BaseController {
      */
     @Log(title = "章节视频", businessType = BusinessType.INSERT)
    // @PreAuthorize("@ss.hasPermi('system:course:video:upload')")
+    @Anonymous
     @ApiOperation("上传章节视频")
     @PostMapping("/section/video/upload")
     public R<VideoUploadVO> uploadSectionVideo(
             @ApiParam("视频文件") @RequestParam("file") MultipartFile file,
             @ApiParam("课程 ID") @RequestParam("courseId") Long courseId,
             @ApiParam("章节 ID") @RequestParam("sectionId") Long sectionId) {
-        Long userId = getUserId();
-        VideoUploadVO result = courseManageService.uploadSectionVideo(file, courseId, sectionId, userId);
-        return R.ok(result);
+        Long userId = null;
+        try {
+            userId = getLoginUser().getUserId();
+        } catch (Exception e) {
+            return R.fail("请先登录");
+        }
+        courseManageService.uploadSectionVideo(file, courseId, sectionId, userId);
+        return R.ok();
     }
 
-
-    /**
-     * 获取章节下的所有视频资源列表
-     */
-    @Anonymous
-    @ApiOperation("获取章节视频列表")
-    @GetMapping("/{sectionId}/videos")
-    public R<List<VideoUploadVO>> getSectionVideos(
-            @ApiParam("章节 ID") @PathVariable Long sectionId) {
-        return R.ok(courseManageService.getSectionVideos(sectionId));
-    }
 
 
     /**
@@ -99,6 +94,7 @@ public class CourseManageController extends BaseController {
      */
     @Log(title = "课程资料", businessType = BusinessType.UPDATE)
     //  @PreAuthorize("@ss.hasPermi('system:course:material:upload')")
+    @Anonymous
     @ApiOperation("上传课程资料")
     @PostMapping("/material/upload/{courseId}")
     public R<Void> uploadMaterial(
@@ -115,6 +111,7 @@ public class CourseManageController extends BaseController {
      */
     @Log(title = "课程封面", businessType = BusinessType.UPDATE)
     //  @PreAuthorize("@ss.hasPermi('system:course:cover:upload')")
+    @Anonymous
     @ApiOperation("上传课程封面")
     @PostMapping("/cover/upload/{courseId}")
     public R<Void> uploadCourseCover(
@@ -204,7 +201,13 @@ public class CourseManageController extends BaseController {
     @GetMapping("/section/{sectionId}/access")
     public R<SectionAccessVO> checkSectionAccess(
             @ApiParam("章节ID") @PathVariable Long sectionId) {
-        Long userId = getUserId();
+        // 匿名接口：安全获取用户ID（未登录时为null）
+        Long userId = null;
+        try {
+            userId = getLoginUser().getUserId();
+        } catch (Exception e) {
+            // 未登录用户，userId保持为null
+        }
         return R.ok(courseManageService.checkSectionAccess(sectionId, userId));
     }
 

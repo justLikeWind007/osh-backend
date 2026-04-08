@@ -17,7 +17,6 @@ import com.backstage.system.domain.dto.*;
 import com.backstage.system.domain.vo.*;
 import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.course.OshCourseSectionMapper;
-import com.backstage.system.mapper.course.OshSectionVideoResourceMapper;
 import com.backstage.system.mapper.course.OshCourseMaterialMapper;
 import com.backstage.system.mapper.course.OshCourseQuestionMapper;
 import com.backstage.system.mapper.course.OshCourseTagMapper;
@@ -55,9 +54,6 @@ public class CourseManageServiceImpl implements ICourseManageService {
     @Autowired
     private OshCourseSectionMapper sectionMapper;
     
-    @Autowired
-    private OshSectionVideoResourceMapper videoResourceMapper;
-
     @Autowired
     private OshCourseMaterialMapper materialMapper;
     
@@ -312,41 +308,30 @@ public class CourseManageServiceImpl implements ICourseManageService {
             throw new ServiceException("上传视频失败：" + e.getMessage());
         }
 
-        // 5. 获取该章节已有视频的最大 sort 值
-        Integer maxSort = videoResourceMapper.selectMaxSortBySectionId(sectionId);
-        int nextSort = (maxSort == null || maxSort < 0) ? 0 : maxSort + 1;
+        // 4. 更新章节的视频 URL（使用 Map 方式）
+        Map<String, Object> params = new HashMap<>();
+        params.put("id", sectionId);
+        params.put("mediaUrl", savePath);
+        params.put("updateTime", DateUtils.getNowDate());
+        params.put("updateBy", String.valueOf(userId));
 
-        // 6. 创建视频资源对象，插入到 osh_section_video_resource 表
-        OshSectionVideoResource videoResource = new OshSectionVideoResource();
-        videoResource.setSectionId(sectionId);
-        videoResource.setCourseId(courseId);
-        videoResource.setVideoUrl(videoUrl);
-        videoResource.setVideoName(StringUtils.defaultIfEmpty(fileName, "视频" + nextSort));
-        videoResource.setSort(nextSort);
-        videoResource.setFileSize(file.getSize());
-        videoResource.setStatus(1);  // 发布状态
-        videoResource.setDeleteFlag(0);  // 未删除
-        videoResource.setCreateBy(String.valueOf(userId));
-        videoResource.setCreateTime(DateUtils.getNowDate());
-        videoResource.setUpdateBy(String.valueOf(userId));
-        videoResource.setUpdateTime(DateUtils.getNowDate());
-
-        int insertResult = videoResourceMapper.insertVideoResource(videoResource);
-        if (insertResult <= 0) {
-            throw new ServiceException("保存视频资源失败");
+        int result = sectionMapper.updateSection(params);
+        if (result <= 0) {
+            throw new ServiceException("更新章节视频失败");
         }
 
-        // 6. 构建返回结果
+        // 5. 构建返回结果
         VideoUploadVO vo = new VideoUploadVO();
-        vo.setVideoUrl(videoUrl);
-        vo.setVideoId(videoResource.getId());  // 返回新插入的视频资源 ID
-        vo.setVideoOrder(nextSort);  // 返回视频序号
+        vo.setVideoUrl(savePath);
         vo.setOriginalFileName(fileName);
         vo.setFileSize(file.getSize());
+        // TODO: 实际需要调用视频处理服务提取元数据
+        vo.setDuration(0);  // 实际需要从视频中提取
+        vo.setVideoCodec("h264");
+        vo.setVideoResolution("1080p");
+        vo.setVideoBitrate(0);
 
-
-        log.info("课时视频上传成功：courseId={}, sectionId={}, videoId={}, sort={}, url={}",
-                 courseId, sectionId, videoResource.getId(), nextSort, videoUrl);
+        log.info("课时视频上传成功：courseId={}, sectionId={}, url={}", courseId, sectionId, savePath);
         return vo;
     }
 
@@ -409,40 +394,6 @@ public class CourseManageServiceImpl implements ICourseManageService {
         } catch (Exception e) {
             throw new ServiceException("上传资料失败：" + e.getMessage());
         }
-    }
-
-
-    /**
-     * 获取章节下所有视频资源
-     * 实现效果：返回指定章节下的所有未删除视频，按 sort 排序
-     *
-     * @param sectionId 章节 ID
-     * @return 视频资源列表 VO
-     */
-    @Override
-    public List<VideoUploadVO> getSectionVideos(Long sectionId) {
-        // 1. 查询章节下所有未删除的视频资源
-        List<OshSectionVideoResource> videoResources = videoResourceMapper.selectActiveVideosBySectionId(sectionId);
-
-        // 2. 转换为 VO 列表
-        List<VideoUploadVO> videoVOList = new ArrayList<>();
-        if (videoResources != null && !videoResources.isEmpty()) {
-            for (OshSectionVideoResource resource : videoResources) {
-                VideoUploadVO vo = new VideoUploadVO();
-                vo.setVideoId(resource.getId());
-                vo.setVideoUrl(resource.getVideoUrl());
-                vo.setVideoOrder(resource.getSort());
-                vo.setOriginalFileName(resource.getVideoName());
-                vo.setFileSize(resource.getFileSize());
-                vo.setDuration(resource.getDuration());
-                vo.setVideoCodec(resource.getVideoCodec());
-                vo.setVideoBitrate(resource.getVideoBitrate());
-                vo.setVideoResolution(resource.getVideoResolution());
-                videoVOList.add(vo);
-            }
-        }
-
-        return videoVOList;
     }
 
 
@@ -2000,3 +1951,4 @@ public class CourseManageServiceImpl implements ICourseManageService {
         return order != null;
     }
 }
+

@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": 1775564290921,
+  "timestamp": 1775635487329,
   "projectRoot": "e:\\桌面\\judge-osh",
   "entries": [
     {
@@ -39,24 +39,24 @@
       "size": 1852
     },
     {
-      "path": "backstage-common\\target\\classes\\com\\backstage\\common\\config\\WebConfig.class",
-      "mtime": 1775564205200.8074,
-      "size": 1486
-    },
-    {
       "path": "backstage-generator\\target\\classes\\com\\backstage\\generator\\config\\GenConfig.class",
       "mtime": 1775564209545.635,
       "size": 1863
     },
     {
       "path": "backstage-system\\target\\classes\\com\\backstage\\system\\controller\\order\\EsConfig.class",
-      "mtime": 1775564250461.2979,
+      "mtime": 1775635116151.9526,
       "size": 2998
     },
     {
       "path": "backstage-system\\target\\classes\\com\\backstage\\system\\domain\\SysConfig.class",
-      "mtime": 1775564251972.1404,
+      "mtime": 1775635116816.987,
       "size": 3501
+    },
+    {
+      "path": "backstage-common\\target\\classes\\com\\backstage\\common\\config\\WebConfig.class",
+      "mtime": 1775635474690.4617,
+      "size": 1486
     }
   ]
 }

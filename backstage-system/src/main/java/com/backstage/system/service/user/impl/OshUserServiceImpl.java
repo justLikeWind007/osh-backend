@@ -1,4 +1,4 @@
-package com.backstage.system.service.impl.user;
+package com.backstage.system.service.user.impl;
 
 import com.backstage.common.constant.OshUserConstants;
 import com.backstage.common.core.domain.R;

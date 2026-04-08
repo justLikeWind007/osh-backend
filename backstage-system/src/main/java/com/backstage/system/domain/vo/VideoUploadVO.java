@@ -36,11 +36,7 @@ public class VideoUploadVO {
     @ApiModelProperty("文件原始名称")
     private String originalFileName;
 
-    @ApiModelProperty("视频资源ID（新插入的视频记录ID）")
-    private Long videoId;
 
-    @ApiModelProperty("视频在章节中的排序序号")
-    private Integer videoOrder;
 
     // ==================== Getter/Setter ====================
 
@@ -106,21 +102,5 @@ public class VideoUploadVO {
 
     public void setOriginalFileName(String originalFileName) {
         this.originalFileName = originalFileName;
-    }
-
-    public Long getVideoId() {
-        return videoId;
-    }
-
-    public void setVideoId(Long videoId) {
-        this.videoId = videoId;
-    }
-
-    public Integer getVideoOrder() {
-        return videoOrder;
-    }
-
-    public void setVideoOrder(Integer videoOrder) {
-        this.videoOrder = videoOrder;
     }
 }
