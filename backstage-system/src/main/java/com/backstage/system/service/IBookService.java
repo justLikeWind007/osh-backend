@@ -1,7 +1,8 @@
 package com.backstage.system.service;
 
+import com.backstage.system.controller.book.BookListReqVO;
 import com.backstage.system.domain.book.BookDO;
-import com.backstage.system.domain.vo.*;
+import com.backstage.system.domain.vo.book.*;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import java.util.List;
@@ -11,15 +12,8 @@ import java.util.List;
  *
  * @author backstage
  */
-public interface IBookService extends IService<BookDO>
-{
-    /**
-     * 查询电子书列表
-     *
-     * @param book 电子书
-     * @return 电子书集合
-     */
-    List<BookListVO> selectBookList(BookDO book);
+public interface IBookService extends IService<BookDO> {
+
 
     /**
      * 查询电子书详情
@@ -28,7 +22,7 @@ public interface IBookService extends IService<BookDO>
      * @param userId 用户ID（可选）
      * @return 电子书详情
      */
-    BookDetailVO selectBookDetail(Long id, Long userId);
+    BookDetailVO selectBookDetail(Long id);
 
     /**
      * 查询电子书章节内容
@@ -38,7 +32,7 @@ public interface IBookService extends IService<BookDO>
      * @param userId 用户ID（可选）
      * @return 章节内容
      */
-    BookChapterContentVO selectBookChapterContent(Long bookId, Long id, Long userId);
+    BookChapterContentVO selectBookChapterContent(Long bookId, Long id);
 
     /**
      * 查询电子书章节菜单
@@ -47,7 +41,7 @@ public interface IBookService extends IService<BookDO>
      * @param userId 用户ID（可选）
      * @return 章节菜单
      */
-    BookMenuVO selectBookMenu(Long id, Long userId);
+    BookMenuVO selectBookMenu(Long id);
 
     /**
      * 查询用户购买的电子书列表
@@ -88,4 +82,14 @@ public interface IBookService extends IService<BookDO>
      * @param id 电子书ID
      */
     void deleteBook(Long id);
+
+
+    Page<BookListVO> getBookPageList(BookListReqVO reqVO);
+
+    /**
+     * 查询所有电子书标签名称（去重）
+     *
+     * @return 标签名称列表
+     */
+    List<String> getTagList();
 }
