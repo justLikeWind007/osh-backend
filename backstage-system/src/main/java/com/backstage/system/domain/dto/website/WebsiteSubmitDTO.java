@@ -6,7 +6,7 @@ import java.io.Serializable;
  * 实用网站提交 DTO
  * 用于接收用户提交的网站信息
  */
-public class WebsiteSubmitDto implements Serializable {
+public class WebsiteSubmitDTO implements Serializable {
     private static final long serialVersionUID = 1L;
     /** 网站名称（必填） */
     private String name;

@@ -1,4 +1,4 @@
-package com.backstage.system.domain.vo;
+package com.backstage.system.domain.vo.book;
 
 import java.io.Serializable;
 import java.util.List;

@@ -1,10 +1,9 @@
 package com.backstage.system.service.impl;
 
-import java.util.Collections;
 import java.util.List;
 import com.backstage.common.utils.DateUtils;
 import com.backstage.system.domain.coupon.OshCard;
-import com.backstage.system.domain.vo.OshCardVo;
+import com.backstage.system.domain.vo.OshCardVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.backstage.system.mapper.coupon.OshCardMapper;
@@ -97,8 +96,8 @@ public class OshCardServiceImpl implements IOshCardService
     }
 
     @Override
-    public List<OshCardVo> getOshCardList() {
-        List<OshCardVo>  cardlist = oshCardMapper.getOshCardList();
+    public List<OshCardVO> getOshCardList() {
+        List<OshCardVO>  cardlist = oshCardMapper.getOshCardList();
         return cardlist;
     }
 

@@ -13,13 +13,13 @@
             <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
             <result property="updateBy" column="update_by" jdbcType="VARCHAR"/>
             <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
-            <result property="delFlag" column="del_flag" jdbcType="CHAR"/>
+            <result property="deleteFlag" column="delete_flag" jdbcType="CHAR"/>
     </resultMap>
 
     <sql id="Base_Column_List">
         id,tag_name,tag_code,
         sort_order,create_by,create_time,
-        update_by,update_time,del_flag
+        update_by,update_time,delete_flag
     </sql>
     <delete id="batchDeleteWebsiteTag">
         UPDATE osh_website_tag_rel

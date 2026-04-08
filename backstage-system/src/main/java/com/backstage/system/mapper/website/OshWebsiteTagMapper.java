@@ -13,7 +13,7 @@ import java.util.List;
 * @Entity generator.domain.OshWebsiteTag
 */
 public interface OshWebsiteTagMapper extends BaseMapper<OshWebsiteTag> {
-    @Insert("insert into osh_website_tag (id, tag_name,del_flag) values (#{id}, #{tagName},#{delFlag})")
+    @Insert("insert into osh_website_tag (id, tag_name,delete_flag) values (#{id}, #{tagName},#{deleteFlag})")
     int insertWebsiteTag(OshWebsiteTag tag);
     /**
      * 根据网站id批量删除网站标签信息

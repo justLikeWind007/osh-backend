@@ -2,7 +2,7 @@ package com.backstage.system.mapper.coupon;
 
 import java.util.List;
 import com.backstage.system.domain.coupon.OshCard;
-import com.backstage.system.domain.vo.OshCardVo;
+import com.backstage.system.domain.vo.OshCardVO;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Select;
 
@@ -64,7 +64,7 @@ public interface OshCardMapper
     public int deleteOshCardByIds(Long[] ids);
 
     @Select("SELECT id, title, price, start_time, end_time, type, used, goods_id FROM osh_card WHERE used = 0")
-    List<OshCardVo> getOshCardList();
+    List<OshCardVO> getOshCardList();
 
     @Insert("INSERT INTO osh_card (id) VALUES (#{id})")
     Boolean receiveCoupon(OshCard oshCard);
