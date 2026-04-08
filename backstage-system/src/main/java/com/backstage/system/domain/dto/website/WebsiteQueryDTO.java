@@ -1,18 +1,19 @@
 package com.backstage.system.domain.dto.website;
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * 实用网站查询参数对象
  */
-public class WebsiteQueryDto implements Serializable {
+public class WebsiteQueryDTO implements Serializable {
     /** 序列化版本号 */
     private static final long serialVersionUID = 1L;
     /** 网站名称（模糊查询） */
     private String websiteName;
 
     /** 标签名称（多个标签用逗号分隔，如："后端标签,AI 标签"） */
-    private String tagNames;
+    private List<String> tagNames;
 
     /** 标签数量（用于 HAVING 子句） */
     private Integer tagNameCount;
@@ -31,15 +32,14 @@ public class WebsiteQueryDto implements Serializable {
         this.websiteName = websiteName;
     }
 
-    public String getTagNames() {
+    public List<String> getTagNames() {
         return tagNames;
     }
 
-    public void setTagNames(String tagNames) {
+    public void setTagNames(List<String> tagNames) {
         this.tagNames = tagNames;
-        // 自动计算标签数量
-        if (tagNames != null && !tagNames.trim().isEmpty()) {
-            this.tagNameCount = tagNames.split(",").length;
+        if (tagNames != null && !tagNames.isEmpty()) {
+            this.tagNameCount = tagNames.size();
         } else {
             this.tagNameCount = 0;
         }
@@ -73,7 +73,7 @@ public class WebsiteQueryDto implements Serializable {
     public String toString() {
         return "WebsiteQueryDTO{" +
                 "websiteName='" + websiteName + '\'' +
-                ", tagNames='" + tagNames + '\'' +
+                ", tagNames=" + tagNames +
                 ", tagNameCount=" + tagNameCount +
                 ", pageNum=" + pageNum +
                 ", pageSize=" + pageSize +

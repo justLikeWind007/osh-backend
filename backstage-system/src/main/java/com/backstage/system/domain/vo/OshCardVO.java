@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import java.math.BigDecimal;
 import java.util.Date;
 
-public class OshCardVo {
+public class OshCardVO {
     /** ID */
     private Long id;
     /** 优惠价格 */
