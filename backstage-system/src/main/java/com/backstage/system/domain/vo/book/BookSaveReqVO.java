@@ -1,19 +1,21 @@
-package com.backstage.system.domain.vo;
+package com.backstage.system.domain.vo.book;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * 电子书详情视图对象
+ * 电子书保存请求视图对象（新增/修改）
  *
  * @author backstage
  */
-public class BookDetailVO implements Serializable
+public class BookSaveReqVO implements Serializable
 {
     private static final long serialVersionUID = 1L;
 
-    /** 电子书ID */
+    /** 电子书ID（更新时传） */
     private Long id;
 
     /** 标题 */
@@ -24,29 +26,21 @@ public class BookDetailVO implements Serializable
 
     /** 描述 */
     @JsonProperty("desc")
-    private String desc;
+    private String description;
 
     /** 试读内容 */
     @JsonProperty("try")
     private String tryContent;
 
     /** 价格 */
-    private String price;
+    private BigDecimal price;
 
     /** 原价 */
     @JsonProperty("t_price")
-    private String tPrice;
+    private BigDecimal tPrice;
 
-    /** 订阅数 */
-    @JsonProperty("sub_count")
-    private Integer subCount;
-
-    /** 章节列表 */
-    @JsonProperty("book_details")
-    private List<BookChapterVO> bookDetails;
-
-    /** 是否已购买 */
-    private Boolean isbuy;
+    /** 标签列表 */
+    private List<String> tags;
 
     public Long getId()
     {
@@ -78,14 +72,12 @@ public class BookDetailVO implements Serializable
         this.cover = cover;
     }
 
-    public String getDesc()
-    {
-        return desc;
+    public String getDescription() {
+        return description;
     }
 
-    public void setDesc(String desc)
-    {
-        this.desc = desc;
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public String getTryContent()
@@ -98,53 +90,39 @@ public class BookDetailVO implements Serializable
         this.tryContent = tryContent;
     }
 
-    public String getPrice()
+    public BigDecimal getPrice()
     {
         return price;
     }
 
-    public void setPrice(String price)
+    public void setPrice(BigDecimal price)
     {
         this.price = price;
     }
 
-    public String getTPrice()
+    public BigDecimal getTPrice()
     {
         return tPrice;
     }
 
-    public void setTPrice(String tPrice)
+    public void setTPrice(BigDecimal tPrice)
     {
         this.tPrice = tPrice;
     }
 
-    public Integer getSubCount()
-    {
-        return subCount;
+    public BigDecimal gettPrice() {
+        return tPrice;
     }
 
-    public void setSubCount(Integer subCount)
-    {
-        this.subCount = subCount;
+    public void settPrice(BigDecimal tPrice) {
+        this.tPrice = tPrice;
     }
 
-    public List<BookChapterVO> getBookDetails()
-    {
-        return bookDetails;
+    public List<String> getTags() {
+        return tags;
     }
 
-    public void setBookDetails(List<BookChapterVO> bookDetails)
-    {
-        this.bookDetails = bookDetails;
-    }
-
-    public Boolean getIsbuy()
-    {
-        return isbuy;
-    }
-
-    public void setIsbuy(Boolean isbuy)
-    {
-        this.isbuy = isbuy;
+    public void setTags(List<String> tags) {
+        this.tags = tags;
     }
 }

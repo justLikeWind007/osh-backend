@@ -16,7 +16,7 @@ public interface OshSiteInfoMapper extends BaseMapper<OshSiteInfo> {
 
   /**
    * 新增网站使用记录
-   * 
+   *
    * @param oshSiteUsage 网站使用记录
    * @return 结果
    */

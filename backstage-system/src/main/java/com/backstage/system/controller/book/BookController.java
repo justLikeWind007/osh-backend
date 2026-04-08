@@ -4,15 +4,15 @@ import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.utils.SecurityUtils;
 import com.backstage.system.domain.book.BookDO;
-import com.backstage.system.domain.vo.*;
+import com.backstage.system.domain.vo.book.*;
 import com.backstage.system.service.IBookService;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import org.apache.ibatis.annotations.Delete;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import javax.annotation.Resource;
 import javax.validation.Valid;
+import java.util.List;
 
 /**
  * 电子书Controller
@@ -22,21 +22,17 @@ import javax.validation.Valid;
 @RestController
 @RequestMapping("/pc/book")
 public class BookController {
-    @Autowired
+
+    @Resource
     private IBookService bookService;
 
     /**
      * 电子书列表
      */
     @Anonymous
-    @GetMapping("/list")
-    public R<Page<BookDO>> list(@RequestParam(defaultValue = "1") Integer page) {
-        Page<BookDO> pageParam = new Page<>(page, 10);
-        LambdaQueryWrapper<BookDO> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(BookDO::getStatus, "0")
-                .orderByDesc(BookDO::getCreateTime);
-
-        Page<BookDO> pageResult = bookService.page(pageParam, wrapper);
+    @PostMapping("/page")
+    public R<Page<BookListVO>> list(@RequestBody BookListReqVO reqVO) {
+        Page<BookListVO> pageResult = bookService.getBookPageList( reqVO);
         return R.ok(pageResult);
     }
 
@@ -44,10 +40,9 @@ public class BookController {
      * 查看电子书详情
      */
     @Anonymous
-    @GetMapping("/read")
-    public R<BookDetailVO> read(@RequestParam Long id) {
-        Long userId = getCurrentUserId();
-        BookDetailVO detail = bookService.selectBookDetail(id, userId);
+    @GetMapping("/getById")
+    public R<BookDetailVO> getById(@RequestParam Long id) {
+        BookDetailVO detail = bookService.selectBookDetail(id);
         return R.ok(detail);
     }
 
@@ -57,8 +52,7 @@ public class BookController {
     @Anonymous
     @GetMapping("/detail")
     public R<BookChapterContentVO> detail(@RequestParam Long book_id, @RequestParam Long id) {
-        Long userId = getCurrentUserId();
-        BookChapterContentVO content = bookService.selectBookChapterContent(book_id, id, userId);
+        BookChapterContentVO content = bookService.selectBookChapterContent(book_id, id);
         return R.ok(content);
     }
 
@@ -68,17 +62,10 @@ public class BookController {
     @Anonymous
     @GetMapping("/menus")
     public R<BookMenuVO> menus(@RequestParam Long id) {
-        Long userId = getCurrentUserId();
-        BookMenuVO menu = bookService.selectBookMenu(id, userId);
+        BookMenuVO menu = bookService.selectBookMenu(id);
         return R.ok(menu);
     }
 
-    /**
-     * 获取当前登录用户ID
-     */
-    private Long getCurrentUserId() {
-        return SecurityUtils.getUserId();
-    }
 
     /**
      * 新增电子书
@@ -113,6 +100,15 @@ public class BookController {
     {
         bookService.deleteBook(id);
         return R.ok("删除成功");
+    }
+
+    /**
+     * 查询所有电子书标签列表
+     */
+    @Anonymous
+    @GetMapping("/getTagList")
+    public R<List<String>> getTagList() {
+        return R.ok(bookService.getTagList());
     }
 
 }

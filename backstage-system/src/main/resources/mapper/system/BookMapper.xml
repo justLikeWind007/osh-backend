@@ -4,7 +4,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.backstage.system.mapper.book.BookMapper">
 
-    <resultMap type="com.backstage.system.domain.vo.BookListVO" id="BookListResult">
+    <resultMap type="com.backstage.system.domain.vo.book.BookListVO" id="BookListResult">
         <result property="id" column="id" />
         <result property="title" column="title" />
         <result property="cover" column="cover" />
@@ -14,16 +14,27 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="subCount" column="sub_count" />
     </resultMap>
 
-    <select id="selectBookList" parameterType="BookDO" resultMap="BookListResult">
-        select id, title, cover, description, price, original_price, sub_count
-        from osh_book
+    <select id="getBookPageList" parameterType="BookDO" resultType="com.backstage.system.domain.vo.book.BookListVO">
+        SELECT
+            book.id, book.title, book.cover, book.description, book.price, book.original_price, book.sub_count,
+            GROUP_CONCAT(DISTINCT tag.tag_name) AS tag_names
+        FROM
+            osh_book book
+            LEFT JOIN osh_book_tag tag ON book.id = tag.book_id AND tag.del_flag = '0'
         <where>
-            del_flag = '0' and status = '0'
-            <if test="title != null and title != ''">
-                and title like concat('%', #{title}, '%')
+            book.del_flag = '0' and book.status = '0'
+            <if test="reqVO.tagNameList != null and reqVO.tagNameList.size() > 0">
+                and tag.tag_name in
+                <foreach item="tagName" collection="reqVO.tagNameList" separator="," open="(" close=")" index="">
+                    #{tagName}
+                </foreach>
+            </if>
+            <if test="reqVO.title != null and reqVO.title != ''">
+                and book.title like concat('%', #{reqVO.title}, '%')
             </if>
         </where>
-        order by create_time desc
+        GROUP BY book.id
+        order by book.create_time desc
     </select>
 
 </mapper>
