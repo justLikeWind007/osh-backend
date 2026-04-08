@@ -1,6 +1,6 @@
 package com.backstage.system.mapper.website;
 
-import com.backstage.system.domain.vo.website.UserFavoriteWebsiteVo;
+import com.backstage.system.domain.vo.website.UserFavoriteWebsiteVO;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.backstage.system.domain.website.OshUserFavoriteWebsite;
 import org.apache.ibatis.annotations.Insert;
@@ -36,7 +36,7 @@ public interface OshUserFavoriteWebsiteMapper extends BaseMapper<OshUserFavorite
     @Select("select count(*) from osh_user_favorite_website where website_id = #{websiteId} and user_id = #{userId} and delete_flag = 0")
     int getFavorited(@Param("websiteId") Long websiteId, @Param("userId") Long userId);
 
-    List<UserFavoriteWebsiteVo> selectUserFavoriteList(Long userId);
+    List<UserFavoriteWebsiteVO> selectUserFavoriteList(Long userId);
 }
 
 
