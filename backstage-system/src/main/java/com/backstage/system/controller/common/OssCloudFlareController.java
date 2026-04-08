@@ -53,7 +53,7 @@ public class OssCloudFlareController {
      *
      * @param file        文件
      * @param type        上传场景模块类型
-     * @param id          用户 id
+     * @param resultId     资源id
      * @param previewFlag 是否需要预览, 默认false
      * @param limitMinute 生成文件预览链接的超时时间, 分钟数, 默认30分钟
      */
@@ -65,7 +65,7 @@ public class OssCloudFlareController {
     public R<Object> upload(
             @RequestParam("file") MultipartFile file,
             @RequestParam("type") String type,
-            @RequestParam(value = "id", required = false) String id,
+            @RequestParam(value = "resultId", required = false) String resultId,
             @RequestParam(value = "preview", required = false, defaultValue = "false") Boolean previewFlag,
             @RequestParam(value = "minute", required = false, defaultValue = "30") Integer limitMinute) {
         if (file.isEmpty()) {
@@ -73,7 +73,7 @@ public class OssCloudFlareController {
         }
         if (type.equals("video")) {
             try {
-                String url = ossService.upload(file, UploadPathEnum.COURSE_VIDEO, id);
+                String url = ossService.upload(file, UploadPathEnum.COURSE_VIDEO, resultId);
 
                 return R.ok(url);
             } catch (Exception e) {
@@ -82,7 +82,7 @@ public class OssCloudFlareController {
             }
         } else {
             try {
-                String url = ossService.upload(file, UploadPathEnum.IMAGE, id);
+                String url = ossService.upload(file, UploadPathEnum.IMAGE, resultId);
 
                 OshUploadImage uploadImage = new OshUploadImage();
                 uploadImage.setUserId(1L);

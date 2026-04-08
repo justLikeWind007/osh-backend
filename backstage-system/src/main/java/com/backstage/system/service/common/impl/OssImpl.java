@@ -57,18 +57,18 @@ public class OssImpl implements OssService {
      * 上传文件
      * @param file  文件
      * @param pathEnum  枚举路径固定
-     * @param id    自定义目录下的子文件夹
+     * @param resultId    自定义目录下的子文件夹
      * @return oss服务的文件路径
      * @throws Exception
      */
-    public String upload(MultipartFile file, UploadPathEnum pathEnum, String id) throws UpLoadException, Exception {
+    public String upload(MultipartFile file, UploadPathEnum pathEnum, String resultId) throws UpLoadException, Exception {
 
 
         String customPath;
-        if(id== null){
-            id="";
+        if(resultId== null){
+            resultId="";
         }else {
-            id=id+"/";
+            resultId=resultId+"/";
         }
 
         // 获取年月
@@ -76,13 +76,13 @@ public class OssImpl implements OssService {
 
 
         if(UploadPathEnum.IMAGE.equals(pathEnum)){
-            customPath = UploadPathEnum.IMAGE.getPath()+id+ym+"/";
+            customPath = UploadPathEnum.IMAGE.getPath()+resultId+ym+"/";
             if(file.getSize() > 1024 * 1024 * 3){
                 throw new UpLoadException("图片大小不能超过3M");
             }
 
         }else if(UploadPathEnum.COURSE_VIDEO.equals(pathEnum)){
-            customPath = UploadPathEnum.COURSE_VIDEO.getPath()+id+ym+"/";
+            customPath = UploadPathEnum.COURSE_VIDEO.getPath()+resultId+ym+"/";
             if(file.getSize() > 1024 * 1024 * 200){
                 throw new UpLoadException("视频大小不能超过200MB");
             }
