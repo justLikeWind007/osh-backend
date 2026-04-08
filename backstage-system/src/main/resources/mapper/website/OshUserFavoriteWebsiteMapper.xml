@@ -12,8 +12,8 @@
             f.create_time AS favoriteTime,
             f.remark AS remark
         FROM osh_user_favorite_website f
-                 LEFT JOIN osh_practical_website w ON f.website_id = w.id AND w.del_flag = 0
-        WHERE f.user_id = #{userId} AND f.del_flag = 0
+                 LEFT JOIN osh_practical_website w ON f.website_id = w.id AND w.delete_flag = 0
+        WHERE f.user_id = #{userId} AND f.delete_flag = 0
         ORDER BY f.create_time DESC
     </select>
 

@@ -44,7 +44,7 @@ public interface OshPracticalWebsiteMapper  {
      */
     @Select("SELECT * FROM osh_practical_website " +
             "WHERE id = #{websiteId} " +
-            "AND del_flag = 0 " +
+            "AND delete_flag = 0 " +
             "AND status = 0")
     OshPracticalWebsite selectById(Long websiteId);
 
@@ -59,14 +59,14 @@ public interface OshPracticalWebsiteMapper  {
             "    audit_time = #{website.auditTime}, " +
             "    reject_reason = #{website.rejectReason} " +
             "WHERE id = #{website.id} " +
-            "  AND del_flag = 0")
+            "  AND delete_flag = 0")
     Boolean updateStatusById(@Param("website") OshPracticalWebsite website);
 
     /**
      * 查询待审核的网站列表
      * @return 待审核的网站列表
      */
-    @Select("SELECT * FROM osh_practical_website WHERE `del_flag` = 0 AND `status` = 0")
+    @Select("SELECT * FROM osh_practical_website WHERE `delete_flag` = 0 AND `status` = 0")
     List<OshPracticalWebsite> selectAuditList();
 /**
      * 根据网站ID批量删除网站
@@ -75,7 +75,7 @@ public interface OshPracticalWebsiteMapper  {
      */
     int batchDeleteWebsite(List<Integer> websiteIds);
 
-    @Select("SELECT * FROM osh_practical_website WHERE id = #{websiteId} AND del_flag = 0 AND status = #{status}")
+    @Select("SELECT * FROM osh_practical_website WHERE id = #{websiteId} AND delete_flag = 0 AND status = #{status}")
     OshPracticalWebsiteVO selectByIdAndStatus(@Param("websiteId") Long websiteId, @Param("status") Integer status);
 
 }

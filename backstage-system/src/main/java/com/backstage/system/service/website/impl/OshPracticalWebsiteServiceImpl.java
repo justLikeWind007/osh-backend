@@ -75,7 +75,7 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
         website.setLogoUrl(submitDto.getLogoUrl());
         website.setStatus(0);  // 0=待审核状态
         website.setClickCount(0); // 初始点击次数为 0
-        website.setDelFlag(0);  // 0=正常，未删除
+        website.setDeleteFlag(0);  // 0=正常，未删除
         //保存到数据库
         int result = oshPracticalWebsiteMapper.insertWebsite(website);
         website.getId();
@@ -97,7 +97,7 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
 
         tag.setId(website.getId());
         tag.setTagName(submitDto.getTagNames());
-        tag.setDelFlag(0);
+        tag.setDeleteFlag(0);
         return oshWebsiteTagMapper.insertWebsiteTag(tag);
     }
 

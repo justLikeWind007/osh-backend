@@ -41,11 +41,6 @@ public class OshPracticalWebsiteController extends BaseController {
     @ApiOperation("查询实用网站列表")
     @PostMapping("/list")
     public R<Map<String, Object>> list(@RequestBody WebsiteQueryDTO queryDTO) {
-       /* WebsiteQueryDto queryDTO = new WebsiteQueryDto();
-        queryDTO.setWebsiteName(websiteName);
-        queryDTO.setTagNames(tagNames);
-        queryDTO.setPageNum(pageNum);
-        queryDTO.setPageSize(pageSize);*/
          List<OshPracticalWebsiteVO> list = oshPracticalWebsiteService.selectWebsitePage(queryDTO);
         PageInfo<OshPracticalWebsiteVO> oshPracticalWebsiteVoPageInfo = new PageInfo<>(list);
         Map<String, Object> data = new LinkedHashMap<>(4);
