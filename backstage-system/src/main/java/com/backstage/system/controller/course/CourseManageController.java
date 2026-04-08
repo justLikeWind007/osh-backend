@@ -77,8 +77,20 @@ public class CourseManageController extends BaseController {
             @ApiParam("课程 ID") @RequestParam("courseId") Long courseId,
             @ApiParam("章节 ID") @RequestParam("sectionId") Long sectionId) {
         Long userId = getUserId();
-         courseManageService.uploadSectionVideo(file, courseId, sectionId, userId);
-        return R.ok();
+        VideoUploadVO result = courseManageService.uploadSectionVideo(file, courseId, sectionId, userId);
+        return R.ok(result);
+    }
+
+
+    /**
+     * 获取章节下的所有视频资源列表
+     */
+    @Anonymous
+    @ApiOperation("获取章节视频列表")
+    @GetMapping("/{sectionId}/videos")
+    public R<List<VideoUploadVO>> getSectionVideos(
+            @ApiParam("章节 ID") @PathVariable Long sectionId) {
+        return R.ok(courseManageService.getSectionVideos(sectionId));
     }
 
 

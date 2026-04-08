@@ -1,28 +1,8 @@
 {
   "version": "1.0",
-  "timestamp": 1775543706013,
+  "timestamp": 1775564290921,
   "projectRoot": "e:\\桌面\\judge-osh",
   "entries": [
-    {
-      "path": "backstage-system\\target\\classes\\com\\backstage\\system\\domain\\SysConfig.class",
-      "mtime": 1775124889654.13,
-      "size": 3501
-    },
-    {
-      "path": "backstage-generator\\target\\classes\\com\\backstage\\generator\\config\\GenConfig.class",
-      "mtime": 1775527285597.51,
-      "size": 1863
-    },
-    {
-      "path": "backstage-common\\target\\classes\\com\\backstage\\common\\config\\WebConfig.class",
-      "mtime": 1775527321823.6243,
-      "size": 1486
-    },
-    {
-      "path": "backstage-system\\target\\classes\\com\\backstage\\system\\controller\\order\\EsConfig.class",
-      "mtime": 1775527356916.5933,
-      "size": 2998
-    },
     {
       "path": "backstage-framework\\target\\classes\\com\\backstage\\framework\\config\\RedisConfig.class",
       "mtime": 1775527402535.8047,
@@ -57,6 +37,26 @@
       "path": "backstage-framework\\target\\classes\\com\\backstage\\framework\\config\\ApplicationConfig.class",
       "mtime": 1775543704542.1003,
       "size": 1852
+    },
+    {
+      "path": "backstage-common\\target\\classes\\com\\backstage\\common\\config\\WebConfig.class",
+      "mtime": 1775564205200.8074,
+      "size": 1486
+    },
+    {
+      "path": "backstage-generator\\target\\classes\\com\\backstage\\generator\\config\\GenConfig.class",
+      "mtime": 1775564209545.635,
+      "size": 1863
+    },
+    {
+      "path": "backstage-system\\target\\classes\\com\\backstage\\system\\controller\\order\\EsConfig.class",
+      "mtime": 1775564250461.2979,
+      "size": 2998
+    },
+    {
+      "path": "backstage-system\\target\\classes\\com\\backstage\\system\\domain\\SysConfig.class",
+      "mtime": 1775564251972.1404,
+      "size": 3501
     }
   ]
 }
