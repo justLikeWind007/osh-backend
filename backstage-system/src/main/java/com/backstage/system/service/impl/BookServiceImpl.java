@@ -128,13 +128,14 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
         checkEntityNotNull(chapter, "该记录不存在");
 
 //        // 如果不是免费章节，检查用户是否购买
-//        if (chapter.getIsfree() == 0)
+//        if (chapter.getIsFree() == 0)
 //        {
 //            checkUserHasBoughtOrThrow(userId, bookId);
 //        }
 
         BookChapterContentVO vo = new BookChapterContentVO();
         BeanUtils.copyProperties(chapter, vo);
+        vo.setIsFree(chapter.getIsFree());
 
         return vo;
     }
@@ -187,6 +188,71 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
     @Override
     public Page<BookDO> selectUserBookListPage(Long userId, Page<BookDO> page) {
         return userBookMapper.selectUserBookListPage(userId, page);
+    }
+
+    @Override
+    @Transactional
+    public void createBookChapter(BookChapterSaveUpdateVO reqVO) {
+        BookDO bookDO = getById(reqVO.getBookId());
+        checkEntityNotNull(bookDO, "电子书不存在");
+
+        BookChapter bookChapter = new BookChapter();
+        BeanUtils.copyProperties(reqVO, bookChapter);
+
+        Integer chapterNo = reqVO.getChapterNo();
+        if (chapterNo == null) {
+            Integer maxChapterNo = bookChapterMapper.selectMaxChapterNoByBookId(reqVO.getBookId());
+            chapterNo = maxChapterNo == null ? 1 : maxChapterNo + 1;
+        }
+        if (chapterNo < 1) {
+            throw new ServiceException("章节号必须大于等于1");
+        }
+        bookChapter.setChapterNo(chapterNo);
+        bookChapter.setSortOrder(reqVO.getSortOrder() == null ? chapterNo : reqVO.getSortOrder());
+        bookChapter.setIsFree(reqVO.getIsFree());
+        if (bookChapter.getSortOrder() < 1) {
+            throw new ServiceException("排序值必须大于等于1");
+        }
+
+        bookChapterMapper.insert(bookChapter);
+    }
+
+    @Override
+    @Transactional
+    public void updateBookChapter(BookChapterSaveUpdateVO reqVO) {
+        BookDO bookDO = getById(reqVO.getBookId());
+        checkEntityNotNull(bookDO, "电子书不存在");
+
+        BookChapter bookChapter = bookChapterMapper.selectBookChapterByBookIdAndId(reqVO.getBookId(), reqVO.getId());
+        checkEntityNotNull(bookChapter, "章节不存在");
+
+        if (reqVO.getTitle() != null) {
+            bookChapter.setTitle(reqVO.getTitle());
+        }
+        if (reqVO.getContent() != null) {
+            bookChapter.setContent(reqVO.getContent());
+        }
+        if (reqVO.getChapterNo() != null) {
+            if (reqVO.getChapterNo() < 1) {
+                throw new ServiceException("章节号必须大于等于1");
+            }
+            bookChapter.setChapterNo(reqVO.getChapterNo());
+        }
+        if (reqVO.getSortOrder() != null) {
+            if (reqVO.getSortOrder() < 1) {
+                throw new ServiceException("排序值必须大于等于1");
+            }
+            bookChapter.setSortOrder(reqVO.getSortOrder());
+        }
+        if (reqVO.getIsFree() != null) {
+            bookChapter.setIsFree(reqVO.getIsFree());
+        }
+
+        if (bookChapter.getSortOrder() == null && bookChapter.getChapterNo() != null) {
+            bookChapter.setSortOrder(bookChapter.getChapterNo());
+        }
+
+        bookChapterMapper.updateById(bookChapter);
     }
 
     /**
