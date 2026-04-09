@@ -5,14 +5,15 @@ import com.backstage.common.utils.StringUtils;
 import com.backstage.system.controller.book.BookListReqVO;
 import com.backstage.system.domain.book.BookDO;
 import com.backstage.system.domain.BookChapter;
-import com.backstage.system.domain.UserBook;
+import com.backstage.system.domain.UserBookRelation;
 import com.backstage.system.domain.book.BookTagDO;
 import com.backstage.system.domain.vo.book.*;
 import com.backstage.system.mapper.book.BookChapterMapper;
 import com.backstage.system.mapper.book.BookMapper;
 import com.backstage.system.mapper.UserBookMapper;
 import com.backstage.system.mapper.book.BookTagDOMapper;
-import com.backstage.system.service.IBookService;
+import com.backstage.system.service.book.BookChapterService;
+import com.backstage.system.service.book.IBookService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -35,13 +36,16 @@ import java.util.Optional;
 @Service
 public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements IBookService
 {
-    @Autowired
+    @Resource
     private BookMapper bookMapper;
 
-    @Autowired
+    @Resource
     private BookChapterMapper bookChapterMapper;
 
-    @Autowired
+    @Resource
+    private BookChapterService bookChapterService;
+
+    @Resource
     private UserBookMapper userBookMapper;
 
     @Resource
@@ -86,7 +90,6 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
      * 查询电子书详情
      *
      * @param id 电子书ID
-     * @param userId 用户ID（可选）
      * @return 电子书详情
      */
     @Override
@@ -273,6 +276,8 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
         // 新增电子书标签表记录
         List<BookTagDO> bookTagDOS = packageBookTagInsertDOList(bookDO.getId(), reqVO);
         bookTagDOMapper.insert(bookTagDOS);
+        // 批量新增章节
+        batchInsertChapters(bookDO.getId(), reqVO.getChapters());
     }
 
     /**
@@ -293,12 +298,58 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
     }
 
     /**
+     * 批量插入章节
+     *
+     * @param bookId   电子书ID
+     * @param chapters 章节列表
+     */
+    private void batchInsertChapters(Long bookId, List<BookChapterSaveUpdateVO> chapters) {
+        if (chapters == null || chapters.isEmpty()) {
+            return;
+        }
+
+        List<BookChapter> chapterList = new ArrayList<>();
+        for (int i = 0; i < chapters.size(); i++) {
+            BookChapterSaveUpdateVO chapterVO = chapters.get(i);
+            BookChapter bookChapter = new BookChapter();
+            BeanUtils.copyProperties(chapterVO, bookChapter);
+            bookChapter.setBookId(bookId);
+
+            // 处理章节号
+            Integer chapterNo = chapterVO.getChapterNo();
+            if (chapterNo == null) {
+                chapterNo = i + 1;
+            }
+            if (chapterNo < 1) {
+                throw new ServiceException("章节号必须大于等于1");
+            }
+            bookChapter.setChapterNo(chapterNo);
+
+            // 处理排序
+            Integer sortOrder = chapterVO.getSortOrder();
+            if (sortOrder == null) {
+                sortOrder = chapterNo;
+            }
+            if (sortOrder < 1) {
+                throw new ServiceException("排序值必须大于等于1");
+            }
+            bookChapter.setSortOrder(sortOrder);
+
+            chapterList.add(bookChapter);
+        }
+
+        // 批量插入
+        bookChapterService.saveBatch(chapterList);
+    }
+
+    /**
      * 修改电子书
      *
      * @param reqVO 电子书请求VO
      * @return 电子书响应VO
      */
     @Override
+    @Transactional
     public void updateBook(BookSaveReqVO reqVO)
     {
         BookDO book = getById(reqVO.getId());
@@ -325,11 +376,23 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
      * @param id 电子书ID
      */
     @Override
+    @Transactional
     public void deleteBook(Long id)
     {
         BookDO bookDO = getById(id);
         checkEntityNotNull(bookDO, "电子书不存在");
         bookMapper.deleteById(id);
+
+        // 删除关联标签
+        bookTagDOMapper.delete(new LambdaQueryWrapper<BookTagDO>()
+                .eq(BookTagDO::getBookId, id)
+                .eq(BookTagDO::getDelFlag, 0));
+
+        // 删除关联章节
+        bookChapterMapper.delete(new LambdaQueryWrapper<BookChapter>()
+                .eq(BookChapter::getBookId, id)
+                .eq(BookChapter::getDelFlag, 0));
+
     }
 
     /**
@@ -357,8 +420,8 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
         if (StringUtils.isNull(userId)) {
             return false;
         }
-        UserBook userBook = userBookMapper.selectUserBookByUserIdAndBookId(userId, bookId);
-        return StringUtils.isNotNull(userBook);
+        UserBookRelation userBookRelation = userBookMapper.selectUserBookByUserIdAndBookId(userId, bookId);
+        return StringUtils.isNotNull(userBookRelation);
     }
 
     /**
@@ -372,8 +435,8 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
         if (StringUtils.isNull(userId)) {
             throw new ServiceException("请先购买该电子书");
         }
-        UserBook userBook = userBookMapper.selectUserBookByUserIdAndBookId(userId, bookId);
-        if (StringUtils.isNull(userBook)) {
+        UserBookRelation userBookRelation = userBookMapper.selectUserBookByUserIdAndBookId(userId, bookId);
+        if (StringUtils.isNull(userBookRelation)) {
             throw new ServiceException("请先购买该电子书");
         }
     }

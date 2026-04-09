@@ -1,4 +1,4 @@
-package com.backstage.system.service;
+package com.backstage.system.service.book;
 
 import com.backstage.system.controller.book.BookListReqVO;
 import com.backstage.system.domain.book.BookDO;
