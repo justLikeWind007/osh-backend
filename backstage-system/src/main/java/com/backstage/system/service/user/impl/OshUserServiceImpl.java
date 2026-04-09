@@ -8,11 +8,17 @@ import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.common.utils.email.EmailUtil;
 import com.backstage.common.utils.jwt.JwtUtil;
 import com.backstage.common.utils.StringUtils;
+import com.backstage.system.domain.user.OshPermission;
+import com.backstage.system.domain.user.OshRole;
 import com.backstage.system.domain.user.User;
+import com.backstage.system.domain.user.vo.OshRoleVO;
 import com.backstage.system.domain.user.vo.UserLoginVo;
+import com.backstage.system.mapper.user.OshPermissionMapper;
+import com.backstage.system.mapper.user.OshRoleMapper;
 import com.backstage.system.mapper.user.OshUserMapper;
 import com.backstage.system.service.user.IOshUserService;
 import com.backstage.system.utils.UserContextUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -39,6 +45,10 @@ public class OshUserServiceImpl implements IOshUserService {
     private UserContextUtil userContextUtil;
     @Autowired
     private EmailUtil emailUtil;
+    @Autowired
+    private OshRoleMapper oshRoleMapper;
+    @Autowired
+    private OshPermissionMapper oshPermissionMapper;
 
     @Override
     public R<UserLoginVo> login(String username, String password) {
@@ -215,6 +225,16 @@ public class OshUserServiceImpl implements IOshUserService {
         claims.put(OshUserConstants.USER_ID, user.getId());
         claims.put(OshUserConstants.USERNAME, user.getUsername());
         claims.put(OshUserConstants.PASSWORD, user.getPassword());
+        Integer roleId = oshRoleMapper.getRoleIdsByUserId(user.getId());
+        OshRoleVO oshRoleVO = oshRoleMapper.getRoleNameByRoleId(roleId);
+        List<String> role = new ArrayList<>();
+        role.add(oshRoleVO.getRoleName());
+        role.add(oshRoleVO.getRoleCode());
+        role.add(oshRoleVO.getLevel().toString());
+        claims.put(OshUserConstants.USER_ROLE, role);
+        List<Integer> ids = oshPermissionMapper.selectPermissionIdsByRoleId(roleId);
+        List<String> permissionCodes = oshPermissionMapper.selectPermissionCodeByIds(ids);
+        claims.put(OshUserConstants.USER_PERMISSIONS, permissionCodes);
         return JwtUtil.createToken(claims);
     }
 

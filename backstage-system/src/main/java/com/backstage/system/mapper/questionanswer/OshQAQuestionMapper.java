@@ -17,6 +17,8 @@ public interface OshQAQuestionMapper extends BaseMapper <Question> {
 
     int addQuestionTags(@Param("questionId") Long questionId,@Param("tagId") Long tagId);
 
+    Integer getFollowInfoByUserIdAndQuestionId(@Param("userId")Long userId,@Param("questionId") Long questionId);
+
     int followQuestion(@Param("userId")Long userId,@Param("questionId") Long questionId,@Param("createBy") String createBy);
 
     int cancelFollowQuestion(@Param("userId")Long userId,@Param("questionId") Long questionId,@Param("updateBy") String updateBy);
