@@ -68,66 +68,47 @@ public class CourseManageController extends BaseController {
         return R.ok(courseManageService.getCourseDetail(courseId, userId));
     }
     /**
-     * 上传 课程中的 章节 视频
+     * 上传视频：返回视频信息
      */
-    @Log(title = "章节视频", businessType = BusinessType.INSERT)
-   // @PreAuthorize("@ss.hasPermi('system:course:video:upload')")
+    @Log(title = "视频上传", businessType = BusinessType.INSERT)
     @Anonymous
-    @ApiOperation("上传章节视频")
-    @PostMapping("/section/video/upload")
-    public R<VideoUploadVO> uploadSectionVideo(
+    @ApiOperation("上传视频")
+    @PostMapping("/video/upload")
+    public R<Map<String, Object>> uploadVideo(
             @ApiParam("视频文件") @RequestParam("file") MultipartFile file,
-            @ApiParam("课程 ID") @RequestParam("courseId") Long courseId,
-            @ApiParam("章节 ID") @RequestParam("sectionId") Long sectionId) {
-        Long userId = null;
-        try {
-            userId = getLoginUser().getUserId();
-        } catch (Exception e) {
-            return R.fail("请先登录");
-        }
-        courseManageService.uploadSectionVideo(file, courseId, sectionId, userId);
-        return R.ok();
+            @ApiParam("视频名称") @RequestParam(value = "videoName", required = false) String videoName) {
+        Map<String, Object> videoInfo = courseManageService.uploadVideo(file, videoName);
+        return R.ok(videoInfo);
     }
 
 
 
     /**
-     * 上传课程资料：不再绑定 courseId，上传成功即返回资料详情
-     * 前端拿到返回结果后，在“新增课程”提交时，将这些信息放入 materials 列表
+     * 上传课程资料：返回资料信息
      */
+    @Log(title = "课程资料", businessType = BusinessType.UPDATE)
+    @Anonymous
     @ApiOperation("上传课程资料")
     @PostMapping("/material/upload")
-    @Anonymous
     public R<Map<String, Object>> uploadMaterial(
             @ApiParam("资料文件") @RequestParam("file") MultipartFile file,
-            @ApiParam(value = "资料名称", required = false) @RequestParam(value = "materialName", required = false) String materialName) {
-
-        User currentUser = UserContextUtil.getCurrentUser();
-
-        Long userId = currentUser.getId();
-        // 方法内部返回的是封装好的 Map
-        Map<String, Object> materialInfo = courseManageService.uploadSectionMaterial(file, 0L, materialName, userId);
-
+            @ApiParam("资料名称") @RequestParam(value = "materialName", required = false) String materialName) {
+        Map<String, Object> materialInfo = courseManageService.uploadMaterial(file, materialName);
         return R.ok(materialInfo);
     }
 
     /**
-     * 上传课程封面：上传成功直接返回 OSS 访问地址
+     * 上传课程封面：返回封面信息
      */
     @Log(title = "课程封面", businessType = BusinessType.UPDATE)
     @Anonymous
     @ApiOperation("上传课程封面")
     @PostMapping("/cover/upload")
-    public R<String> uploadCourseCover(
-            @ApiParam("封面文件") @RequestParam("file") MultipartFile file) {
-
-        User currentUser = UserContextUtil.getCurrentUser();
-
-        Long userId = currentUser.getId();
-        // 传入 0L 逻辑同上
-        String coverUrl = courseManageService.uploadCourseCover(file, 0L, userId);
-
-        return R.ok(coverUrl);
+    public R<Map<String, Object>> uploadCourseCover(
+            @ApiParam("封面文件") @RequestParam("file") MultipartFile file,
+            @ApiParam("封面名称") @RequestParam(value = "coverName", required = false) String coverName) {
+        Map<String, Object> coverInfo = courseManageService.uploadCourseCover(file, coverName);
+        return R.ok(coverInfo);
     }
 
     /**

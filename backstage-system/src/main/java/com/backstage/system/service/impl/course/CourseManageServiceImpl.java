@@ -192,9 +192,10 @@ public class CourseManageServiceImpl implements ICourseManageService {
 
     // ==================== 封面、视频、资料上传接口实现 ====================
 
+
     @Override
     // 既然不操作数据库了，去掉 @Transactional
-    public String uploadCourseCover(MultipartFile file, Long courseId, Long userId) {
+    public Map<String, Object> uploadCourseCover(MultipartFile file, Long courseId, Long userId) {
 
         // 1. 校验文件类型（保持不变）
         String fileName = file.getOriginalFilename();
@@ -207,74 +208,50 @@ public class CourseManageServiceImpl implements ICourseManageService {
             throw new ServiceException(CourseUploadConstants.IMAGE_FORMAT_ERROR);
         }
 
-        // 2. 校验文件大小（保持不变）
+        // 校验文件大小
         if (file.getSize() > CourseUploadConstants.MAX_IMAGE_SIZE) {
             throw new ServiceException(CourseUploadConstants.IMAGE_SIZE_ERROR);
         }
 
-        // 3. 调用 OSS 服务上传
-        String relativePath;
+        // 调用 OSS 服务上传文件
+        String coverUrl;
         try {
-            // 如果 courseId 为空或 0，传给 OSS 一个固定目录名如 "temp"
-            String pathId = (courseId == null || courseId == 0) ? "temp" : String.valueOf(courseId);
+            coverUrl = ossService.upload(file, UploadPathEnum.COURSE_COVER, "covers");
 
-            // 这里拿到的是相对路径，例如：common/image/courseCover/temp/202604/xxx.JPG
-            relativePath = ossService.upload(file, com.backstage.common.enums.UploadPathEnum.COURSE_COVER, pathId);
-
-            if (relativePath == null || CourseUploadConstants.isUploadError(relativePath)) {
-                throw new ServiceException(relativePath);
+            // 检查上传结果是否包含错误信息
+            if (coverUrl == null || CourseUploadConstants.isUploadError(coverUrl)) {
+                throw new ServiceException(coverUrl);
             }
-
-            // --- 核心逻辑：手动拼接绝对路径 ---
-            // 1. 获取配置中的域名
-            String domain = ossUtil.getOssProperties().getPublicDomain();
-
-            // 2. 处理域名结尾斜杠
-            if (domain.endsWith("/")) {
-                domain = domain.substring(0, domain.length() - 1);
-            }
-
-            // 3. 拼出完整绝对路径
-            String fullUrl = domain + "/" + relativePath;
-            // --------------------------------
-
-            log.info("课程封面上传成功（绝对路径）：{}", fullUrl);
-
-            // 4. 直接返回完整地址给前端
-            return fullUrl;
-
         } catch (ServiceException e) {
             throw e;
         } catch (Exception e) {
             throw new ServiceException("上传封面失败：" + e.getMessage());
         }
+
+        // 构建返回信息
+        Map<String, Object> coverInfo = new HashMap<>();
+        coverInfo.put("url", coverUrl);
+        coverInfo.put("size", file.getSize());
+        coverInfo.put("type", extension);
+
+        log.info("课程封面上传成功：name={}, url={}, size={}, type={}",
+                coverInfo.get("coverName"), coverUrl, file.getSize(), extension);
+        return coverInfo;
     }
 
     /**
      * 上传课时视频（指定章节 ID）
      * 实现效果:
      * - 支持 mp4、avi、mov、mkv 等常见视频格式
-     * - 将视频 URL 保存到章节表  一对一
+     * - 返回视频信息（名称、URL、大小、类型）
      *
      * @param file 视频文件
-     * @param courseId 课程 ID
-     * @param sectionId 章节 ID
-     * @param userId 用户 ID
-     * @return 视频上传结果 VO
+     * @param videoName 视频名称
+     * @return 视频信息（名称、URL、大小、类型）
      */
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public VideoUploadVO uploadSectionVideo(MultipartFile file, Long courseId, Long sectionId, Long userId) {
-        // 1. 校验章节是否存在且属于该课程
-        Map<String, Object> section = sectionMapper.selectSectionById(sectionId);
-        if (section == null) {
-            throw new ServiceException("章节不存在");
-        }
-        if (section == null || !courseId.equals(section.get("course_id"))) {
-            throw new ServiceException("章节不存在或不属于该课程");
-        }
-
-        // 2. 校验文件类型（仅允许视频格式）
+    public Map<String, Object> uploadVideo(MultipartFile file, String videoName) {
+        // 1. 校验文件类型（仅允许视频格式）
         String fileName = file.getOriginalFilename();
         String extension = "";
         if (fileName != null && fileName.contains(".")) {
@@ -285,15 +262,15 @@ public class CourseManageServiceImpl implements ICourseManageService {
             throw new ServiceException(CourseUploadConstants.VIDEO_FORMAT_ERROR);
         }
 
-        //  校验文件大小
+        // 2. 校验文件大小
         if (file.getSize() > CourseUploadConstants.MAX_VIDEO_SIZE) {
             throw new ServiceException(CourseUploadConstants.VIDEO_SIZE_ERROR);
         }
 
-        // 调用文件上传接口，使用 courseId 作为子目录
+        // 3. 调用文件上传接口
         String savePath;
         try {
-            savePath = ossService.upload(file, UploadPathEnum.COURSE_VIDEO, String.valueOf(courseId));
+            savePath = ossService.upload(file, UploadPathEnum.COURSE_VIDEO, "videos");
 
             // 检查上传结果是否包含错误信息
             if (savePath == null || CourseUploadConstants.isUploadError(savePath)) {
@@ -305,34 +282,30 @@ public class CourseManageServiceImpl implements ICourseManageService {
             throw new ServiceException("上传视频失败：" + e.getMessage());
         }
 
-        // 4. 更新章节的视频 URL（使用 Map 方式）
-        Map<String, Object> params = new HashMap<>();
-        params.put("id", sectionId);
-        params.put("mediaUrl", savePath);
-        params.put("updateTime", DateUtils.getNowDate());
-        params.put("updateBy", String.valueOf(userId));
+        // 4. 构建返回信息
+        Map<String, Object> videoInfo = new HashMap<>();
+        videoInfo.put("videoName", StringUtils.defaultIfEmpty(videoName, fileName));
+        videoInfo.put("url", savePath);
+        videoInfo.put("size", file.getSize());
+        videoInfo.put("type", extension);
 
-        int result = sectionMapper.updateSection(params);
-        if (result <= 0) {
-            throw new ServiceException("更新章节视频失败");
-        }
-
-        // 5. 构建返回结果
-        VideoUploadVO vo = new VideoUploadVO();
-        vo.setVideoUrl(savePath);
-        vo.setOriginalFileName(fileName);
-        vo.setFileSize(file.getSize());
-        // TODO: 实际需要调用视频处理服务提取元数据
-        vo.setDuration(0);  // 实际需要从视频中提取
-        vo.setVideoCodec("h264");
-        vo.setVideoResolution("1080p");
-        vo.setVideoBitrate(0);
-
-        log.info("课时视频上传成功：courseId={}, sectionId={}, url={}", courseId, sectionId, savePath);
-        return vo;
+        log.info("视频上传成功：name={}, url={}, size={}, type={}",
+                videoInfo.get("videoName"), savePath, file.getSize(), extension);
+        return videoInfo;
     }
 
 
+
+    /**
+     * 上传课程资料
+     * 校验文件类型（仅允许压缩包 zip/rar/tar/gz）
+     * 存储到指定目录
+     * 返回资料信息（名称、URL、大小、类型）
+     *
+     * @param file 资料文件
+     * @param materialName 资料名称
+     * @return 资料信息（名称、URL、大小、类型）
+     */
     @Override
     // 不操作数据库了，去掉 @Transactional
     public Map<String, Object> uploadSectionMaterial(MultipartFile file, Long courseId, String materialName, Long userId) {
@@ -347,41 +320,26 @@ public class CourseManageServiceImpl implements ICourseManageService {
             throw new ServiceException(CourseUploadConstants.ARCHIVE_FORMAT_ERROR);
         }
 
+
         try {
-            // 2. 处理 OSS 存储路径
-            // 如果是新增模式（courseId 为 0 或 null），路径传 "temp"
-            String pathId = (courseId == null || courseId == 0) ? "temp" : String.valueOf(courseId);
+            // 返回相对路径
+            String fileUrl = ossService.upload(file, com.backstage.common.enums.UploadPathEnum.COURSE_MATERIAL, "materials");
 
-            // 这里拿到的是相对路径：common/material/temp/202604/xxx.zip
-            String relativePath = ossService.upload(file, com.backstage.common.enums.UploadPathEnum.COURSE_MATERIAL, pathId);
-
-            if (relativePath == null || CourseUploadConstants.isUploadError(relativePath)) {
-                throw new ServiceException(relativePath);
+            if (fileUrl == null || CourseUploadConstants.isUploadError(fileUrl)) {
+                throw new ServiceException(fileUrl);
             }
 
-            // --- 核心逻辑：手动拼接绝对路径 ---
-            // 1. 从 ossUtil 拿到配置里的域名 (例如: http://oss.xxx.com)
-            String domain = ossUtil.getOssProperties().getPublicDomain();
+            // 构建返回信息
+            Map<String, Object> materialInfo = new HashMap<>();
+            materialInfo.put("materialName", StringUtils.defaultIfEmpty(materialName, fileName));
+            materialInfo.put("url", fileUrl);
+            materialInfo.put("size", file.getSize());
+            materialInfo.put("type", extension);
 
-            // 2. 确保域名结尾没有多余的斜杠，然后拼上相对路径
-            if (domain.endsWith("/")) {
-                domain = domain.substring(0, domain.length() - 1);
-            }
+            log.info("课程资料上传成功：name={}, url={}, size={}, type={}",
+                    materialInfo.get("materialName"), fileUrl, file.getSize(), extension);
 
-            // 最终的绝对路径
-            String fullUrl = domain + "/" + relativePath;
-            // --------------------------------
-
-            // 3. 【核心改动】将所有前端后续入库需要的信息封装进 Map 返回
-            Map<String, Object> result = new HashMap<>();
-            result.put("fileUrl", fullUrl); // 👈 这里放的是绝对路径了
-            result.put("materialName", StringUtils.defaultIfEmpty(materialName, fileName));
-            result.put("fileType", extension);
-            result.put("fileSize", file.getSize());
-
-            log.info("课程资料上传成功（绝对路径）：{}", fullUrl);
-
-            return result;
+            return materialInfo;
 
         } catch (ServiceException e) {
             throw e;
@@ -389,6 +347,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
             throw new ServiceException("上传资料失败：" + e.getMessage());
         }
     }
+
 
     /**
      * 新增课程
