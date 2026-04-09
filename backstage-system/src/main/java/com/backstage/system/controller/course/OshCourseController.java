@@ -1,8 +1,10 @@
 package com.backstage.system.controller.course;
 
 import com.backstage.common.annotation.Anonymous;
+import com.backstage.common.annotation.Log;
 import com.backstage.common.core.controller.BaseController;
 import com.backstage.common.core.domain.R;
+import com.backstage.common.enums.BusinessType;
 import com.backstage.common.response.PageResponse;
 
 import com.backstage.system.domain.course.OshCourse;
@@ -13,6 +15,7 @@ import com.backstage.system.domain.course.vo.CourseQuestionListItemVo;
 import com.backstage.system.domain.course.vo.OshCourseDetailVo;
 import com.backstage.system.domain.course.vo.OshCourseSectionVo;
 import com.backstage.system.domain.user.User;
+import com.backstage.system.domain.vo.CourseDetailVO;
 import com.backstage.system.request.CourseCreateRequest;
 import com.backstage.system.request.CourseChapterCreateRequest;
 import com.backstage.system.request.CourseCollectionRequest;
@@ -28,12 +31,15 @@ import com.backstage.system.utils.UserContextUtil;
 import com.github.pagehelper.PageInfo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.constraints.NotNull;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 课程信息 Controller

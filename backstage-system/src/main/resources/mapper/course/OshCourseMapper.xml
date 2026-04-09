@@ -558,6 +558,40 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
           and delete_flag = 0
     </update>
 
+    <!-- 多标签 + 关键字 + 动态排序查询课程列表 -->
+    <select id="selectCourseListByCondition" parameterType="java.util.Map" resultMap="OshCouresResult">
+        SELECT DISTINCT c.id, c.title, c.cover, c.price, c.t_price, c.type, c.status,
+                        c.free_lesson_count, c.sub_count, c.remark, c.create_time, c.update_time
+        FROM osh_course c
+        <if test="tagIds != null and tagIds.size() > 0">
+            INNER JOIN osh_course_tag_rel tr ON c.id = tr.course_id AND tr.delete_flag = 0
+        </if>
+        <where>
+            c.delete_flag = 0
+            AND c.status = 1
+            <if test="tagIds != null and tagIds.size() > 0">
+                AND tr.tag_id IN
+                <foreach collection="tagIds" item="tagId" open="(" separator="," close=")">
+                    #{tagId}
+                </foreach>
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND c.title LIKE #{keyword}
+            </if>
+        </where>
+        <choose>
+            <when test="sortBy == 'price'">
+                ORDER BY c.price ${sortOrder}
+            </when>
+            <when test="sortBy == 'buy_count'">
+                ORDER BY c.buy_count ${sortOrder}
+            </when>
+            <otherwise>
+                ORDER BY c.create_time ${sortOrder}
+            </otherwise>
+        </choose>
+    </select>
+
     <!-- 新增课程 -->
     <insert id="insertCourse" parameterType="com.backstage.system.domain.course.OshCourse" useGeneratedKeys="true" keyProperty="id">
         insert into osh_course
@@ -718,7 +752,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                file_size,
                file_type,
                download_count,
-               is_pay_only as pay_only,
+               pay_only as pay_only,
                sort,
                delete_flag,
                create_by,
@@ -730,4 +764,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
           and delete_flag = 0
         order by sort asc, id asc
     </select>
+
+    <update id="updateCourseSubCount" parameterType="java.util.Map">
+        update osh_course
+        <set>
+            <if test="subCount != null">sub_count = #{subCount},</if>
+            <if test="videoCount != null">video_count = #{videoCount},</if>
+            update_time = now()
+        </set>
+        where id = #{courseId}
+    </update>
 </mapper>

@@ -133,6 +133,12 @@ public class OshCourse {
     @ApiModelProperty("考试ID")
     private Integer examId;
 
+    @ApiModelProperty("试看内容/试用内容")
+    private String tryContent;
+
+    @ApiModelProperty("标签ID列表（数组）")
+    private Long[] tagIds;
+
 
 
 
@@ -365,6 +371,22 @@ public class OshCourse {
 
     public void setIntro(String intro) {
         this.intro = intro;
+    }
+
+    public String getTryContent() {
+        return tryContent;
+    }
+
+    public void setTryContent(String tryContent) {
+        this.tryContent = tryContent;
+    }
+
+    public Long[] getTagIds() {
+        return tagIds;
+    }
+
+    public void setTagIds(Long[] tagIds) {
+        this.tagIds = tagIds;
     }
 
     public BigDecimal gettPrice() {

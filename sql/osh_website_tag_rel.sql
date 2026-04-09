@@ -11,7 +11,7 @@
  Target Server Version : 80408 (8.4.8)
  File Encoding         : 65001
 
- Date: 31/03/2026 20:08:00
+ Date: 07/04/2026 23:52:03
 */
 
 SET NAMES utf8mb4;
@@ -26,15 +26,15 @@ CREATE TABLE `osh_website_tag_rel`  (
   `website_id` bigint NULL DEFAULT NULL COMMENT '网站 ID',
   `tag_id` bigint NULL DEFAULT NULL COMMENT '标签 ID',
   `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs NULL DEFAULT NULL COMMENT '创建者',
-  `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
+  `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs NULL DEFAULT NULL COMMENT '更新者',
-  `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
-  `del_flag` tinyint NULL DEFAULT NULL,
+  `update_time` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `delete_flag` tinyint NULL DEFAULT NULL COMMENT '删除标志（0-未删除 1-已删除）',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_website_tag`(`website_id` ASC, `tag_id` ASC) USING BTREE,
   INDEX `idx_website_id`(`website_id` ASC) USING BTREE,
   INDEX `idx_tag_id`(`tag_id` ASC) USING BTREE,
-  INDEX `idx_del_flag`(`del_flag` ASC) USING BTREE
+  INDEX `idx_del_flag`(`delete_flag` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 16 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_as_cs COMMENT = '网站与标签关联表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------

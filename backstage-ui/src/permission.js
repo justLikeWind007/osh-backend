@@ -9,9 +9,15 @@ import { isRelogin } from '@/utils/request'
 
 NProgress.configure({ showSpinner: false })
 
-const whiteList = ['/login', '/register']
+// 免登录白名单（支持 ** 和 * 通配符）
+const whiteList = ['/login', '/register', '/demo/**']
+
+// 演示路由前缀 —— 所有 /demo/ 开头的路径均为演示页面，无需登录
+const demoPrefixes = ['/demo/']
 
 const isWhiteList = (path) => {
+  // 优先判断演示路由前缀（不依赖 glob 匹配，双重保障）
+  if (demoPrefixes.some(prefix => path.startsWith(prefix))) return true
   return whiteList.some(pattern => isPathMatch(pattern, path))
 }
 

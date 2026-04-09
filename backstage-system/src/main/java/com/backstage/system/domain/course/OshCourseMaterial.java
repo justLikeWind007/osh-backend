@@ -12,8 +12,11 @@ public class OshCourseMaterial {
 
     private Long id;
     private Long courseId;
+    private Long sectionId;
     private String name;
     private String url;
+    private String materialName;
+    private String fileUrl;
 
     private Long fileSize;
     private String fileType;
@@ -46,6 +49,30 @@ public class OshCourseMaterial {
         this.createTime = createTime;
         this.updateBy = updateBy;
         this.updateTime = updateTime;
+    }
+
+    public Long getSectionId() {
+        return sectionId;
+    }
+
+    public void setSectionId(Long sectionId) {
+        this.sectionId = sectionId;
+    }
+
+    public String getMaterialName() {
+        return materialName;
+    }
+
+    public void setMaterialName(String materialName) {
+        this.materialName = materialName;
+    }
+
+    public String getFileUrl() {
+        return fileUrl;
+    }
+
+    public void setFileUrl(String fileUrl) {
+        this.fileUrl = fileUrl;
     }
 
     public Long getId() {

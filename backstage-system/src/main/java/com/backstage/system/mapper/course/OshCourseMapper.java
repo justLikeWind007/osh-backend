@@ -10,6 +10,7 @@ import com.backstage.system.request.CourseSearchRequest;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 课程信息 Mapper 接口
@@ -41,6 +42,14 @@ public interface OshCourseMapper
      * @return 课程列表
      */
     List<OshCourse> selectCourseList();
+
+    /**
+     * 根据条件查询课程列表（支持多标签筛选 + 关键字搜索 + 动态排序）
+     *
+     * @param params 查询参数：tagIds(List), keyword(String), sortBy(String), sortOrder(String)
+     * @return 课程列表
+     */
+    List<OshCourse> selectCourseListByCondition(Map<String, Object> params);
 
     /**
      * 新增课程
@@ -101,4 +110,12 @@ public interface OshCourseMapper
     String getCourseSectionContent(@Param("sectionId") Long sectionId);
 
     List<OshCourseMaterial> getCourseMaterials(Long courseId);
+
+    /**
+     * 更新课程章节数统计
+     *
+     * @param params 包含courseId等参数的Map
+     * @return 更新结果
+     */
+    int updateCourseSubCount(Map<String, Object> params);
 }

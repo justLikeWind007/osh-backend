@@ -1,6 +1,7 @@
 package com.backstage.system.domain.vo;
 
 import java.io.Serializable;
+import java.util.List;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
@@ -43,17 +44,41 @@ public class CourseDetailVO implements Serializable
     @ApiModelProperty("课程类型")
     private String type;
 
+    /** 服务周期 */
+    @ApiModelProperty("服务周期")
+    private String serviceCycle;
+
+    /** 服务内容 */
+    @ApiModelProperty("服务内容")
+    private String serviceContent;
+
+    /** 好评数 */
+    @ApiModelProperty("好评数")
+    private Integer goodCount;
+
+    /** 中评数 */
+    @ApiModelProperty("中评数")
+    private Integer mediumCount;
+
+    /** 差评数 */
+    @ApiModelProperty("差评数")
+    private Integer badCount;
+
     /** 章节数量 */
     @ApiModelProperty("章节数量")
     private Integer subCount;
 
     /** 是否已购买 */
     @ApiModelProperty("是否已购买")
-    private Boolean isbuy;
+    private Boolean isBuy;
 
     /** 是否已收藏 */
     @ApiModelProperty("是否已收藏")
     private Boolean isfava;
+
+    /** 章节列表 */
+    @ApiModelProperty("章节列表")
+    private List<CourseSectionVO> sections;
 
     public Long getId()
     {
@@ -125,6 +150,56 @@ public class CourseDetailVO implements Serializable
         this.type = type;
     }
 
+    public String getServiceCycle()
+    {
+        return serviceCycle;
+    }
+
+    public void setServiceCycle(String serviceCycle)
+    {
+        this.serviceCycle = serviceCycle;
+    }
+
+    public String getServiceContent()
+    {
+        return serviceContent;
+    }
+
+    public void setServiceContent(String serviceContent)
+    {
+        this.serviceContent = serviceContent;
+    }
+
+    public Integer getGoodCount()
+    {
+        return goodCount;
+    }
+
+    public void setGoodCount(Integer goodCount)
+    {
+        this.goodCount = goodCount;
+    }
+
+    public Integer getMediumCount()
+    {
+        return mediumCount;
+    }
+
+    public void setMediumCount(Integer mediumCount)
+    {
+        this.mediumCount = mediumCount;
+    }
+
+    public Integer getBadCount()
+    {
+        return badCount;
+    }
+
+    public void setBadCount(Integer badCount)
+    {
+        this.badCount = badCount;
+    }
+
     public Integer getSubCount()
     {
         return subCount;
@@ -135,14 +210,14 @@ public class CourseDetailVO implements Serializable
         this.subCount = subCount;
     }
 
-    public Boolean getIsbuy()
+    public Boolean getIsBuy()
     {
-        return isbuy;
+        return isBuy;
     }
 
-    public void setIsbuy(Boolean isbuy)
+    public void setIsBuy(Boolean isBuy)
     {
-        this.isbuy = isbuy;
+        this.isBuy = isBuy;
     }
 
     public Boolean getIsfava()
@@ -153,5 +228,15 @@ public class CourseDetailVO implements Serializable
     public void setIsfava(Boolean isfava)
     {
         this.isfava = isfava;
+    }
+
+    public List<CourseSectionVO> getSections()
+    {
+        return sections;
+    }
+
+    public void setSections(List<CourseSectionVO> sections)
+    {
+        this.sections = sections;
     }
 }

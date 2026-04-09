@@ -1,11 +1,10 @@
 package com.backstage.system.service.website;
 
 import com.backstage.common.core.page.TableDataInfo;
-import com.backstage.system.domain.dto.website.WebsiteAuditDto;
-import com.backstage.system.domain.dto.website.WebsiteQueryDto;
-import com.backstage.system.domain.dto.website.WebsiteSubmitDto;
-import com.backstage.system.domain.vo.website.OshPracticalWebsiteVo;
-import com.backstage.system.domain.website.OshPracticalWebsite;
+import com.backstage.system.domain.dto.website.WebsiteAuditDTO;
+import com.backstage.system.domain.dto.website.WebsiteQueryDTO;
+import com.backstage.system.domain.dto.website.WebsiteSubmitDTO;
+import com.backstage.system.domain.vo.website.OshPracticalWebsiteVO;
 
 import java.util.List;
 
@@ -22,7 +21,7 @@ public interface OshPracticalWebsiteService {
      * @param queryDTO 查询参数
      * @return 实用网站列表
      */
-    List<OshPracticalWebsiteVo> selectWebsitePage(WebsiteQueryDto queryDTO);
+    List<OshPracticalWebsiteVO> selectWebsitePage(WebsiteQueryDTO queryDTO);
 
     /**
      * 增加网站点击次数
@@ -39,14 +38,14 @@ public interface OshPracticalWebsiteService {
      * @param submitDto 提交的网站信息
      * @return 影响行数
      */
-    int submitWebsite(WebsiteSubmitDto submitDto);
+    int submitWebsite(WebsiteSubmitDTO submitDto);
     /**
      * 管理员审核网站
      *
      * @param auditDto 审核信息
      * @return 是否审核成功
      */
-    Boolean auditWebsite(WebsiteAuditDto auditDto);
+    Boolean auditWebsite(WebsiteAuditDTO auditDto);
     /**
      * 查询待审核的网站列表
      *
@@ -63,5 +62,5 @@ public interface OshPracticalWebsiteService {
      */
     int batchDeleteWebsite(List<Integer> websiteIds);
 
-    OshPracticalWebsiteVo getAuditDetail(Long websiteId);
+    OshPracticalWebsiteVO getAuditDetail(Long websiteId);
 }

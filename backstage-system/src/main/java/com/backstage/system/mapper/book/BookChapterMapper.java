@@ -1,7 +1,7 @@
 package com.backstage.system.mapper.book;
 
 import com.backstage.system.domain.BookChapter;
-import com.backstage.system.domain.vo.BookChapterVO;
+import com.backstage.system.domain.vo.book.BookChapterVO;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;

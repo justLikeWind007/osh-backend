@@ -65,9 +65,10 @@ public class OssCloudFlareController {
     public R<Object> upload(
             @RequestParam("file") MultipartFile file,
             @RequestParam("type") String type,
-            @RequestParam(value = "id", required = false) String id,
             @RequestParam(value = "preview", required = false, defaultValue = "false") Boolean previewFlag,
-            @RequestParam(value = "minute", required = false, defaultValue = "30") Integer limitMinute) {
+            @RequestParam(value = "minute", required = false, defaultValue = "30") Integer limitMinute,
+            @RequestParam(value = "id", required = false) String id) {
+
         if (file.isEmpty()) {
             return R.fail("上传文件不能为空");
         }
@@ -111,6 +112,7 @@ public class OssCloudFlareController {
                 } else {
                     return R.fail(file.getOriginalFilename());
                 }
+
             } catch (Exception e) {
                 log.error("上传失败", e);
                 return R.fail(e.getMessage());

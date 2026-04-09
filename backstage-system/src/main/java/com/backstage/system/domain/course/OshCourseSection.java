@@ -50,6 +50,9 @@ public class OshCourseSection {
         this.courseId = courseId;
     }
 
+
+
+
     public Long getParentId() {
         return parentId;
     }
@@ -80,6 +83,14 @@ public class OshCourseSection {
 
     public void setFreeFlag(Integer freeFlag) {
         this.freeFlag = freeFlag;
+    }
+
+    public Integer getIsFree() {
+        return freeFlag;
+    }
+
+    public void setIsFree(int isFree) {
+        this.freeFlag = isFree;
     }
 
     public Integer getDuration() {
@@ -224,5 +235,30 @@ public class OshCourseSection {
 
     public void setUpdateTime(Date updateTime) {
         this.updateTime = updateTime;
+    }
+
+    @Override
+    public String toString() {
+        return "OshCourseSection{" +
+                "id=" + id +
+                ", courseId=" + courseId +
+                ", title='" + title + '\'' +
+                ", parentId=" + parentId +
+                ", sort=" + sort +
+                ", freeFlag=" + freeFlag +
+                ", duration=" + duration +
+                ", mediaUrl='" + mediaUrl + '\'' +
+                ", cover='" + cover + '\'' +
+                ", videoCodec='" + videoCodec + '\'' +
+                ", videoBitrate=" + videoBitrate +
+                ", videoResolution='" + videoResolution + '\'' +
+                ", subtitleUrl='" + subtitleUrl + '\'' +
+                ", status=" + status +
+                ", examId=" + examId +
+                ", createBy='" + createBy + '\'' +
+                ", createTime=" + createTime +
+                ", updateBy='" + updateBy + '\'' +
+                ", updateTime=" + updateTime +
+                '}';
     }
 }

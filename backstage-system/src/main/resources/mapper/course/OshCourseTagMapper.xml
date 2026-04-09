@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
-        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.backstage.system.mapper.course.OshCourseTagMapper">
 
     <resultMap id="OshCourseTagResult" type="com.backstage.system.domain.course.OshCourseTag">
@@ -34,29 +34,71 @@
         where name = #{name}
           and delete_flag = 0
         limit 1
+
+    <!-- 查询所有启用标签，按使用数量降序 -->
+    <select id="selectAllTags" resultType="java.util.Map">
+        SELECT id, name, use_count AS useCount, sort, status
+        FROM osh_course_tag
+        WHERE status = 1 AND delete_flag = 0
+        ORDER BY use_count DESC, sort DESC
     </select>
 
-    <insert id="insertCourseTag" parameterType="com.backstage.system.domain.course.OshCourseTag"
-            useGeneratedKeys="true" keyProperty="id">
-        insert into osh_course_tag
-        (name, sort, use_count, status, remark, delete_flag, create_by, create_time, update_by, update_time)
-        values
-        (#{name}, #{sort}, #{useCount}, #{status}, #{remark}, #{deleteFlag}, #{createBy}, #{createTime}, #{updateBy}, #{updateTime})
+    <!-- 根据关键字模糊查询标签，按使用数量降序 -->
+    <select id="selectTagsByKeyword" resultType="java.util.Map">
+        SELECT id, name, use_count AS useCount
+        FROM osh_course_tag
+        WHERE status = 1 AND delete_flag = 0
+        <if test="keyword != null and keyword != ''">
+            AND name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        ORDER BY use_count DESC, sort DESC
+        LIMIT 20
+    </select>
+
+    <!-- 查询课程的标签列表 -->
+    <select id="selectTagsByCourseId" parameterType="Long" resultType="java.util.Map">
+        SELECT t.id, t.name, t.use_count AS useCount
+        FROM osh_course_tag t
+        INNER JOIN osh_course_tag_rel r ON t.id = r.tag_id
+        WHERE r.course_id = #{courseId} AND r.delete_flag = 0 AND t.delete_flag = 0
+    </select>
+
+    <!-- 新增标签关联 -->
+    <insert id="insertCourseTagRelation" parameterType="java.util.Map">
+        INSERT INTO osh_course_tag_rel (course_id, tag_id, create_time)
+        VALUES (#{courseId}, #{tagId}, NOW())
     </insert>
 
-    <insert id="insertCourseTagRel" parameterType="com.backstage.system.domain.course.OshCourseTagRel"
-            useGeneratedKeys="true" keyProperty="id">
-        insert into osh_course_tag_rel
-        (course_id, tag_id, delete_flag, create_by, create_time, update_by, update_time)
-        values
-        (#{courseId}, #{tagId}, #{deleteFlag}, #{createBy}, #{createTime}, #{updateBy}, #{updateTime})
-    </insert>
+    <!-- 删除标签关联（按课程 ID） -->
+    <delete id="deleteCourseTagRelationByCourseId" parameterType="Long">
+        DELETE FROM osh_course_tag_rel WHERE course_id = #{courseId}
+    </delete>
 
-    <update id="increaseUseCount">
-        update osh_course_tag
-        set use_count = ifnull(use_count, 0) + 1,
-            update_time = now()
-        where id = #{id}
-          and delete_flag = 0
+    <!-- 删除标签关联（按标签 ID） -->
+    <delete id="deleteCourseTagRelationByTagId" parameterType="Long">
+        DELETE FROM osh_course_tag_rel WHERE tag_id = #{tagId}
+    </delete>
+
+    <!-- 增加标签使用次数 -->
+    <update id="incrementUsageCount" parameterType="Long">
+        UPDATE osh_course_tag SET use_count = use_count + 1 WHERE id = #{tagId}
     </update>
+
+    <!-- 新增标签 -->
+    <insert id="insertTag" parameterType="OshCourseTag">
+        INSERT INTO osh_course_tag (
+            name, sort, use_count, status, remark,
+            create_by, create_time, update_by, update_time
+        ) VALUES (
+            #{name}, #{sort}, #{useCount}, #{status}, #{remark},
+            #{createBy}, NOW(), #{updateBy}, NOW()
+        )
+    </insert>
+
+    <!-- 检查标签名称是否存在 -->
+    <select id="checkTagNameExists" resultType="int">
+        SELECT COUNT(1) FROM osh_course_tag
+        WHERE name = #{name} AND delete_flag = 0
+    </select>
+
 </mapper>

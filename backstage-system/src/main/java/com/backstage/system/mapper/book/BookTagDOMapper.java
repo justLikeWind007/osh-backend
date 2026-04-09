@@ -22,4 +22,20 @@ public interface BookTagDOMapper extends BaseMapper<BookTagDO> {
                 .map(BookTagDO::getTagName)
                 .collect(Collectors.toList());
     }
+
+    /**
+     * 查询所有标签名称（去重）
+     */
+    default List<String> getTagList() {
+        LambdaQueryWrapper<BookTagDO> queryWrapper = new LambdaQueryWrapper<BookTagDO>()
+                .select(BookTagDO::getTagName)
+                .eq(BookTagDO::getDelFlag, 0);
+
+        List<BookTagDO> list = selectList(queryWrapper);
+
+        return list.stream()
+                .map(BookTagDO::getTagName)
+                .distinct()
+                .collect(Collectors.toList());
+    }
 }

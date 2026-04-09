@@ -76,7 +76,7 @@ public class OshPracticalWebsite {
     /**
      * 删除标志：0-正常，1-删除
      */
-    private Integer delFlag;
+    private Integer deleteFlag;
 
     /**
      * 审核人
@@ -264,15 +264,15 @@ public class OshPracticalWebsite {
     /**
      * 删除标志：0-正常，1-删除
      */
-    public Integer getDelFlag() {
-        return delFlag;
+    public Integer getDeleteFlag() {
+        return deleteFlag;
     }
 
     /**
      * 删除标志：0-正常，1-删除
      */
-    public void setDelFlag(Integer delFlag) {
-        this.delFlag = delFlag;
+    public void setDeleteFlag(Integer deleteFlag) {
+        this.deleteFlag = deleteFlag;
     }
 
     /**
@@ -332,7 +332,7 @@ public class OshPracticalWebsite {
                 ", updateBy='" + updateBy + '\'' +
                 ", updateTime=" + updateTime +
                 ", remark='" + remark + '\'' +
-                ", delFlag=" + delFlag +
+                ", deleteFlag=" + deleteFlag +
                 ", auditBy='" + auditBy + '\'' +
                 ", auditTime=" + auditTime +
                 ", rejectReason='" + rejectReason + '\'' +

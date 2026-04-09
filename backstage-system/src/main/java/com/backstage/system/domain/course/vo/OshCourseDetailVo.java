@@ -42,8 +42,6 @@ public class OshCourseDetailVo {
 
     private Integer commentCount;
 
-    private Integer collectionCount;
-
     private BigDecimal ratingScore;
 
     private Integer freeType;
@@ -69,7 +67,7 @@ public class OshCourseDetailVo {
     public OshCourseDetailVo() {
     }
 
-    public OshCourseDetailVo(Long id, String title, String cover, String intro, String serviceContent, BigDecimal price, BigDecimal tPrice, Integer subCount, Integer buyCount, String remark, Integer totalDuration, Integer videoCount, Integer freeLessonCount, Long viewCount, Integer goodCount, Integer midCount, Integer badCount, Integer commentCount, Integer collectionCount, BigDecimal ratingScore, Integer freeType, Integer afterServiceDays, Integer status, Integer examId, String createBy, Date createTime, String updateBy, Date updateTime, List<OshCourseTagSimpleVo> tags, Integer buyFlag) {
+    public OshCourseDetailVo(Long id, String title, String cover, String intro, String serviceContent, BigDecimal price, BigDecimal tPrice, Integer subCount, String remark, Integer totalDuration, Integer videoCount, Integer freeLessonCount, Long viewCount, Integer commentCount, BigDecimal ratingScore, Integer freeType, Integer afterServiceDays, Integer status, Integer examId, String createBy, Date createTime, String updateBy, Date updateTime, List<OshCourseTagSimpleVo> tags, Integer buyFlag) {
         this.id = id;
         this.title = title;
         this.cover = cover;
@@ -78,17 +76,12 @@ public class OshCourseDetailVo {
         this.price = price;
         this.tPrice = tPrice;
         this.subCount = subCount;
-        this.buyCount = buyCount;
         this.remark = remark;
         this.totalDuration = totalDuration;
         this.videoCount = videoCount;
         this.freeLessonCount = freeLessonCount;
         this.viewCount = viewCount;
-        this.goodCount = goodCount;
-        this.midCount = midCount;
-        this.badCount = badCount;
         this.commentCount = commentCount;
-        this.collectionCount = collectionCount;
         this.ratingScore = ratingScore;
         this.freeType = freeType;
         this.afterServiceDays = afterServiceDays;
@@ -260,14 +253,6 @@ public class OshCourseDetailVo {
 
     public void setCommentCount(Integer commentCount) {
         this.commentCount = commentCount;
-    }
-
-    public Integer getCollectionCount() {
-        return collectionCount;
-    }
-
-    public void setCollectionCount(Integer collectionCount) {
-        this.collectionCount = collectionCount;
     }
 
     public BigDecimal getRatingScore() {

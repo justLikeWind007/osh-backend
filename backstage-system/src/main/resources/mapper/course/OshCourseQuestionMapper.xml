@@ -158,4 +158,81 @@
         where id = #{questionId}
           and delete_flag = 0
     </update>
+
+    <delete id="deleteQuestionsByCourseId">
+        update osh_course_question
+        set delete_flag = 1
+        where course_id = #{courseId}
+    </delete>
+
+    <select id="countQuestionsBySectionId" resultType="int">
+        select count(1)
+        from osh_course_question
+        where section_id = #{sectionId}
+          and delete_flag = 0
+    </select>
+
+    <insert id="insertQuestion" parameterType="java.util.Map">
+        insert into osh_course_question (
+            course_id,
+            section_id,
+            user_id,
+            title,
+            content,
+            status,
+            delete_flag,
+            create_by,
+            create_time,
+            update_by,
+            update_time
+        ) values (
+            #{courseId},
+            #{sectionId},
+            #{userId},
+            #{title},
+            #{content},
+            #{status, jdbcType=INTEGER},
+            0,
+            #{createBy},
+            #{createTime},
+            #{updateBy},
+            #{updateTime}
+        )
+    </insert>
+
+    <select id="selectQuestionsByCourseId" resultType="java.util.Map">
+        select id,
+               course_id,
+               section_id,
+               user_id,
+               title,
+               content,
+               solve_status,
+               status,
+               create_time
+        from osh_course_question
+        where course_id = #{courseId}
+        <if test="sectionId != null">
+            and section_id = #{sectionId}
+        </if>
+        <if test="status != null">
+            and status = #{status}
+        </if>
+        and delete_flag = 0
+        order by create_time desc
+    </select>
+
+    <update id="updateQuestion" parameterType="java.util.Map">
+        update osh_course_question
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="solveStatus != null">solve_status = #{solveStatus},</if>
+            <if test="status != null">status = #{status},</if>
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+        </set>
+        where id = #{id}
+          and delete_flag = 0
+    </update>
 </mapper>

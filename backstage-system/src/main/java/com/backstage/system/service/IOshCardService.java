@@ -2,7 +2,7 @@ package com.backstage.system.service;
 
 import java.util.List;
 import com.backstage.system.domain.coupon.OshCard;
-import com.backstage.system.domain.vo.OshCardVo;
+import com.backstage.system.domain.vo.OshCardVO;
 
 /**
  * 卡券信息Service接口
@@ -60,7 +60,7 @@ public interface IOshCardService
      */
     public int deleteOshCardById(Long id);
 
-    List<OshCardVo> getOshCardList();
+    List<OshCardVO> getOshCardList();
 
     Boolean receiveCoupon(OshCard oshCard);
 }
