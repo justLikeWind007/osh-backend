@@ -34,7 +34,7 @@ public interface IOshQAQuestionService {
 
     R<QueryQuestionDetailVO> detail(Long id, Long questionId);
 
-    R<String> vote(Long id, Long answerId);
+    R<String> vote(User user, Long answerId);
 
-    R<String> cancelVote(Long id, Long answerId);
+    R<String> cancelVote(User user, Long answerId);
 }

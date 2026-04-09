@@ -30,7 +30,12 @@ public class OshUserConstants {
     public static final String RE_UNIQUE_ID = "re:uniqueId:";
     public static final String EMAIL = "email";
     public static final String LOGIN_USER = "LoginUser:";
+    public static final String TOKEN = "token";
+    public static final String USER_INFO = "userInfo";
 
     public static final String USERNAME_PATTERN = "^[a-zA-Z][a-zA-Z0-9_]{7,15}$";
     public static final String PASSWORD_PATTERN = "^[a-zA-Z][a-zA-Z0-9_]{7,15}$";
+
+    public static final String USER_ROLE = "userRole";
+    public static final String USER_PERMISSIONS = "userPermissions";
 }
