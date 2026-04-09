@@ -59,8 +59,6 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
         question.setContent(content);
         question.setIsPaidOnly(isPaidOnly);
         question.setStatus(status);
-        question.setCreateBy(user.getUsername());
-        question.setCreateTime(LocalDateTime.now());
         oshQaQuestionMapper.insert(question);
         for (Long tagId : tags) {
             oshQaQuestionMapper.addQuestionTags(question.getId(), tagId);
@@ -104,14 +102,38 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
 
     @Override
     public R<String> followQuestion(User user, Long questionId) {
+        Integer deleteFlag = oshQaQuestionMapper.getFollowInfoByUserIdAndQuestionId(user.getId(), questionId);
+        if (deleteFlag != null && deleteFlag == 0) {
+            return R.fail(ResultCode.FAILED.getMsg());
+        }
+        LambdaQueryWrapper<Question> questionWrapper = new LambdaQueryWrapper<Question>()
+                .eq(Question::getId, questionId);
+        Question question = oshQaQuestionMapper.selectOne(questionWrapper);
+        if (question == null) {
+            return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
+        }
         oshQaQuestionMapper.followQuestion(user.getId(), questionId, user.getUsername());
+        question.setFollowCount(question.getFollowCount() + 1);
+        oshQaQuestionMapper.update(question, questionWrapper);
         return R.ok(ResultCode.SUCCESS.getMsg());
     }
 
     @Override
     public R<String> cancelFollowQuestion(User user, Long questionId) {
-        oshQaQuestionMapper.cancelFollowQuestion(user.getId(), questionId, user.getUsername());
-        return R.ok(ResultCode.SUCCESS.getMsg());
+        Integer deleteFlag = oshQaQuestionMapper.getFollowInfoByUserIdAndQuestionId(user.getId(), questionId);
+        if (deleteFlag != null && deleteFlag == 0) {
+            LambdaQueryWrapper<Question> questionWrapper = new LambdaQueryWrapper<Question>()
+                    .eq(Question::getId, questionId);
+            Question question = oshQaQuestionMapper.selectOne(questionWrapper);
+            if (question == null) {
+                return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
+            }
+            oshQaQuestionMapper.cancelFollowQuestion(user.getId(), questionId, user.getUsername());
+            question.setFollowCount(question.getFollowCount() - 1);
+            oshQaQuestionMapper.update(question, questionWrapper);
+            return R.ok(ResultCode.SUCCESS.getMsg());
+        }
+        return R.fail(ResultCode.FAILED.getMsg());
     }
 
     @Override
@@ -240,28 +262,38 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
     }
 
     @Override
-    public R<String> vote(Long id, Long answerId) {
+    public R<String> vote(User user, Long answerId) {
+        Integer deleteFlag = oshQaAnswerMapper.getVoteInfoByUserIdAndAnswerId(user.getId(), answerId);
+        if (deleteFlag != null && deleteFlag == 0) {
+            return R.fail(ResultCode.FAILED.getMsg());
+        }
         LambdaQueryWrapper<Answer> answerWrapper = new LambdaQueryWrapper<Answer>()
                 .eq(Answer::getId, answerId);
         Answer answer = oshQaAnswerMapper.selectOne(answerWrapper);
         if (answer == null) {
             return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
         }
+        oshQaAnswerMapper.voteAnswer(user.getId(), answerId, user.getUsername());
         answer.setVoteCount(answer.getVoteCount() + 1);
         oshQaAnswerMapper.update(answer, answerWrapper);
         return R.ok(ResultCode.SUCCESS.getMsg());
     }
 
     @Override
-    public R<String> cancelVote(Long id, Long answerId) {
-        LambdaQueryWrapper<Answer> answerWrapper = new LambdaQueryWrapper<Answer>()
-                .eq(Answer::getId, answerId);
-        Answer answer = oshQaAnswerMapper.selectOne(answerWrapper);
-        if (answer == null) {
-            return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
+    public R<String> cancelVote(User user, Long answerId) {
+        Integer deleteFlag = oshQaAnswerMapper.getVoteInfoByUserIdAndAnswerId(user.getId(), answerId);
+        if (deleteFlag != null && deleteFlag == 0) {
+            LambdaQueryWrapper<Answer> answerWrapper = new LambdaQueryWrapper<Answer>()
+                    .eq(Answer::getId, answerId);
+            Answer answer = oshQaAnswerMapper.selectOne(answerWrapper);
+            if (answer == null) {
+                return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
+            }
+            oshQaAnswerMapper.cancelVoteAnswer(user.getId(), answerId, user.getUsername());
+            answer.setVoteCount(answer.getVoteCount() - 1);
+            oshQaAnswerMapper.update(answer, answerWrapper);
+            return R.ok(ResultCode.SUCCESS.getMsg());
         }
-        answer.setVoteCount(answer.getVoteCount() - 1);
-        oshQaAnswerMapper.update(answer, answerWrapper);
-        return R.ok(ResultCode.SUCCESS.getMsg());
+        return R.fail(ResultCode.FAILED.getMsg());
     }
 }
