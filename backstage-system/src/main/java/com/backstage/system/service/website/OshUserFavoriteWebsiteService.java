@@ -1,11 +1,8 @@
 package com.backstage.system.service.website;
 
 import com.backstage.common.core.page.TableDataInfo;
-import com.backstage.system.domain.vo.website.UserFavoriteWebsiteVo;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.backstage.system.domain.website.OshUserFavoriteWebsite;
-
-import java.util.List;
 
 /**
 * @author 24333

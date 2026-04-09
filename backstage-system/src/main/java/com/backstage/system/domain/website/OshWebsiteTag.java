@@ -56,7 +56,7 @@ public class OshWebsiteTag {
     /**
      * 删除标志：0-正常，1-删除
      */
-    private Integer delFlag;
+    private Integer deleteFlag;
 
     /**
      * 主键 ID
@@ -173,15 +173,15 @@ public class OshWebsiteTag {
     /**
      * 删除标志：0-正常，1-删除
      */
-    public Integer getDelFlag() {
-        return delFlag;
+    public Integer getDeleteFlag() {
+        return deleteFlag;
     }
 
     /**
      * 删除标志：0-正常，1-删除
      */
-    public void setDelFlag(Integer delFlag) {
-        this.delFlag = delFlag;
+    public void setDeleteFlag(Integer deleteFlag) {
+        this.deleteFlag = deleteFlag;
     }
     @Override
     public String toString() {
@@ -194,7 +194,7 @@ public class OshWebsiteTag {
                 ", createTime=" + createTime +
                 ", updateBy='" + updateBy + '\'' +
                 ", updateTime=" + updateTime +
-                ", delFlag=" + delFlag +
+                ", deleteFlag=" + deleteFlag +
                 '}';
     }
 

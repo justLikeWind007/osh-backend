@@ -56,7 +56,7 @@ public class OshUserFavoriteWebsite {
     /**
      * 
      */
-    private Integer delFlag;
+    private Integer deleteFlag;
 
     /**
      * 主键 ID
@@ -173,14 +173,29 @@ public class OshUserFavoriteWebsite {
     /**
      * 
      */
-    public Integer getDelFlag() {
-        return delFlag;
+    public Integer getDeleteFlag() {
+        return deleteFlag;
     }
 
     /**
      * 
      */
-    public void setDelFlag(Integer delFlag) {
-        this.delFlag = delFlag;
+    public void setDeleteFlag(Integer deleteFlag) {
+        this.deleteFlag = deleteFlag;
+    }
+
+    @Override
+    public String toString() {
+        return "OshUserFavoriteWebsite{" +
+                "id=" + id +
+                ", userId=" + userId +
+                ", websiteId=" + websiteId +
+                ", createBy='" + createBy + '\'' +
+                ", createTime=" + createTime +
+                ", updateBy='" + updateBy + '\'' +
+                ", updateTime=" + updateTime +
+                ", remark='" + remark + '\'' +
+                ", deleteFlag=" + deleteFlag +
+                '}';
     }
 }

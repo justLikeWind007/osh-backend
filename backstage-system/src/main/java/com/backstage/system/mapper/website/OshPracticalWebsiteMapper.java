@@ -1,7 +1,7 @@
 package com.backstage.system.mapper.website;
 
-import com.backstage.system.domain.dto.website.WebsiteQueryDto;
-import com.backstage.system.domain.vo.website.OshPracticalWebsiteVo;
+import com.backstage.system.domain.dto.website.WebsiteQueryDTO;
+import com.backstage.system.domain.vo.website.OshPracticalWebsiteVO;
 import com.backstage.system.domain.website.OshPracticalWebsite;
 import org.apache.ibatis.annotations.*;
 
@@ -19,7 +19,7 @@ public interface OshPracticalWebsiteMapper  {
      * @param queryDTO 查询参数
      * @return 网站 VO 列表
      */
-    List<OshPracticalWebsiteVo> selectWebsitePage(@Param("queryDTO") WebsiteQueryDto queryDTO);
+    List<OshPracticalWebsiteVO> selectWebsitePage(@Param("queryDTO") WebsiteQueryDTO queryDTO);
 
     /**
      * 增加网站点击次数
@@ -44,7 +44,7 @@ public interface OshPracticalWebsiteMapper  {
      */
     @Select("SELECT * FROM osh_practical_website " +
             "WHERE id = #{websiteId} " +
-            "AND del_flag = 0 " +
+            "AND delete_flag = 0 " +
             "AND status = 0")
     OshPracticalWebsite selectById(Long websiteId);
 
@@ -59,14 +59,14 @@ public interface OshPracticalWebsiteMapper  {
             "    audit_time = #{website.auditTime}, " +
             "    reject_reason = #{website.rejectReason} " +
             "WHERE id = #{website.id} " +
-            "  AND del_flag = 0")
+            "  AND delete_flag = 0")
     Boolean updateStatusById(@Param("website") OshPracticalWebsite website);
 
     /**
      * 查询待审核的网站列表
      * @return 待审核的网站列表
      */
-    @Select("SELECT * FROM osh_practical_website WHERE `del_flag` = 0 AND `status` = 0")
+    @Select("SELECT * FROM osh_practical_website WHERE `delete_flag` = 0 AND `status` = 0")
     List<OshPracticalWebsite> selectAuditList();
 /**
      * 根据网站ID批量删除网站
@@ -75,8 +75,8 @@ public interface OshPracticalWebsiteMapper  {
      */
     int batchDeleteWebsite(List<Integer> websiteIds);
 
-    @Select("SELECT * FROM osh_practical_website WHERE id = #{websiteId} AND del_flag = 0 AND status = #{status}")
-    OshPracticalWebsiteVo selectByIdAndStatus(@Param("websiteId") Long websiteId, @Param("status") Integer status);
+    @Select("SELECT * FROM osh_practical_website WHERE id = #{websiteId} AND delete_flag = 0 AND status = #{status}")
+    OshPracticalWebsiteVO selectByIdAndStatus(@Param("websiteId") Long websiteId, @Param("status") Integer status);
 
 }
 
