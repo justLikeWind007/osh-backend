@@ -5,20 +5,26 @@ import com.backstage.system.constants.CourseSectionConstants;
 import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.course.OshCourseSection;
 import com.backstage.system.domain.course.OshCourseMaterial;
+import com.backstage.system.domain.course.OshCourseTag;
+import com.backstage.system.domain.course.OshCourseTagRel;
+import com.backstage.system.domain.course.vo.CourseSearchLoginVo;
 import com.backstage.system.domain.course.vo.OshCourseDetailVo;
 import com.backstage.system.domain.course.vo.OshCourseSectionVo;
+import com.backstage.system.domain.course.vo.OshCourseTagSimpleVo;
 import com.backstage.system.domain.user.User;
 import com.backstage.system.mapper.course.OshCourseMapper;
+import com.backstage.system.mapper.course.OshCourseTagMapper;
 import com.backstage.system.request.CourseCreateRequest;
 import com.backstage.system.request.CourseChapterCreateRequest;
 import com.backstage.system.request.CourseSearchRequest;
-import com.backstage.system.request.CourseTextSectionCreateRequest;
 import com.backstage.system.request.CourseVideoSectionCreateRequest;
 import com.backstage.system.service.IOshCourseService;
 import com.github.pagehelper.PageHelper;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
@@ -33,10 +39,19 @@ public class OshCourseServiceImpl implements IOshCourseService {
     @Autowired
     private OshCourseMapper oshCourseMapper;
 
+    @Autowired
+    private OshCourseTagMapper oshCourseTagMapper;
+
     @Override
     public List<OshCourse> pageQuerySearchCourse(CourseSearchRequest request) {
         PageHelper.startPage(request.getPageNum(), request.getPageSize());
         return oshCourseMapper.pageQuerySearchCourse(request);
+    }
+
+    @Override
+    public List<CourseSearchLoginVo> pageQueryLoginSearchCourse(Long userId, CourseSearchRequest request) {
+        PageHelper.startPage(request.getPageNum(), request.getPageSize());
+        return oshCourseMapper.pageQueryLoginSearchCourse(userId, request);
     }
 
     @Override
@@ -91,11 +106,6 @@ public class OshCourseServiceImpl implements IOshCourseService {
         return buildSectionTree(oshCourseMapper.selectCourseSectionList(courseId));
     }
 
-    @Override
-    public String getTextCourseSectionContent(Long sectionId) {
-        return oshCourseMapper.selectTextCourseSectionContent(sectionId);
-    }
-
     /**
      * 查询课程详情
      *
@@ -129,10 +139,15 @@ public class OshCourseServiceImpl implements IOshCourseService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Long createCourse(CourseCreateRequest request, User operator) {
         OshCourse course = buildCourseForCreate(request, operator);
         int rows = oshCourseMapper.insertCourse(course);
-        return rows > 0 ? course.getId() : null;
+        if (rows <= 0) {
+            return null;
+        }
+        bindCourseTags(course.getId(), request.getTags(), operator);
+        return course.getId();
     }
 
     @Override
@@ -147,14 +162,6 @@ public class OshCourseServiceImpl implements IOshCourseService {
         ensureCourseExists(request.getCourseId());
         ensureParentChapter(request.getCourseId(), request.getParentId());
         OshCourseSection section = buildVideoSectionForCreate(request, operator);
-        return insertCourseSection(section);
-    }
-
-    @Override
-    public Long createCourseTextSection(CourseTextSectionCreateRequest request, User operator) {
-        ensureCourseExists(request.getCourseId());
-        ensureParentChapter(request.getCourseId(), request.getParentId());
-        OshCourseSection section = buildTextSectionForCreate(request, operator);
         return insertCourseSection(section);
     }
 
@@ -266,6 +273,89 @@ public class OshCourseServiceImpl implements IOshCourseService {
         return value == null ? CourseConstants.DEFAULT_COUNT : value;
     }
 
+    private void bindCourseTags(Long courseId, List<OshCourseTagSimpleVo> tags, User operator) {
+        List<OshCourseTagSimpleVo> normalizedTags = normalizeCourseTags(tags);
+        if (normalizedTags.isEmpty()) {
+            return;
+        }
+        for (OshCourseTagSimpleVo tagVo : normalizedTags) {
+            OshCourseTag tag = resolveCourseTag(tagVo, operator);
+            insertCourseTagRelation(courseId, tag.getId(), operator);
+            oshCourseTagMapper.increaseUseCount(tag.getId());
+        }
+    }
+
+    static List<OshCourseTagSimpleVo> normalizeCourseTags(List<OshCourseTagSimpleVo> tags) {
+        if (tags == null || tags.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Map<String, OshCourseTagSimpleVo> tagMap = new LinkedHashMap<>();
+        for (OshCourseTagSimpleVo tag : tags) {
+            if (tag == null) {
+                continue;
+            }
+            String normalizedName = StringUtils.trimToNull(tag.getName());
+            if (normalizedName == null) {
+                continue;
+            }
+            OshCourseTagSimpleVo normalized = new OshCourseTagSimpleVo();
+            normalized.setName(normalizedName);
+            normalized.setSort(tag.getSort());
+            tagMap.putIfAbsent(normalizedName, normalized);
+        }
+        return new ArrayList<>(tagMap.values());
+    }
+
+    // 在创建课程时，如果标签不存在，则创建
+    private OshCourseTag resolveCourseTag(OshCourseTagSimpleVo tagVo, User operator) {
+        OshCourseTag existing = oshCourseTagMapper.selectCourseTagByName(tagVo.getName());
+        if (existing != null) {
+            return existing;
+        }
+
+        OshCourseTag tag = buildCourseTagForCreate(tagVo, operator);
+        try {
+            oshCourseTagMapper.insertCourseTag(tag);
+            return tag;
+        } catch (DuplicateKeyException ex) {
+            OshCourseTag retry = oshCourseTagMapper.selectCourseTagByName(tagVo.getName());
+            if (retry != null) {
+                return retry;
+            }
+            throw ex;
+        }
+    }
+
+    private void insertCourseTagRelation(Long courseId, Long tagId, User operator) {
+        OshCourseTagRel relation = new OshCourseTagRel();
+        Date now = new Date();
+        relation.setCourseId(courseId);
+        relation.setTagId(tagId);
+        relation.setDeleteFlag(CourseConstants.DEFAULT_COUNT);
+        String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
+        relation.setCreateBy(operatorName);
+        relation.setCreateTime(now);
+        relation.setUpdateBy(operatorName);
+        relation.setUpdateTime(now);
+        oshCourseTagMapper.insertCourseTagRel(relation);
+    }
+
+    static OshCourseTag buildCourseTagForCreate(OshCourseTagSimpleVo request, User operator) {
+        OshCourseTag tag = new OshCourseTag();
+        Date now = new Date();
+        tag.setName(StringUtils.trimToNull(request.getName()));
+        tag.setSort(request.getSort() == null ? CourseConstants.DEFAULT_COUNT : request.getSort());
+        tag.setUseCount(CourseConstants.DEFAULT_COUNT);
+        tag.setStatus(CourseSectionConstants.STATUS_NORMAL);
+        tag.setDeleteFlag(CourseConstants.DEFAULT_COUNT);
+        String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
+        tag.setCreateBy(operatorName);
+        tag.setCreateTime(now);
+        tag.setUpdateBy(operatorName);
+        tag.setUpdateTime(now);
+        return tag;
+    }
+
     static OshCourseSection buildChapterSectionForCreate(CourseChapterCreateRequest request, User operator) {
         OshCourseSection section = buildBaseSection(request.getCourseId(), CourseSectionConstants.ROOT_PARENT_ID,
                 request.getTitle(), request.getSort(), operator);
@@ -284,16 +374,6 @@ public class OshCourseServiceImpl implements IOshCourseService {
         section.setTextContent(StringUtils.trimToNull(request.getTextContent()));
         section.setFileSize(request.getFileSize());
         section.setType(CourseSectionConstants.TYPE_VIDEO);
-        return section;
-    }
-
-    static OshCourseSection buildTextSectionForCreate(CourseTextSectionCreateRequest request, User operator) {
-        OshCourseSection section = buildBaseSection(request.getCourseId(), request.getParentId(),
-                request.getTitle(), request.getSort(), operator);
-        section.setFreeFlag(defaultFreeFlag(request.getFreeFlag()));
-        section.setCover(StringUtils.trimToNull(request.getCover()));
-        section.setTextContent(StringUtils.trimToNull(request.getTextContent()));
-        section.setType(CourseSectionConstants.TYPE_TEXT);
         return section;
     }
 

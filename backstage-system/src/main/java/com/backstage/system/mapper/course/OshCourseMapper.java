@@ -3,6 +3,7 @@ package com.backstage.system.mapper.course;
 import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.course.OshCourseSection;
 import com.backstage.system.domain.course.OshCourseMaterial;
+import com.backstage.system.domain.course.vo.CourseSearchLoginVo;
 import com.backstage.system.domain.course.vo.OshCourseDetailVo;
 import com.backstage.system.domain.course.vo.OshCourseSectionVo;
 import com.backstage.system.request.CourseSearchRequest;
@@ -22,6 +23,8 @@ public interface OshCourseMapper
 
 
     List<OshCourse> pageQuerySearchCourse(CourseSearchRequest request);
+
+    List<CourseSearchLoginVo> pageQueryLoginSearchCourse(@Param("userId") Long userId, @Param("request") CourseSearchRequest request);
 
     List<OshCourse> pageQueryUserCollectionCourse(@Param("userId") Long userId, @Param("request") CourseSearchRequest request);
     /**
@@ -90,8 +93,6 @@ public interface OshCourseMapper
     List<OshCourseSectionVo> selectCourseSectionList(@Param("courseId") Long courseId);
 
     Integer countCourseSectionInCourse(@Param("courseId") Long courseId, @Param("sectionId") Long sectionId);
-
-    String selectTextCourseSectionContent(@Param("sectionId") Long sectionId);
 
     OshCourseSection selectCourseSectionById(@Param("id") Long id);
 

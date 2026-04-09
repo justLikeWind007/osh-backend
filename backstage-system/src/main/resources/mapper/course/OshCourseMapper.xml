@@ -26,6 +26,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         c.view_count,
         c.like_count,
         c.comment_count,
+        c.collection_count,
         c.question_count,
         c.rating_score,
         c.free_type,
@@ -93,6 +94,38 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="afterServiceDays"   column="after_service_days"    />
         <result property="status"   column="status"    />
         <result property="examId" column="exam_id"/>
+    </resultMap>
+
+    <resultMap type="com.backstage.system.domain.course.vo.CourseSearchLoginVo" id="CourseSearchLoginResult">
+        <result property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="cover" column="cover"/>
+        <result property="intro" column="intro"/>
+        <result property="serviceContent" column="service_content"/>
+        <result property="price" column="price"/>
+        <result property="tPrice" column="t_price"/>
+        <result property="type" column="type"/>
+        <result property="subCount" column="sub_count"/>
+        <result property="remark" column="remark"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="totalDuration" column="total_duration"/>
+        <result property="freeLessonCount" column="free_lesson_count"/>
+        <result property="videoCount" column="video_count"/>
+        <result property="salesCount" column="sales_count"/>
+        <result property="viewCount" column="view_count"/>
+        <result property="likeCount" column="like_count"/>
+        <result property="commentCount" column="comment_count"/>
+        <result property="questionCount" column="question_count"/>
+        <result property="ratingScore" column="rating_score"/>
+        <result property="freeType" column="free_type"/>
+        <result property="afterServiceDays" column="after_service_days"/>
+        <result property="status" column="status"/>
+        <result property="examId" column="exam_id"/>
+        <result property="collectionFlag" column="collection_flag"/>
+        <result property="buyFlag" column="buy_flag"/>
     </resultMap>
 
     <resultMap type="com.backstage.system.domain.course.vo.OshCourseDetailVo" id="OshCourseDetailResult">
@@ -245,7 +278,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <select id="pageQuerySearchCourse" parameterType="com.backstage.system.request.CourseSearchRequest" resultMap="OshCouresResult">
         select distinct
-        <include refid="searchCourseColumns"/>
+        <include refid="searchCourseColumns"/>,
+        (ifnull(c.sales_count, 0) * 2 + ifnull(c.collection_count, 0)) as sort_score
         from osh_course c
         left join osh_course_tag_rel ctr on ctr.course_id = c.id
             and ctr.delete_flag = 0
@@ -265,7 +299,51 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                 </foreach>
             </if>
         </where>
-        order by c.create_time desc, c.id desc
+        order by sort_score desc,c.create_time desc
+    </select>
+
+    <select id="pageQueryLoginSearchCourse" resultMap="CourseSearchLoginResult">
+        select distinct
+        <include refid="searchCourseColumns"/>,
+        case
+            when exists (
+                select 1
+                from osh_course_collection occ2
+                where occ2.course_id = c.id
+                  and occ2.user_id = #{userId}
+                  and occ2.delete_flag = 0
+            ) then 1 else 0
+        end as collection_flag,
+        case
+            when exists (
+                select 1
+                from osh_course_buy ocb
+                where ocb.course_id = c.id
+                  and ocb.user_id = #{userId}
+                  and ocb.pay_status = 'paid'
+            ) then 1 else 0
+        end as buy_flag,
+        (ifnull(c.sales_count, 0) * 2 + ifnull(c.collection_count, 0)) as sort_score
+        from osh_course c
+        left join osh_course_tag_rel ctr on ctr.course_id = c.id
+            and ctr.delete_flag = 0
+        left join osh_course_tag ct on ct.id = ctr.tag_id
+            and ct.delete_flag = 0
+            and ct.status = 1
+        <where>
+            c.delete_flag = 0
+            and c.status = 2
+            <if test="request.keyword != null and request.keyword != ''">
+                and c.title like concat('%', #{request.keyword}, '%')
+            </if>
+            <if test="request.tags != null and request.tags.size() > 0">
+                and ct.name in
+                <foreach collection="request.tags" item="tag" open="(" separator="," close=")">
+                    #{tag}
+                </foreach>
+            </if>
+        </where>
+        order by buy_flag desc, sort_score desc, c.create_time desc, c.id desc
     </select>
 
     <select id="pageQueryUserCollectionCourse" resultMap="OshCouresResult">
@@ -389,16 +467,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         from osh_course_section
         where id = #{id}
     </select>
-
-    <select id="selectTextCourseSectionContent" parameterType="Long" resultType="java.lang.String">
-        select text_content
-        from osh_course_section
-        where id = #{sectionId}
-          and type = 'text'
-          and status = 1
-          and delete_flag = 0
-    </select>
-
 
     <select id="getCourseSectionContent" resultType="java.lang.String">
         select case

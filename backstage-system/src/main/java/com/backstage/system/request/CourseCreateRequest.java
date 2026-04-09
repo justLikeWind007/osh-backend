@@ -1,5 +1,7 @@
 package com.backstage.system.request;
 
+import com.backstage.system.domain.course.vo.OshCourseTagSimpleVo;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.validation.constraints.DecimalMin;
@@ -7,6 +9,7 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 课程创建请求
@@ -30,6 +33,7 @@ public class CourseCreateRequest {
 
     @NotNull(message = "课程原价不能为空")
     @DecimalMin(value = "0.00", message = "课程原价不能小于0")
+    @JsonProperty("tPrice")
     private BigDecimal tPrice;
 
     @NotBlank(message = "课程类型不能为空")
@@ -44,6 +48,8 @@ public class CourseCreateRequest {
     private Integer examId;
 
     private String remark;
+
+    private List<OshCourseTagSimpleVo> tags;
 
     public String getTitle() {
         return title;
@@ -131,5 +137,20 @@ public class CourseCreateRequest {
 
     public void setRemark(String remark) {
         this.remark = StringUtils.trimToNull(remark);
+    }
+
+    public List<OshCourseTagSimpleVo> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<OshCourseTagSimpleVo> tags) {
+        if (tags != null) {
+            for (OshCourseTagSimpleVo tag : tags) {
+                if (tag != null) {
+                    tag.setName(StringUtils.trimToNull(tag.getName()));
+                }
+            }
+        }
+        this.tags = tags;
     }
 }

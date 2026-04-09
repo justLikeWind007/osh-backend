@@ -2,6 +2,7 @@ package com.backstage.system.domain.course;
 
 import com.backstage.common.annotation.Excel;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -45,6 +46,7 @@ public class OshCourse {
 
     @Excel(name = "原价")
     @ApiModelProperty("原价/市场价")
+    @JsonProperty("tPrice")
     private BigDecimal tPrice;
 
     @Excel(name = "课程类型")

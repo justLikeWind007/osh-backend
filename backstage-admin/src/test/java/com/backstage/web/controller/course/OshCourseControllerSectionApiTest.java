@@ -9,7 +9,7 @@ import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.course.OshCourseQuestionMapper;
 import com.backstage.system.request.CourseChapterCreateRequest;
 import com.backstage.system.request.CourseQuestionAnswerRequest;
-import com.backstage.system.request.CourseTextSectionCreateRequest;
+import com.backstage.system.request.CourseSearchRequest;
 import com.backstage.system.request.CourseSectionQuestionRequest;
 import com.backstage.system.request.CourseVideoSectionCreateRequest;
 import com.backstage.system.utils.UserContextUtil;
@@ -124,35 +124,26 @@ public class OshCourseControllerSectionApiTest {
     }
 
     @Test
-    public void shouldInsertTextSectionIntoDatabase() throws Exception {
+    public void shouldReturnNotFoundWhenSavingTextSection() throws Exception {
         Long courseId = createTestCourse();
         Long parentId = createParentChapter(courseId);
         when(userContextUtil.getCurrentUser()).thenReturn(buildCurrentUser());
 
-        CourseTextSectionCreateRequest request = new CourseTextSectionCreateRequest();
-        request.setCourseId(courseId);
-        request.setParentId(parentId);
-        request.setTitle("集成测试图文小节");
-        request.setSort(3);
-        request.setFreeFlag(0);
-        request.setCover("https://oss.example.com/text-cover.png");
-        request.setTextContent("这里是集成测试图文内容");
-
         MvcResult mvcResult = mockMvc.perform(post("/pc/course/section/text/save")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
+                        .content("{\"courseId\":" + courseId + ",\"parentId\":" + parentId + ",\"title\":\"集成测试图文小节\",\"sort\":3,\"freeFlag\":0,\"cover\":\"https://oss.example.com/text-cover.png\",\"textContent\":\"这里是集成测试图文内容\"}"))
+                .andExpect(status().isNotFound())
+                .andReturn();
+        assertEquals(404, mvcResult.getResponse().getStatus());
+    }
+
+    @Test
+    public void shouldReturnNotFoundWhenGettingTextSection() throws Exception {
+        MvcResult mvcResult = mockMvc.perform(get("/pc/course/section/text/1"))
+                .andExpect(status().isNotFound())
                 .andReturn();
 
-        Long sectionId = extractDataId(mvcResult);
-        OshCourseSection saved = oshCourseMapper.selectCourseSectionById(sectionId);
-        assertNotNull(saved);
-        assertEquals(courseId, saved.getCourseId());
-        assertEquals(parentId, saved.getParentId());
-        assertEquals("text", saved.getType());
-        assertEquals("这里是集成测试图文内容", saved.getTextContent());
-        assertEquals("integration_test_user", saved.getCreateBy());
+        assertEquals(404, mvcResult.getResponse().getStatus());
     }
 
     @Test
@@ -326,6 +317,57 @@ public class OshCourseControllerSectionApiTest {
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data[0].content").value("第一条回答-" + suffix))
                 .andExpect(jsonPath("$.data[1].content").value("第二条回答-" + suffix));
+    }
+
+    @Test
+    public void shouldSearchCoursesWithCollectionAndBuyFlagsForLoggedInUser() throws Exception {
+        when(userContextUtil.getCurrentUser()).thenReturn(buildUserOne());
+
+        CourseSearchRequest request = new CourseSearchRequest();
+        request.setKeyword("Spring Boot 企业级开发实战");
+        request.setPageNum(1);
+        request.setPageSize(10);
+
+        mockMvc.perform(post("/pc/course/search/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.rows[0].id").value(935))
+                .andExpect(jsonPath("$.data.rows[0].buyFlag").value(1))
+                .andExpect(jsonPath("$.data.rows[0].collectionFlag").value(0));
+    }
+
+    @Test
+    public void shouldSearchCoursesOrderedBySalesCountThenCreateTimeDesc() throws Exception {
+        CourseSearchRequest request = new CourseSearchRequest();
+        request.setPageNum(1);
+        request.setPageSize(2);
+
+        mockMvc.perform(post("/pc/course/search")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.rows[0].id").value(942))
+                .andExpect(jsonPath("$.data.rows[1].id").value(957));
+    }
+
+    @Test
+    public void shouldSearchLoginCoursesOrderedByBuyFlagThenScoreThenCreateTimeDesc() throws Exception {
+        when(userContextUtil.getCurrentUser()).thenReturn(buildUserOne());
+
+        CourseSearchRequest request = new CourseSearchRequest();
+        request.setPageNum(1);
+        request.setPageSize(2);
+
+        mockMvc.perform(post("/pc/course/search/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.rows[0].id").value(935))
+                .andExpect(jsonPath("$.data.rows[1].id").value(942));
     }
 
     private Long extractDataId(MvcResult mvcResult) throws Exception {

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.course.OshCourseTagMapper">
+
+    <resultMap id="OshCourseTagResult" type="com.backstage.system.domain.course.OshCourseTag">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="sort" column="sort"/>
+        <result property="useCount" column="use_count"/>
+        <result property="status" column="status"/>
+        <result property="remark" column="remark"/>
+        <result property="deleteFlag" column="delete_flag"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectCourseTagByName" resultMap="OshCourseTagResult">
+        select id,
+               name,
+               sort,
+               use_count,
+               status,
+               remark,
+               delete_flag,
+               create_by,
+               create_time,
+               update_by,
+               update_time
+        from osh_course_tag
+        where name = #{name}
+          and delete_flag = 0
+        limit 1
+    </select>
+
+    <insert id="insertCourseTag" parameterType="com.backstage.system.domain.course.OshCourseTag"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into osh_course_tag
+        (name, sort, use_count, status, remark, delete_flag, create_by, create_time, update_by, update_time)
+        values
+        (#{name}, #{sort}, #{useCount}, #{status}, #{remark}, #{deleteFlag}, #{createBy}, #{createTime}, #{updateBy}, #{updateTime})
+    </insert>
+
+    <insert id="insertCourseTagRel" parameterType="com.backstage.system.domain.course.OshCourseTagRel"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into osh_course_tag_rel
+        (course_id, tag_id, delete_flag, create_by, create_time, update_by, update_time)
+        values
+        (#{courseId}, #{tagId}, #{deleteFlag}, #{createBy}, #{createTime}, #{updateBy}, #{updateTime})
+    </insert>
+
+    <update id="increaseUseCount">
+        update osh_course_tag
+        set use_count = ifnull(use_count, 0) + 1,
+            update_time = now()
+        where id = #{id}
+          and delete_flag = 0
+    </update>
+</mapper>

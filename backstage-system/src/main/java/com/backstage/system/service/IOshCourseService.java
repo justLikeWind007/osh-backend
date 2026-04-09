@@ -2,13 +2,13 @@ package com.backstage.system.service;
 
 import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.course.OshCourseMaterial;
+import com.backstage.system.domain.course.vo.CourseSearchLoginVo;
 import com.backstage.system.domain.course.vo.OshCourseDetailVo;
 import com.backstage.system.domain.course.vo.OshCourseSectionVo;
 import com.backstage.system.domain.user.User;
 import com.backstage.system.request.CourseCreateRequest;
 import com.backstage.system.request.CourseChapterCreateRequest;
 import com.backstage.system.request.CourseSearchRequest;
-import com.backstage.system.request.CourseTextSectionCreateRequest;
 import com.backstage.system.request.CourseVideoSectionCreateRequest;
 
 import java.util.List;
@@ -21,6 +21,8 @@ import java.util.List;
  */
 public interface IOshCourseService {
     List<OshCourse> pageQuerySearchCourse(CourseSearchRequest request);
+
+    List<CourseSearchLoginVo> pageQueryLoginSearchCourse(Long userId, CourseSearchRequest request);
 
     List<OshCourse> pageQueryUserCollectionCourse(Long userId, CourseSearchRequest request);
 
@@ -52,8 +54,6 @@ public interface IOshCourseService {
     Long createCourseChapter(CourseChapterCreateRequest request, User operator);
 
     Long createCourseVideoSection(CourseVideoSectionCreateRequest request, User operator);
-
-    Long createCourseTextSection(CourseTextSectionCreateRequest request, User operator);
 
     /**
      * 修改课程
@@ -88,8 +88,6 @@ public interface IOshCourseService {
     boolean hasUserBoughtCourse(Long courseId, Long userId);
 
     boolean canUserAskQuestion(Long courseId, Long sectionId, Long userId);
-
-    String getTextCourseSectionContent(Long sectionId);
 
     String getCourseSectionContent(Long sectionId, Long userId);
 

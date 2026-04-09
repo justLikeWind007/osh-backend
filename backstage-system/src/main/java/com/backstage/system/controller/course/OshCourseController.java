@@ -7,6 +7,7 @@ import com.backstage.common.response.PageResponse;
 
 import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.course.OshCourseMaterial;
+import com.backstage.system.domain.course.vo.CourseSearchLoginVo;
 import com.backstage.system.domain.course.vo.CourseQuestionAnswerItemVo;
 import com.backstage.system.domain.course.vo.CourseQuestionListItemVo;
 import com.backstage.system.domain.course.vo.OshCourseDetailVo;
@@ -19,7 +20,6 @@ import com.backstage.system.request.CourseQuestionAnswerRequest;
 import com.backstage.system.request.CourseQuestionPageRequest;
 import com.backstage.system.request.CourseSearchRequest;
 import com.backstage.system.request.CourseSectionQuestionRequest;
-import com.backstage.system.request.CourseTextSectionCreateRequest;
 import com.backstage.system.request.CourseVideoSectionCreateRequest;
 import com.backstage.system.service.IOshCourseCollectionService;
 import com.backstage.system.service.IOshCourseService;
@@ -67,6 +67,18 @@ public class OshCourseController extends BaseController {
     public R<PageResponse<OshCourse>> courseSearch(@RequestBody CourseSearchRequest request) {
         List<OshCourse> list = oshCoureService.pageQuerySearchCourse(request);
         PageInfo<OshCourse> pageInfo = new PageInfo<>(list);
+        return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
+    }
+
+    @ApiOperation("登录态课程搜索")
+    @PostMapping("/loginSearch/")
+    public R<PageResponse<CourseSearchLoginVo>> loginCourseSearch(@RequestBody CourseSearchRequest request) {
+        User currentUser = userContextUtil.getCurrentUser();
+        if (currentUser == null) {
+            return R.fail("请先登录");
+        }
+        List<CourseSearchLoginVo> list = oshCoureService.pageQueryLoginSearchCourse(currentUser.getId(), request);
+        PageInfo<CourseSearchLoginVo> pageInfo = new PageInfo<>(list);
         return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
     }
 
@@ -196,35 +208,6 @@ public class OshCourseController extends BaseController {
         } catch (IllegalArgumentException ex) {
             return R.fail(ex.getMessage());
         }
-    }
-
-    @ApiOperation("图文小节添加")
-    @PostMapping("/section/text/save")
-    public R<Long> saveTextSection(@Validated @RequestBody CourseTextSectionCreateRequest request) {
-        User currentUser = userContextUtil.getCurrentUser();
-        if (currentUser == null) {
-            return R.fail("请先登录");
-        }
-        try {
-            Long sectionId = oshCoureService.createCourseTextSection(request, currentUser);
-            return sectionId == null ? R.fail("新增图文小节失败") : R.ok(sectionId);
-        } catch (IllegalArgumentException ex) {
-            return R.fail(ex.getMessage());
-        }
-    }
-
-    /**
-     * 需校验当前用户是否拥有当前课程小节权限
-     * 同时需校验当前用户是否已购买 or 当前sectionId 是否免费
-     */
-    @ApiOperation("获取text小节内容")
-    @GetMapping("/section/text/{sectionId}")
-    public R<String> getTextCourseSection(@NotNull @PathVariable Long sectionId) {
-        String textContent = oshCoureService.getTextCourseSectionContent(sectionId);
-        if (textContent == null) {
-            return R.fail("小节不存在或不是可用的文本内容");
-        }
-        return R.ok(textContent);
     }
 
     @ApiOperation("获取视频小节内容")
