@@ -48,6 +48,10 @@ public class OshCourseTag
     @ApiModelProperty("备注")
     private String remark;
 
+    /** 删除标志：0-正常 1-删除 */
+    @ApiModelProperty("删除标志：0-正常 1-删除")
+    private Integer deleteFlag;
+
     /** 搜索值 */
     private String searchValue;
 
@@ -132,6 +136,16 @@ public class OshCourseTag
         return searchValue;
     }
 
+    public Integer getDeleteFlag()
+    {
+        return deleteFlag;
+    }
+
+    public void setDeleteFlag(Integer deleteFlag)
+    {
+        this.deleteFlag = deleteFlag;
+    }
+
     public void setSearchValue(String searchValue)
     {
         this.searchValue = searchValue;
@@ -186,6 +200,7 @@ public class OshCourseTag
                 .append("useCount", getUseCount())
                 .append("status", getStatus())
                 .append("remark", getRemark())
+                .append("deleteFlag", getDeleteFlag())
                 .append("createBy", getCreateBy())
                 .append("createTime", getCreateTime())
                 .append("updateBy", getUpdateBy())

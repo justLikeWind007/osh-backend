@@ -34,6 +34,37 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where name = #{name}
           and delete_flag = 0
         limit 1
+    </select>
+
+    <insert id="insertCourseTag" parameterType="com.backstage.system.domain.course.OshCourseTag"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO osh_course_tag (
+            name, sort, use_count, status, remark, delete_flag,
+            create_by, create_time, update_by, update_time
+        ) VALUES (
+            #{name}, #{sort}, #{useCount}, #{status}, #{remark}, #{deleteFlag},
+            #{createBy}, #{createTime}, #{updateBy}, #{updateTime}
+        )
+    </insert>
+
+    <insert id="insertCourseTagRel" parameterType="com.backstage.system.domain.course.OshCourseTagRel"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO osh_course_tag_rel (
+            course_id, tag_id, delete_flag,
+            create_by, create_time, update_by, update_time
+        ) VALUES (
+            #{courseId}, #{tagId}, #{deleteFlag},
+            #{createBy}, #{createTime}, #{updateBy}, #{updateTime}
+        )
+    </insert>
+
+    <update id="increaseUseCount" parameterType="Long">
+        UPDATE osh_course_tag
+        SET use_count = use_count + 1,
+            update_time = NOW()
+        WHERE id = #{id}
+          AND delete_flag = 0
+    </update>
 
     <!-- 查询所有启用标签，按使用数量降序 -->
     <select id="selectAllTags" resultType="java.util.Map">
@@ -85,13 +116,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </update>
 
     <!-- 新增标签 -->
-    <insert id="insertTag" parameterType="OshCourseTag">
+    <insert id="insertTag" parameterType="com.backstage.system.domain.course.OshCourseTag"
+            useGeneratedKeys="true" keyProperty="id">
         INSERT INTO osh_course_tag (
             name, sort, use_count, status, remark,
             create_by, create_time, update_by, update_time
         ) VALUES (
             #{name}, #{sort}, #{useCount}, #{status}, #{remark},
-            #{createBy}, NOW(), #{updateBy}, NOW()
+            #{createBy}, #{createTime}, #{updateBy}, #{updateTime}
         )
     </insert>
 

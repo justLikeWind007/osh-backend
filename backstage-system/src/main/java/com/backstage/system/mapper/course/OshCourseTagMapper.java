@@ -1,6 +1,7 @@
 package com.backstage.system.mapper.course;
 
 import com.backstage.system.domain.course.OshCourseTag;
+import com.backstage.system.domain.course.OshCourseTagRel;
 import org.apache.ibatis.annotations.MapKey;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
