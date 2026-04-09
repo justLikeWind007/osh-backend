@@ -46,13 +46,21 @@ public class OshCourseController extends BaseController {
 
 
     // TODO 后续追加 ES 查课
+    // 免费,
     @ApiOperation("课程搜索")
     @PostMapping("/search")
     @Anonymous
-    public R<PageResponse<OshCourse>> courseSearch(@RequestBody CourseSearchRequest request) {
-        List<OshCourse> list = oshCourseService.pageQuerySearchCourse(request);
-        PageInfo<OshCourse> pageInfo = new PageInfo<>(list);
-        return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
+    public R<PageResponse<CourseSearchLoginVo>> courseSearch(@RequestBody CourseSearchRequest request) {
+        User currentUser = UserContextUtil.getCurrentUser();
+        if (currentUser == null) {
+            List<CourseSearchLoginVo> list = oshCourseService.pageQuerySearchCourse(request);
+            PageInfo<CourseSearchLoginVo> pageInfo = new PageInfo<>(list);
+            return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
+        }else{
+            List<CourseSearchLoginVo> list = oshCourseService.pageQueryLoginSearchCourse(currentUser.getId(), request);
+            PageInfo<CourseSearchLoginVo> pageInfo = new PageInfo<>(list);
+            return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
+        }
     }
 
     @ApiOperation("登录态课程搜索")
@@ -79,6 +87,7 @@ public class OshCourseController extends BaseController {
         return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
     }
 
+    // TODO  后续需要 调用苍鳞方法去拿可访问性
     @ApiOperation("课程详情")
     @GetMapping("/detail/{id}")
     @Anonymous
@@ -162,7 +171,7 @@ public class OshCourseController extends BaseController {
         return R.ok(courseId);
     }
 
-    @ApiOperation("一级章节添加")
+    @ApiOperation("章节添加")
     @PostMapping("/section/chapter/save")
     public R<Long> saveChapterSection(@Validated @RequestBody CourseChapterCreateRequest request) {
         User currentUser = UserContextUtil.getCurrentUser();
@@ -192,11 +201,6 @@ public class OshCourseController extends BaseController {
         }
     }
 
-    @ApiOperation("获取视频小节内容")
-    @GetMapping("/section/video/{sectionId}")
-    public R getVideoSection(@PathVariable Long sectionId) {
-        return R.ok();
-    }
 
     @ApiOperation("获取章节提问列表")
     @GetMapping("/section/questions/{courseId}/{sectionId}")

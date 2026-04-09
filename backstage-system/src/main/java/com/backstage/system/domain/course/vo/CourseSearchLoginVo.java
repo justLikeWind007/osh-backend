@@ -84,6 +84,15 @@ public class CourseSearchLoginVo {
     @ApiModelProperty("售后答疑天数")
     private Integer afterServiceDays;
 
+    @ApiModelProperty("资源类型")
+    private Integer resourceType;
+
+    @ApiModelProperty("资源等级")
+    private Integer level;
+
+    @ApiModelProperty("资源类型描述")
+    private String resourceTypeDesc;
+
     @ApiModelProperty("状态")
     private Integer status;
 
@@ -294,6 +303,30 @@ public class CourseSearchLoginVo {
 
     public void setAfterServiceDays(Integer afterServiceDays) {
         this.afterServiceDays = afterServiceDays;
+    }
+
+    public Integer getResourceType() {
+        return resourceType;
+    }
+
+    public void setResourceType(Integer resourceType) {
+        this.resourceType = resourceType;
+    }
+
+    public Integer getLevel() {
+        return level;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
+    }
+
+    public String getResourceTypeDesc() {
+        return resourceTypeDesc;
+    }
+
+    public void setResourceTypeDesc(String resourceTypeDesc) {
+        this.resourceTypeDesc = resourceTypeDesc;
     }
 
     public Integer getStatus() {

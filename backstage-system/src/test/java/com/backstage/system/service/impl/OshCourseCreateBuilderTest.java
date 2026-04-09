@@ -24,6 +24,8 @@ public class OshCourseCreateBuilderTest {
         request.setAfterServiceDays(365);
         request.setExamId(12);
         request.setRemark("  运营创建  ");
+        request.setResourceType(3);
+        request.setLevel(2);
 
         User operator = new User();
         operator.setUsername("teacher_hope");
@@ -41,6 +43,8 @@ public class OshCourseCreateBuilderTest {
         Assert.assertEquals(Integer.valueOf(365), course.getAfterServiceDays());
         Assert.assertEquals(Integer.valueOf(12), course.getExamId());
         Assert.assertEquals("运营创建", course.getRemark());
+        Assert.assertEquals(Integer.valueOf(3), course.getResourceType());
+        Assert.assertEquals(Integer.valueOf(2), course.getLevel());
         Assert.assertEquals(Integer.valueOf(0), course.getSubCount());
         Assert.assertEquals(Integer.valueOf(0), course.getTotalDuration());
         Assert.assertEquals(Integer.valueOf(0), course.getVideoCount());

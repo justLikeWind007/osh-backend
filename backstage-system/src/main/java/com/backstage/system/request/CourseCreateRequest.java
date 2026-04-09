@@ -50,8 +50,18 @@ public class CourseCreateRequest {
 
     private String remark;
 
+    private Integer resourceType;
+
+    private Integer level;
+
+    /**
+     * 课程标签
+     */
     private List<OshCourseTagSimpleVo> tags;
 
+    /**
+     * 课程资料
+     */
     @Valid
     private CourseMaterialCreateRequest material;
 
@@ -164,5 +174,30 @@ public class CourseCreateRequest {
 
     public void setMaterial(CourseMaterialCreateRequest material) {
         this.material = material;
+    }
+
+
+    public BigDecimal gettPrice() {
+        return tPrice;
+    }
+
+    public void settPrice(BigDecimal tPrice) {
+        this.tPrice = tPrice;
+    }
+
+    public Integer getResourceType() {
+        return resourceType;
+    }
+
+    public void setResourceType(Integer resourceType) {
+        this.resourceType = resourceType;
+    }
+
+    public Integer getLevel() {
+        return level;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
     }
 }

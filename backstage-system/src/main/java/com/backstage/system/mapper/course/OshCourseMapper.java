@@ -1,11 +1,11 @@
 package com.backstage.system.mapper.course;
 
-import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.course.OshCourseSection;
 import com.backstage.system.domain.course.OshCourseMaterial;
 import com.backstage.system.domain.course.vo.CourseSearchLoginVo;
 import com.backstage.system.domain.course.vo.OshCourseDetailVo;
 import com.backstage.system.domain.course.vo.OshCourseSectionVo;
+import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.request.CourseSearchRequest;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -23,7 +23,7 @@ public interface OshCourseMapper
 {
 
 
-    List<OshCourse> pageQuerySearchCourse(CourseSearchRequest request);
+    List<CourseSearchLoginVo> pageQuerySearchCourse(CourseSearchRequest request);
 
     List<CourseSearchLoginVo> pageQueryLoginSearchCourse(@Param("userId") Long userId, @Param("request") CourseSearchRequest request);
 

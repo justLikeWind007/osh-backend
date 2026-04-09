@@ -130,7 +130,7 @@ public class OshCourseServiceCreateCourseTagTest {
         material.setFileName("  课程资料压缩包  ");
         material.setFileUrl("  https://cdn.example.com/course-material.zip  ");
         material.setFileType("  zip  ");
-        material.setFileSize(new BigDecimal("1.5"));
+        material.setFileSize(new BigDecimal("1536"));
         request.setMaterial(material);
 
         User operator = new User();
@@ -152,7 +152,7 @@ public class OshCourseServiceCreateCourseTagTest {
                         && "课程资料压缩包".equals(materialEntity.getMaterialName())
                         && "https://cdn.example.com/course-material.zip".equals(materialEntity.getFileUrl())
                         && "zip".equals(materialEntity.getFileType())
-                        && Long.valueOf(1536L).equals(materialEntity.getFileSize())
+                        && Long.valueOf(2L).equals(materialEntity.getFileSize())
                         && "course_admin".equals(materialEntity.getCreateBy())
                         && "course_admin".equals(materialEntity.getUpdateBy())));
         verify(courseTagMapper, never()).insertCourseTag(any(OshCourseTag.class));

@@ -8,16 +8,16 @@ import java.math.RoundingMode;
  */
 public final class FileSizeConvertUtil {
 
-    private static final BigDecimal KB_PER_MB = BigDecimal.valueOf(1024);
+    private static final BigDecimal BYTES_PER_KB = BigDecimal.valueOf(1024);
 
     private FileSizeConvertUtil() {
     }
 
-    public static Long convertMbToKb(BigDecimal fileSizeInMb) {
-        if (fileSizeInMb == null) {
+    public static Long convertBytesToKb(BigDecimal fileSizeInBytes) {
+        if (fileSizeInBytes == null) {
             return null;
         }
-        return fileSizeInMb.multiply(KB_PER_MB)
+        return fileSizeInBytes.divide(BYTES_PER_KB, 0, RoundingMode.HALF_UP)
                 .setScale(0, RoundingMode.HALF_UP)
                 .longValue();
     }

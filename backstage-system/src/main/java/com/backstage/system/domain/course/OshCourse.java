@@ -133,6 +133,12 @@ public class OshCourse {
     @ApiModelProperty("考试ID")
     private Integer examId;
 
+    @ApiModelProperty("资源类型")
+    private Integer resourceType;
+
+    @ApiModelProperty("课程等级")
+    private Integer level;
+
     @ApiModelProperty("试看内容/试用内容")
     private String tryContent;
 
@@ -161,6 +167,22 @@ public class OshCourse {
 
     public void setExamId(Integer examId) {
         this.examId = examId;
+    }
+
+    public Integer getResourceType() {
+        return resourceType;
+    }
+
+    public void setResourceType(Integer resourceType) {
+        this.resourceType = resourceType;
+    }
+
+    public Integer getLevel() {
+        return level;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
     }
 
     public Long getId() {

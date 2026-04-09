@@ -23,6 +23,7 @@ public class CourseMaterialCreateRequest {
     @Pattern(regexp = "(?i)zip|rar|7z", message = "资料文件类型必须是压缩包类型")
     private String fileType;
 
+    //  字节转KB
     @NotNull(message = "资料文件大小不能为空")
     @DecimalMin(value = "0.00", inclusive = false, message = "资料文件大小必须大于0")
     private BigDecimal fileSize;

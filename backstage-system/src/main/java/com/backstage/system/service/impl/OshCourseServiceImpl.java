@@ -12,6 +12,7 @@ import com.backstage.system.domain.course.vo.OshCourseDetailVo;
 import com.backstage.system.domain.course.vo.OshCourseSectionVo;
 import com.backstage.system.domain.course.vo.OshCourseTagSimpleVo;
 import com.backstage.system.domain.user.User;
+import com.backstage.system.enums.CourseResourceEnum;
 import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.course.OshCourseMaterialMapper;
 import com.backstage.system.mapper.course.OshCourseTagMapper;
@@ -49,15 +50,15 @@ public class OshCourseServiceImpl implements IOshCourseService {
     private OshCourseMaterialMapper oshCourseMaterialMapper;
 
     @Override
-    public List<OshCourse> pageQuerySearchCourse(CourseSearchRequest request) {
+    public List<CourseSearchLoginVo> pageQuerySearchCourse(CourseSearchRequest request) {
         PageHelper.startPage(request.getPageNum(), request.getPageSize());
-        return oshCourseMapper.pageQuerySearchCourse(request);
+        return fillResourceTypeDesc(oshCourseMapper.pageQuerySearchCourse(request));
     }
 
     @Override
     public List<CourseSearchLoginVo> pageQueryLoginSearchCourse(Long userId, CourseSearchRequest request) {
         PageHelper.startPage(request.getPageNum(), request.getPageSize());
-        return oshCourseMapper.pageQueryLoginSearchCourse(userId, request);
+        return fillResourceTypeDesc(oshCourseMapper.pageQueryLoginSearchCourse(userId, request));
     }
 
     @Override
@@ -258,6 +259,8 @@ public class OshCourseServiceImpl implements IOshCourseService {
         course.setAfterServiceDays(defaultInteger(request.getAfterServiceDays()));
         course.setExamId(request.getExamId());
         course.setRemark(StringUtils.trimToNull(request.getRemark()));
+        course.setResourceType(request.getResourceType());
+        course.setLevel(request.getLevel());
 
         course.setSubCount(CourseConstants.DEFAULT_COUNT);
         course.setTotalDuration(CourseConstants.DEFAULT_COUNT);
@@ -298,7 +301,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         material.setMaterialName(fileName);
         material.setFileUrl(fileUrl);
         material.setFileType(fileType);
-        material.setFileSize(FileSizeConvertUtil.convertMbToKb(materialRequest.getFileSize()));
+        material.setFileSize(FileSizeConvertUtil.convertBytesToKb(materialRequest.getFileSize()));
         material.setSort(CourseConstants.DEFAULT_COUNT);
         material.setDeleteFlag(CourseConstants.DEFAULT_COUNT);
 
@@ -306,6 +309,20 @@ public class OshCourseServiceImpl implements IOshCourseService {
         material.setCreateBy(operatorName);
         material.setUpdateBy(operatorName);
         return material;
+    }
+
+    static List<CourseSearchLoginVo> fillResourceTypeDesc(List<CourseSearchLoginVo> list) {
+        if (list == null || list.isEmpty()) {
+            return list;
+        }
+        for (CourseSearchLoginVo item : list) {
+            if (item == null) {
+                continue;
+            }
+            CourseResourceEnum resourceEnum = CourseResourceEnum.fromCode(item.getResourceType());
+            item.setResourceTypeDesc(resourceEnum == null ? null : resourceEnum.getDesc());
+        }
+        return list;
     }
 
     private void bindCourseTags(Long courseId, List<OshCourseTagSimpleVo> tags, User operator) {

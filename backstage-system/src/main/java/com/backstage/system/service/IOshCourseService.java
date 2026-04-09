@@ -1,10 +1,10 @@
 package com.backstage.system.service;
 
-import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.course.OshCourseMaterial;
 import com.backstage.system.domain.course.vo.CourseSearchLoginVo;
 import com.backstage.system.domain.course.vo.OshCourseDetailVo;
 import com.backstage.system.domain.course.vo.OshCourseSectionVo;
+import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.user.User;
 import com.backstage.system.request.CourseCreateRequest;
 import com.backstage.system.request.CourseChapterCreateRequest;
@@ -20,7 +20,7 @@ import java.util.List;
  * @date 2026-01-XX
  */
 public interface IOshCourseService {
-    List<OshCourse> pageQuerySearchCourse(CourseSearchRequest request);
+    List<CourseSearchLoginVo> pageQuerySearchCourse(CourseSearchRequest request);
 
     List<CourseSearchLoginVo> pageQueryLoginSearchCourse(Long userId, CourseSearchRequest request);
 
