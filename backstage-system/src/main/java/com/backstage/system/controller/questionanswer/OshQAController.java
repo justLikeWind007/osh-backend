@@ -38,14 +38,6 @@ public class OshQAController {
     private IOshQAAnswerService iOshQAAnswerService;
 
     @Anonymous
-    @ApiOperation("资源权限校验")
-    @GetMapping("/resource/check-auth")
-    public R<ResourceVO> checkAuth(Long resourceNo) {
-        //todo 查询资源表
-        return null;
-    }
-
-    @Anonymous
     @ApiOperation("标签录入")
     @GetMapping("/tag/search")
     public R<List<QATagVO>> searchTags(@RequestParam(value = "type",required = false) String type) {
@@ -73,8 +65,8 @@ public class OshQAController {
     @ApiOperation("删除问题")
     @PostMapping("/question/delete")
     public R<String> deleteQuestion(
-            @RequestBody PublishQuestionDTO publishQuestionDTO) {
-        return IOshQAQuestionService.deleteQuestion(userContextUtil.getCurrentUser(), publishQuestionDTO.getQuestionId());
+            @RequestBody DeleteQuestionDTO deleteQuestionDTO) {
+        return IOshQAQuestionService.deleteQuestion(userContextUtil.getCurrentUser(), deleteQuestionDTO.getQuestionId());
     }
 
     @Anonymous
@@ -133,13 +125,13 @@ public class OshQAController {
     @ApiOperation("给回答点赞")
     @PostMapping("/answer/vote")
     public R<String> vote(@RequestBody AnswerVoteDTO answerVoteDTO) {
-        return IOshQAQuestionService.vote(userContextUtil.getCurrentUser().getId(), answerVoteDTO.getAnswerId());
+        return IOshQAQuestionService.vote(userContextUtil.getCurrentUser(), answerVoteDTO.getAnswerId());
     }
 
     @Anonymous
     @ApiOperation("取消给回答点赞")
     @PostMapping("/answer/cancel/vote")
     public R<String> cancelVote(@RequestBody AnswerVoteDTO answerVoteDTO) {
-        return IOshQAQuestionService.cancelVote(userContextUtil.getCurrentUser().getId(), answerVoteDTO.getAnswerId());
+        return IOshQAQuestionService.cancelVote(userContextUtil.getCurrentUser(), answerVoteDTO.getAnswerId());
     }
 }

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.user.OshRoleMapper">
+
+    <select id="selectPermissionIdsByRoleId" resultType="java.lang.Integer">
+        select permission_id from osh_role_permission where role_id = #{roleId}
+    </select>
+    <select id="getRoleIdsByUserId" resultType="java.lang.Integer">
+        select role_id from osh_user_role where user_id = #{userId}
+    </select>
+
+    <resultMap id="OshRoleVO" type="com.backstage.system.domain.user.vo.OshRoleVO">
+        <id property="roleName" column="role_name"/>
+        <result property="roleName" column="role_code"/>
+        <result property="level" column="level"/>
+    </resultMap>
+
+    <select id="getRoleNameByRoleId" resultMap="OshRoleVO">
+        select role_name,role_code,level from osh_role where id = #{roleId}
+    </select>
+</mapper>

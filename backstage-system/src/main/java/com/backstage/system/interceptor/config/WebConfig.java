@@ -1,6 +1,6 @@
-package com.backstage.common.config;
+package com.backstage.system.interceptor.config;
 
-import com.backstage.common.interceptor.UserContextInterceptor;
+import com.backstage.system.interceptor.UserContextInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -26,6 +26,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(userContextInterceptor)
-                .addPathPatterns("/**");
+                .addPathPatterns("/**")
+                .excludePathPatterns("/pc/user/login", "/pc/user/register/**", "/pc/user/forget");
     }
 }
