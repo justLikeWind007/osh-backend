@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.validation.constraints.DecimalMin;
+import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.PositiveOrZero;
@@ -50,6 +51,9 @@ public class CourseCreateRequest {
     private String remark;
 
     private List<OshCourseTagSimpleVo> tags;
+
+    @Valid
+    private CourseMaterialCreateRequest material;
 
     public String getTitle() {
         return title;
@@ -152,5 +156,13 @@ public class CourseCreateRequest {
             }
         }
         this.tags = tags;
+    }
+
+    public CourseMaterialCreateRequest getMaterial() {
+        return material;
+    }
+
+    public void setMaterial(CourseMaterialCreateRequest material) {
+        this.material = material;
     }
 }

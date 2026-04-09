@@ -13,12 +13,15 @@ import com.backstage.system.domain.course.vo.OshCourseSectionVo;
 import com.backstage.system.domain.course.vo.OshCourseTagSimpleVo;
 import com.backstage.system.domain.user.User;
 import com.backstage.system.mapper.course.OshCourseMapper;
+import com.backstage.system.mapper.course.OshCourseMaterialMapper;
 import com.backstage.system.mapper.course.OshCourseTagMapper;
 import com.backstage.system.request.CourseCreateRequest;
 import com.backstage.system.request.CourseChapterCreateRequest;
+import com.backstage.system.request.CourseMaterialCreateRequest;
 import com.backstage.system.request.CourseSearchRequest;
 import com.backstage.system.request.CourseVideoSectionCreateRequest;
 import com.backstage.system.service.IOshCourseService;
+import com.backstage.system.utils.FileSizeConvertUtil;
 import com.github.pagehelper.PageHelper;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +44,9 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
     @Autowired
     private OshCourseTagMapper oshCourseTagMapper;
+
+    @Autowired
+    private OshCourseMaterialMapper oshCourseMaterialMapper;
 
     @Override
     public List<OshCourse> pageQuerySearchCourse(CourseSearchRequest request) {
@@ -146,6 +152,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         if (rows <= 0) {
             return null;
         }
+        bindCourseMaterial(course.getId(), request.getMaterial(), operator);
         bindCourseTags(course.getId(), request.getTags(), operator);
         return course.getId();
     }
@@ -271,6 +278,34 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
     private static Integer defaultInteger(Integer value) {
         return value == null ? CourseConstants.DEFAULT_COUNT : value;
+    }
+
+    private void bindCourseMaterial(Long courseId, CourseMaterialCreateRequest materialRequest, User operator) {
+        if (materialRequest == null) {
+            return;
+        }
+        OshCourseMaterial material = buildCourseMaterialForCreate(courseId, materialRequest, operator);
+        oshCourseMaterialMapper.insertMaterialEntity(material);
+    }
+
+    static OshCourseMaterial buildCourseMaterialForCreate(Long courseId, CourseMaterialCreateRequest materialRequest, User operator) {
+        String fileName = StringUtils.trimToNull(materialRequest.getFileName());
+        String fileUrl = StringUtils.trimToNull(materialRequest.getFileUrl());
+        String fileType = StringUtils.trimToNull(materialRequest.getFileType());
+
+        OshCourseMaterial material = new OshCourseMaterial();
+        material.setCourseId(courseId);
+        material.setMaterialName(fileName);
+        material.setFileUrl(fileUrl);
+        material.setFileType(fileType);
+        material.setFileSize(FileSizeConvertUtil.convertMbToKb(materialRequest.getFileSize()));
+        material.setSort(CourseConstants.DEFAULT_COUNT);
+        material.setDeleteFlag(CourseConstants.DEFAULT_COUNT);
+
+        String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
+        material.setCreateBy(operatorName);
+        material.setUpdateBy(operatorName);
+        return material;
     }
 
     private void bindCourseTags(Long courseId, List<OshCourseTagSimpleVo> tags, User operator) {

@@ -1,6 +1,8 @@
 package com.backstage.web.controller.course;
 
 import com.backstage.RuoYiApplication;
+import com.backstage.common.constant.OshUserConstants;
+import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.course.OshCourseQuestion;
 import com.backstage.system.domain.course.OshCourseSection;
@@ -12,7 +14,6 @@ import com.backstage.system.request.CourseQuestionAnswerRequest;
 import com.backstage.system.request.CourseSearchRequest;
 import com.backstage.system.request.CourseSectionQuestionRequest;
 import com.backstage.system.request.CourseVideoSectionCreateRequest;
-import com.backstage.system.utils.UserContextUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
@@ -20,17 +21,18 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.RequestBuilder;
+import org.springframework.test.web.servlet.ResultActions;
 
 import java.math.BigDecimal;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -53,20 +55,16 @@ public class OshCourseControllerSectionApiTest {
     @Autowired
     private OshCourseQuestionMapper oshCourseQuestionMapper;
 
-    @MockBean
-    private UserContextUtil userContextUtil;
-
     @Test
     public void shouldInsertChapterSectionIntoDatabase() throws Exception {
         Long courseId = createTestCourse();
-        when(userContextUtil.getCurrentUser()).thenReturn(buildCurrentUser());
 
         CourseChapterCreateRequest request = new CourseChapterCreateRequest();
         request.setCourseId(courseId);
         request.setTitle("集成测试一级章节");
         request.setSort(1);
 
-        MvcResult mvcResult = mockMvc.perform(post("/pc/course/section/chapter/save")
+        MvcResult mvcResult = performAsUser(buildCurrentUser(), post("/pc/course/section/chapter/save")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -89,7 +87,6 @@ public class OshCourseControllerSectionApiTest {
     public void shouldInsertVideoSectionWithTextContentIntoDatabase() throws Exception {
         Long courseId = createTestCourse();
         Long parentId = createParentChapter(courseId);
-        when(userContextUtil.getCurrentUser()).thenReturn(buildCurrentUser());
 
         CourseVideoSectionCreateRequest request = new CourseVideoSectionCreateRequest();
         request.setCourseId(courseId);
@@ -104,7 +101,7 @@ public class OshCourseControllerSectionApiTest {
         request.setTextContent("这里是视频配套文本内容");
         request.setFileSize(654321L);
 
-        MvcResult mvcResult = mockMvc.perform(post("/pc/course/section/video/save")
+        MvcResult mvcResult = performAsUser(buildCurrentUser(), post("/pc/course/section/video/save")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -127,9 +124,8 @@ public class OshCourseControllerSectionApiTest {
     public void shouldReturnNotFoundWhenSavingTextSection() throws Exception {
         Long courseId = createTestCourse();
         Long parentId = createParentChapter(courseId);
-        when(userContextUtil.getCurrentUser()).thenReturn(buildCurrentUser());
 
-        MvcResult mvcResult = mockMvc.perform(post("/pc/course/section/text/save")
+        MvcResult mvcResult = performAsUser(buildCurrentUser(), post("/pc/course/section/text/save")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"courseId\":" + courseId + ",\"parentId\":" + parentId + ",\"title\":\"集成测试图文小节\",\"sort\":3,\"freeFlag\":0,\"cover\":\"https://oss.example.com/text-cover.png\",\"textContent\":\"这里是集成测试图文内容\"}"))
                 .andExpect(status().isNotFound())
@@ -148,7 +144,6 @@ public class OshCourseControllerSectionApiTest {
 
     @Test
     public void shouldSubmitQuestionForCourse935Section2WithUser1() throws Exception {
-        when(userContextUtil.getCurrentUser()).thenReturn(buildUserOne());
         OshCourse beforeCourse = oshCourseMapper.selectCourseById(935L);
         int beforeQuestionCount = beforeCourse.getQuestionCount() == null ? 0 : beforeCourse.getQuestionCount();
 
@@ -159,7 +154,7 @@ public class OshCourseControllerSectionApiTest {
         request.setTitle("集成测试提问-" + suffix);
         request.setContent("这是用户1针对课程935章节2写入的测试提问-" + suffix);
 
-        MvcResult mvcResult = mockMvc.perform(post("/pc/course/section/submit")
+        MvcResult mvcResult = performAsUser(buildUserOne(), post("/pc/course/section/submit")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -181,8 +176,6 @@ public class OshCourseControllerSectionApiTest {
 
     @Test
     public void shouldSubmitAnswerForQuestionUnderCourse935Section2WithUser1() throws Exception {
-        when(userContextUtil.getCurrentUser()).thenReturn(buildUserOne());
-
         String suffix = String.valueOf(System.currentTimeMillis());
         CourseSectionQuestionRequest questionRequest = new CourseSectionQuestionRequest();
         questionRequest.setCourseId(935L);
@@ -190,7 +183,7 @@ public class OshCourseControllerSectionApiTest {
         questionRequest.setTitle("集成测试回答前置提问-" + suffix);
         questionRequest.setContent("这是回答测试的前置提问-" + suffix);
 
-        MvcResult questionResult = mockMvc.perform(post("/pc/course/section/submit")
+        MvcResult questionResult = performAsUser(buildUserOne(), post("/pc/course/section/submit")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(questionRequest)))
                 .andExpect(status().isOk())
@@ -203,7 +196,7 @@ public class OshCourseControllerSectionApiTest {
         answerRequest.setQuestionId(questionId);
         answerRequest.setContent("这是用户1针对问题" + questionId + "写入的测试回答-" + suffix);
 
-        MvcResult answerResult = mockMvc.perform(post("/pc/course/question/answer")
+        MvcResult answerResult = performAsUser(buildUserOne(), post("/pc/course/question/answer")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(answerRequest)))
                 .andExpect(status().isOk())
@@ -228,8 +221,6 @@ public class OshCourseControllerSectionApiTest {
 
     @Test
     public void shouldPageSectionQuestionsOrderedByCreateTimeDesc() throws Exception {
-        when(userContextUtil.getCurrentUser()).thenReturn(buildUserOne());
-
         String suffix = String.valueOf(System.currentTimeMillis());
 
         CourseSectionQuestionRequest firstRequest = new CourseSectionQuestionRequest();
@@ -244,7 +235,7 @@ public class OshCourseControllerSectionApiTest {
         secondRequest.setTitle("较晚提问-" + suffix);
         secondRequest.setContent("较晚提问内容-" + suffix);
 
-        mockMvc.perform(post("/pc/course/section/submit")
+        performAsUser(buildUserOne(), post("/pc/course/section/submit")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(firstRequest)))
                 .andExpect(status().isOk())
@@ -252,7 +243,7 @@ public class OshCourseControllerSectionApiTest {
 
         Thread.sleep(5L);
 
-        mockMvc.perform(post("/pc/course/section/submit")
+        performAsUser(buildUserOne(), post("/pc/course/section/submit")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(secondRequest)))
                 .andExpect(status().isOk())
@@ -272,8 +263,6 @@ public class OshCourseControllerSectionApiTest {
 
     @Test
     public void shouldListQuestionAnswersInCreateTimeOrder() throws Exception {
-        when(userContextUtil.getCurrentUser()).thenReturn(buildUserOne());
-
         String suffix = String.valueOf(System.currentTimeMillis());
         CourseSectionQuestionRequest questionRequest = new CourseSectionQuestionRequest();
         questionRequest.setCourseId(935L);
@@ -281,7 +270,7 @@ public class OshCourseControllerSectionApiTest {
         questionRequest.setTitle("回答列表测试提问-" + suffix);
         questionRequest.setContent("回答列表测试提问内容-" + suffix);
 
-        MvcResult questionResult = mockMvc.perform(post("/pc/course/section/submit")
+        MvcResult questionResult = performAsUser(buildUserOne(), post("/pc/course/section/submit")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(questionRequest)))
                 .andExpect(status().isOk())
@@ -298,7 +287,7 @@ public class OshCourseControllerSectionApiTest {
         secondAnswerRequest.setQuestionId(questionId);
         secondAnswerRequest.setContent("第二条回答-" + suffix);
 
-        mockMvc.perform(post("/pc/course/question/answer")
+        performAsUser(buildUserOne(), post("/pc/course/question/answer")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(firstAnswerRequest)))
                 .andExpect(status().isOk())
@@ -306,7 +295,7 @@ public class OshCourseControllerSectionApiTest {
 
         Thread.sleep(5L);
 
-        mockMvc.perform(post("/pc/course/question/answer")
+        performAsUser(buildUserOne(), post("/pc/course/question/answer")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(secondAnswerRequest)))
                 .andExpect(status().isOk())
@@ -321,14 +310,12 @@ public class OshCourseControllerSectionApiTest {
 
     @Test
     public void shouldSearchCoursesWithCollectionAndBuyFlagsForLoggedInUser() throws Exception {
-        when(userContextUtil.getCurrentUser()).thenReturn(buildUserOne());
-
         CourseSearchRequest request = new CourseSearchRequest();
         request.setKeyword("Spring Boot 企业级开发实战");
         request.setPageNum(1);
         request.setPageSize(10);
 
-        mockMvc.perform(post("/pc/course/search/login")
+        performAsUser(buildUserOne(), post("/pc/course/search/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -355,19 +342,28 @@ public class OshCourseControllerSectionApiTest {
 
     @Test
     public void shouldSearchLoginCoursesOrderedByBuyFlagThenScoreThenCreateTimeDesc() throws Exception {
-        when(userContextUtil.getCurrentUser()).thenReturn(buildUserOne());
-
         CourseSearchRequest request = new CourseSearchRequest();
         request.setPageNum(1);
         request.setPageSize(2);
 
-        mockMvc.perform(post("/pc/course/search/login")
+        performAsUser(buildUserOne(), post("/pc/course/search/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.rows[0].id").value(935))
                 .andExpect(jsonPath("$.data.rows[1].id").value(942));
+    }
+
+    @Test
+    public void shouldMapCollectionCountInCourseDetail() {
+        Long courseId = createPublishedTestCourse();
+
+        com.backstage.system.domain.course.vo.OshCourseDetailVo detail = oshCourseMapper.getCourseDetail(courseId, 1L);
+
+        assertNotNull(detail);
+        assertEquals(courseId, detail.getId());
+        assertTrue(detail.getCollectionCount() == null || detail.getCollectionCount() >= 0);
     }
 
     private Long extractDataId(MvcResult mvcResult) throws Exception {
@@ -386,6 +382,23 @@ public class OshCourseControllerSectionApiTest {
         course.setTPrice(new BigDecimal("0.01"));
         course.setType("media");
         course.setStatus(0);
+        course.setCreateBy("integration_test_user");
+        course.setUpdateBy("integration_test_user");
+        oshCourseMapper.insertCourse(course);
+        return course.getId();
+    }
+
+    private Long createPublishedTestCourse() {
+        String suffix = String.valueOf(System.currentTimeMillis());
+        OshCourse course = new OshCourse();
+        course.setTitle("已发布课程详情测试-" + suffix);
+        course.setCover("https://oss.example.com/course-detail-cover.png");
+        course.setIntro("课程详情映射测试");
+        course.setServiceContent("课程详情映射测试服务内容");
+        course.setPrice(new BigDecimal("9.90"));
+        course.setTPrice(new BigDecimal("19.90"));
+        course.setType("media");
+        course.setStatus(2);
         course.setCreateBy("integration_test_user");
         course.setUpdateBy("integration_test_user");
         oshCourseMapper.insertCourse(course);
@@ -419,5 +432,11 @@ public class OshCourseControllerSectionApiTest {
         user.setId(1L);
         user.setUsername("user_1_test");
         return user;
+    }
+
+    private ResultActions performAsUser(User user, RequestBuilder requestBuilder) throws Exception {
+        ThreadLocalUtil.set(OshUserConstants.USER_ID, user.getId());
+        ThreadLocalUtil.set(OshUserConstants.USER_INFO, user);
+        return mockMvc.perform(requestBuilder);
     }
 }
