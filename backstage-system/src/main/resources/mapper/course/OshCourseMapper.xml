@@ -738,6 +738,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="ratingScore != null">rating_score = #{ratingScore},</if>
             <if test="freeType != null">free_type = #{freeType},</if>
             <if test="afterServiceDays != null">after_service_days = #{afterServiceDays},</if>
+            <if test="resourceType != null">resource_type = #{resourceType},</if>
+            <if test="level != null">level = #{level},</if>
             <if test="status != null">status = #{status},</if>
             <if test="examId != null">exam_id = #{examId},</if>
             <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>

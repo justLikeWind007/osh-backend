@@ -20,6 +20,8 @@ import com.backstage.system.request.CourseCreateRequest;
 import com.backstage.system.request.CourseChapterCreateRequest;
 import com.backstage.system.request.CourseMaterialCreateRequest;
 import com.backstage.system.request.CourseSearchRequest;
+import com.backstage.system.request.CourseTextSectionCreateRequest;
+import com.backstage.system.request.CourseUpdateRequest;
 import com.backstage.system.request.CourseVideoSectionCreateRequest;
 import com.backstage.system.service.IOshCourseService;
 import com.backstage.system.utils.FileSizeConvertUtil;
@@ -159,9 +161,32 @@ public class OshCourseServiceImpl implements IOshCourseService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long updateCourse(CourseUpdateRequest request, User operator) {
+        OshCourse existingCourse = ensureCourseExists(request.getId());
+        ensureCourseEditableByOperator(existingCourse, operator);
+        OshCourse course = buildCourseForUpdate(request, operator);
+        int rows = oshCourseMapper.updateCourse(course);
+        if (rows <= 0) {
+            return null;
+        }
+        rebuildCourseMaterial(course.getId(), request.getMaterial(), operator);
+        rebuildCourseTags(course.getId(), request.getTags(), operator);
+        return course.getId();
+    }
+
+    @Override
     public Long createCourseChapter(CourseChapterCreateRequest request, User operator) {
         ensureCourseExists(request.getCourseId());
         OshCourseSection section = buildChapterSectionForCreate(request, operator);
+        return insertCourseSection(section);
+    }
+
+    @Override
+    public Long createCourseTextSection(CourseTextSectionCreateRequest request, User operator) {
+        ensureCourseExists(request.getCourseId());
+        ensureParentChapter(request.getCourseId(), request.getParentId());
+        OshCourseSection section = buildTextSectionForCreate(request, operator);
         return insertCourseSection(section);
     }
 
@@ -283,6 +308,27 @@ public class OshCourseServiceImpl implements IOshCourseService {
         return value == null ? CourseConstants.DEFAULT_COUNT : value;
     }
 
+    static OshCourse buildCourseForUpdate(CourseUpdateRequest request, User operator) {
+        OshCourse course = new OshCourse();
+        course.setId(request.getId());
+        course.setTitle(StringUtils.trimToNull(request.getTitle()));
+        course.setCover(StringUtils.trimToNull(request.getCover()));
+        course.setIntro(StringUtils.trimToNull(request.getIntro()));
+        course.setServiceContent(StringUtils.trimToNull(request.getServiceContent()));
+        course.setPrice(request.getPrice());
+        course.setTPrice(request.getTPrice());
+        course.setType(StringUtils.trimToNull(request.getType()));
+        course.setFreeType(defaultInteger(request.getFreeType()));
+        course.setAfterServiceDays(defaultInteger(request.getAfterServiceDays()));
+        course.setExamId(request.getExamId());
+        course.setRemark(StringUtils.trimToNull(request.getRemark()));
+        course.setResourceType(request.getResourceType());
+        course.setLevel(request.getLevel());
+        String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
+        course.setUpdateBy(operatorName);
+        return course;
+    }
+
     private void bindCourseMaterial(Long courseId, CourseMaterialCreateRequest materialRequest, User operator) {
         if (materialRequest == null) {
             return;
@@ -311,6 +357,11 @@ public class OshCourseServiceImpl implements IOshCourseService {
         return material;
     }
 
+    private void rebuildCourseMaterial(Long courseId, CourseMaterialCreateRequest materialRequest, User operator) {
+        oshCourseMaterialMapper.deleteMaterialsByCourseId(courseId);
+        bindCourseMaterial(courseId, materialRequest, operator);
+    }
+
     static List<CourseSearchLoginVo> fillResourceTypeDesc(List<CourseSearchLoginVo> list) {
         if (list == null || list.isEmpty()) {
             return list;
@@ -335,6 +386,11 @@ public class OshCourseServiceImpl implements IOshCourseService {
             insertCourseTagRelation(courseId, tag.getId(), operator);
             oshCourseTagMapper.increaseUseCount(tag.getId());
         }
+    }
+
+    private void rebuildCourseTags(Long courseId, List<OshCourseTagSimpleVo> tags, User operator) {
+        oshCourseTagMapper.deleteCourseTagRelationByCourseId(courseId);
+        bindCourseTags(courseId, tags, operator);
     }
 
     static List<OshCourseTagSimpleVo> normalizeCourseTags(List<OshCourseTagSimpleVo> tags) {
@@ -429,14 +485,33 @@ public class OshCourseServiceImpl implements IOshCourseService {
         return section;
     }
 
+    static OshCourseSection buildTextSectionForCreate(CourseTextSectionCreateRequest request, User operator) {
+        OshCourseSection section = buildBaseSection(request.getCourseId(), request.getParentId(),
+                request.getTitle(), request.getSort(), operator);
+        section.setFreeFlag(defaultFreeFlag(request.getFreeFlag()));
+        section.setTextContent(StringUtils.trimToNull(request.getTextContent()));
+        section.setType(CourseSectionConstants.TYPE_TEXT);
+        return section;
+    }
+
     private Long insertCourseSection(OshCourseSection section) {
         int rows = oshCourseMapper.insertCourseSection(section);
         return rows > 0 ? section.getId() : null;
     }
 
-    private void ensureCourseExists(Long courseId) {
-        if (oshCourseMapper.selectCourseById(courseId) == null) {
+    private OshCourse ensureCourseExists(Long courseId) {
+        OshCourse course = oshCourseMapper.selectCourseById(courseId);
+        if (course == null) {
             throw new IllegalArgumentException("课程不存在");
+        }
+        return course;
+    }
+
+    private void ensureCourseEditableByOperator(OshCourse course, User operator) {
+        String creator = course == null ? null : StringUtils.trimToNull(course.getCreateBy());
+        String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
+        if (!StringUtils.equals(creator, operatorName)) {
+            throw new IllegalArgumentException("只有课程创建人可以修改课程");
         }
     }
 

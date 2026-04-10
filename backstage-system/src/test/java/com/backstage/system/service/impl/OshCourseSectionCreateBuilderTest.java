@@ -3,6 +3,7 @@ package com.backstage.system.service.impl;
 import com.backstage.system.domain.course.OshCourseSection;
 import com.backstage.system.domain.user.User;
 import com.backstage.system.request.CourseChapterCreateRequest;
+import com.backstage.system.request.CourseTextSectionCreateRequest;
 import com.backstage.system.request.CourseVideoSectionCreateRequest;
 import org.junit.Assert;
 import org.junit.Test;
@@ -66,5 +67,34 @@ public class OshCourseSectionCreateBuilderTest {
         Assert.assertEquals("video", section.getType());
         Assert.assertEquals(Integer.valueOf(1), section.getStatus());
         Assert.assertEquals(Integer.valueOf(0), section.getDeleteFlag());
+    }
+
+    @Test
+    public void shouldBuildTextSectionWithTextContentAndType() {
+        CourseTextSectionCreateRequest request = new CourseTextSectionCreateRequest();
+        request.setCourseId(100L);
+        request.setParentId(10L);
+        request.setTitle("  图文小节  ");
+        request.setSort(3);
+        request.setFreeFlag(1);
+        request.setTextContent("  这里是图文内容  ");
+
+        User operator = new User();
+        operator.setUsername("teacher_hope");
+
+        OshCourseSection section = OshCourseServiceImpl.buildTextSectionForCreate(request, operator);
+
+        Assert.assertEquals(Long.valueOf(100L), section.getCourseId());
+        Assert.assertEquals(Long.valueOf(10L), section.getParentId());
+        Assert.assertEquals("图文小节", section.getTitle());
+        Assert.assertEquals(Integer.valueOf(3), section.getSort());
+        Assert.assertEquals(Integer.valueOf(1), section.getFreeFlag());
+        Assert.assertEquals("这里是图文内容", section.getTextContent());
+        Assert.assertEquals("text", section.getType());
+        Assert.assertEquals(Integer.valueOf(1), section.getStatus());
+        Assert.assertEquals(Integer.valueOf(0), section.getDeleteFlag());
+        Assert.assertNull(section.getMediaUrl());
+        Assert.assertNull(section.getDuration());
+        Assert.assertNull(section.getFileSize());
     }
 }

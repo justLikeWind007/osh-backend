@@ -9,6 +9,8 @@ import com.backstage.system.domain.user.User;
 import com.backstage.system.request.CourseCreateRequest;
 import com.backstage.system.request.CourseChapterCreateRequest;
 import com.backstage.system.request.CourseSearchRequest;
+import com.backstage.system.request.CourseTextSectionCreateRequest;
+import com.backstage.system.request.CourseUpdateRequest;
 import com.backstage.system.request.CourseVideoSectionCreateRequest;
 
 import java.util.List;
@@ -51,7 +53,11 @@ public interface IOshCourseService {
 
     Long createCourse(CourseCreateRequest request, User operator);
 
+    Long updateCourse(CourseUpdateRequest request, User operator);
+
     Long createCourseChapter(CourseChapterCreateRequest request, User operator);
+
+    Long createCourseTextSection(CourseTextSectionCreateRequest request, User operator);
 
     Long createCourseVideoSection(CourseVideoSectionCreateRequest request, User operator);
 
