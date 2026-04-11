@@ -86,6 +86,11 @@ public interface IBookService extends IService<BookDO> {
 
     Page<BookListVO> getBookPageList(BookListReqVO reqVO);
 
+
+    Page<BookListVO> getFilterBookList(String filter);
+
+
+
     /**
      * 新增电子书章节
      *

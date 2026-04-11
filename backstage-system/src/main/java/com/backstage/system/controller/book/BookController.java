@@ -30,7 +30,7 @@ public class BookController {
     @Anonymous
     @PostMapping("/page")
     public R<Page<BookListVO>> list(@RequestBody BookListReqVO reqVO) {
-        Page<BookListVO> pageResult = bookService.getBookPageList( reqVO);
+        Page<BookListVO> pageResult = bookService.getBookPageList(reqVO);
         return R.ok(pageResult);
     }
 
@@ -139,4 +139,15 @@ public class BookController {
         bookService.updateBookChapter(reqVO);
         return R.ok("修改成功");
     }
+
+    @Anonymous
+    @ApiOperation(value = "查询筛选课程")
+    @GetMapping("/getFilterBookList")
+    public R<Page<BookListVO>> getFilterBookList(@RequestParam String filter) {
+        Page<BookListVO> bookList = bookService.getFilterBookList(filter);
+        return R.ok(bookList);
+    }
+
+
+
 }

@@ -1,5 +1,6 @@
 package com.backstage.system.service.impl;
 
+import cn.hutool.core.util.StrUtil;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.system.controller.book.BookListReqVO;
@@ -14,6 +15,7 @@ import com.backstage.system.mapper.UserBookMapper;
 import com.backstage.system.mapper.book.BookTagDOMapper;
 import com.backstage.system.service.IBookService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.BeanUtils;
@@ -22,10 +24,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * 电子书 服务层实现
@@ -76,6 +80,25 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
         result.setRecords(bookListVOS);
         return result;
     }
+
+    // 获取筛选的电子书列表
+    @Override
+    public Page<BookListVO> getFilterBookList(String filter) {
+        // 分页：第1页，每页12条
+        Page<BookDO> pageParam = new Page<>(1, 12);
+
+        Page<BookListVO> voPage = bookMapper.selectFreeBookPage(pageParam);
+
+        // SQL 查出的逗号分隔 tagNames → 转成 List<String>
+        for (BookListVO vo : voPage.getRecords()) {
+            if (StrUtil.isNotBlank(vo.getTagNames())) {
+                List<String> tagList = Arrays.asList(vo.getTagNames().split(","));
+                vo.setTagNameList(tagList);
+            }
+        }
+        return voPage;
+    }
+
 
     @Override
     public List<String> getTagList() {
