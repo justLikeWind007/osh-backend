@@ -7,7 +7,6 @@ import com.backstage.system.domain.dto.*;
 import com.backstage.system.domain.vo.*;
 import com.backstage.system.domain.vo.CourseDetailVO;
 import com.backstage.system.domain.vo.CourseMaterialVO;
-import com.backstage.system.domain.vo.CourseQuestionVO;
 import com.backstage.system.domain.vo.CourseSectionVO;
 import com.backstage.system.domain.vo.SectionAccessVO;
 import com.backstage.system.domain.vo.SectionProgressVO;
@@ -378,12 +377,13 @@ public interface ICourseManageService {
      * 上传课程封面图片
      * 语法逻辑：校验文件→调用上传接口→更新课程 cover 字段
      * 实现效果：将封面图片上传到文件服务器，并更新课程表的 cover 字段
-     * 
-     * @param file 封面文件
+     *
+     * @param file     封面文件
      * @param courseId 课程 ID
-     * @param userId 用户 ID
+     * @param userId   用户 ID
+     * @return
      */
-    void uploadCourseCover(MultipartFile file, Long courseId, Long userId);
+    String uploadCourseCover(MultipartFile file, Long courseId, Long userId);
     
 
     
@@ -403,14 +403,14 @@ public interface ICourseManageService {
      * 上传课时资料
      * 语法逻辑：校验文件格式→上传压缩包→返回资料信息
      * 实现效果：支持 zip/rar/tar/gz 格式，存储到指定目录
-     * 
-     * @param file 资料文件
-     * @param courseId 课程 ID
+     *
+     * @param file         资料文件
+     * @param courseId     课程 ID
      * @param materialName 资料名称
-     * @param userId 用户 ID
+     * @param userId       用户 ID
      * @return 资料 ID
      */
-    Long uploadSectionMaterial(MultipartFile file, Long courseId, String materialName, Long userId);
+    Map<String, Object> uploadSectionMaterial(MultipartFile file, Long courseId, String materialName, Long userId);
     
     
     // ==================== 课程新增（含章节）接口 ====================

@@ -628,7 +628,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="afterServiceDays != null">after_service_days,</if>
             <if test="resourceType != null">resource_type,</if>
             <if test="level != null">level,</if>
-            <if test="status != null">status,</if>
+            status,
             <if test="examId != null">exam_id,</if>
             <if test="createBy != null and createBy != ''">create_by,</if>
             <if test="updateBy != null and updateBy != ''">update_by,</if>
@@ -656,7 +656,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="afterServiceDays != null">#{afterServiceDays},</if>
             <if test="resourceType != null">#{resourceType},</if>
             <if test="level != null">#{level},</if>
-            <if test="status != null">#{status},</if>
+            2,
             <if test="examId != null">#{examId},</if>
             <if test="createBy != null and createBy != ''">#{createBy},</if>
             <if test="updateBy != null and updateBy != ''">#{updateBy},</if>
@@ -789,5 +789,21 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             update_time = now()
         </set>
         where id = #{courseId}
+    </update>
+
+    <update id="deleteCourseSectionById">
+        update osh_course_section
+        set delete_flag = 1,
+        update_by = #{updateBy},
+        update_time = now()
+        where id = #{id}
+    </update>
+
+    <update id="deleteCourseSectionsByParentId">
+        update osh_course_section
+        set delete_flag = 1,
+        update_by = #{updateBy},
+        update_time = now()
+        where parent_id = #{parentId} or id = #{parentId}
     </update>
 </mapper>

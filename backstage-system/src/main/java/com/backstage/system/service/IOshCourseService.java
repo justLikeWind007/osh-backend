@@ -98,4 +98,6 @@ public interface IOshCourseService {
     String getCourseSectionContent(Long sectionId, Long userId);
 
     List<OshCourseMaterial> getCourseMaterials(Long courseId);
+
+    boolean safeDeleteSection(Long id, User currentUser);
 }

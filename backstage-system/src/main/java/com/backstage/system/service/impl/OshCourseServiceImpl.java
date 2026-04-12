@@ -231,6 +231,23 @@ public class OshCourseServiceImpl implements IOshCourseService {
         return oshCourseMapper.deleteCourseById(id);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean safeDeleteSection(Long id, User operator) {
+        // 1. 先查一下这个东西到底是什么
+        OshCourseSection section = oshCourseMapper.selectCourseSectionById(id);
+        if (section == null) return false;
+
+        // 2. 判断逻辑
+        if (section.getParentId() == null || section.getParentId() == 0) {
+            // 说明这是一章：执行级联删除（删掉自己 + parent_id 是自己的小节）
+            return oshCourseMapper.deleteCourseSectionsByParentId(id, operator.getUsername()) > 0;
+        } else {
+            // 说明这只是一个小节：只删自己
+            return oshCourseMapper.deleteCourseSectionById(id, operator.getUsername()) > 0;
+        }
+    }
+
     static List<OshCourseSectionVo> buildSectionTree(List<OshCourseSectionVo> sectionList) {
         if (sectionList == null || sectionList.isEmpty()) {
             return new ArrayList<>();

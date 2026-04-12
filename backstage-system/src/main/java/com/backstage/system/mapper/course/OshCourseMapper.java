@@ -109,6 +109,16 @@ public interface OshCourseMapper
 
     String getCourseSectionContent(@Param("sectionId") Long sectionId);
 
+    /**
+     * 删除小节（根据ID逻辑删除单个小节）
+     */
+    int deleteCourseSectionById(@Param("id") Long id, @Param("updateBy") String updateBy);
+
+    /**
+     * 删除章节下的所有小节（用于删除章时的级联操作）
+     */
+    int deleteCourseSectionsByParentId(@Param("parentId") Long parentId, @Param("updateBy") String updateBy);
+
     List<OshCourseMaterial> getCourseMaterials(Long courseId);
 
     /**

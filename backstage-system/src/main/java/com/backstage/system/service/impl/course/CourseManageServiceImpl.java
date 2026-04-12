@@ -28,6 +28,7 @@ import com.backstage.system.mapper.fava.OshFavaMapper;
 import com.backstage.system.mapper.course.OshCourseOrderMapper;
 import com.backstage.system.service.course.ICourseManageService;
 import com.backstage.system.service.common.OssService;
+import com.backstage.system.utils.OssUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,6 +72,8 @@ public class CourseManageServiceImpl implements ICourseManageService {
     
     @Autowired
     private OssService ossService;
+    @Autowired
+    private OssUtil ossUtil;
 
     
     // ==================== 课程查询接口实现 ====================
@@ -189,25 +192,11 @@ public class CourseManageServiceImpl implements ICourseManageService {
 
     // ==================== 封面、视频、资料上传接口实现 ====================
 
-    /**
-     * 上传课程封面图片
-     * - 更新课程表的 cover 字段
-     * - 支持常见图片格式（bmp/gif/jpg/jpeg/png）
-     *
-     * @param file 封面文件
-     * @param courseId 课程 ID
-     * @param userId 用户 ID
-     */
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void uploadCourseCover(MultipartFile file, Long courseId, Long userId) {
-        // 校验课程是否存在
-        OshCourse course = courseMapper.selectCourseById(courseId);
-        if (course == null) {
-            throw new ServiceException("课程不存在");
-        }
+    // 既然不操作数据库了，去掉 @Transactional
+    public String uploadCourseCover(MultipartFile file, Long courseId, Long userId) {
 
-        // 校验文件类型（仅允许图片格式）
+        // 1. 校验文件类型（保持不变）
         String fileName = file.getOriginalFilename();
         String extension = "";
         if (fileName != null && fileName.contains(".")) {
@@ -218,39 +207,47 @@ public class CourseManageServiceImpl implements ICourseManageService {
             throw new ServiceException(CourseUploadConstants.IMAGE_FORMAT_ERROR);
         }
 
-        // 校验文件大小
+        // 2. 校验文件大小（保持不变）
         if (file.getSize() > CourseUploadConstants.MAX_IMAGE_SIZE) {
             throw new ServiceException(CourseUploadConstants.IMAGE_SIZE_ERROR);
         }
 
-        // 调用 OSS 服务上传文件，使用 courseId 作为子目录
-        String coverUrl;
+        // 3. 调用 OSS 服务上传
+        String relativePath;
         try {
-            coverUrl = ossService.upload(file, UploadPathEnum.COURSE_COVER, String.valueOf(courseId));
+            // 如果 courseId 为空或 0，传给 OSS 一个固定目录名如 "temp"
+            String pathId = (courseId == null || courseId == 0) ? "temp" : String.valueOf(courseId);
 
-            // 检查上传结果是否包含错误信息
-            if (coverUrl == null || CourseUploadConstants.isUploadError(coverUrl)) {
-                throw new ServiceException(coverUrl);
+            // 这里拿到的是相对路径，例如：common/image/courseCover/temp/202604/xxx.JPG
+            relativePath = ossService.upload(file, com.backstage.common.enums.UploadPathEnum.COURSE_COVER, pathId);
+
+            if (relativePath == null || CourseUploadConstants.isUploadError(relativePath)) {
+                throw new ServiceException(relativePath);
             }
+
+            // --- 核心逻辑：手动拼接绝对路径 ---
+            // 1. 获取配置中的域名
+            String domain = ossUtil.getOssProperties().getPublicDomain();
+
+            // 2. 处理域名结尾斜杠
+            if (domain.endsWith("/")) {
+                domain = domain.substring(0, domain.length() - 1);
+            }
+
+            // 3. 拼出完整绝对路径
+            String fullUrl = domain + "/" + relativePath;
+            // --------------------------------
+
+            log.info("课程封面上传成功（绝对路径）：{}", fullUrl);
+
+            // 4. 直接返回完整地址给前端
+            return fullUrl;
+
         } catch (ServiceException e) {
             throw e;
         } catch (Exception e) {
             throw new ServiceException("上传封面失败：" + e.getMessage());
         }
-
-        // 更新课程封面 URL
-        OshCourse updateCourse = new OshCourse();
-        updateCourse.setId(courseId);
-        updateCourse.setCover(coverUrl);
-        updateCourse.setUpdateTime(DateUtils.getNowDate());
-        updateCourse.setUpdateBy(String.valueOf(userId));
-
-        int result = courseMapper.updateCourse(updateCourse);
-        if (result <= 0) {
-            throw new ServiceException("更新课程封面失败");
-        }
-
-        log.info("课程封面上传成功：courseId={}, url={}", courseId, coverUrl);
     }
 
     /**
@@ -336,23 +333,10 @@ public class CourseManageServiceImpl implements ICourseManageService {
     }
 
 
-
-    /**
-     * 上传课程资料  一对多
-     * 校验文件类型（仅允许压缩包 zip/rar/tar/gz）
-     * 存储到课程专属目录
-     * 保存课程资料和 课程的关联关系
-     *
-     * @param file 资料文件
-     * @param courseId 课程 ID
-     * @param materialName 资料名称
-     * @param userId 用户 ID
-     * @return 资料 ID
-     */
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public Long uploadSectionMaterial(MultipartFile file, Long courseId, String materialName, Long userId) {
-        // 校验文件类型
+    // 不操作数据库了，去掉 @Transactional
+    public Map<String, Object> uploadSectionMaterial(MultipartFile file, Long courseId, String materialName, Long userId) {
+        // 1. 校验文件类型（保持不变）
         String fileName = file.getOriginalFilename();
         String extension = "";
         if (fileName != null && fileName.contains(".")) {
@@ -363,31 +347,41 @@ public class CourseManageServiceImpl implements ICourseManageService {
             throw new ServiceException(CourseUploadConstants.ARCHIVE_FORMAT_ERROR);
         }
 
-
         try {
-            // 返回相对路径："common/material/course/courseId/当前年月/ 文件名.zip"
-            String fileUrl = ossService.upload(file, com.backstage.common.enums.UploadPathEnum.COURSE_MATERIAL, String.valueOf(courseId));
+            // 2. 处理 OSS 存储路径
+            // 如果是新增模式（courseId 为 0 或 null），路径传 "temp"
+            String pathId = (courseId == null || courseId == 0) ? "temp" : String.valueOf(courseId);
 
-            if (fileUrl == null || CourseUploadConstants.isUploadError(fileUrl)) {
-                throw new ServiceException(fileUrl);
+            // 这里拿到的是相对路径：common/material/temp/202604/xxx.zip
+            String relativePath = ossService.upload(file, com.backstage.common.enums.UploadPathEnum.COURSE_MATERIAL, pathId);
+
+            if (relativePath == null || CourseUploadConstants.isUploadError(relativePath)) {
+                throw new ServiceException(relativePath);
             }
 
-            // 保存课程资料和 课程的关联关系
-            Map<String, Object> params = new HashMap<>();
-            params.put("courseId", courseId);
-            params.put("materialName", StringUtils.defaultIfEmpty(materialName, fileName));
-            params.put("fileUrl", fileUrl);
-            params.put("fileType", extension);
-            params.put("fileSize", file.getSize());
-            // params.put("isPayOnly", 1); // 默认仅购买后可下载 - 表中无此字段
-            params.put("sort", 0);
-            params.put("createBy", String.valueOf(userId));
-            params.put("createTime", DateUtils.getNowDate());
+            // --- 核心逻辑：手动拼接绝对路径 ---
+            // 1. 从 ossUtil 拿到配置里的域名 (例如: http://oss.xxx.com)
+            String domain = ossUtil.getOssProperties().getPublicDomain();
 
-            materialMapper.insertMaterial(params);
+            // 2. 确保域名结尾没有多余的斜杠，然后拼上相对路径
+            if (domain.endsWith("/")) {
+                domain = domain.substring(0, domain.length() - 1);
+            }
 
-            // 6. 返回资料 ID
-            return (Long) params.get("id");
+            // 最终的绝对路径
+            String fullUrl = domain + "/" + relativePath;
+            // --------------------------------
+
+            // 3. 【核心改动】将所有前端后续入库需要的信息封装进 Map 返回
+            Map<String, Object> result = new HashMap<>();
+            result.put("fileUrl", fullUrl); // 👈 这里放的是绝对路径了
+            result.put("materialName", StringUtils.defaultIfEmpty(materialName, fileName));
+            result.put("fileType", extension);
+            result.put("fileSize", file.getSize());
+
+            log.info("课程资料上传成功（绝对路径）：{}", fullUrl);
+
+            return result;
 
         } catch (ServiceException e) {
             throw e;
@@ -395,7 +389,6 @@ public class CourseManageServiceImpl implements ICourseManageService {
             throw new ServiceException("上传资料失败：" + e.getMessage());
         }
     }
-
 
     /**
      * 新增课程
