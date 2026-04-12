@@ -791,19 +791,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where id = #{courseId}
     </update>
 
-    <update id="deleteCourseSectionById">
-        update osh_course_section
-        set delete_flag = 1,
-        update_by = #{updateBy},
-        update_time = now()
-        where id = #{id}
-    </update>
-
-    <update id="deleteCourseSectionsByParentId">
-        update osh_course_section
-        set delete_flag = 1,
-        update_by = #{updateBy},
-        update_time = now()
-        where parent_id = #{parentId} or id = #{parentId}
-    </update>
+    <!-- 批量查询课程封面（仅查询id和cover字段） -->
+    <select id="selectCoursesByIds" resultType="com.backstage.system.domain.course.OshCourse">
+        select id, cover
+        from osh_course
+        where delete_flag = 0
+        and id in
+        <foreach collection="list" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
 </mapper>

@@ -57,4 +57,13 @@ public interface OshCourseMaterialMapper {
      * 增加下载次数
      */
     int incrementDownloadCount(@Param("id") Long id);
+    
+    /**
+     * 根据资料ID列表批量查询资料信息（仅查询id和url字段）
+     * 用于批量获取资料临时URL
+     *
+     * @param ids 资料ID列表
+     * @return 资料列表（包含id和url）
+     */
+    List<OshCourseMaterial> selectMaterialsByIds(@Param("ids") List<Long> ids);
 }

@@ -461,4 +461,82 @@ public interface ICourseManageService {
      * @return 是否已购买且未过期
      */
     boolean checkUserPurchased(Long courseId, Long userId);
+    
+    
+    // ==================== 课程封面临时URL批量获取接口 ====================
+    
+    /**
+     * 批量获取课程封面临时访问URL
+     * 语法逻辑：根据课程ID列表查询封面相对路径，批量生成临时访问URL
+     * 实现效果：返回课程ID到临时URL的映射，支持按需加载和懒加载
+     * 适用场景：课程列表页、推荐位等需要批量展示封面的场景
+     * 
+     * @param courseIds 课程ID列表（最多支持50个，超出部分忽略）
+     * @param minute 临时URL有效期（分钟），建议值：30分钟，默认30
+     * @return 课程ID到临时URL的映射 Map<Long, String>
+     */
+    Map<Long, String> batchGetCourseCoverUrls(List<Long> courseIds, int minute);
+    
+    /**
+     * 根据相对路径批量获取封面临时URL
+     * 语法逻辑：直接根据封面相对路径列表生成临时访问URL
+     * 实现效果：返回相对路径到临时URL的映射
+     * 
+     * @param coverPaths 封面相对路径列表（如：common/image/course/cover/202604/xxx.jpg）
+     * @param minute 临时URL有效期（分钟）
+     * @return 相对路径到临时URL的映射 Map<String, String>
+     */
+    Map<String, String> batchGetCoverUrlsByPaths(List<String> coverPaths, int minute);
+    
+    
+    // ==================== 章节视频临时URL批量获取接口 ====================
+    
+    /**
+     * 批量获取章节视频临时访问URL
+     * 语法逻辑：根据章节ID列表查询media_url相对路径，批量生成临时访问URL
+     * 实现效果：返回章节ID到临时URL的映射，支持按需加载
+     * 适用场景：视频播放器加载、批量预加载视频URL等
+     * 
+     * @param sectionIds 章节ID列表（最多支持50个，超出部分忽略）
+     * @param minute 临时URL有效期（分钟），建议值：60分钟，默认60
+     * @return 章节ID到临时URL的映射 Map<Long, String>
+     */
+    Map<Long, String> batchGetSectionVideoUrls(List<Long> sectionIds, int minute);
+    
+    /**
+     * 单个获取章节视频临时访问URL
+     * 语法逻辑：根据章节ID查询media_url相对路径，生成临时访问URL
+     * 实现效果：返回章节的临时访问URL
+     * 
+     * @param sectionId 章节ID
+     * @param minute 临时URL有效期（分钟）
+     * @return 临时访问URL，未找到返回null
+     */
+    String getSectionVideoUrl(Long sectionId, int minute);
+    
+    
+    // ==================== 课程资料临时URL批量获取接口 ====================
+    
+    /**
+     * 批量获取课程资料临时访问URL
+     * 语法逻辑：根据资料ID列表查询url相对路径，批量生成临时访问URL
+     * 实现效果：返回资料ID到临时URL的映射，支持按需加载
+     * 适用场景：资料下载、批量预加载资料URL等
+     * 
+     * @param materialIds 资料ID列表（最多支持50个，超出部分忽略）
+     * @param minute 临时URL有效期（分钟），建议值：120分钟，默认120
+     * @return 资料ID到临时URL的映射 Map<Long, String>
+     */
+    Map<Long, String> batchGetMaterialUrls(List<Long> materialIds, int minute);
+    
+    /**
+     * 单个获取课程资料临时访问URL
+     * 语法逻辑：根据资料ID查询url相对路径，生成临时访问URL
+     * 实现效果：返回资料的临时访问URL
+     * 
+     * @param materialId 资料ID
+     * @param minute 临时URL有效期（分钟）
+     * @return 临时访问URL，未找到返回null
+     */
+    String getMaterialUrl(Long materialId, int minute);
 }
