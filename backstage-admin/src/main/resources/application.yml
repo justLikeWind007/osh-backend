@@ -107,6 +107,24 @@ spring:
         max-active: 8
         # #连接池最大阻塞等待时间（使用负值表示没有限制）
         max-wait: -1ms
+  kafka:
+    bootstrap-servers: 43.242.200.25:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # 消费者配置
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      group-id: my-group
+      # 从最新偏移量开始读取
+      auto-offset-reset: latest
+      # 自动提交偏移量
+      enable-auto-commit: true
+      # 监听器配置
+    listener:
+      # 手动提交模式
+      ack-mode: manual_immediate
 
 # token配置
 token:

@@ -10,12 +10,14 @@ import com.backstage.common.utils.jwt.JwtUtil;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.system.domain.user.OshPermission;
 import com.backstage.system.domain.user.OshRole;
+import com.backstage.system.domain.user.OshUserViolationRecord;
 import com.backstage.system.domain.user.User;
 import com.backstage.system.domain.user.vo.OshRoleVO;
 import com.backstage.system.domain.user.vo.UserLoginVo;
 import com.backstage.system.mapper.user.OshPermissionMapper;
 import com.backstage.system.mapper.user.OshRoleMapper;
 import com.backstage.system.mapper.user.OshUserMapper;
+import com.backstage.system.mapper.user.OshUserViolationRecordMapper;
 import com.backstage.system.service.user.IOshUserService;
 import com.backstage.system.utils.UserContextUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -42,13 +44,13 @@ public class OshUserServiceImpl implements IOshUserService {
     @Autowired
     private RedisCache redisCache;
     @Autowired
-    private UserContextUtil userContextUtil;
-    @Autowired
     private EmailUtil emailUtil;
     @Autowired
     private OshRoleMapper oshRoleMapper;
     @Autowired
     private OshPermissionMapper oshPermissionMapper;
+    @Autowired
+    private OshUserViolationRecordMapper oshUserViolationRecordMapper;
 
     @Override
     public R<UserLoginVo> login(String username, String password) {
@@ -76,7 +78,14 @@ public class OshUserServiceImpl implements IOshUserService {
         UserLoginVo userLoginVo = new UserLoginVo();
         BeanUtils.copyProperties(user, userLoginVo);
         userLoginVo.setToken(token);
-        redisCache.setCacheObject(OshUserConstants.LOGIN_USER + user.getId(), token, 500, TimeUnit.MINUTES);
+        Integer roleId = oshRoleMapper.getRoleIdsByUserId(user.getId());
+        List<String> role = getRole(roleId);
+        List<String> permissionList = getPermission(roleId);
+        Map<String, Object> map = new HashMap<>();
+        map.put(OshUserConstants.TOKEN, token);
+        map.put(OshUserConstants.ROLE, role);
+        map.put(OshUserConstants.PERMISSION, permissionList);
+        redisCache.setCacheObject(OshUserConstants.LOGIN_USER + user.getId(), map, 500, TimeUnit.MINUTES);
         return R.ok(userLoginVo);
     }
 
@@ -216,28 +225,54 @@ public class OshUserServiceImpl implements IOshUserService {
 
     @Override
     public R<User> getUserInfo() {
-        User user = userContextUtil.getCurrentUser();
+        User user = UserContextUtil.getCurrentUser();
         return R.ok(user);
+    }
+
+    @Override
+    public R<String> record(Long userId, Integer violationType, String reason, Long operatorId) {
+        OshUserViolationRecord record = new OshUserViolationRecord();
+        record.setUserId(userId);
+        record.setViolationType(violationType);
+        record.setReason(reason);
+        if (operatorId != null) record.setOperatorId(operatorId);
+        oshUserViolationRecordMapper.insert(record);
+        return R.ok(ResultCode.SUCCESS.getMsg());
+    }
+
+    @Override
+    public R<String> cancelRecord(Long userId, User currentUser) {
+        LambdaQueryWrapper<OshUserViolationRecord> wrapper = new LambdaQueryWrapper<OshUserViolationRecord>()
+                .eq(OshUserViolationRecord::getUserId, userId);
+        OshUserViolationRecord record = oshUserViolationRecordMapper.selectOne(wrapper);
+        if (record == null) {
+            return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
+        }
+        record.setDelete_flag((byte) 1);
+        oshUserViolationRecordMapper.update(record, wrapper);
+        return R.ok(ResultCode.SUCCESS.getMsg());
     }
 
     public String createToken(User user) {
         Map<String, Object> claims = new HashMap<>();
         claims.put(OshUserConstants.USER_ID, user.getId());
         claims.put(OshUserConstants.USERNAME, user.getUsername());
-        claims.put(OshUserConstants.PASSWORD, user.getPassword());
-        Integer roleId = oshRoleMapper.getRoleIdsByUserId(user.getId());
+        return JwtUtil.createToken(claims);
+    }
+
+    public List<String> getRole(Integer roleId) {
         OshRoleVO oshRoleVO = oshRoleMapper.getRoleNameByRoleId(roleId);
         List<String> role = new ArrayList<>();
         role.add(oshRoleVO.getRoleName());
         role.add(oshRoleVO.getRoleCode());
         role.add(oshRoleVO.getLevel().toString());
-        claims.put(OshUserConstants.USER_ROLE, role);
-        List<Integer> ids = oshPermissionMapper.selectPermissionIdsByRoleId(roleId);
-        List<String> permissionCodes = oshPermissionMapper.selectPermissionCodeByIds(ids);
-        claims.put(OshUserConstants.USER_PERMISSIONS, permissionCodes);
-        return JwtUtil.createToken(claims);
+        return role;
     }
 
+    public List<String> getPermission(Integer roleId) {
+        List<Integer> ids = oshPermissionMapper.selectPermissionIdsByRoleId(roleId);
+        return oshPermissionMapper.selectPermissionCodeByIds(ids);
+    }
 
 
 

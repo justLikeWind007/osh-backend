@@ -11,5 +11,5 @@ import com.backstage.system.domain.user.User;
  * Time: 19:59
  */
 public interface IOshQAAnswerService {
-    R<String> answer(User user, Long questionId, String content);
+    R<String> answer(Long userId, Long questionId, String content);
 }
