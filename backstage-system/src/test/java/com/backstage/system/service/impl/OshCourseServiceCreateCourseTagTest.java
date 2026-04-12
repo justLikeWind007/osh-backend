@@ -51,7 +51,7 @@ public class OshCourseServiceCreateCourseTagTest {
             return 1;
         });
 
-        OshCourse existingTag = new OshCourseTag();
+        OshCourseTag existingTag = new OshCourseTag();
         existingTag.setId(31L);
         existingTag.setName("考研");
         existingTag.setSort(9);

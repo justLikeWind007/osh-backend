@@ -28,6 +28,7 @@ import com.backstage.system.mapper.fava.OshFavaMapper;
 import com.backstage.system.mapper.course.OshCourseOrderMapper;
 import com.backstage.system.service.course.ICourseManageService;
 import com.backstage.system.service.common.OssService;
+import com.backstage.system.utils.OssUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,6 +72,9 @@ public class CourseManageServiceImpl implements ICourseManageService {
     
     @Autowired
     private OssService ossService;
+    
+    @Autowired
+    private OssUtil ossUtil;
 
     
     // ==================== 课程查询接口实现 ====================
@@ -219,12 +223,18 @@ public class CourseManageServiceImpl implements ICourseManageService {
         // 调用 OSS 服务上传文件
         String coverUrl;
         try {
-            coverUrl = ossService.upload(file, UploadPathEnum.COURSE_COVER, "covers");
+            // 获取相对路径
+            String relativePath = ossService.upload(file, UploadPathEnum.COURSE_COVER, "covers");
 
             // 检查上传结果是否包含错误信息
-            if (coverUrl == null || CourseUploadConstants.isUploadError(coverUrl)) {
-                throw new ServiceException(coverUrl);
+            if (relativePath == null || CourseUploadConstants.isUploadError(relativePath)) {
+                throw new ServiceException(relativePath);
             }
+            
+            // 转换为完整可访问的 URL
+            coverUrl = ossUtil.getFullFilePath(relativePath);
+            
+            log.info("课程封面上传 - 相对路径: {}, 完整URL: {}", relativePath, coverUrl);
         } catch (ServiceException e) {
             throw e;
         } catch (Exception e) {
@@ -274,12 +284,18 @@ public class CourseManageServiceImpl implements ICourseManageService {
         // 3. 调用文件上传接口
         String savePath;
         try {
-            savePath = ossService.upload(file, UploadPathEnum.COURSE_VIDEO, "videos");
+            // 获取相对路径
+            String relativePath = ossService.upload(file, UploadPathEnum.COURSE_VIDEO, "videos");
 
             // 检查上传结果是否包含错误信息
-            if (savePath == null || CourseUploadConstants.isUploadError(savePath)) {
-                throw new ServiceException(savePath);
+            if (relativePath == null || CourseUploadConstants.isUploadError(relativePath)) {
+                throw new ServiceException(relativePath);
             }
+            
+            // 转换为完整可访问的 URL
+            savePath = ossUtil.getFullFilePath(relativePath);
+            
+            log.info("课时视频上传 - 相对路径: {}, 完整URL: {}", relativePath, savePath);
         } catch (ServiceException e) {
             throw e;
         } catch (Exception e) {
@@ -324,12 +340,17 @@ public class CourseManageServiceImpl implements ICourseManageService {
         }
 
         try {
-            // 返回相对路径
-            String fileUrl = ossService.upload(file, com.backstage.common.enums.UploadPathEnum.COURSE_MATERIAL, "materials");
+            // 获取相对路径
+            String relativePath = ossService.upload(file, com.backstage.common.enums.UploadPathEnum.COURSE_MATERIAL, "materials");
 
-            if (fileUrl == null || CourseUploadConstants.isUploadError(fileUrl)) {
-                throw new ServiceException(fileUrl);
+            if (relativePath == null || CourseUploadConstants.isUploadError(relativePath)) {
+                throw new ServiceException(relativePath);
             }
+            
+            // 转换为完整可访问的 URL
+            String fileUrl = ossUtil.getFullFilePath(relativePath);
+            
+            log.info("课程资料上传 - 相对路径: {}, 完整URL: {}", relativePath, fileUrl);
 
             // 构建返回信息
             Map<String, Object> materialInfo = new HashMap<>();
