@@ -8,15 +8,18 @@ import com.backstage.common.exception.ServiceException;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.system.domain.dto.website.WebsiteAuditDTO;
 import com.backstage.system.domain.dto.website.WebsiteQueryDTO;
+import com.backstage.system.domain.dto.website.WebsiteRatingDTO;
 import com.backstage.system.domain.dto.website.WebsiteSubmitDTO;
 import com.backstage.system.domain.vo.website.OshPracticalWebsiteVO;
 import com.backstage.system.service.website.OshPracticalWebsiteService;
 import com.backstage.system.service.website.OshUserFavoriteWebsiteService;
+import com.backstage.system.service.website.OshWebsiteUserRatingService;
 import com.github.pagehelper.PageInfo;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import javax.annotation.Resource;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +28,7 @@ import java.util.Map;
  * 实用网站 Controller
  */
 @RestController
-@RequestMapping("/api/website")
+@RequestMapping("/pc/website")
 public class OshPracticalWebsiteController extends BaseController {
 
     @Autowired
@@ -33,6 +36,9 @@ public class OshPracticalWebsiteController extends BaseController {
 
     @Autowired
     private OshUserFavoriteWebsiteService oshUserFavoriteWebsiteService;
+
+   @Resource
+   private OshWebsiteUserRatingService oshWebsiteUserRatingService;
 
     /**
      * 查询实用网站列表（支持按名称和标签筛选）
@@ -151,7 +157,6 @@ public class OshPracticalWebsiteController extends BaseController {
             // 调用 Service 层查询收藏列表
             TableDataInfo result =
                     oshUserFavoriteWebsiteService.selectUserFavoriteList(pageNum, pageSize);
-
             return R.ok(result);
         } catch (Exception e) {
             e.printStackTrace();
@@ -254,4 +259,37 @@ public class OshPracticalWebsiteController extends BaseController {
             return R.fail("删除失败");
         }
     }
+
+    /**
+     * 用户提交网站评价(好评/中评/差评)
+     */
+    @ApiOperation("提交网站评价")
+    @PostMapping("/rating/submit")
+    @Anonymous
+    public R submitRating(@RequestBody WebsiteRatingDTO ratingDTO) {
+        try {
+            // 从登录信息中获取当前用户ID
+            //Long userId = ThreadLocalUtil.get("userId", Long.class);
+            Long userId = 1l;
+
+            if (userId == null) {
+                return R.fail("请先登录");
+            }
+
+            // 调用 Service 层提交评价
+            int result = oshWebsiteUserRatingService.submitRating(
+                    userId,
+                    ratingDTO.getWebsiteId(),
+                    ratingDTO.getRatingType()
+            );
+
+            return R.ok();
+        } catch (IllegalArgumentException e) {
+            return R.fail(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("评价失败，请稍后重试");
+        }
+    }
+
 }

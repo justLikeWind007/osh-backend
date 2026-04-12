@@ -5,7 +5,9 @@ import com.backstage.system.domain.vo.website.OshPracticalWebsiteVO;
 import com.backstage.system.domain.website.OshPracticalWebsite;
 import org.apache.ibatis.annotations.*;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 /**
 * @author 24333
@@ -78,6 +80,37 @@ public interface OshPracticalWebsiteMapper  {
     @Select("SELECT * FROM osh_practical_website WHERE id = #{websiteId} AND delete_flag = 0 AND status = #{status}")
     OshPracticalWebsiteVO selectByIdAndStatus(@Param("websiteId") Long websiteId, @Param("status") Integer status);
 
+    /**
+     * 根据网站ID查询网站评分相关信息（用于更新网站评分信息时获取相关的评分数据）
+     * @param websiteId 要查询的网站 ID
+     * @return 网站对象
+     */
+    @Select("SELECT id, good_count, mid_count, bad_count, click_count, create_time " +
+            "FROM osh_practical_website " +
+            "WHERE id = #{websiteId} AND delete_flag = 0 AND status = 1")
+    OshPracticalWebsite selectByIdForUpdate(Long websiteId);
+    
+    @Insert("UPDATE osh_practical_website SET rating_score = #{ratingScore} WHERE id = #{websiteId} AND delete_flag = 0 AND status = 1")
+    int updateRatingScoreById(@Param("websiteId") Long websiteId, @Param("ratingScore") BigDecimal ratingScore);
+
+    /**
+     * 批量查询所有需要更新评分的网站(只查询评分计算需要的字段)
+     * @return 网站列表
+     */
+    @Select("SELECT id, good_count, mid_count, bad_count, click_count, create_time " +
+            "FROM osh_practical_website " +
+            "WHERE delete_flag = 0 AND status = 1")
+    List<OshPracticalWebsite> selectAllWebsitesForRating();
+
+    void addCount(@Param("websiteId") Long websiteId, @Param("ratingType") Integer ratingType);
+
+    void updateCount(@Param("websiteId") Long websiteId, @Param("oldRatingType") Integer oldRatingType, @Param("ratingType") Integer ratingType);
+
+    @Update("UPDATE osh_practical_website SET collection_count = collection_count + 1 WHERE id = #{websiteId} delete_flag = 0 AND status = 1")
+    void addCollectionCount(Long websiteId);
+
+    @Update("UPDATE osh_practical_website SET collection_count = collection_count - 1 WHERE id = #{websiteId} delete_flag = 0 AND status = 1")
+    void reduceCollectionCount(Long websiteId);
 }
 
 

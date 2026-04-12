@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
+import java.math.BigDecimal;
 import java.util.Date;
 
 /**
@@ -92,6 +93,29 @@ public class OshPracticalWebsite {
      * 拒绝原因
      */
     private String rejectReason;
+    /** 好评数量 */
+    private Integer goodCount;
+
+    /** 中评数量 */
+    private Integer midCount;
+
+    /** 差评数量 */
+    private Integer badCount;
+
+    /** 收藏数量 */
+    private Integer collectionCount;
+
+    /** 评分 */
+    private BigDecimal ratingScore;
+
+    /** 等级/级别（数据库字段：level，tinyint类型） */
+    private Integer level;
+
+    /** 付费类型（数据库字段：payment_type，tinyint类型） */
+    private Integer paymentType;
+
+    /** 免费类型（数据库字段：free_type，tinyint类型） */
+    private Integer freeType;
 
     /**
      * 主键 ID
@@ -317,6 +341,71 @@ public class OshPracticalWebsite {
         this.rejectReason = rejectReason;
     }
 
+    /** 好评数量 */
+    public Integer getGoodCount() {
+        return goodCount;
+    }
+
+
+    public void setGoodCount(Integer goodCount) {
+        this.goodCount = goodCount;
+    }
+
+    public Integer getMidCount() {
+        return midCount;
+    }
+
+    public void setMidCount(Integer midCount) {
+        this.midCount = midCount;
+    }
+
+    public Integer getBadCount() {
+        return badCount;
+    }
+
+    public void setBadCount(Integer badCount) {
+        this.badCount = badCount;
+    }
+
+    public Integer getCollectionCount() {
+        return collectionCount;
+    }
+
+    public void setCollectionCount(Integer collectionCount) {
+        this.collectionCount = collectionCount;
+    }
+
+    public BigDecimal getRatingScore() {
+        return ratingScore;
+    }
+
+    public void setRatingScore(BigDecimal ratingScore) {
+        this.ratingScore = ratingScore;
+    }
+    public Integer getLevel() {
+        return level;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
+    }
+
+    public Integer getPaymentType() {
+        return paymentType;
+    }
+
+    public void setPaymentType(Integer paymentType) {
+        this.paymentType = paymentType;
+    }
+
+    public Integer getFreeType() {
+        return freeType;
+    }
+
+    public void setFreeType(Integer freeType) {
+        this.freeType = freeType;
+    }
+
     @Override
     public String toString() {
         return "OshPracticalWebsite{" +
@@ -336,6 +425,14 @@ public class OshPracticalWebsite {
                 ", auditBy='" + auditBy + '\'' +
                 ", auditTime=" + auditTime +
                 ", rejectReason='" + rejectReason + '\'' +
+                ", goodCount=" + goodCount +
+                ", midCount=" + midCount +
+                ", badCount=" + badCount +
+                ", collectionCount=" + collectionCount +
+                ", ratingScore=" + ratingScore +
+                ", level=" + level +
+                ", paymentType=" + paymentType +
+                ", freeType=" + freeType +
                 '}';
     }
 
