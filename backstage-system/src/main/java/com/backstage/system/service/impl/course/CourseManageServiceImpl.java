@@ -194,10 +194,8 @@ public class CourseManageServiceImpl implements ICourseManageService {
 
 
     @Override
-    // 既然不操作数据库了，去掉 @Transactional
-    public Map<String, Object> uploadCourseCover(MultipartFile file, Long courseId, Long userId) {
-
-        // 1. 校验文件类型（保持不变）
+    public Map<String, Object> uploadCourseCover(MultipartFile file, String coverName) {
+        // 校验文件类型（仅允许图片格式）
         String fileName = file.getOriginalFilename();
         String extension = "";
         if (fileName != null && fileName.contains(".")) {
@@ -216,12 +214,18 @@ public class CourseManageServiceImpl implements ICourseManageService {
         // 调用 OSS 服务上传文件
         String coverUrl;
         try {
-            coverUrl = ossService.upload(file, UploadPathEnum.COURSE_COVER, "covers");
+            // 获取相对路径
+            String relativePath = ossService.upload(file, UploadPathEnum.COURSE_COVER, "covers");
 
             // 检查上传结果是否包含错误信息
-            if (coverUrl == null || CourseUploadConstants.isUploadError(coverUrl)) {
-                throw new ServiceException(coverUrl);
+            if (relativePath == null || CourseUploadConstants.isUploadError(relativePath)) {
+                throw new ServiceException(relativePath);
             }
+
+            // 转换为完整可访问的 URL
+            coverUrl = ossUtil.getFullFilePath(relativePath);
+
+            log.info("课程封面上传 - 相对路径: {}, 完整URL: {}", relativePath, coverUrl);
         } catch (ServiceException e) {
             throw e;
         } catch (Exception e) {
@@ -230,6 +234,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
 
         // 构建返回信息
         Map<String, Object> coverInfo = new HashMap<>();
+        coverInfo.put("coverName", StringUtils.defaultIfEmpty(coverName, fileName));
         coverInfo.put("url", coverUrl);
         coverInfo.put("size", file.getSize());
         coverInfo.put("type", extension);
@@ -268,14 +273,20 @@ public class CourseManageServiceImpl implements ICourseManageService {
         }
 
         // 3. 调用文件上传接口
-        String savePath;
+        String limitPath;
         try {
-            savePath = ossService.upload(file, UploadPathEnum.COURSE_VIDEO, "videos");
+            // 获取相对路径
+            String relativePath = ossService.upload(file, UploadPathEnum.COURSE_VIDEO, "videos");
 
             // 检查上传结果是否包含错误信息
-            if (savePath == null || CourseUploadConstants.isUploadError(savePath)) {
-                throw new ServiceException(savePath);
+            if (relativePath == null || CourseUploadConstants.isUploadError(relativePath)) {
+                throw new ServiceException(relativePath);
             }
+
+            // 转换为完整可访问的 URL
+            limitPath = ossUtil.getFullFilePath(relativePath);
+
+            log.info("课时视频上传 - 相对路径: {}, 完整URL: {}", relativePath, savePath);
         } catch (ServiceException e) {
             throw e;
         } catch (Exception e) {
@@ -285,12 +296,12 @@ public class CourseManageServiceImpl implements ICourseManageService {
         // 4. 构建返回信息
         Map<String, Object> videoInfo = new HashMap<>();
         videoInfo.put("videoName", StringUtils.defaultIfEmpty(videoName, fileName));
-        videoInfo.put("url", savePath);
+        videoInfo.put("url", limitPath);
         videoInfo.put("size", file.getSize());
         videoInfo.put("type", extension);
 
         log.info("视频上传成功：name={}, url={}, size={}, type={}",
-                videoInfo.get("videoName"), savePath, file.getSize(), extension);
+                videoInfo.get("videoName"), limitPath, file.getSize(), extension);
         return videoInfo;
     }
 
@@ -307,9 +318,8 @@ public class CourseManageServiceImpl implements ICourseManageService {
      * @return 资料信息（名称、URL、大小、类型）
      */
     @Override
-    // 不操作数据库了，去掉 @Transactional
-    public Map<String, Object> uploadSectionMaterial(MultipartFile file, Long courseId, String materialName, Long userId) {
-        // 1. 校验文件类型（保持不变）
+    public Map<String, Object> uploadMaterial(MultipartFile file, String materialName) {
+        // 校验文件类型
         String fileName = file.getOriginalFilename();
         String extension = "";
         if (fileName != null && fileName.contains(".")) {
@@ -320,14 +330,18 @@ public class CourseManageServiceImpl implements ICourseManageService {
             throw new ServiceException(CourseUploadConstants.ARCHIVE_FORMAT_ERROR);
         }
 
-
         try {
-            // 返回相对路径
-            String fileUrl = ossService.upload(file, com.backstage.common.enums.UploadPathEnum.COURSE_MATERIAL, "materials");
+            // 获取相对路径
+            String relativePath = ossService.upload(file, com.backstage.common.enums.UploadPathEnum.COURSE_MATERIAL, "materials");
 
-            if (fileUrl == null || CourseUploadConstants.isUploadError(fileUrl)) {
-                throw new ServiceException(fileUrl);
+            if (relativePath == null || CourseUploadConstants.isUploadError(relativePath)) {
+                throw new ServiceException(relativePath);
             }
+
+            // 转换为完整可访问的 URL
+            String fileUrl = ossUtil.getFullFilePath(relativePath);
+
+            log.info("课程资料上传 - 相对路径: {}, 完整URL: {}", relativePath, fileUrl);
 
             // 构建返回信息
             Map<String, Object> materialInfo = new HashMap<>();
@@ -1879,8 +1893,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
     
     /**
      * 检查用户是否已购买课程
-     * 语法逻辑：检查学习进度→检查订单表→判断是否过期
-     * 实现效果：返回布尔值，用于快速判断
+     * 语法逻辑：检查订单表→判断是否过期
      *
      * @param courseId 课程 ID
      * @param userId 用户 ID
@@ -1891,7 +1904,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
         if (userId == null) {
             return false;
         }
-        
+
         // 1. 检查学习进度
         Map<String, Object> progress = progressMapper.selectProgressByUserIdAndCourseId(userId, courseId);
         if (progress != null) {
