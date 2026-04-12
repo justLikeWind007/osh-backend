@@ -69,4 +69,13 @@ public interface OshCourseSectionMapper {
      * 批量删除章节
      */
     int deleteSectionsByCourseId(@Param("courseId") Long courseId);
+    
+    /**
+     * 根据章节ID列表批量查询章节信息（仅查询id和media_url字段）
+     * 用于批量获取视频临时URL
+     *
+     * @param ids 章节ID列表
+     * @return 章节列表（包含id和media_url）
+     */
+    List<OshCourseSection> selectSectionsByIds(@Param("ids") List<Long> ids);
 }

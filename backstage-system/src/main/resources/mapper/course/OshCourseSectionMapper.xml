@@ -101,5 +101,16 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <delete id="deleteSectionsByCourseId" parameterType="Long">
         UPDATE osh_course_section SET delete_flag = 1 WHERE course_id = #{courseId}
     </delete>
+    
+    <!-- 批量查询章节（仅查询id和media_url字段，用于获取视频临时URL） -->
+    <select id="selectSectionsByIds" resultType="com.backstage.system.domain.course.OshCourseSection">
+        SELECT id, media_url
+        FROM osh_course_section
+        WHERE delete_flag = 0
+        AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
 
 </mapper>

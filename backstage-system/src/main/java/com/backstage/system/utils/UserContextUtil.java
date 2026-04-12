@@ -2,10 +2,8 @@ package com.backstage.system.utils;
 
 import com.backstage.common.constant.OshUserConstants;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
-import com.backstage.common.utils.jwt.JwtUtil;
 import com.backstage.system.domain.user.CurrentUser;
 import com.backstage.system.domain.user.User;
-import io.jsonwebtoken.Claims;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Component;
 
@@ -26,13 +24,11 @@ public class UserContextUtil {
     }
 
     public static CurrentUser getCurrentUserInfo() {
-        String token = ThreadLocalUtil.get(OshUserConstants.TOKEN, String.class);
-        Claims claims = JwtUtil.parseToken(token);
         User user = getCurrentUser();
         CurrentUser currentUser = new CurrentUser();
         BeanUtils.copyProperties(user,currentUser);
-        currentUser.setRole((List<String>)claims.get(OshUserConstants.USER_ROLE));
-        currentUser.setPermissionList((List<String>)claims.get(OshUserConstants.USER_PERMISSIONS));
+        currentUser.setRole(ThreadLocalUtil.get(OshUserConstants.ROLE,List.class));
+        currentUser.setPermissionList(ThreadLocalUtil.get(OshUserConstants.PERMISSION,List.class));
         return currentUser;
     }
 

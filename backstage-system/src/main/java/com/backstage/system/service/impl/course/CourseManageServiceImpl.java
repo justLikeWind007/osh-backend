@@ -28,6 +28,7 @@ import com.backstage.system.mapper.fava.OshFavaMapper;
 import com.backstage.system.mapper.course.OshCourseOrderMapper;
 import com.backstage.system.service.course.ICourseManageService;
 import com.backstage.system.service.common.OssService;
+import com.backstage.system.utils.OssUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,6 +72,9 @@ public class CourseManageServiceImpl implements ICourseManageService {
     
     @Autowired
     private OssService ossService;
+    
+    @Autowired
+    private OssUtil ossUtil;
 
     
     // ==================== 课程查询接口实现 ====================
@@ -191,22 +195,15 @@ public class CourseManageServiceImpl implements ICourseManageService {
 
     /**
      * 上传课程封面图片
-     * - 更新课程表的 cover 字段
      * - 支持常见图片格式（bmp/gif/jpg/jpeg/png）
+     * - 返回封面信息（名称、URL、大小、类型）
      *
      * @param file 封面文件
-     * @param courseId 课程 ID
-     * @param userId 用户 ID
+     * @param coverName 封面名称
+     * @return 封面信息（名称、URL、大小、类型）
      */
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void uploadCourseCover(MultipartFile file, Long courseId, Long userId) {
-        // 校验课程是否存在
-        OshCourse course = courseMapper.selectCourseById(courseId);
-        if (course == null) {
-            throw new ServiceException("课程不存在");
-        }
-
+    public Map<String, Object> uploadCourseCover(MultipartFile file, String coverName) {
         // 校验文件类型（仅允许图片格式）
         String fileName = file.getOriginalFilename();
         String extension = "";
@@ -223,61 +220,54 @@ public class CourseManageServiceImpl implements ICourseManageService {
             throw new ServiceException(CourseUploadConstants.IMAGE_SIZE_ERROR);
         }
 
-        // 调用 OSS 服务上传文件，使用 courseId 作为子目录
+        // 调用 OSS 服务上传文件
         String coverUrl;
+        String relativePath;
         try {
-            coverUrl = ossService.upload(file, UploadPathEnum.COURSE_COVER, String.valueOf(courseId));
+            // 获取相对路径
+            relativePath = ossService.upload(file, UploadPathEnum.COURSE_COVER, "covers");
 
             // 检查上传结果是否包含错误信息
-            if (coverUrl == null || CourseUploadConstants.isUploadError(coverUrl)) {
-                throw new ServiceException(coverUrl);
+            if (relativePath == null || CourseUploadConstants.isUploadError(relativePath)) {
+                throw new ServiceException(relativePath);
             }
+            
+            // 生成临时访问URL（有效期24小时 = 1440分钟）
+            coverUrl = ossService.getLimitedUrl(relativePath, 1440);
+
+            log.info("课程封面上传 - 相对路径: {}, 临时访问URL: {}", relativePath, coverUrl);
         } catch (ServiceException e) {
             throw e;
         } catch (Exception e) {
             throw new ServiceException("上传封面失败：" + e.getMessage());
         }
 
-        // 更新课程封面 URL
-        OshCourse updateCourse = new OshCourse();
-        updateCourse.setId(courseId);
-        updateCourse.setCover(coverUrl);
-        updateCourse.setUpdateTime(DateUtils.getNowDate());
-        updateCourse.setUpdateBy(String.valueOf(userId));
+        // 构建返回信息
+        Map<String, Object> coverInfo = new HashMap<>();
+        coverInfo.put("coverName", StringUtils.defaultIfEmpty(coverName, fileName));
+        coverInfo.put("url", coverUrl);              // 临时访问URL（前端显示用）
+        coverInfo.put("relativePath", relativePath); // 相对路径（数据库存储用）
+        coverInfo.put("size", file.getSize());
+        coverInfo.put("type", extension);
 
-        int result = courseMapper.updateCourse(updateCourse);
-        if (result <= 0) {
-            throw new ServiceException("更新课程封面失败");
-        }
-
-        log.info("课程封面上传成功：courseId={}, url={}", courseId, coverUrl);
+        log.info("课程封面上传成功：name={}, 临时URL={}, 相对路径={}, size={}, type={}",
+                coverInfo.get("coverName"), coverUrl, relativePath, file.getSize(), extension);
+        return coverInfo;
     }
 
     /**
      * 上传课时视频（指定章节 ID）
      * 实现效果:
      * - 支持 mp4、avi、mov、mkv 等常见视频格式
-     * - 将视频 URL 保存到章节表  一对一
+     * - 返回视频信息（名称、URL、大小、类型）
      *
      * @param file 视频文件
-     * @param courseId 课程 ID
-     * @param sectionId 章节 ID
-     * @param userId 用户 ID
-     * @return 视频上传结果 VO
+     * @param videoName 视频名称
+     * @return 视频信息（名称、URL、大小、类型）
      */
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public VideoUploadVO uploadSectionVideo(MultipartFile file, Long courseId, Long sectionId, Long userId) {
-        // 1. 校验章节是否存在且属于该课程
-        Map<String, Object> section = sectionMapper.selectSectionById(sectionId);
-        if (section == null) {
-            throw new ServiceException("章节不存在");
-        }
-        if (section == null || !courseId.equals(section.get("course_id"))) {
-            throw new ServiceException("章节不存在或不属于该课程");
-        }
-
-        // 2. 校验文件类型（仅允许视频格式）
+    public Map<String, Object> uploadVideo(MultipartFile file, String videoName) {
+        // 1. 校验文件类型（仅允许视频格式）
         String fileName = file.getOriginalFilename();
         String extension = "";
         if (fileName != null && fileName.contains(".")) {
@@ -288,70 +278,61 @@ public class CourseManageServiceImpl implements ICourseManageService {
             throw new ServiceException(CourseUploadConstants.VIDEO_FORMAT_ERROR);
         }
 
-        //  校验文件大小
+        // 2. 校验文件大小
         if (file.getSize() > CourseUploadConstants.MAX_VIDEO_SIZE) {
             throw new ServiceException(CourseUploadConstants.VIDEO_SIZE_ERROR);
         }
 
-        // 调用文件上传接口，使用 courseId 作为子目录
-        String savePath;
+        // 3. 调用文件上传接口
+        String videoUrl;
+        String relativePath;
         try {
-            savePath = ossService.upload(file, UploadPathEnum.COURSE_VIDEO, String.valueOf(courseId));
+            // 获取相对路径
+            relativePath = ossService.upload(file, UploadPathEnum.COURSE_VIDEO, "videos");
 
             // 检查上传结果是否包含错误信息
-            if (savePath == null || CourseUploadConstants.isUploadError(savePath)) {
-                throw new ServiceException(savePath);
+            if (relativePath == null || CourseUploadConstants.isUploadError(relativePath)) {
+                throw new ServiceException(relativePath);
             }
+
+
+            // 生成临时访问URL（有效期6小时 = 360分钟）
+            videoUrl = ossService.getLimitedUrl(relativePath, 360);
+
+            log.info("课时视频上传 - 相对路径: {}, 临时访问URL: {}", relativePath, videoUrl);
         } catch (ServiceException e) {
             throw e;
         } catch (Exception e) {
             throw new ServiceException("上传视频失败：" + e.getMessage());
         }
 
-        // 4. 更新章节的视频 URL（使用 Map 方式）
-        Map<String, Object> params = new HashMap<>();
-        params.put("id", sectionId);
-        params.put("mediaUrl", savePath);
-        params.put("updateTime", DateUtils.getNowDate());
-        params.put("updateBy", String.valueOf(userId));
+        // 4. 构建返回信息
+        Map<String, Object> videoInfo = new HashMap<>();
+        videoInfo.put("videoName", StringUtils.defaultIfEmpty(videoName, fileName));
+        videoInfo.put("url", videoUrl);                   // 临时访问URL（前端显示用）
+        videoInfo.put("relativePath", relativePath);      // 相对路径（数据库存储用）
+        videoInfo.put("size", file.getSize());
+        videoInfo.put("type", extension);
 
-        int result = sectionMapper.updateSection(params);
-        if (result <= 0) {
-            throw new ServiceException("更新章节视频失败");
-        }
-
-        // 5. 构建返回结果
-        VideoUploadVO vo = new VideoUploadVO();
-        vo.setVideoUrl(savePath);
-        vo.setOriginalFileName(fileName);
-        vo.setFileSize(file.getSize());
-        // TODO: 实际需要调用视频处理服务提取元数据
-        vo.setDuration(0);  // 实际需要从视频中提取
-        vo.setVideoCodec("h264");
-        vo.setVideoResolution("1080p");
-        vo.setVideoBitrate(0);
-
-        log.info("课时视频上传成功：courseId={}, sectionId={}, url={}", courseId, sectionId, savePath);
-        return vo;
+        log.info("视频上传成功：name={}, 临时URL={}, 相对路径={}, size={}, type={}",
+                videoInfo.get("videoName"), videoUrl, relativePath, file.getSize(), extension);
+        return videoInfo;
     }
 
 
 
     /**
-     * 上传课程资料  一对多
+     * 上传课程资料
      * 校验文件类型（仅允许压缩包 zip/rar/tar/gz）
-     * 存储到课程专属目录
-     * 保存课程资料和 课程的关联关系
+     * 存储到指定目录
+     * 返回资料信息（名称、URL、大小、类型）
      *
      * @param file 资料文件
-     * @param courseId 课程 ID
      * @param materialName 资料名称
-     * @param userId 用户 ID
-     * @return 资料 ID
+     * @return 资料信息（名称、URL、大小、类型）
      */
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public Long uploadSectionMaterial(MultipartFile file, Long courseId, String materialName, Long userId) {
+    public Map<String, Object> uploadMaterial(MultipartFile file, String materialName) {
         // 校验文件类型
         String fileName = file.getOriginalFilename();
         String extension = "";
@@ -363,31 +344,31 @@ public class CourseManageServiceImpl implements ICourseManageService {
             throw new ServiceException(CourseUploadConstants.ARCHIVE_FORMAT_ERROR);
         }
 
-
         try {
-            // 返回相对路径："common/material/course/courseId/当前年月/ 文件名.zip"
-            String fileUrl = ossService.upload(file, com.backstage.common.enums.UploadPathEnum.COURSE_MATERIAL, String.valueOf(courseId));
+            // 获取相对路径
+            String relativePath = ossService.upload(file, com.backstage.common.enums.UploadPathEnum.COURSE_MATERIAL, "materials");
 
-            if (fileUrl == null || CourseUploadConstants.isUploadError(fileUrl)) {
-                throw new ServiceException(fileUrl);
+            if (relativePath == null || CourseUploadConstants.isUploadError(relativePath)) {
+                throw new ServiceException(relativePath);
             }
+            
+            // 生成临时访问URL（有效期12小时 = 720分钟）
+            String materialUrl = ossService.getLimitedUrl(relativePath, 720);
 
-            // 保存课程资料和 课程的关联关系
-            Map<String, Object> params = new HashMap<>();
-            params.put("courseId", courseId);
-            params.put("materialName", StringUtils.defaultIfEmpty(materialName, fileName));
-            params.put("fileUrl", fileUrl);
-            params.put("fileType", extension);
-            params.put("fileSize", file.getSize());
-            // params.put("isPayOnly", 1); // 默认仅购买后可下载 - 表中无此字段
-            params.put("sort", 0);
-            params.put("createBy", String.valueOf(userId));
-            params.put("createTime", DateUtils.getNowDate());
+            log.info("课程资料上传 - 相对路径: {}, 临时访问URL: {}", relativePath, materialUrl);
 
-            materialMapper.insertMaterial(params);
+            // 构建返回信息
+            Map<String, Object> materialInfo = new HashMap<>();
+            materialInfo.put("materialName", StringUtils.defaultIfEmpty(materialName, fileName));
+            materialInfo.put("url", materialUrl);              // 临时访问URL（前端显示用）
+            materialInfo.put("relativePath", relativePath);    // 相对路径（数据库存储用）
+            materialInfo.put("size", file.getSize());
+            materialInfo.put("type", extension);
 
-            // 6. 返回资料 ID
-            return (Long) params.get("id");
+            log.info("课程资料上传成功：name={}, 临时URL={}, 相对路径={}, size={}, type={}",
+                    materialInfo.get("materialName"), materialUrl, relativePath, file.getSize(), extension);
+
+            return materialInfo;
 
         } catch (ServiceException e) {
             throw e;
@@ -1927,8 +1908,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
     
     /**
      * 检查用户是否已购买课程
-     * 语法逻辑：检查学习进度→检查订单表→判断是否过期
-     * 实现效果：返回布尔值，用于快速判断
+     * 语法逻辑：检查订单表→判断是否过期
      *
      * @param courseId 课程 ID
      * @param userId 用户 ID
@@ -1939,16 +1919,272 @@ public class CourseManageServiceImpl implements ICourseManageService {
         if (userId == null) {
             return false;
         }
-        
+
         // 1. 检查学习进度
         Map<String, Object> progress = progressMapper.selectProgressByUserIdAndCourseId(userId, courseId);
         if (progress != null) {
             return true;
         }
-        
+
         // 2. 检查有效订单
         Map<String, Object> order = orderMapper.selectValidOrderByUserIdAndCourseId(userId, courseId);
         return order != null;
+    }
+
+
+    // ==================== 课程封面临时URL批量获取接口实现 ====================
+
+    /**
+     * 批量获取课程封面临时访问URL
+     * 语法逻辑：根据课程ID列表查询封面相对路径，批量生成临时访问URL
+     * 实现效果：返回课程ID到临时URL的映射，支持按需加载和懒加载
+     *
+     * @param courseIds 课程ID列表（最多支持50个）
+     * @param minute 临时URL有效期（分钟）
+     * @return 课程ID到临时URL的映射 Map<Long, String>
+     */
+    @Override
+    public Map<Long, String> batchGetCourseCoverUrls(List<Long> courseIds, int minute) {
+        Map<Long, String> result = new HashMap<>();
+
+        if (courseIds == null || courseIds.isEmpty()) {
+            return result;
+        }
+
+        // 限制最多50个，防止滥用
+        int maxSize = Math.min(courseIds.size(), 50);
+        List<Long> limitedIds = courseIds.subList(0, maxSize);
+
+        // 1. 批量查询课程封面路径
+        List<OshCourse> courses = courseMapper.selectCoursesByIds(limitedIds);
+        if (courses == null || courses.isEmpty()) {
+            return result;
+        }
+
+        // 2. 批量生成临时URL
+        for (OshCourse course : courses) {
+            if (course != null && StringUtils.isNotEmpty(course.getCover())) {
+                try {
+                    String signedUrl = ossService.getLimitedUrl(course.getCover(), minute);
+                    result.put(course.getId(), signedUrl);
+                } catch (Exception e) {
+                    log.warn("生成课程封面临时URL失败, courseId={}, error={}", course.getId(), e.getMessage());
+                    // 生成失败时返回空字符串，不影响其他封面
+                    result.put(course.getId(), "");
+                }
+            } else {
+                result.put(course.getId(), "");
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * 根据相对路径批量获取封面临时URL
+     * 语法逻辑：直接根据封面相对路径列表生成临时访问URL
+     * 实现效果：返回相对路径到临时URL的映射
+     *
+     * @param coverPaths 封面相对路径列表
+     * @param minute 临时URL有效期（分钟）
+     * @return 相对路径到临时URL的映射 Map<String, String>
+     */
+    @Override
+    public Map<String, String> batchGetCoverUrlsByPaths(List<String> coverPaths, int minute) {
+        Map<String, String> result = new HashMap<>();
+
+        if (coverPaths == null || coverPaths.isEmpty()) {
+            return result;
+        }
+
+        // 限制最多50个，防止滥用
+        int maxSize = Math.min(coverPaths.size(), 50);
+        for (int i = 0; i < maxSize; i++) {
+            String path = coverPaths.get(i);
+            if (StringUtils.isNotEmpty(path)) {
+                try {
+                    String signedUrl = ossService.getLimitedUrl(path, minute);
+                    result.put(path, signedUrl);
+                } catch (Exception e) {
+                    log.warn("生成封面临时URL失败, path={}, error={}", path, e.getMessage());
+                    result.put(path, "");
+                }
+            }
+        }
+
+        return result;
+    }
+
+
+    // ==================== 章节视频临时URL批量获取接口实现 ====================
+
+    /**
+     * 批量获取章节视频临时访问URL
+     * 语法逻辑：根据章节ID列表查询media_url相对路径，批量生成临时访问URL
+     * 实现效果：返回章节ID到临时URL的映射，支持按需加载
+     *
+     * @param sectionIds 章节ID列表（最多支持50个）
+     * @param minute 临时URL有效期（分钟）
+     * @return 章节ID到临时URL的映射 Map<Long, String>
+     */
+    @Override
+    public Map<Long, String> batchGetSectionVideoUrls(List<Long> sectionIds, int minute) {
+        Map<Long, String> result = new HashMap<>();
+
+        if (sectionIds == null || sectionIds.isEmpty()) {
+            return result;
+        }
+
+        // 限制最多50个，防止滥用
+        int maxSize = Math.min(sectionIds.size(), 50);
+        List<Long> limitedIds = sectionIds.subList(0, maxSize);
+
+        // 1. 批量查询章节视频路径
+        List<OshCourseSection> sections = sectionMapper.selectSectionsByIds(limitedIds);
+        if (sections == null || sections.isEmpty()) {
+            return result;
+        }
+
+        // 2. 批量生成临时URL
+        for (OshCourseSection section : sections) {
+            if (section != null && StringUtils.isNotEmpty(section.getMediaUrl())) {
+                try {
+                    String signedUrl = ossService.getLimitedUrl(section.getMediaUrl(), minute);
+                    result.put(section.getId(), signedUrl);
+                } catch (Exception e) {
+                    log.warn("生成章节视频临时URL失败, sectionId={}, error={}", section.getId(), e.getMessage());
+                    result.put(section.getId(), "");
+                }
+            } else {
+                result.put(section.getId(), "");
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * 单个获取章节视频临时访问URL
+     * 语法逻辑：根据章节ID查询media_url相对路径，生成临时访问URL
+     * 实现效果：返回章节的临时访问URL
+     *
+     * @param sectionId 章节ID
+     * @param minute 临时URL有效期（分钟）
+     * @return 临时访问URL，未找到返回null
+     */
+    @Override
+    public String getSectionVideoUrl(Long sectionId, int minute) {
+        if (sectionId == null) {
+            return null;
+        }
+
+        // 查询章节信息
+        List<Long> ids = Collections.singletonList(sectionId);
+        List<OshCourseSection> sections = sectionMapper.selectSectionsByIds(ids);
+
+        if (sections == null || sections.isEmpty()) {
+            log.warn("章节不存在, sectionId={}", sectionId);
+            return null;
+        }
+
+        OshCourseSection section = sections.get(0);
+        if (section == null || StringUtils.isEmpty(section.getMediaUrl())) {
+            log.warn("章节视频路径为空, sectionId={}", sectionId);
+            return null;
+        }
+
+        try {
+            return ossService.getLimitedUrl(section.getMediaUrl(), minute);
+        } catch (Exception e) {
+            log.warn("生成章节视频临时URL失败, sectionId={}, error={}", sectionId, e.getMessage());
+            return null;
+        }
+    }
+
+
+    // ==================== 课程资料临时URL批量获取接口实现 ====================
+
+    /**
+     * 批量获取课程资料临时访问URL
+     * 语法逻辑：根据资料ID列表查询url相对路径，批量生成临时访问URL
+     * 实现效果：返回资料ID到临时URL的映射，支持按需加载
+     *
+     * @param materialIds 资料ID列表（最多支持50个）
+     * @param minute 临时URL有效期（分钟）
+     * @return 资料ID到临时URL的映射 Map<Long, String>
+     */
+    @Override
+    public Map<Long, String> batchGetMaterialUrls(List<Long> materialIds, int minute) {
+        Map<Long, String> result = new HashMap<>();
+
+        if (materialIds == null || materialIds.isEmpty()) {
+            return result;
+        }
+
+        // 限制最多50个，防止滥用
+        int maxSize = Math.min(materialIds.size(), 50);
+        List<Long> limitedIds = materialIds.subList(0, maxSize);
+
+        // 1. 批量查询资料路径
+        List<OshCourseMaterial> materials = materialMapper.selectMaterialsByIds(limitedIds);
+        if (materials == null || materials.isEmpty()) {
+            return result;
+        }
+
+        // 2. 批量生成临时URL
+        for (OshCourseMaterial material : materials) {
+            if (material != null && StringUtils.isNotEmpty(material.getUrl())) {
+                try {
+                    String signedUrl = ossService.getLimitedUrl(material.getUrl(), minute);
+                    result.put(material.getId(), signedUrl);
+                } catch (Exception e) {
+                    log.warn("生成资料临时URL失败, materialId={}, error={}", material.getId(), e.getMessage());
+                    result.put(material.getId(), "");
+                }
+            } else {
+                result.put(material.getId(), "");
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * 单个获取课程资料临时访问URL
+     * 语法逻辑：根据资料ID查询url相对路径，生成临时访问URL
+     * 实现效果：返回资料的临时访问URL
+     *
+     * @param materialId 资料ID
+     * @param minute 临时URL有效期（分钟）
+     * @return 临时访问URL，未找到返回null
+     */
+    @Override
+    public String getMaterialUrl(Long materialId, int minute) {
+        if (materialId == null) {
+            return null;
+        }
+
+        // 查询资料信息
+        List<Long> ids = Collections.singletonList(materialId);
+        List<OshCourseMaterial> materials = materialMapper.selectMaterialsByIds(ids);
+
+        if (materials == null || materials.isEmpty()) {
+            log.warn("资料不存在, materialId={}", materialId);
+            return null;
+        }
+
+        OshCourseMaterial material = materials.get(0);
+        if (material == null || StringUtils.isEmpty(material.getUrl())) {
+            log.warn("资料URL为空, materialId={}", materialId);
+            return null;
+        }
+
+        try {
+            return ossService.getLimitedUrl(material.getUrl(), minute);
+        } catch (Exception e) {
+            log.warn("生成资料临时URL失败, materialId={}, error={}", materialId, e.getMessage());
+            return null;
+        }
     }
 }
 

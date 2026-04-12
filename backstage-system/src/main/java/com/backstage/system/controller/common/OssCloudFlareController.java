@@ -131,65 +131,7 @@ public class OssCloudFlareController {
 
 
     // course/jiuyexiaoban/900MB视频-1231经过web优化.mp4
-    @Anonymous
-    @GetMapping("/play")
-    public void playVideo(@RequestParam String key,
-                          HttpServletRequest request,
-                          HttpServletResponse response) {
-        try {
-            // 1. 登录校验
 
 
-            // 2. 生成签名
-            String r2SignedUrl = ossUtil.getSignedUrl(key, 10);
-
-            URL url = new URL(r2SignedUrl);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setConnectTimeout(10000);
-            conn.setReadTimeout(10000);
-
-            // 3. 处理拖动 Range
-            String range = request.getHeader("Range");
-            if (range != null) {
-                conn.setRequestProperty("Range", range);
-                response.setStatus(206);
-                // 新增：告诉播放器当前片段的范围
-                String contentRange = conn.getHeaderField("Content-Range");
-                if (contentRange != null) {
-                    response.setHeader("Content-Range", contentRange);
-                }
-            }
-
-            // 4. 设置视频头
-            response.setContentType("video/mp4");
-            response.setHeader("Accept-Ranges", "bytes");
-            long contentLength = conn.getContentLengthLong();
-            if (contentLength > 0) {
-                response.setHeader("Content-Length", String.valueOf(contentLength));
-            }
-
-            // 5. 流式输出（捕获断开异常，不抛错）
-            byte[] buffer = new byte[1048576];
-            try (InputStream in = conn.getInputStream();
-                 ServletOutputStream out = response.getOutputStream()) {
-
-                int len;
-                while ((len = in.read(buffer)) != -1) {
-                    out.write(buffer, 0, len);
-                }
-                out.flush();
-            } catch (IOException ignored) {
-                // 浏览器断开连接
-            } finally {
-                conn.disconnect();
-            }
-        } catch (Exception e) {
-            // 只打印真正的错误
-            if (!e.getMessage().contains("已建立的连接")) {
-                e.printStackTrace();
-            }
-        }
-    }
 
 }

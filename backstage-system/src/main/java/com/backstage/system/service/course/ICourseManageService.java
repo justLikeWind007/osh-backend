@@ -7,7 +7,6 @@ import com.backstage.system.domain.dto.*;
 import com.backstage.system.domain.vo.*;
 import com.backstage.system.domain.vo.CourseDetailVO;
 import com.backstage.system.domain.vo.CourseMaterialVO;
-import com.backstage.system.domain.vo.CourseQuestionVO;
 import com.backstage.system.domain.vo.CourseSectionVO;
 import com.backstage.system.domain.vo.SectionAccessVO;
 import com.backstage.system.domain.vo.SectionProgressVO;
@@ -376,41 +375,38 @@ public interface ICourseManageService {
     
     /**
      * 上传课程封面图片
-     * 语法逻辑：校验文件→调用上传接口→更新课程 cover 字段
-     * 实现效果：将封面图片上传到文件服务器，并更新课程表的 cover 字段
-     * 
-     * @param file 封面文件
-     * @param courseId 课程 ID
-     * @param userId 用户 ID
+     * 语法逻辑：校验文件→调用上传接口→返回封面信息
+     * 实现效果：将封面图片上传到文件服务器，返回封面信息
+     *
+
+     * @param file     封面文件
+     * @return
      */
-    void uploadCourseCover(MultipartFile file, Long courseId, Long userId);
+    Map<String, Object> uploadCourseCover(MultipartFile file, String coverName);
     
 
     
     /**
-     * 上传课时视频（指定章节 ID）
-     * 实现效果：将视频上传到文件服务器，并更新章节表的 mediaUrl 字段
-     * 
+     * 上传视频
+     * 语法逻辑：校验文件格式→上传视频→返回视频信息
+     * 实现效果：支持 mp4/avi/mov/mkv/flv 格式，存储到指定目录
+     *
      * @param file 视频文件
-     * @param courseId 课程 ID
-     * @param sectionId 章节 ID
-     * @param userId 用户 ID
-     * @return 视频上传结果 VO
+     * @param videoName 视频名称
+     * @return 视频信息（名称、URL、大小、类型）
      */
-    VideoUploadVO uploadSectionVideo(MultipartFile file, Long courseId, Long sectionId, Long userId);
+    Map<String, Object> uploadVideo(MultipartFile file, String videoName);
     
     /**
      * 上传课时资料
      * 语法逻辑：校验文件格式→上传压缩包→返回资料信息
      * 实现效果：支持 zip/rar/tar/gz 格式，存储到指定目录
-     * 
+     *
      * @param file 资料文件
-     * @param courseId 课程 ID
      * @param materialName 资料名称
-     * @param userId 用户 ID
-     * @return 资料 ID
+     * @return 资料信息（名称、URL、大小、类型）
      */
-    Long uploadSectionMaterial(MultipartFile file, Long courseId, String materialName, Long userId);
+    Map<String, Object> uploadMaterial(MultipartFile file, String materialName);
     
     
     // ==================== 课程新增（含章节）接口 ====================
@@ -465,4 +461,82 @@ public interface ICourseManageService {
      * @return 是否已购买且未过期
      */
     boolean checkUserPurchased(Long courseId, Long userId);
+    
+    
+    // ==================== 课程封面临时URL批量获取接口 ====================
+    
+    /**
+     * 批量获取课程封面临时访问URL
+     * 语法逻辑：根据课程ID列表查询封面相对路径，批量生成临时访问URL
+     * 实现效果：返回课程ID到临时URL的映射，支持按需加载和懒加载
+     * 适用场景：课程列表页、推荐位等需要批量展示封面的场景
+     * 
+     * @param courseIds 课程ID列表（最多支持50个，超出部分忽略）
+     * @param minute 临时URL有效期（分钟），建议值：30分钟，默认30
+     * @return 课程ID到临时URL的映射 Map<Long, String>
+     */
+    Map<Long, String> batchGetCourseCoverUrls(List<Long> courseIds, int minute);
+    
+    /**
+     * 根据相对路径批量获取封面临时URL
+     * 语法逻辑：直接根据封面相对路径列表生成临时访问URL
+     * 实现效果：返回相对路径到临时URL的映射
+     * 
+     * @param coverPaths 封面相对路径列表（如：common/image/course/cover/202604/xxx.jpg）
+     * @param minute 临时URL有效期（分钟）
+     * @return 相对路径到临时URL的映射 Map<String, String>
+     */
+    Map<String, String> batchGetCoverUrlsByPaths(List<String> coverPaths, int minute);
+    
+    
+    // ==================== 章节视频临时URL批量获取接口 ====================
+    
+    /**
+     * 批量获取章节视频临时访问URL
+     * 语法逻辑：根据章节ID列表查询media_url相对路径，批量生成临时访问URL
+     * 实现效果：返回章节ID到临时URL的映射，支持按需加载
+     * 适用场景：视频播放器加载、批量预加载视频URL等
+     * 
+     * @param sectionIds 章节ID列表（最多支持50个，超出部分忽略）
+     * @param minute 临时URL有效期（分钟），建议值：60分钟，默认60
+     * @return 章节ID到临时URL的映射 Map<Long, String>
+     */
+    Map<Long, String> batchGetSectionVideoUrls(List<Long> sectionIds, int minute);
+    
+    /**
+     * 单个获取章节视频临时访问URL
+     * 语法逻辑：根据章节ID查询media_url相对路径，生成临时访问URL
+     * 实现效果：返回章节的临时访问URL
+     * 
+     * @param sectionId 章节ID
+     * @param minute 临时URL有效期（分钟）
+     * @return 临时访问URL，未找到返回null
+     */
+    String getSectionVideoUrl(Long sectionId, int minute);
+    
+    
+    // ==================== 课程资料临时URL批量获取接口 ====================
+    
+    /**
+     * 批量获取课程资料临时访问URL
+     * 语法逻辑：根据资料ID列表查询url相对路径，批量生成临时访问URL
+     * 实现效果：返回资料ID到临时URL的映射，支持按需加载
+     * 适用场景：资料下载、批量预加载资料URL等
+     * 
+     * @param materialIds 资料ID列表（最多支持50个，超出部分忽略）
+     * @param minute 临时URL有效期（分钟），建议值：120分钟，默认120
+     * @return 资料ID到临时URL的映射 Map<Long, String>
+     */
+    Map<Long, String> batchGetMaterialUrls(List<Long> materialIds, int minute);
+    
+    /**
+     * 单个获取课程资料临时访问URL
+     * 语法逻辑：根据资料ID查询url相对路径，生成临时访问URL
+     * 实现效果：返回资料的临时访问URL
+     * 
+     * @param materialId 资料ID
+     * @param minute 临时URL有效期（分钟）
+     * @return 临时访问URL，未找到返回null
+     */
+    String getMaterialUrl(Long materialId, int minute);
 }

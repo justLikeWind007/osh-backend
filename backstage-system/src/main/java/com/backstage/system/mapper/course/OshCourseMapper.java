@@ -109,6 +109,16 @@ public interface OshCourseMapper
 
     String getCourseSectionContent(@Param("sectionId") Long sectionId);
 
+    /**
+     * 删除小节（根据ID逻辑删除单个小节）
+     */
+    int deleteCourseSectionById(@Param("id") Long id, @Param("updateBy") String updateBy);
+
+    /**
+     * 删除章节下的所有小节（用于删除章时的级联操作）
+     */
+    int deleteCourseSectionsByParentId(@Param("parentId") Long parentId, @Param("updateBy") String updateBy);
+
     List<OshCourseMaterial> getCourseMaterials(Long courseId);
 
     /**
@@ -118,4 +128,12 @@ public interface OshCourseMapper
      * @return 更新结果
      */
     int updateCourseSubCount(Map<String, Object> params);
+    
+    /**
+     * 根据课程ID列表批量查询课程信息（仅查询id和cover字段）
+     *
+     * @param ids 课程ID列表
+     * @return 课程列表（仅包含id和cover）
+     */
+    List<OshCourse> selectCoursesByIds(List<Long> ids);
 }

@@ -24,15 +24,11 @@ public class OshQAAnswerServiceImpl implements IOshQAAnswerService {
     @Autowired
     private OshQAAnswerMapper oshQAAnswerMapper;
     @Override
-    public R<String> answer(User user, Long questionId, String content) {
+    public R<String> answer(Long userId, Long questionId, String content) {
         Answer answer = new Answer();
         answer.setQuestionId(questionId);
-        answer.setUserId(user.getId());
+        answer.setUserId(userId);
         answer.setContent(content);
-        answer.setCreateTime(LocalDateTime.now());
-        answer.setCreateBy(user.getUsername());
-        answer.setUpdateTime(LocalDateTime.now());
-        answer.setUpdateBy(user.getUsername());
         oshQAAnswerMapper.insert(answer);
         return R.ok(ResultCode.SUCCESS.getMsg());
     }

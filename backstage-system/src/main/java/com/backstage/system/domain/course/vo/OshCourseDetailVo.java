@@ -1,5 +1,7 @@
 package com.backstage.system.domain.course.vo;
 
+import io.swagger.annotations.ApiModelProperty;
+
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
@@ -65,6 +67,43 @@ public class OshCourseDetailVo {
     private List<OshCourseTagSimpleVo> tags;
 
     private Integer buyFlag;
+
+    /** 资源类型 */
+    private Integer resourceType;
+
+    private String level; // 或者 Integer level，根据你数据库类型来
+
+    // 章节列表字段（用于存放课程的大纲、视频路径等）
+    private List<OshCourseSectionVo> sections;
+
+    // Getter 和 Setter
+    public List<OshCourseSectionVo> getSections() {
+        return sections;
+    }
+
+    public void setSections(List<OshCourseSectionVo> sections) {
+        this.sections = sections;
+    }
+    /**
+     * 这里是 MyBatis 报错缺少的 Setter
+     */
+    public void setLevel(String level) {
+        this.level = level;
+    }
+
+    public String getLevel() {
+        return level;
+    }
+
+
+    // 如果类上没有 @Data 注解，务必手动加上 Setter
+    public void setResourceType(Integer resourceType) {
+        this.resourceType = resourceType;
+    }
+
+    public Integer getResourceType() {
+        return resourceType;
+    }
 
     public OshCourseDetailVo() {
     }

@@ -15,7 +15,7 @@ public interface OshQAAnswerMapper extends BaseMapper<Answer> {
 
     Integer getVoteInfoByUserIdAndAnswerId(@Param("userId")Long userId, @Param("answerId") Long answerId);
 
-    int voteAnswer(@Param("userId")Long userId, @Param("answerId") Long answerId, @Param("createBy") String createBy);
+    int voteAnswer(@Param("userId")Long userId, @Param("answerId") Long answerId, @Param("createBy") Long createBy);
 
-    int cancelVoteAnswer(@Param("userId")Long userId, @Param("answerId") Long answerId, @Param("updateBy") String updateBy);
+    int cancelVoteAnswer(@Param("userId")Long userId, @Param("answerId") Long answerId, @Param("updateBy") Long updateBy);
 }
