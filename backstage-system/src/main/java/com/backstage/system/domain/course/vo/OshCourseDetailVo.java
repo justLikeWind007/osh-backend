@@ -72,6 +72,18 @@ public class OshCourseDetailVo {
     private Integer resourceType;
 
     private String level; // 或者 Integer level，根据你数据库类型来
+
+    // 章节列表字段（用于存放课程的大纲、视频路径等）
+    private List<OshCourseSectionVo> sections;
+
+    // Getter 和 Setter
+    public List<OshCourseSectionVo> getSections() {
+        return sections;
+    }
+
+    public void setSections(List<OshCourseSectionVo> sections) {
+        this.sections = sections;
+    }
     /**
      * 这里是 MyBatis 报错缺少的 Setter
      */

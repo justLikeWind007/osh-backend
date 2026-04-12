@@ -24,7 +24,10 @@ import com.backstage.system.request.CourseTextSectionCreateRequest;
 import com.backstage.system.request.CourseUpdateRequest;
 import com.backstage.system.request.CourseVideoSectionCreateRequest;
 import com.backstage.system.service.IOshCourseService;
+import com.backstage.system.service.common.OssService;
+import com.backstage.system.service.course.ICourseManageService;
 import com.backstage.system.utils.FileSizeConvertUtil;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.github.pagehelper.PageHelper;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +36,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 课程信息 Service 业务层处理
@@ -51,18 +55,36 @@ public class OshCourseServiceImpl implements IOshCourseService {
     @Autowired
     private OshCourseMaterialMapper oshCourseMaterialMapper;
 
+    @Autowired
+    private ICourseManageService courseManageService;
+
+
+
+    // 注入你之前提到的 OSS 服务接口
+    @Autowired
+    private OssService ossService;
+
     @Override
     public List<CourseSearchLoginVo> pageQuerySearchCourse(CourseSearchRequest request) {
         PageHelper.startPage(request.getPageNum(), request.getPageSize());
-        return fillResourceTypeDesc(oshCourseMapper.pageQuerySearchCourse(request));
+        // 1. 查出数据库原始数据
+        List<CourseSearchLoginVo> list = oshCourseMapper.pageQuerySearchCourse(request);
+        // 2. 填充资源描述
+        fillResourceTypeDesc(list);
+        // 3. 重点：批量将相对路径转换为带签名的临时 URL
+        return convertToExpiryUrls(list);
     }
 
     @Override
     public List<CourseSearchLoginVo> pageQueryLoginSearchCourse(Long userId, CourseSearchRequest request) {
         PageHelper.startPage(request.getPageNum(), request.getPageSize());
-        return fillResourceTypeDesc(oshCourseMapper.pageQueryLoginSearchCourse(userId, request));
+        // 1. 查出数据库原始数据
+        List<CourseSearchLoginVo> list = oshCourseMapper.pageQueryLoginSearchCourse(userId, request);
+        // 2. 填充资源描述
+        fillResourceTypeDesc(list);
+        // 3. 重点：批量将相对路径转换为带签名的临时 URL
+        return convertToExpiryUrls(list);
     }
-
     @Override
     public List<OshCourse> pageQueryUserCollectionCourse(Long userId, CourseSearchRequest request) {
         PageHelper.startPage(request.getPageNum(), request.getPageSize());
@@ -71,8 +93,48 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
     @Override
     public OshCourseDetailVo getCourseDetail(Long id, Long userId) {
-        OshCourseDetailVo oshCourseDetailVo = oshCourseMapper.getCourseDetail(id, userId);
-        return oshCourseDetailVo;
+        // 1. 拿到详情 VO
+        OshCourseDetailVo vo = oshCourseMapper.getCourseDetail(id, userId);
+        if (vo == null) return null;
+
+        // 2. 封面处理（如果封面没写批量接口，就单调一次，或者你有 getCoverUrl 也可以换掉）
+        if (StringUtils.isNotEmpty(vo.getCover())) {
+            vo.setCover(ossService.getLimitedUrl(vo.getCover(), 1440));
+        }
+
+        // 3. 处理视频：把所有（包括子章节）的 ID 全部收割出来，走批量接口
+        if (vo.getSections() != null && !vo.getSections().isEmpty()) {
+            List<Long> allIds = new ArrayList<>();
+            for (OshCourseSectionVo section : vo.getSections()) {
+                allIds.add(section.getId()); // 父级 ID
+                if (section.getChildren() != null) {
+                    // 子级 ID 也加进来
+                    section.getChildren().forEach(child -> allIds.add(child.getId()));
+                }
+            }
+
+            // --- 核心点：直接调你指定的 courseManageService 批量接口 ---
+            // 这个方法内部会自动根据 ID 查库、自动调 OSS 加签、自动返回 Map
+            Map<Long, String> videoUrlMap = courseManageService.batchGetSectionVideoUrls(allIds, 360);
+
+            // 4. 把 Map 里的结果回填给 VO
+            for (OshCourseSectionVo section : vo.getSections()) {
+                // 回填父级
+                if (videoUrlMap.containsKey(section.getId())) {
+                    section.setMediaUrl(videoUrlMap.get(section.getId()));
+                }
+                // 回填子级
+                if (section.getChildren() != null) {
+                    for (OshCourseSectionVo child : section.getChildren()) {
+                        if (videoUrlMap.containsKey(child.getId())) {
+                            child.setMediaUrl(videoUrlMap.get(child.getId()));
+                        }
+                    }
+                }
+            }
+        }
+
+        return vo;
     }
 
     @Override
@@ -112,7 +174,51 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
     @Override
     public List<OshCourseSectionVo> getCourseSectionOutline(Long courseId) {
-        return buildSectionTree(oshCourseMapper.selectCourseSectionList(courseId));
+        // 1. 先调用原有逻辑生成树形结构
+        List<OshCourseSectionVo> sectionTree = buildSectionTree(oshCourseMapper.selectCourseSectionList(courseId));
+
+        if (sectionTree == null || sectionTree.isEmpty()) {
+            return sectionTree;
+        }
+
+        // 2. 收集树中所有节点的 ID (包括父级和子级)
+        List<Long> allIds = new ArrayList<>();
+        collectIds(sectionTree, allIds);
+
+        // 3. 调用你之前的批量接口，统一获取临时访问 URL
+        // 注意：这里用你定义的 courseManageService 或者直接在本类调用该方法
+        Map<Long, String> videoUrlMap = courseManageService.batchGetSectionVideoUrls(allIds, 360);
+
+        // 4. 将拿到的 URL 重新塞回树结构中
+        applyUrls(sectionTree, videoUrlMap);
+
+        return sectionTree;
+    }
+
+    /**
+     * 递归收集 ID
+     */
+    private void collectIds(List<OshCourseSectionVo> nodes, List<Long> allIds) {
+        for (OshCourseSectionVo node : nodes) {
+            allIds.add(node.getId());
+            if (node.getChildren() != null && !node.getChildren().isEmpty()) {
+                collectIds(node.getChildren(), allIds);
+            }
+        }
+    }
+
+    /**
+     * 递归回填 URL
+     */
+    private void applyUrls(List<OshCourseSectionVo> nodes, Map<Long, String> videoUrlMap) {
+        for (OshCourseSectionVo node : nodes) {
+            if (videoUrlMap.containsKey(node.getId())) {
+                node.setMediaUrl(videoUrlMap.get(node.getId()));
+            }
+            if (node.getChildren() != null && !node.getChildren().isEmpty()) {
+                applyUrls(node.getChildren(), videoUrlMap);
+            }
+        }
     }
 
     /**
@@ -246,6 +352,31 @@ public class OshCourseServiceImpl implements IOshCourseService {
             // 说明这只是一个小节：只删自己
             return oshCourseMapper.deleteCourseSectionById(id, operator.getUsername()) > 0;
         }
+    }
+
+    /**
+     * 内部私有方法：循环处理 List 中的封面 URL
+     */
+    private List<CourseSearchLoginVo> convertToExpiryUrls(List<CourseSearchLoginVo> list) {
+        if (CollectionUtils.isEmpty(list)) {
+            return list;
+        }
+
+        // 提取所有课程ID
+        List<Long> courseIds = list.stream().map(CourseSearchLoginVo::getId).collect(Collectors.toList());
+
+        // 调用你之前写好的那个批量获取封面 URL 的业务逻辑 (有效期设为 60 分钟)
+        // 假设这个方法在 courseManageService 中
+        Map<Long, String> urlMap = courseManageService.batchGetCourseCoverUrls(courseIds, 60);
+
+        // 将生成的签名 URL 塞回 List 里的对象
+        for (CourseSearchLoginVo vo : list) {
+            String signedUrl = urlMap.get(vo.getId());
+            if (StringUtils.isNotEmpty(signedUrl)) {
+                vo.setCover(signedUrl); // 这里直接覆盖掉原来的相对路径
+            }
+        }
+        return list;
     }
 
     static List<OshCourseSectionVo> buildSectionTree(List<OshCourseSectionVo> sectionList) {
@@ -565,4 +696,6 @@ public class OshCourseServiceImpl implements IOshCourseService {
     private static Integer defaultFreeFlag(Integer freeFlag) {
         return freeFlag == null ? CourseSectionConstants.DEFAULT_FREE_FLAG : freeFlag;
     }
+
+
 }
