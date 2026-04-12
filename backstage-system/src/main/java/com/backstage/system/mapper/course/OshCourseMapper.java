@@ -118,4 +118,12 @@ public interface OshCourseMapper
      * @return 更新结果
      */
     int updateCourseSubCount(Map<String, Object> params);
+    
+    /**
+     * 根据课程ID列表批量查询课程信息（仅查询id和cover字段）
+     *
+     * @param ids 课程ID列表
+     * @return 课程列表（仅包含id和cover）
+     */
+    List<OshCourse> selectCoursesByIds(List<Long> ids);
 }
