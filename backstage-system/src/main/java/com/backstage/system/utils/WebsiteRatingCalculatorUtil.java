@@ -11,7 +11,7 @@ import java.util.Date;
  * @author xuanqing
  * @create 2026-04-10 23:46
  */
-public class WebsiteRatingCalculator {
+public class WebsiteRatingCalculatorUtil {
     private static final double GOOD_WEIGHT = 10.0;
     private static final double MID_WEIGHT = 3.0;
     private static final double BAD_WEIGHT = 8.0;

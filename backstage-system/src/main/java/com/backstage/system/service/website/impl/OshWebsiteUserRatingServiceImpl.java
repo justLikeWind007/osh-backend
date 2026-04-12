@@ -80,10 +80,6 @@ public class OshWebsiteUserRatingServiceImpl extends ServiceImpl<OshWebsiteUserR
                 }
 
         }
-        // ④ 重新计算网站评分
-        //updateWebsiteRatingScore(websiteId);
-        // ⑤ 返回最新的评价统计信息
-        //Map<String, Object> stats = websiteMapper.selectRatingStats(websiteId);
         return 1;
     }
 

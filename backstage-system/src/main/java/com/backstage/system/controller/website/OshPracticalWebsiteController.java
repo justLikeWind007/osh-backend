@@ -24,6 +24,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.backstage.system.utils.UserContextUtil.getCurrentUser;
+
 /**
  * 实用网站 Controller
  */
@@ -269,8 +271,8 @@ public class OshPracticalWebsiteController extends BaseController {
     public R submitRating(@RequestBody WebsiteRatingDTO ratingDTO) {
         try {
             // 从登录信息中获取当前用户ID
-            //Long userId = ThreadLocalUtil.get("userId", Long.class);
-            Long userId = 1l;
+             Long userId = getCurrentUser().getId();
+            //Long userId = 1l;
 
             if (userId == null) {
                 return R.fail("请先登录");

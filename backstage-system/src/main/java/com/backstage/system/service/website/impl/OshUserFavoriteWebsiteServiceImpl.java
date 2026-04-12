@@ -37,7 +37,7 @@ public class OshUserFavoriteWebsiteServiceImpl extends ServiceImpl<OshUserFavori
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int favoriteWebsite(Long websiteId) {
-        Long userId = ThreadLocalUtil.get(OshUserConstants.USER_ID,Long.class);
+        Long userId = getCurrentUser().getId();
         //Long userId = 1L;
         // 1. 验证参数
         if (websiteId == null || userId == null)  throw new IllegalArgumentException("网站 ID 和用户 ID 不能为空");
@@ -53,7 +53,6 @@ public class OshUserFavoriteWebsiteServiceImpl extends ServiceImpl<OshUserFavori
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int cancelFavoriteWebsite(Long websiteId) {
-       // Long userId = ThreadLocalUtil.get(OshUserConstants.USER_ID,Long.class);
            Long userId = getCurrentUser().getId();
         //Long userId = 1L;
         // 1. 验证参数
@@ -71,8 +70,8 @@ public class OshUserFavoriteWebsiteServiceImpl extends ServiceImpl<OshUserFavori
     @Override
     public TableDataInfo selectUserFavoriteList(Integer pageNum, Integer pageSize) {
         // 获取用户 ID
-        //Long userId = ThreadLocalUtil.get(OshUserConstants.USER_ID,Long.class);
-        Long userId = 5L;
+        Long userId = getCurrentUser().getId();
+        //Long userId = 1L;
         // 开启分页
         PageHelper.startPage(pageNum, pageSize);
         // 执行查询

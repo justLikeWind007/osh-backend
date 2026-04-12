@@ -12,7 +12,7 @@ import com.backstage.system.domain.website.OshWebsiteTag;
 import com.backstage.system.mapper.website.OshPracticalWebsiteMapper;
 import com.backstage.system.mapper.website.OshWebsiteTagMapper;
 import com.backstage.system.service.website.OshPracticalWebsiteService;
-import com.backstage.system.utils.WebsiteRatingCalculator;
+import com.backstage.system.utils.WebsiteRatingCalculatorUtil;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.slf4j.Logger;
@@ -24,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -51,7 +50,6 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
     @Override
     public List<OshPracticalWebsiteVO> selectWebsitePage(WebsiteQueryDTO queryDTO) {
         if (queryDTO == null) {
-            //return Collections.emptyList();
             queryDTO = new WebsiteQueryDTO();
         }
         Integer pageNum = queryDTO.getPageNum();
@@ -212,7 +210,7 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
         try {
             OshPracticalWebsite websiteEvaluation = oshPracticalWebsiteMapper.selectByIdForUpdate(websiteId);
             if (websiteEvaluation != null) {
-                BigDecimal ratingScore = WebsiteRatingCalculator.calculateRatingScore(
+                BigDecimal ratingScore = WebsiteRatingCalculatorUtil.calculateRatingScore(
                         websiteEvaluation.getGoodCount(),
                         websiteEvaluation.getMidCount(),
                         websiteEvaluation.getBadCount(),
@@ -242,7 +240,7 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
             int failCount = 0;
             for (OshPracticalWebsite website : websitesEvaluation) {
                 try {
-                    BigDecimal ratingScore = WebsiteRatingCalculator.calculateRatingScore(
+                    BigDecimal ratingScore = WebsiteRatingCalculatorUtil.calculateRatingScore(
                             website.getGoodCount(),
                             website.getMidCount(),
                             website.getBadCount(),
