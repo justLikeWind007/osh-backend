@@ -3,7 +3,7 @@ package com.backstage.system.controller.book;
 import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.R;
 import com.backstage.system.domain.vo.book.*;
-import com.backstage.system.service.IBookService;
+import com.backstage.system.service.book.IBookService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.web.bind.annotation.*;
