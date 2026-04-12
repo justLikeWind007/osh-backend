@@ -116,7 +116,7 @@ public class OssCloudFlareController {
     @Anonymous
     @GetMapping("/upload/avatar")
     public R getUrl() {
-        String signedUrl = ossService.getLimitedUrl("common/image/avatar/微信图片_20260327163452_147_8.jpg", 1);
+        String signedUrl = ossService.getLimitedUrl("common/video/course/946/202604/81c67441-f771-4eb9-be25-86576cd13794_test11.mp4", 1);
 
         return R.ok(signedUrl);
 

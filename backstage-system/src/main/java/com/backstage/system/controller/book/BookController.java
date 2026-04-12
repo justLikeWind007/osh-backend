@@ -17,6 +17,7 @@ import java.util.List;
  *
  * @author backstage
  */
+@ApiOperation(value = "电子书接口")
 @RestController
 @RequestMapping("/pc/book")
 public class BookController {
