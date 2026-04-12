@@ -66,60 +66,47 @@ public class CourseManageController extends BaseController {
         return R.ok(courseManageService.getCourseDetail(courseId, userId));
     }
     /**
-     * 上传 课程中的 章节 视频
+     * 上传视频：返回视频信息
      */
-    @Log(title = "章节视频", businessType = BusinessType.INSERT)
-   // @PreAuthorize("@ss.hasPermi('system:course:video:upload')")
+    @Log(title = "视频上传", businessType = BusinessType.INSERT)
     @Anonymous
-    @ApiOperation("上传章节视频")
-    @PostMapping("/section/video/upload")
-    public R<VideoUploadVO> uploadSectionVideo(
+    @ApiOperation("上传视频")
+    @PostMapping("/video/upload")
+    public R<Map<String, Object>> uploadVideo(
             @ApiParam("视频文件") @RequestParam("file") MultipartFile file,
-            @ApiParam("课程 ID") @RequestParam("courseId") Long courseId,
-            @ApiParam("章节 ID") @RequestParam("sectionId") Long sectionId) {
-        Long userId = null;
-        try {
-            userId = getLoginUser().getUserId();
-        } catch (Exception e) {
-            return R.fail("请先登录");
-        }
-        courseManageService.uploadSectionVideo(file, courseId, sectionId, userId);
-        return R.ok();
+            @ApiParam("视频名称") @RequestParam(value = "videoName", required = false) String videoName) {
+        Map<String, Object> videoInfo = courseManageService.uploadVideo(file, videoName);
+        return R.ok(videoInfo);
     }
 
 
 
     /**
-     * 上传课程资料：与课程绑定
+     * 上传课程资料：返回资料信息
      */
     @Log(title = "课程资料", businessType = BusinessType.UPDATE)
-    //  @PreAuthorize("@ss.hasPermi('system:course:material:upload')")
     @Anonymous
     @ApiOperation("上传课程资料")
-    @PostMapping("/material/upload/{courseId}")
-    public R<Void> uploadMaterial(
-            @ApiParam("课程 ID") @PathVariable Long courseId,
+    @PostMapping("/material/upload")
+    public R<Map<String, Object>> uploadMaterial(
             @ApiParam("资料文件") @RequestParam("file") MultipartFile file,
-            @ApiParam("资料名称") @RequestParam("materialName") String materialName) {
-        Long userId = getUserId();
-        courseManageService.uploadSectionMaterial( file,courseId, materialName, userId);
-        return R.ok();
+            @ApiParam("资料名称") @RequestParam(value = "materialName", required = false) String materialName) {
+        Map<String, Object> materialInfo = courseManageService.uploadMaterial(file, materialName);
+        return R.ok(materialInfo);
     }
 
     /**
-     * 上传课程封面：与课程进行一对一绑定
+     * 上传课程封面：返回封面信息
      */
     @Log(title = "课程封面", businessType = BusinessType.UPDATE)
-    //  @PreAuthorize("@ss.hasPermi('system:course:cover:upload')")
     @Anonymous
     @ApiOperation("上传课程封面")
-    @PostMapping("/cover/upload/{courseId}")
-    public R<Void> uploadCourseCover(
-            @ApiParam("课程 ID") @PathVariable Long courseId,
-            @ApiParam("封面文件") @RequestParam("file") MultipartFile file) {
-        Long userId = getUserId();
-        courseManageService.uploadCourseCover(file, courseId, userId);
-        return R.ok();
+    @PostMapping("/cover/upload")
+    public R<Map<String, Object>> uploadCourseCover(
+            @ApiParam("封面文件") @RequestParam("file") MultipartFile file,
+            @ApiParam("封面名称") @RequestParam(value = "coverName", required = false) String coverName) {
+        Map<String, Object> coverInfo = courseManageService.uploadCourseCover(file, coverName);
+        return R.ok(coverInfo);
     }
 
     /**
@@ -136,6 +123,7 @@ public class CourseManageController extends BaseController {
 
     /**
      * 删除文件
+     * TODO S3 删除文件接口 未开发
      */
     @Log(title = "课程资料", businessType = BusinessType.DELETE)
     //@PreAuthorize("@ss.hasPermi('system:course:material:delete')")
@@ -212,9 +200,6 @@ public class CourseManageController extends BaseController {
     }
 
 
-
-    // ==================== 课程章节接口 ====================
-    
     /**
      * 获取课程大纲
      */

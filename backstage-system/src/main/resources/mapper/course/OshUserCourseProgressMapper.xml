@@ -6,10 +6,20 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     
     <!-- 查询用户课程学习进度（课程级别） -->
     <select id="selectProgressByUserIdAndCourseId" resultType="java.util.Map">
-        SELECT id, user_id, course_id, section_id, learned_section_count, total_section_count,
-               progress_percent, last_learn_time, is_completed, complete_time
-        FROM osh_user_course_progress
+        SELECT 
+            MAX(id) as id, 
+            user_id, 
+            course_id, 
+            MAX(section_id) as section_id,
+            COUNT(DISTINCT section_id) as learned_section_count,
+            (SELECT COUNT(*) FROM osh_course_section WHERE course_id = #{courseId} AND delete_flag = 0) as total_section_count,
+            AVG(progress) as progress_percent,
+            MAX(update_time) as last_learn_time,
+            MAX(CASE WHEN status = 2 THEN 1 ELSE 0 END) as is_completed,
+            MAX(finish_time) as complete_time
+        FROM osh_user_learn_progress
         WHERE user_id = #{userId} AND course_id = #{courseId} AND delete_flag = 0
+        GROUP BY user_id, course_id
     </select>
     
     <!-- 查询用户章节学习进度（章节级别） -->

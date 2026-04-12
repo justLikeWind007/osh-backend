@@ -376,41 +376,38 @@ public interface ICourseManageService {
     
     /**
      * 上传课程封面图片
-     * 语法逻辑：校验文件→调用上传接口→更新课程 cover 字段
-     * 实现效果：将封面图片上传到文件服务器，并更新课程表的 cover 字段
-     * 
+     * 语法逻辑：校验文件→调用上传接口→返回封面信息
+     * 实现效果：将封面图片上传到文件服务器，返回封面信息
+     *
      * @param file 封面文件
-     * @param courseId 课程 ID
-     * @param userId 用户 ID
+     * @param coverName 封面名称
+     * @return 封面信息（名称、URL、大小、类型）
      */
-    void uploadCourseCover(MultipartFile file, Long courseId, Long userId);
+    Map<String, Object> uploadCourseCover(MultipartFile file, String coverName);
     
 
     
     /**
-     * 上传课时视频（指定章节 ID）
-     * 实现效果：将视频上传到文件服务器，并更新章节表的 mediaUrl 字段
-     * 
+     * 上传视频
+     * 语法逻辑：校验文件格式→上传视频→返回视频信息
+     * 实现效果：支持 mp4/avi/mov/mkv/flv 格式，存储到指定目录
+     *
      * @param file 视频文件
-     * @param courseId 课程 ID
-     * @param sectionId 章节 ID
-     * @param userId 用户 ID
-     * @return 视频上传结果 VO
+     * @param videoName 视频名称
+     * @return 视频信息（名称、URL、大小、类型）
      */
-    VideoUploadVO uploadSectionVideo(MultipartFile file, Long courseId, Long sectionId, Long userId);
+    Map<String, Object> uploadVideo(MultipartFile file, String videoName);
     
     /**
      * 上传课时资料
      * 语法逻辑：校验文件格式→上传压缩包→返回资料信息
      * 实现效果：支持 zip/rar/tar/gz 格式，存储到指定目录
-     * 
+     *
      * @param file 资料文件
-     * @param courseId 课程 ID
      * @param materialName 资料名称
-     * @param userId 用户 ID
-     * @return 资料 ID
+     * @return 资料信息（名称、URL、大小、类型）
      */
-    Long uploadSectionMaterial(MultipartFile file, Long courseId, String materialName, Long userId);
+    Map<String, Object> uploadMaterial(MultipartFile file, String materialName);
     
     
     // ==================== 课程新增（含章节）接口 ====================
