@@ -35,6 +35,10 @@ public interface IOshUserService {
 
     R<User> getUserInfo();
 
+    R<String> record(Long userId, Integer violationType, String reason, Long operatorId);
+
+    R<String> cancelRecord(Long userId, User currentUser);
+
 
 
 

@@ -1,6 +1,7 @@
 package com.backstage.system.interceptor;
 
 import com.backstage.common.constant.OshUserConstants;
+import com.backstage.common.core.redis.RedisCache;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.common.utils.jwt.JwtUtil;
 import com.backstage.system.domain.user.User;
@@ -12,6 +13,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.Map;
 
 /**
  * Created with IntelliJ IDEA.
@@ -26,6 +28,9 @@ public class UserContextInterceptor implements HandlerInterceptor {
     @Autowired
     private OshUserMapper oshUserMapper;
 
+    @Autowired
+    private RedisCache redisCache;
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         // 1. 获取请求头 token
@@ -39,7 +44,9 @@ public class UserContextInterceptor implements HandlerInterceptor {
                     User user = oshUserMapper.getUserInfoById(userId);
                     ThreadLocalUtil.set(OshUserConstants.USER_ID, userId);
                     ThreadLocalUtil.set(OshUserConstants.USER_INFO, user);
-                    ThreadLocalUtil.set(OshUserConstants.TOKEN, token);
+                    Map<String, Object> map =  redisCache.getCacheObject(OshUserConstants.LOGIN_USER + userId);
+                    ThreadLocalUtil.set(OshUserConstants.ROLE, map.get(OshUserConstants.ROLE));
+                    ThreadLocalUtil.set(OshUserConstants.PERMISSION, map.get(OshUserConstants.PERMISSION));
                 }
             } catch (Exception e) {
                 e.printStackTrace();

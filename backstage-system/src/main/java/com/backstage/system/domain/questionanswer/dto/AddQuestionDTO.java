@@ -37,10 +37,6 @@ public class AddQuestionDTO {
             value = "标签id集合"
     )
     private List<Long> tags;
-    @ApiModelProperty(
-            value = "状态"
-    )
-    private Byte status;
 
     public String getResourceType() {
         return resourceType;
@@ -82,14 +78,6 @@ public class AddQuestionDTO {
         this.tags = tags;
     }
 
-    public Byte getStatus() {
-        return status;
-    }
-
-    public void setStatus(Byte status) {
-        this.status = status;
-    }
-
     @Override
     public String toString() {
         return "AddQuestionDTO{" +
@@ -98,7 +86,6 @@ public class AddQuestionDTO {
                 ", content='" + content + '\'' +
                 ", isPaidOnly=" + isPaidOnly +
                 ", tags=" + tags +
-                ", status=" + status +
                 '}';
     }
 }
