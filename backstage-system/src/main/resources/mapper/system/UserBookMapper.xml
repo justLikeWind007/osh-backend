@@ -9,7 +9,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         from osh_user_book
     </sql>
 
-    <select id="selectUserBookByUserIdAndBookId" resultType="com.backstage.system.domain.UserBook">
+    <select id="selectUserBookByUserIdAndBookId" resultType="com.backstage.system.domain.UserBookRelation">
         <include refid="selectUserBookVo"/>
         where user_id = #{userId} and book_id = #{bookId} and del_flag = '0'
     </select>

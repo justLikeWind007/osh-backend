@@ -7,8 +7,8 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 
 
-@TableName("osh_user_book")
-public class UserBook extends BaseEntity
+@TableName("osh_user_book_relation")
+public class UserBookRelation extends BaseEntity
 {
     private static final long serialVersionUID = 1L;
 

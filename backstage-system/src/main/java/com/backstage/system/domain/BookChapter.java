@@ -1,10 +1,12 @@
 package com.backstage.system.domain;
 
 import com.backstage.common.core.domain.BaseEntity;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonFormat;
+
+import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.util.Date;
 
 /**
  * 电子书章节对象 osh_book_chapter
@@ -12,8 +14,7 @@ import com.baomidou.mybatisplus.annotation.TableLogic;
  * @author backstage
  */
 @TableName("osh_book_chapter")
-public class BookChapter extends BaseEntity
-{
+public class BookChapter implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /** 章节ID */
@@ -29,13 +30,33 @@ public class BookChapter extends BaseEntity
     /** 章节内容 */
     private String content;
 
-    /** 排序 */
-    private Integer orderby;
+    /** 第几章 */
+    private Integer chapterNo;
+
+    /** 展示排序 */
+    private Integer sortOrder;
 
     /** 是否免费（0收费 1免费） */
-    private Integer isfree;
+    private Integer isFree;
 
-    /** 删除标志（0代表存在 2代表删除） */
+    /** 创建者 */
+    private String createBy;
+
+    /** 创建时间 */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @TableField(fill = FieldFill.INSERT)
+    private LocalDateTime createTime;
+
+    /** 更新者 */
+    private String updateBy;
+
+    /** 更新时间 */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updateTime;
+
+
+    /** 删除标志（0代表存在 1代表删除） */
     @TableLogic
     private String delFlag;
 
@@ -71,20 +92,28 @@ public class BookChapter extends BaseEntity
         this.content = content;
     }
 
-    public Integer getOrderby() {
-        return orderby;
+    public Integer getChapterNo() {
+        return chapterNo;
     }
 
-    public void setOrderby(Integer orderby) {
-        this.orderby = orderby;
+    public void setChapterNo(Integer chapterNo) {
+        this.chapterNo = chapterNo;
     }
 
-    public Integer getIsfree() {
-        return isfree;
+    public Integer getSortOrder() {
+        return sortOrder;
     }
 
-    public void setIsfree(Integer isfree) {
-        this.isfree = isfree;
+    public void setSortOrder(Integer sortOrder) {
+        this.sortOrder = sortOrder;
+    }
+
+    public Integer getIsFree() {
+        return isFree;
+    }
+
+    public void setIsFree(Integer isFree) {
+        this.isFree = isFree;
     }
 
     public String getDelFlag() {
@@ -93,5 +122,42 @@ public class BookChapter extends BaseEntity
 
     public void setDelFlag(String delFlag) {
         this.delFlag = delFlag;
+    }
+
+
+    public String getCreateBy() {
+        return createBy;
+    }
+
+
+    public void setCreateBy(String createBy) {
+        this.createBy = createBy;
+    }
+
+
+    public LocalDateTime getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(LocalDateTime createTime) {
+        this.createTime = createTime;
+    }
+
+
+    public String getUpdateBy() {
+        return updateBy;
+    }
+
+
+    public void setUpdateBy(String updateBy) {
+        this.updateBy = updateBy;
+    }
+
+    public LocalDateTime getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(LocalDateTime updateTime) {
+        this.updateTime = updateTime;
     }
 }

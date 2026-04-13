@@ -1,4 +1,4 @@
-package com.backstage.system.service;
+package com.backstage.system.service.book;
 
 import com.backstage.system.controller.book.BookListReqVO;
 import com.backstage.system.domain.book.BookDO;
@@ -85,6 +85,20 @@ public interface IBookService extends IService<BookDO> {
 
 
     Page<BookListVO> getBookPageList(BookListReqVO reqVO);
+
+    /**
+     * 新增电子书章节
+     *
+     * @param reqVO 章节请求VO
+     */
+    void createBookChapter(BookChapterSaveUpdateVO reqVO);
+
+    /**
+     * 修改电子书章节
+     *
+     * @param reqVO 章节请求VO
+     */
+    void updateBookChapter(BookChapterSaveUpdateVO reqVO);
 
     /**
      * 查询所有电子书标签名称（去重）
