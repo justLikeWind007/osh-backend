@@ -1,72 +1,20 @@
 package com.backstage.system.request;
 
-import com.backstage.system.domain.course.vo.OshCourseTagSimpleVo;
+import javax.validation.constraints.NotNull;
 
-import java.math.BigDecimal;
-import java.util.List;
+/**
+ * 课程修改请求
+ */
+public class CourseUpdateRequest extends CourseCreateRequest {
 
-public class CourseUpdateRequest {
+    @NotNull(message = "课程id不能为空")
+    private Long id;
+
     public Long getId() {
-        return null;
+        return id;
     }
 
-    public CourseMaterialCreateRequest getMaterial() {
-        return null;
-    }
-
-    public List<OshCourseTagSimpleVo> getTags() {
-        return null;
-    }
-
-    public String getTitle() {
-        return null;
-    }
-
-    public String getCover() {
-        return null;
-    }
-
-    public String getIntro() {
-        return null;
-    }
-
-    public String getServiceContent() {
-        return null;
-    }
-
-    public BigDecimal getPrice() {
-        return null;
-    }
-
-    public BigDecimal getTPrice() {
-        return null;
-    }
-
-    public String getType() {
-        return null;
-    }
-
-    public Integer getFreeType() {
-        return null;
-    }
-
-    public Integer getAfterServiceDays() {
-        return null;
-    }
-
-    public Integer getExamId() {
-        return null;
-    }
-
-    public String getRemark() {
-        return null;
-    }
-
-    public Integer getResourceType() {
-        return null;
-    }
-
-    public Integer getLevel() {
-        return null;
+    public void setId(Long id) {
+        this.id = id;
     }
 }
