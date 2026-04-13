@@ -13,7 +13,28 @@
         <result property="tags" column="tags" />
         <result property="clickCount" column="click_count" />
         <result property="auditTime" column="audit_time" />
+        <result property="goodCount" column="good_count" />
+        <result property="midCount" column="mid_count" />
+        <result property="badCount" column="bad_count" />
+        <result property="collectionCount" column="collection_count" />
+        <result property="ratingScore" column="rating_score" />
     </resultMap>
+    <update id="addCount">
+        UPDATE osh_practical_website
+        SET
+        <choose>
+            <when test="ratingType == 1">
+                good_count = good_count + 1
+            </when>
+            <when test="ratingType == 2">
+                mid_count = mid_count + 1
+            </when>
+            <when test="ratingType == 3">
+                bad_count = bad_count + 1
+            </when>
+        </choose>
+        WHERE id = #{websiteId} AND delete_flag = 0 AND status = 1
+    </update>
     <!--根据网站id批量删除网站信息-->
     <delete id="batchDeleteWebsite">
         UPDATE osh_practical_website
@@ -32,6 +53,11 @@
         w.logo_url,
         w.click_count,
         w.audit_time,
+        w.good_count,
+        w.mid_count,
+        w.bad_count,
+        w.collection_count,
+        w.rating_score,
         GROUP_CONCAT(t.tag_name ORDER BY t.tag_name SEPARATOR ',') as tags
         FROM osh_practical_website w
         LEFT JOIN osh_website_tag_rel wt ON w.id = wt.website_id AND wt.delete_flag = 0
@@ -47,8 +73,8 @@
                 #{tagName}
             </foreach>
         </if>
-        GROUP BY w.id, w.name, w.url, w.description, w.logo_url, w.click_count, w.audit_time
-        ORDER BY w.click_count DESC, w.audit_time DESC
+        GROUP BY w.id, w.name, w.url, w.description, w.logo_url, w.click_count, w.audit_time, w.good_count, w.mid_count, w.bad_count, w.collection_count, w.rating_score
+        ORDER BY w.rating_score DESC
     </select>
 
 
@@ -57,5 +83,33 @@
         SET click_count = click_count + 1
         WHERE id = #{websiteId}
     </update>
+
+    <update id="updateCount">
+        UPDATE osh_practical_website
+        SET
+            good_count = good_count + (
+                CASE
+                    WHEN #{oldRatingType} = 1 THEN -1
+                    WHEN #{ratingType} = 1 THEN 1
+                    ELSE 0
+                    END
+                ),
+            mid_count = mid_count + (
+                CASE
+                    WHEN #{oldRatingType} = 2 THEN -1
+                    WHEN #{ratingType} = 2 THEN 1
+                    ELSE 0
+                    END
+                ),
+            bad_count = bad_count + (
+                CASE
+                    WHEN #{oldRatingType} = 3 THEN -1
+                    WHEN #{ratingType} = 3 THEN 1
+                    ELSE 0
+                    END
+                )
+        WHERE id = #{websiteId} AND delete_flag = 0 AND status = 1
+    </update>
+
 
 </mapper>
