@@ -33,7 +33,7 @@
                 bad_count = bad_count + 1
             </when>
         </choose>
-        WHERE id = #{websiteId} AND delete_flag = 0
+        WHERE id = #{websiteId} AND delete_flag = 0 AND status = 1
     </update>
     <!--根据网站id批量删除网站信息-->
     <delete id="batchDeleteWebsite">
@@ -108,7 +108,7 @@
                     ELSE 0
                     END
                 )
-        WHERE id = #{websiteId} AND delete_flag = 0
+        WHERE id = #{websiteId} AND delete_flag = 0 AND status = 1
     </update>
 
 

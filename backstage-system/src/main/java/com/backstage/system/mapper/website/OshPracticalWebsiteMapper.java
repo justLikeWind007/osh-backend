@@ -90,7 +90,7 @@ public interface OshPracticalWebsiteMapper  {
             "WHERE id = #{websiteId} AND delete_flag = 0 AND status = 1")
     OshPracticalWebsite selectByIdForUpdate(Long websiteId);
     
-    @Insert("UPDATE osh_practical_website SET rating_score = #{ratingScore} WHERE id = #{websiteId} AND delete_flag = 0 AND status = 1")
+    @Update("UPDATE osh_practical_website SET rating_score = #{ratingScore} WHERE id = #{websiteId} AND delete_flag = 0 AND status = 1")
     int updateRatingScoreById(@Param("websiteId") Long websiteId, @Param("ratingScore") BigDecimal ratingScore);
 
     /**
@@ -106,10 +106,10 @@ public interface OshPracticalWebsiteMapper  {
 
     void updateCount(@Param("websiteId") Long websiteId, @Param("oldRatingType") Integer oldRatingType, @Param("ratingType") Integer ratingType);
 
-    @Update("UPDATE osh_practical_website SET collection_count = collection_count + 1 WHERE id = #{websiteId} delete_flag = 0 AND status = 1")
+    @Update("UPDATE osh_practical_website SET collection_count = collection_count + 1 WHERE id = #{websiteId} AND delete_flag = 0 AND status = 1")
     void addCollectionCount(Long websiteId);
 
-    @Update("UPDATE osh_practical_website SET collection_count = collection_count - 1 WHERE id = #{websiteId} delete_flag = 0 AND status = 1")
+    @Update("UPDATE osh_practical_website SET collection_count = collection_count - 1 WHERE id = #{websiteId} AND delete_flag = 0 AND status = 1")
     void reduceCollectionCount(Long websiteId);
 }
 

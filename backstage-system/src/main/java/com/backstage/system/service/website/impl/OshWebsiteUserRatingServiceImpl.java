@@ -2,6 +2,7 @@ package com.backstage.system.service.website.impl;
 
 import com.backstage.system.domain.website.OshPracticalWebsite;
 import com.backstage.system.mapper.website.OshPracticalWebsiteMapper;
+import com.backstage.system.service.website.OshPracticalWebsiteService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.backstage.system.domain.website.OshWebsiteUserRating;
 import com.backstage.system.mapper.website.OshWebsiteUserRatingMapper;
@@ -10,7 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import java.util.Map;
+import org.springframework.transaction.annotation.Transactional;
+
 
 /**
 * @author 24333
@@ -30,10 +32,11 @@ public class OshWebsiteUserRatingServiceImpl extends ServiceImpl<OshWebsiteUserR
     private OshPracticalWebsiteMapper websiteMapper;
 
     @Autowired
-    private OshPracticalWebsiteServiceImpl websiteService;
+    private OshPracticalWebsiteService websiteService;
 
     @Override
-    public int submitRating(Long userId, Long websiteId, Integer ratingType) {
+    @Transactional(rollbackFor = Exception.class)
+    public void submitRating(Long userId, Long websiteId, Integer ratingType) {
         log.info("用户{}开始评价网站{}, 评价类型: {}", userId, websiteId, ratingType);
 
         //参数校验
@@ -76,20 +79,24 @@ public class OshWebsiteUserRatingServiceImpl extends ServiceImpl<OshWebsiteUserR
                 log.info("用户{}修改评价成功,从{}改为{}", userId, oldRatingType, ratingType);
                 if (ratingType == 1 || ratingType == 3){
                     websiteService.updateWebsiteRatingScore(websiteId);
-                    log.info("根据网站id更新网站评分成功");
                 }
-
         }
-        return 1;
     }
 
     private int handleModifyRating(Long id, Long userId, Long websiteId, Integer oldRatingType, Integer ratingType) {
-        return ratingMapper.handleModifyRating(id, userId, websiteId, oldRatingType, ratingType);
+          int insertCount = ratingMapper.handleModifyRating(id, userId, websiteId, oldRatingType, ratingType);
+          if (insertCount <= 0) {
+              log.info("用户{}修改评价失败", userId);
+          }
+        return insertCount;
     }
 
     private int handleNewRating(Long userId, Long websiteId, Integer ratingType) {
-        return ratingMapper.handleNewRating(userId, websiteId, ratingType);
-
+         int insertCount = ratingMapper.handleNewRating(userId, websiteId, ratingType);
+         if (insertCount > 0) {
+             log.info("用户{}新增评价成功", userId);
+         }
+        return insertCount;
     }
 }
 

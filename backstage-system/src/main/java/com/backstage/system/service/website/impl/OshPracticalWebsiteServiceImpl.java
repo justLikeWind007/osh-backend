@@ -157,7 +157,6 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
 
         // 5. 更新对应数据库
        return oshPracticalWebsiteMapper.updateStatusById(website);
-
     }
     /**
      * 查询待审核列表
@@ -203,7 +202,7 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public  void updateWebsiteRatingScore(Long websiteId) {
+    public void updateWebsiteRatingScore(Long websiteId) {
         if (websiteId == null) {
             return;
         }

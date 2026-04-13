@@ -268,7 +268,7 @@ public class OshPracticalWebsiteController extends BaseController {
     @ApiOperation("提交网站评价")
     @PostMapping("/rating/submit")
     @Anonymous
-    public R submitRating(@RequestBody WebsiteRatingDTO ratingDTO) {
+    public R<Void> submitRating(@RequestBody WebsiteRatingDTO ratingDTO) {
         try {
             // 从登录信息中获取当前用户ID
              Long userId = getCurrentUser().getId();
@@ -279,7 +279,7 @@ public class OshPracticalWebsiteController extends BaseController {
             }
 
             // 调用 Service 层提交评价
-            int result = oshWebsiteUserRatingService.submitRating(
+            oshWebsiteUserRatingService.submitRating(
                     userId,
                     ratingDTO.getWebsiteId(),
                     ratingDTO.getRatingType()
@@ -293,5 +293,4 @@ public class OshPracticalWebsiteController extends BaseController {
             return R.fail("评价失败，请稍后重试");
         }
     }
-
 }

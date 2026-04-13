@@ -12,5 +12,5 @@ import java.util.Map;
 */
 public interface OshWebsiteUserRatingService extends IService<OshWebsiteUserRating> {
 
-    int submitRating(Long userId, Long websiteId, Integer ratingType);
+    void submitRating(Long userId, Long websiteId, Integer ratingType);
 }
