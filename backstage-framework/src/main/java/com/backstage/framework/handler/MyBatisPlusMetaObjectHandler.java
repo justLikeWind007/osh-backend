@@ -17,14 +17,14 @@ public class MyBatisPlusMetaObjectHandler implements MetaObjectHandler {
     public void insertFill(MetaObject metaObject) {
         this.strictInsertFill(metaObject, "createTime", LocalDateTime.class, LocalDateTime.now());
         this.strictInsertFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
-        this.strictInsertFill(metaObject, "createBy", String.class, getUserName());
-        this.strictInsertFill(metaObject, "updateBy", String.class, getUserName());
+//        this.strictInsertFill(metaObject, "createBy", String.class, getUserName());
+//        this.strictInsertFill(metaObject, "updateBy", String.class, getUserName());
     }
 
     @Override
     public void updateFill(MetaObject metaObject) {
         this.strictUpdateFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
-        this.strictUpdateFill(metaObject, "updateBy", String.class, getUserName());
+//        this.strictUpdateFill(metaObject, "updateBy", String.class, getUserName());
     }
 
     private String getUserName() {
