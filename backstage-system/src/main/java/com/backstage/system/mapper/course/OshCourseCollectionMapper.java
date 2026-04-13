@@ -14,4 +14,6 @@ public interface OshCourseCollectionMapper {
     int updateCollectionDeleteFlag(@Param("id") Long id,
                                    @Param("deleteFlag") Integer deleteFlag,
                                    @Param("operator") String operator);
+
+
 }

@@ -110,3 +110,28 @@ INSERT INTO `osh_user_book` VALUES (2, 1, 32, '0', 'admin', now());
 
 -- ry 测试用户（user_id=2）购买的电子书
 INSERT INTO `osh_user_book` VALUES (3, 2, 1, '0', 'admin', now());
+
+-- ----------------------------
+-- 用户电子书关联表（收藏、关注、购买）
+-- ----------------------------
+DROP TABLE IF EXISTS `osh_user_book_relation`;
+CREATE TABLE `osh_user_book_relation` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `user_id` bigint(20) NOT NULL COMMENT '用户ID',
+  `book_id` bigint(20) NOT NULL COMMENT '电子书ID',
+  `favorited` tinyint(1) DEFAULT '0' COMMENT '是否收藏（0-否，1-是）',
+  `followed` tinyint(1) DEFAULT '0' COMMENT '是否关注（0-否，1-是）',
+  `purchased` tinyint(1) DEFAULT '0' COMMENT '是否购买（0-否，1-是）',
+  `favorite_time` datetime DEFAULT NULL COMMENT '收藏时间',
+  `follow_time` datetime DEFAULT NULL COMMENT '关注时间',
+  `purchase_price` decimal(10,2) DEFAULT NULL COMMENT '购买价格',
+  `order_no` varchar(64) DEFAULT NULL COMMENT '订单号',
+  `pay_time` datetime DEFAULT NULL COMMENT '支付时间',
+  `create_by` varchar(64) DEFAULT '' COMMENT '创建者',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  `update_by` varchar(64) DEFAULT '' COMMENT '更新者',
+  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+  `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+  `deleted` tinyint(1) DEFAULT '0' COMMENT '是否删除（0-否，1-是）',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COMMENT='用户电子书关联表';

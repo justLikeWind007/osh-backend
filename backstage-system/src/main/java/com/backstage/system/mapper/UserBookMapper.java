@@ -1,7 +1,7 @@
 package com.backstage.system.mapper;
 
 import com.backstage.system.domain.book.BookDO;
-import com.backstage.system.domain.UserBook;
+import com.backstage.system.domain.UserBookRelation;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import java.util.List;
@@ -12,7 +12,7 @@ import org.apache.ibatis.annotations.Param;
  *
  * @author backstage
  */
-public interface UserBookMapper extends BaseMapper<UserBook>
+public interface UserBookMapper extends BaseMapper<UserBookRelation>
 {
     /**
      * 查询用户是否购买电子书
@@ -21,7 +21,7 @@ public interface UserBookMapper extends BaseMapper<UserBook>
      * @param bookId 电子书ID
      * @return 用户电子书
      */
-    UserBook selectUserBookByUserIdAndBookId(@Param("userId") Long userId, @Param("bookId") Long bookId);
+    UserBookRelation selectUserBookByUserIdAndBookId(@Param("userId") Long userId, @Param("bookId") Long bookId);
 
     /**
      * 查询用户购买的电子书列表

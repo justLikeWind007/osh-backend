@@ -24,34 +24,37 @@ public class OshCourseCollectionServiceImpl implements IOshCourseCollectionServi
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void collectCourse(Long userId, String operator, Long courseId) {
+        // 1. 基础校验
         validateCourseExists(courseId);
 
+        // 2. 尝试找回历史记录（包含已逻辑删除的记录）
         OshCourseCollection collection = oshCourseCollectionMapper.selectByUserIdAndCourseId(userId, courseId);
+
         if (collection == null) {
+            // 情况 A: 数据库里没这人这课，直接插入
             OshCourseCollection newCollection = new OshCourseCollection();
-            Date now = new Date();
             newCollection.setUserId(userId);
             newCollection.setCourseId(courseId);
             newCollection.setDeleteFlag(0);
             newCollection.setCreateBy(operator);
-            newCollection.setCreateTime(now);
             newCollection.setUpdateBy(operator);
-            newCollection.setUpdateTime(now);
+
             if (oshCourseCollectionMapper.insertCourseCollection(newCollection) <= 0) {
-                throw new ServiceException("收藏课程失败");
+                throw new ServiceException("收藏失败");
             }
+            // 更新课程总表计数
             oshCourseMapper.increaseCollectionCount(courseId);
-            return;
+
+        } else if (collection.getDeleteFlag() == 1) {
+            // 情况 B: 以前收藏过又取消了，现在“激活”它
+            if (oshCourseCollectionMapper.updateCollectionDeleteFlag(collection.getId(), 0, operator) <= 0) {
+                throw new ServiceException("恢复收藏失败");
+            }
+            // 更新课程总表计数
+            oshCourseMapper.increaseCollectionCount(courseId);
         }
 
-        if (collection.getDeleteFlag() != null && collection.getDeleteFlag() == 0) {
-            return;
-        }
-
-        if (oshCourseCollectionMapper.updateCollectionDeleteFlag(collection.getId(), 0, operator) <= 0) {
-            throw new ServiceException("收藏课程失败");
-        }
-        oshCourseMapper.increaseCollectionCount(courseId);
+        // 情况 C: 如果 delete_flag 已经是 0，说明已经收藏过了，静默处理（不报错，也不重复计分）
     }
 
     @Override

@@ -42,6 +42,9 @@ public class BookSaveReqVO implements Serializable
     /** 标签列表 */
     private List<String> tags;
 
+    /** 章节列表 */
+    private List<BookChapterSaveUpdateVO> chapters;
+
     public Long getId()
     {
         return id;
@@ -124,5 +127,13 @@ public class BookSaveReqVO implements Serializable
 
     public void setTags(List<String> tags) {
         this.tags = tags;
+    }
+
+    public List<BookChapterSaveUpdateVO> getChapters() {
+        return chapters;
+    }
+
+    public void setChapters(List<BookChapterSaveUpdateVO> chapters) {
+        this.chapters = chapters;
     }
 }
