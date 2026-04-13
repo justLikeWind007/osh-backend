@@ -107,6 +107,24 @@ spring:
         max-active: 8
         # #连接池最大阻塞等待时间（使用负值表示没有限制）
         max-wait: -1ms
+  kafka:
+    bootstrap-servers: 43.242.200.25:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # 消费者配置
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      group-id: my-group
+      # 从最新偏移量开始读取
+      auto-offset-reset: latest
+      # 自动提交偏移量
+      enable-auto-commit: true
+      # 监听器配置
+    listener:
+      # 手动提交模式
+      ack-mode: manual_immediate
 
 # token配置
 token:
@@ -160,8 +178,8 @@ elasticsearch:
 # cloude flare OSS
 x-file-storage:
   cloudflare-r2:
-    access-key: 57d33560810af6e5e58b7529eed60236
-    secret-key: 09a82e5a301c1c520e87f995581e064d6f4a2d60bdb22e9f0e10089f784b9902
+    access-key: 219c0e021c95bb90651219b377ee1f88
+    secret-key: c71b961381071bc9b0b51d80757c7d2cf0efcd609054f10f8ad0c1de493b1102
     endpoint: https://645fe29b30ebce3e940e06365ce74872.r2.cloudflarestorage.com
     bucket-name: osh
     public-domain: https://pub-cc2625f0659a489793764180efc40d08.r2.dev

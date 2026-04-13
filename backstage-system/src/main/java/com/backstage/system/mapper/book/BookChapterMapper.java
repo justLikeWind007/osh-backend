@@ -29,4 +29,12 @@ public interface BookChapterMapper extends BaseMapper<BookChapter>
      * @return 电子书章节集合
      */
     List<BookChapterVO> selectBookChapterListByBookId(Long bookId);
+
+    /**
+     * 查询电子书当前最大章节号
+     *
+     * @param bookId 电子书ID
+     * @return 最大章节号
+     */
+    Integer selectMaxChapterNoByBookId(@Param("bookId") Long bookId);
 }

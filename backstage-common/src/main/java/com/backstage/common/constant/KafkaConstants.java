@@ -1,0 +1,12 @@
+package com.backstage.common.constant;
+
+/**
+ * Created with IntelliJ IDEA.
+ * Description:
+ * User: 九转苍翎
+ * Date: 2026/4/12
+ * Time: 16:47
+ */
+public class KafkaConstants {
+    public static final String USER_ACTION_TOPIC = "user-action";
+}

@@ -2,6 +2,7 @@ package com.backstage.system.domain.course;
 
 import com.backstage.common.annotation.Excel;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -45,6 +46,7 @@ public class OshCourse {
 
     @Excel(name = "原价")
     @ApiModelProperty("原价/市场价")
+    @JsonProperty("tPrice")
     private BigDecimal tPrice;
 
     @Excel(name = "课程类型")
@@ -87,6 +89,10 @@ public class OshCourse {
     @ApiModelProperty("评论数")
     private Integer commentCount;
 
+    @Excel(name = "提问数")
+    @ApiModelProperty("提问数")
+    private Integer questionCount;
+
 
     @Excel(name = "平均评分")
     @ApiModelProperty("平均评分")
@@ -127,6 +133,18 @@ public class OshCourse {
     @ApiModelProperty("考试ID")
     private Integer examId;
 
+    @ApiModelProperty("资源类型")
+    private Integer resourceType;
+
+    @ApiModelProperty("课程等级")
+    private Integer level;
+
+    @ApiModelProperty("试看内容/试用内容")
+    private String tryContent;
+
+    @ApiModelProperty("标签ID列表（数组）")
+    private Long[] tagIds;
+
 
 
 
@@ -149,6 +167,22 @@ public class OshCourse {
 
     public void setExamId(Integer examId) {
         this.examId = examId;
+    }
+
+    public Integer getResourceType() {
+        return resourceType;
+    }
+
+    public void setResourceType(Integer resourceType) {
+        this.resourceType = resourceType;
+    }
+
+    public Integer getLevel() {
+        return level;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
     }
 
     public Long getId() {
@@ -289,6 +323,14 @@ public class OshCourse {
         this.commentCount = commentCount;
     }
 
+    public Integer getQuestionCount() {
+        return questionCount;
+    }
+
+    public void setQuestionCount(Integer questionCount) {
+        this.questionCount = questionCount;
+    }
+
     public BigDecimal getRatingScore() {
         return ratingScore;
     }
@@ -351,6 +393,22 @@ public class OshCourse {
 
     public void setIntro(String intro) {
         this.intro = intro;
+    }
+
+    public String getTryContent() {
+        return tryContent;
+    }
+
+    public void setTryContent(String tryContent) {
+        this.tryContent = tryContent;
+    }
+
+    public Long[] getTagIds() {
+        return tagIds;
+    }
+
+    public void setTagIds(Long[] tagIds) {
+        this.tagIds = tagIds;
     }
 
     public BigDecimal gettPrice() {
