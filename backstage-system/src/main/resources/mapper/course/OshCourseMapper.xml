@@ -301,6 +301,24 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         order by create_time
     </select>
 
+    <update id="updateCourseSection" parameterType="com.backstage.system.domain.course.OshCourseSection">
+        update osh_course_section
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="title != null and title != ''">title = #{title},</if>
+            <if test="freeFlag != null">free_flag = #{freeFlag},</if>
+            <if test="duration != null">duration = #{duration},</if>
+            <if test="mediaUrl != null and mediaUrl != ''">media_url = #{mediaUrl},</if>
+            <if test="textContent != null and textContent != ''">text_content = #{textContent},</if>
+            <if test="fileSize != null">file_size = #{fileSize},</if>
+            <if test="sort != null">sort = #{sort},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            update_time = now(),
+        </trim>
+        where id = #{id}
+        and delete_flag = 0
+    </update>
+
+
     <select id="pageQuerySearchCourse" parameterType="com.backstage.system.request.CourseSearchRequest" resultMap="CourseSearchLoginResult">
         select distinct
         <include refid="searchCourseColumns"/>,

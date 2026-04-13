@@ -298,11 +298,24 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
     @Override
     public Long createCourseVideoSection(CourseVideoSectionCreateRequest request, User operator) {
+        // 有 id → 更新
+        if (request.getId() != null) {
+            OshCourseSection section = buildVideoSectionForUpdate(request, operator);
+            section.setId(request.getId());
+            oshCourseMapper.updateCourseSection(section);
+            return request.getId();
+        }
+        // 无 id → 新增，先校验必填
+        if (StringUtils.isBlank(request.getMediaUrl())) {
+            throw new IllegalArgumentException("视频地址不能为空");
+        }
         ensureCourseExists(request.getCourseId());
         ensureParentChapter(request.getCourseId(), request.getParentId());
         OshCourseSection section = buildVideoSectionForCreate(request, operator);
         return insertCourseSection(section);
     }
+
+
 
     /**
      * 修改课程
@@ -353,6 +366,22 @@ public class OshCourseServiceImpl implements IOshCourseService {
             return oshCourseMapper.deleteCourseSectionById(id, operator.getUsername()) > 0;
         }
     }
+
+    private OshCourseSection buildVideoSectionForUpdate(CourseVideoSectionCreateRequest req, User operator) {
+        OshCourseSection s = new OshCourseSection();
+        s.setTitle(req.getTitle());
+        s.setFreeFlag(req.getFreeFlag());
+        s.setDuration(req.getDuration());
+        if (req.getMediaUrl() != null && !req.getMediaUrl().isEmpty()) {
+            s.setMediaUrl(req.getMediaUrl()); // 只有传了才更新
+        }
+        s.setTextContent(req.getTextContent());
+        s.setFileSize(req.getFileSize());
+        s.setSort(req.getSort());
+        s.setUpdateBy(operator.getUsername());
+        return s;
+    }
+
 
     /**
      * 内部私有方法：循环处理 List 中的封面 URL

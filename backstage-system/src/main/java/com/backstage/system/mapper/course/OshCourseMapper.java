@@ -107,6 +107,8 @@ public interface OshCourseMapper
     OshCourseSection selectCourseSectionById(@Param("id") Long id);
 
     int insertCourseSection(OshCourseSection section);
+    int updateCourseSection(OshCourseSection section);
+
 
     String getCourseSectionContent(@Param("sectionId") Long sectionId);
 
