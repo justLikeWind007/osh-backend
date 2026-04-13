@@ -63,4 +63,15 @@ public interface OshPracticalWebsiteService {
     int batchDeleteWebsite(List<Integer> websiteIds);
 
     OshPracticalWebsiteVO getAuditDetail(Long websiteId);
+
+    /**
+     * 更新单个网站的评分
+     * @param websiteId 网站主键ID
+     */
+    void updateWebsiteRatingScore(Long websiteId);
+
+    /**
+     * 批量更新所有网站的评分
+     */
+    void batchUpdateAllWebsiteRatingScores();
 }
