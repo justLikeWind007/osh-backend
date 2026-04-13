@@ -130,6 +130,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="level" column="level"/>
         <result property="status" column="status"/>
         <result property="examId" column="exam_id"/>
+        <result property="collectionCount" column="collection_count"/>
         <result property="collectionFlag" column="collection_flag"/>
         <result property="buyFlag" column="buy_flag"/>
     </resultMap>
@@ -271,6 +272,22 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                exam_id
         from osh_course
     </sql>
+
+    <select id="selectByUserIdAndCourseId" resultType="com.backstage.system.domain.course.OshCourseCollection">
+        select id, user_id, course_id, delete_flag
+        from osh_course_collection
+        where user_id = #{userId}
+        and course_id = #{courseId}
+        limit 1
+    </select>
+
+    <update id="updateCollectionDeleteFlag">
+        update osh_course_collection
+        set delete_flag = #{deleteFlag},
+        update_by = #{updateBy},
+        update_time = now()
+        where id = #{id}
+    </update>
 
     <!-- 查询课程详情 -->
     <select id="selectCourseById" parameterType="Long" resultMap="OshCouresResult">

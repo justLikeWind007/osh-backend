@@ -1,5 +1,6 @@
 package com.backstage.system.mapper.course;
 
+import com.backstage.system.domain.course.OshCourseCollection;
 import com.backstage.system.domain.course.OshCourseSection;
 import com.backstage.system.domain.course.OshCourseMaterial;
 import com.backstage.system.domain.course.vo.CourseSearchLoginVo;
@@ -136,4 +137,6 @@ public interface OshCourseMapper
      * @return 课程列表（仅包含id和cover）
      */
     List<OshCourse> selectCoursesByIds(List<Long> ids);
+
+
 }

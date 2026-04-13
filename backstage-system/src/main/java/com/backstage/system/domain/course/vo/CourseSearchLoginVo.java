@@ -105,6 +105,17 @@ public class CourseSearchLoginVo {
     @ApiModelProperty("是否已购买：0-否，1-是")
     private Integer buyFlag;
 
+    @ApiModelProperty("收藏数")
+    private Integer collectionCount;
+
+    public Integer getCollectionCount() {
+        return collectionCount;
+    }
+
+    public void setCollectionCount(Integer collectionCount) {
+        this.collectionCount = collectionCount;
+    }
+
     public Long getId() {
         return id;
     }
