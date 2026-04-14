@@ -16,4 +16,77 @@
                 #{oshSiteUsage.updateTime})
     </insert>
 
+    <resultMap type="OshSiteMaintainer" id="OshSiteResponsibleResult">
+        <result property="id" column="id"/>
+        <result property="siteId" column="site_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="userName" column="user_name"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="creationTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="isDeleted" column="is_deleted"/>
+    </resultMap>
+
+    <sql id="selectResponsibleVo">
+        select id,
+               site_id,
+               user_id,
+               user_name,
+               created_by,
+               create_time,
+               update_by,
+               update_time,
+               is_deleted
+        from osh_site_maintainer
+    </sql>
+
+    <select id="selectResponsibleBySiteId" parameterType="Long" resultMap="OshSiteResponsibleResult">
+        <include refid="selectResponsibleVo"/>
+        where site_id = #{siteId} and is_deleted = 0
+        order by create_time asc
+    </select>
+
+    <insert id="insertResponsible" parameterType="OshSiteMaintainer" useGeneratedKeys="true" keyProperty="id">
+        insert into osh_site_maintainer
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="siteId != null">site_id,</if>
+            <if test="userId != null">user_id,</if>
+            <if test="userName != null and userName != ''">user_name,</if>
+            <if test="createdBy != null">created_by,</if>
+            <if test="creationTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="isDeleted != null">is_deleted,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="siteId != null">#{siteId},</if>
+            <if test="userId != null">#{userId},</if>
+            <if test="userName != null and userName != ''">#{userName},</if>
+            <if test="createdBy != null">#{createdBy},</if>
+            <if test="creationTime != null">#{creationTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="isDeleted != null">#{isDeleted},</if>
+        </trim>
+    </insert>
+
+    <delete id="deleteResponsibleById" parameterType="Long">
+        update osh_site_maintainer
+        set is_deleted = 1
+        where id = #{id}
+    </delete>
+
+    <delete id="deleteResponsibleByIds" parameterType="Long">
+        update osh_site_maintainer set is_deleted = 1 where id in
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <delete id="deleteResponsibleBySiteId" parameterType="Long">
+        update osh_site_maintainer
+        set is_deleted = 1
+        where site_id = #{siteId}
+    </delete>
 </mapper>
