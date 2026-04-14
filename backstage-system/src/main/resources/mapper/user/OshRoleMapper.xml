@@ -13,7 +13,7 @@
 
     <resultMap id="OshRoleVO" type="com.backstage.system.domain.user.vo.OshRoleVO">
         <id property="roleName" column="role_name"/>
-        <result property="roleName" column="role_code"/>
+        <result property="roleCode" column="role_code"/>
         <result property="level" column="level"/>
     </resultMap>
 

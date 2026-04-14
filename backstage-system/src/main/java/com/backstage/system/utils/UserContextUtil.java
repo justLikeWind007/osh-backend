@@ -7,8 +7,6 @@ import com.backstage.system.domain.user.User;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 /**
  * Created with IntelliJ IDEA.
  * Description:
@@ -27,12 +25,18 @@ public class UserContextUtil {
         User user = getCurrentUser();
         CurrentUser currentUser = new CurrentUser();
         BeanUtils.copyProperties(user,currentUser);
-        currentUser.setRole(ThreadLocalUtil.get(OshUserConstants.ROLE,List.class));
-        currentUser.setPermissionList(ThreadLocalUtil.get(OshUserConstants.PERMISSION,List.class));
         return currentUser;
     }
 
     public static Long getCurrentUserId() {
         return ThreadLocalUtil.get(OshUserConstants.USER_ID,Long.class);
+    }
+
+    public static Integer getCurrentLevel() {
+        return Integer.parseInt(ThreadLocalUtil.get(OshUserConstants.LEVEL,String.class));
+    }
+
+    public static Boolean hasPermission(Integer level) {
+        return getCurrentLevel() >= level;
     }
 }

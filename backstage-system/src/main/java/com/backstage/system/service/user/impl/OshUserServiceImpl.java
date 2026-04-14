@@ -81,8 +81,9 @@ public class OshUserServiceImpl implements IOshUserService {
         Integer roleId = oshRoleMapper.getRoleIdsByUserId(user.getId());
         List<String> role = getRole(roleId);
         List<String> permissionList = getPermission(roleId);
+        userLoginVo.setRole(role);
+        userLoginVo.setPermissionList(permissionList);
         Map<String, Object> map = new HashMap<>();
-        map.put(OshUserConstants.TOKEN, token);
         map.put(OshUserConstants.ROLE, role);
         map.put(OshUserConstants.PERMISSION, permissionList);
         redisCache.setCacheObject(OshUserConstants.LOGIN_USER + user.getId(), map, 500, TimeUnit.MINUTES);
@@ -127,6 +128,7 @@ public class OshUserServiceImpl implements IOshUserService {
         oshUserMapper.register(userMap.get(OshUserConstants.USERNAME), userMap.get(OshUserConstants.PASSWORD), userMap.get(OshUserConstants.EMAIL));
         User user = oshUserMapper.getUserByUsername(userMap.get(OshUserConstants.USERNAME));
         oshUserMapper.addUniqueId(user.getId(), uniqueId);
+        oshUserMapper.addRole(user.getId());
         redisCache.deleteObject(OshUserConstants.UNIQUE_ID + uniqueId);
         return R.ok(ResultCode.SUCCESS.getMsg());
     }

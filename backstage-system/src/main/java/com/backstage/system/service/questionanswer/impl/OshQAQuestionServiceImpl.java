@@ -13,6 +13,7 @@ import com.backstage.system.mapper.questionanswer.OshQAAnswerMapper;
 import com.backstage.system.mapper.questionanswer.OshQAQuestionMapper;
 import com.backstage.system.mapper.questionanswer.OshQATagMapper;
 import com.backstage.system.service.questionanswer.IOshQAQuestionService;
+import com.backstage.system.utils.UserContextUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.github.pagehelper.PageHelper;
@@ -198,6 +199,7 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
 
     @Override
     public R<String> solve(Long userId, Long questionId, Long answerId) {
+        Boolean isLegal = UserContextUtil.hasPermission(4);
         LambdaQueryWrapper<Answer> answerWrapper = new LambdaQueryWrapper<Answer>()
                 .select(Answer::getQuestionId)
                 .eq(Answer::getId, answerId);
@@ -214,9 +216,6 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
         Question question = oshQaQuestionMapper.selectOne(questionWrapper);
         if (question == null) {
             return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
-        }
-        if (!question.getUserId().equals(userId)) {
-            return R.fail(ResultCode.FAILED_USER_PERMISSION_DENIED.getMsg());
         }
         answer.setIsSolution((byte)1);
         oshQaAnswerMapper.update(answer, answerWrapper);

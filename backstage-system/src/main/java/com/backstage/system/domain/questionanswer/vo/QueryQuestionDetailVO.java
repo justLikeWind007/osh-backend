@@ -2,6 +2,8 @@ package com.backstage.system.domain.questionanswer.vo;
 
 import com.backstage.common.core.domain.entity.OSHBaseEntity;
 import com.backstage.system.domain.questionanswer.Answer;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 import java.util.List;
 
@@ -16,6 +18,7 @@ public class QueryQuestionDetailVO extends OSHBaseEntity {
     /**
      * 主键id
      */
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
 
     /**

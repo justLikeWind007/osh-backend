@@ -23,6 +23,8 @@ public interface OshUserMapper {
 
     int addUniqueId(@Param("userId") Long userId,@Param("uniqueId") String uniqueId);
 
+    int addRole(@Param("userId") Long userId);
+
     String getUniqueIdByUserId(@Param("userId") Long userId);
 
     Long getUserIdByUniqueId(String uniqueId);

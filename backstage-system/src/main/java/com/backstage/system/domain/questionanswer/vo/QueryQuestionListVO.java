@@ -1,5 +1,8 @@
 package com.backstage.system.domain.questionanswer.vo;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+
 /**
  * Created with IntelliJ IDEA.
  * Description:
@@ -11,6 +14,7 @@ public class QueryQuestionListVO {
     /**
      * 主键id
      */
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
 
     /**

@@ -1,5 +1,8 @@
 package com.backstage.system.domain.questionanswer.vo;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+
 /**
  * Created with IntelliJ IDEA.
  * Description:
@@ -8,6 +11,7 @@ package com.backstage.system.domain.questionanswer.vo;
  * Time: 20:03
  */
 public class ResourceVO {
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long resourceNo;
     private String resourceName;
 

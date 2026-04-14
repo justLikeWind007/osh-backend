@@ -46,6 +46,10 @@
         insert into osh_user_unique(user_id, unique_id) values (#{userId}, #{uniqueId})
     </insert>
 
+    <insert id="addRole">
+        insert into osh_user_role values (#{userId}, 1, now(), #{userId}, now(), #{userId}, 0)
+    </insert>
+
     <select id="getUniqueIdByUserId" resultType="java.lang.String">
         select unique_id from osh_user_unique where user_id = #{userId}
     </select>
