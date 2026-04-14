@@ -26,8 +26,9 @@
 
     <select id="countTagUsage" resultType="com.backstage.system.domain.site.OshSiteTag">
         SELECT tag_id as id, COUNT(DISTINCT site_id) AS usageCount
-        FROM osh_site_tag_relation
-        WHERE is_deleted = 0 AND tag_id IN
+        FROM osh_site_tag_relation r
+            JOIN osh_site_info s ON r.site_id = s.id
+        WHERE r.is_deleted = 0 AND s.is_deleted = 0 AND tag_id IN
         <foreach collection="tagIds" item="item" open="(" close=")" separator=",">
             #{item}
         </foreach>

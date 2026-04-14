@@ -1,7 +1,6 @@
 package com.backstage.system.domain.site;
 
 import com.backstage.system.domain.user.User;
-import com.backstage.system.mapper.user.OshUserMapper;
 import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
@@ -73,6 +72,12 @@ public class OshSiteInfo implements Serializable {
   private Date lastCheckTime;
 
   /**
+   * 最后检查状态
+   */
+  @TableField(value = "last_check_status")
+  private String lastCheckStatus;
+
+  /**
    * 创建人ID/账号
    */
   @TableField(value = "created_by", updateStrategy = FieldStrategy.NEVER)
@@ -107,6 +112,7 @@ public class OshSiteInfo implements Serializable {
   /**
    * 维护者
    */
+  @TableField(exist = false)
   private List<User> maintainers;
 
   public Long getId() {
@@ -219,5 +225,13 @@ public class OshSiteInfo implements Serializable {
 
   public void setMaintainers(List<User> maintainers) {
     this.maintainers = maintainers;
+  }
+
+  public String getLastCheckStatus() {
+    return lastCheckStatus;
+  }
+
+  public void setLastCheckStatus(String lastCheckStatus) {
+    this.lastCheckStatus = lastCheckStatus;
   }
 }
