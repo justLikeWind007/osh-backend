@@ -12,14 +12,18 @@ import com.backstage.system.domain.website.OshWebsiteTag;
 import com.backstage.system.mapper.website.OshPracticalWebsiteMapper;
 import com.backstage.system.mapper.website.OshWebsiteTagMapper;
 import com.backstage.system.service.website.OshPracticalWebsiteService;
+import com.backstage.system.utils.WebsiteRatingCalculatorUtil;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -30,27 +34,35 @@ import java.util.List;
  */
 @Service
 public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteService {
+    private static final Logger log = LoggerFactory.getLogger(OshPracticalWebsiteServiceImpl.class);
     @Autowired
     private OshPracticalWebsiteMapper oshPracticalWebsiteMapper;
     @Autowired
     private OshWebsiteTagMapper oshWebsiteTagMapper;
     @Autowired
     private EmailUtil emailUtil;
-
+    /**
+     * 查询网站列表
+     *
+     * @param queryDTO
+     * @return
+     */
     @Override
     public List<OshPracticalWebsiteVO> selectWebsitePage(WebsiteQueryDTO queryDTO) {
         if (queryDTO == null) {
-            return Collections.emptyList();
+            queryDTO = new WebsiteQueryDTO();
         }
         Integer pageNum = queryDTO.getPageNum();
         Integer pageSize = queryDTO.getPageSize();
         PageHelper.startPage(pageNum, pageSize);
         return oshPracticalWebsiteMapper.selectWebsitePage(queryDTO);
-        //PageInfo<OshPracticalWebsiteVo> pageInfo = new PageInfo<>(list);
-        //pageInfo.getList();
-
     }
-
+    /**
+     * 递增点击次数
+     *
+     * @param websiteId
+     * @return
+     */
     @Override
     public int incrementClickCount(Long websiteId) {
         if (websiteId == null) {
@@ -58,7 +70,13 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
         }
         return oshPracticalWebsiteMapper.incrementClickCount(websiteId);
     }
-    @Transactional(rollbackFor = Exception.class)
+    /**
+     * 提交网站
+     *
+     * @param submitDto
+     * @return
+     */
+
     @Override
     public int submitWebsite(WebsiteSubmitDTO submitDto) {
         // 1. 参数校验（必填字段检查）
@@ -100,7 +118,12 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
         tag.setDeleteFlag(0);
         return oshWebsiteTagMapper.insertWebsiteTag(tag);
     }
-
+    /**
+     * 审核网站
+     *
+     * @param auditDto
+     * @return
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Boolean auditWebsite(WebsiteAuditDTO auditDto) {
@@ -134,9 +157,14 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
 
         // 5. 更新对应数据库
        return oshPracticalWebsiteMapper.updateStatusById(website);
-
     }
-
+    /**
+     * 查询待审核列表
+     *
+     * @param pageNum
+     * @param pageSize
+     * @return
+     */
     @Override
     public TableDataInfo selectAuditList(Integer pageNum, Integer pageSize) {
         PageHelper.startPage(pageNum, pageSize);
@@ -145,7 +173,12 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
         PageInfo<OshPracticalWebsite> pageInfo = new PageInfo<>(list);
         return new TableDataInfo(pageInfo.getList(), pageInfo.getTotal());
     }
-
+    /**
+     * 批量删除网站
+     *
+     * @param websiteIds
+     * @return
+     */
     @Transactional(rollbackFor = Exception.class)
     @Override
     public int batchDeleteWebsite(List<Integer> websiteIds) {
@@ -162,6 +195,78 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
         }
         return oshPracticalWebsiteMapper.selectByIdAndStatus(websiteId, 0);
     }
+    /**
+     * 更新网站评分
+     *
+     * @param websiteId
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateWebsiteRatingScore(Long websiteId) {
+        if (websiteId == null) {
+            return;
+        }
+        try {
+            OshPracticalWebsite websiteEvaluation = oshPracticalWebsiteMapper.selectByIdForUpdate(websiteId);
+            if (websiteEvaluation != null) {
+                BigDecimal ratingScore = WebsiteRatingCalculatorUtil.calculateRatingScore(
+                        websiteEvaluation.getGoodCount(),
+                        websiteEvaluation.getMidCount(),
+                        websiteEvaluation.getBadCount(),
+                        websiteEvaluation.getClickCount(),
+                        websiteEvaluation.getCreateTime()
+                );
+                oshPracticalWebsiteMapper.updateRatingScoreById(websiteId, ratingScore);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    /**
+     * 批量更新所有网站评分
+     */
+    @Override
+    @Scheduled(cron = "0 0 2 * * ?")
+    public void batchUpdateAllWebsiteRatingScores() {
+        try {
+            List<OshPracticalWebsite> websitesEvaluation = oshPracticalWebsiteMapper.selectAllWebsitesForRating();
+            if (websitesEvaluation == null || websitesEvaluation.isEmpty()) {
+                log.info("没有需要更新评分的网站");
+                return;
+            }
+            log.info("开始批量更新评分,共 {} 个网站", websitesEvaluation.size());
+            int successCount = 0;
+            int failCount = 0;
+            for (OshPracticalWebsite website : websitesEvaluation) {
+                try {
+                    BigDecimal ratingScore = WebsiteRatingCalculatorUtil.calculateRatingScore(
+                            website.getGoodCount(),
+                            website.getMidCount(),
+                            website.getBadCount(),
+                            website.getClickCount(),
+                            website.getCreateTime()
+                    );
+                    int result = oshPracticalWebsiteMapper.updateRatingScoreById(website.getId(), ratingScore);
+                    if (result > 0) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                        log.error("更新网站ID={}的评分失败", website.getId());
+
+                    }
+                } catch (Exception e) {
+                    failCount++;
+                    log.error("更新网站ID={}的评分异常", website.getId(), e);
+                    e.printStackTrace();
+                }
+            }
+            log.info("批量更新评分完成，共更新 {} 条记录", successCount);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
 }
 
 

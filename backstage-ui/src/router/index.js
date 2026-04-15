@@ -61,6 +61,35 @@ export const constantRoutes = [
     component: () => import('@/views/error/401'),
     hidden: true
   },
+  // ===== 课程演示路由（无需登录，无需后端） =====
+  {
+    path: '/demo/courses',
+    component: () => import('@/views/course/list/index'),
+    hidden: true,
+    name: 'CourseListDemo',
+    meta: { title: '课程列表' }
+  },
+  {
+    path: '/demo/course/create',
+    component: () => import('@/views/course/form/index'),
+    hidden: true,
+    name: 'CourseFormDemo',
+    meta: { title: '新增课程' }
+  },
+  {
+    path: '/demo/course/detail/:id',
+    component: () => import('@/views/course/detail/index'),
+    hidden: true,
+    name: 'CourseDetailDemo',
+    meta: { title: '课程详情' }
+  },
+  {
+    path: '/demo/player',
+    component: () => import('@/views/course/player/CoursePlayer'),
+    hidden: true,
+    name: 'CoursePlayerDemo',
+    meta: { title: '课程播放器演示' }
+  },
   {
     path: '',
     component: Layout,

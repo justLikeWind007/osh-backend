@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.course.OshCourseCollectionMapper">
+
+    <resultMap id="OshCourseCollectionResult" type="com.backstage.system.domain.course.OshCourseCollection">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="courseId" column="course_id"/>
+        <result property="deleteFlag" column="delete_flag"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectByUserIdAndCourseId" resultMap="OshCourseCollectionResult">
+        select id, user_id, course_id, delete_flag
+        from osh_course_collection
+        where user_id = #{userId}
+        and course_id = #{courseId}
+        limit 1
+    </select>
+
+    <insert id="insertCourseCollection" parameterType="com.backstage.system.domain.course.OshCourseCollection"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into osh_course_collection (
+        user_id, course_id, delete_flag, create_by, create_time, update_by, update_time
+        ) values (
+        #{userId}, #{courseId}, 0, #{createBy}, now(), #{updateBy}, now()
+        )
+    </insert>
+
+    <update id="updateCollectionDeleteFlag">
+        update osh_course_collection
+        set delete_flag = #{deleteFlag},
+        update_by = #{operator},
+        update_time = now()
+        where id = #{id}
+    </update>
+</mapper>

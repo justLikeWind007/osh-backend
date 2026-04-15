@@ -5,7 +5,7 @@ import com.backstage.common.core.domain.R;
 import com.backstage.common.utils.SecurityUtils;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.system.domain.book.BookDO;
-import com.backstage.system.service.IBookService;
+import com.backstage.system.service.book.IBookService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.springframework.web.bind.annotation.*;
 

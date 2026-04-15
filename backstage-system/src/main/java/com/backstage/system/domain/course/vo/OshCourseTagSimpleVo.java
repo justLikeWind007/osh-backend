@@ -1,5 +1,7 @@
 package com.backstage.system.domain.course.vo;
 
+import org.apache.commons.lang3.StringUtils;
+
 public class OshCourseTagSimpleVo {
 
     private Long id;
@@ -30,7 +32,7 @@ public class OshCourseTagSimpleVo {
     }
 
     public void setName(String name) {
-        this.name = name;
+        this.name = StringUtils.trimToNull(name);
     }
 
     public Integer getSort() {

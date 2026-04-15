@@ -2,12 +2,10 @@ package com.backstage.system.controller.book;
 
 import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.R;
-import com.backstage.common.utils.SecurityUtils;
-import com.backstage.system.domain.book.BookDO;
 import com.backstage.system.domain.vo.book.*;
-import com.backstage.system.service.IBookService;
+import com.backstage.system.service.book.IBookService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import org.springframework.beans.factory.annotation.Autowired;
+import io.swagger.annotations.ApiOperation;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -111,4 +109,34 @@ public class BookController {
         return R.ok(bookService.getTagList());
     }
 
+    /**
+     * 新增电子书章节
+     */
+    @Anonymous
+    @ApiOperation(value = "新增电子书章节")
+    @PostMapping("/chapter/create")
+    public R<String> createBookChapter(@RequestBody BookChapterSaveUpdateVO reqVO) {
+        if (reqVO.getBookId() == null) {
+            return R.fail("电子书ID不能为空");
+        }
+        bookService.createBookChapter(reqVO);
+        return R.ok("创建成功");
+    }
+
+    /**
+     * 修改电子书章节
+     */
+    @Anonymous
+    @ApiOperation(value = "修改电子书章节")
+    @PostMapping("/chapter/update")
+    public R<String> updateBookChapter(@RequestBody BookChapterSaveUpdateVO reqVO) {
+        if (reqVO.getId() == null) {
+            return R.fail("章节ID不能为空");
+        }
+        if (reqVO.getBookId() == null) {
+            return R.fail("电子书ID不能为空");
+        }
+        bookService.updateBookChapter(reqVO);
+        return R.ok("修改成功");
+    }
 }
