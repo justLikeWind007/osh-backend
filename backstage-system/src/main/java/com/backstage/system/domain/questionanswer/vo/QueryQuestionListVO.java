@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 /**
  * Created with IntelliJ IDEA.
  * Description:
- * User: 九转苍翎
+ * OshUser: 九转苍翎
  * Date: 2026/3/29
  * Time: 18:14
  */
@@ -14,6 +14,7 @@ public class QueryQuestionListVO {
     /**
      * 主键id
      */
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
 
     /**

@@ -14,6 +14,7 @@ import com.backstage.system.mapper.questionanswer.OshQAAnswerMapper;
 import com.backstage.system.mapper.questionanswer.OshQAQuestionMapper;
 import com.backstage.system.mapper.questionanswer.OshQATagMapper;
 import com.backstage.system.service.questionanswer.IOshQAQuestionService;
+import com.backstage.system.utils.UserContextUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.github.pagehelper.PageHelper;
@@ -29,7 +30,7 @@ import java.util.stream.Collectors;
 /**
  * Created with IntelliJ IDEA.
  * Description:
- * User: 九转苍翎
+ * OshUser: 九转苍翎
  * Date: 2026/3/24
  * Time: 21:50
  */
@@ -132,7 +133,7 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
         if (question.getUserId() == null || !question.getUserId().equals(userId)) {
             return R.fail(ResultCode.FAILED_USER_PERMISSION_DENIED.getMsg());
         }
-        question.setDelete_flag((byte) 1);
+        question.setDeleteFlag((byte) 1);
         oshQaQuestionMapper.update(question, new LambdaQueryWrapper<Question>().eq(Question::getId, questionId));
         return R.ok(ResultCode.SUCCESS.getMsg());
     }
@@ -222,8 +223,9 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
 
     @Override
     public R<String> solve(Long userId, Long questionId, Long answerId) {
+        Boolean isLegal = UserContextUtil.hasPermission(4);
         LambdaQueryWrapper<Answer> answerWrapper = new LambdaQueryWrapper<Answer>()
-                .select(Answer::getQuestionId)
+                .select(Answer::getQuestionId, Answer::getIsSolution)
                 .eq(Answer::getId, answerId);
         Answer answer = oshQaAnswerMapper.selectOne(answerWrapper);
         if (answer == null) {
@@ -233,14 +235,14 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
             return R.fail(ResultCode.FAILED.getMsg());
         }
         LambdaQueryWrapper<Question> questionWrapper = new LambdaQueryWrapper<Question>()
-                .select(Question::getUserId)
+                .select(Question::getUserId, Question::getStatus)
                 .eq(Question::getId, questionId);
         Question question = oshQaQuestionMapper.selectOne(questionWrapper);
         if (question == null) {
             return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
         }
-        if (!question.getUserId().equals(userId)) {
-            return R.fail(ResultCode.FAILED_USER_PERMISSION_DENIED.getMsg());
+        if (answer.getIsSolution() == 1 || question.getStatus() == 2) {
+            return R.fail(ResultCode.FAILED_USER_ANSWER_ALREADY_MARKED.getMsg());
         }
         answer.setIsSolution((byte)1);
         oshQaAnswerMapper.update(answer, answerWrapper);

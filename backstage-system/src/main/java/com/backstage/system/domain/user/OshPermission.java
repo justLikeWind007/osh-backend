@@ -1,5 +1,6 @@
 package com.backstage.system.domain.user;
 
+import com.backstage.common.core.domain.entity.OSHBaseEntity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -9,12 +10,12 @@ import java.time.LocalDateTime;
 /**
  * Created with IntelliJ IDEA.
  * Description:
- * User: 九转苍翎
+ * OshUser: 九转苍翎
  * Date: 2026/4/7
  * Time: 14:52
  */
 @TableName("osh_permission")
-public class OshPermission {
+public class OshPermission extends OSHBaseEntity {
 
     @TableId(type = IdType.ASSIGN_ID)
     private Integer id;
@@ -28,11 +29,6 @@ public class OshPermission {
     private String path;
     private String component;
     private Integer sortOrder;
-    private LocalDateTime createTime;
-    private String createBy;
-    private LocalDateTime updateTime;
-    private String updateBy;
-    private Integer deleteFlag;
 
     public Integer getId() {
         return id;
@@ -114,46 +110,6 @@ public class OshPermission {
         this.sortOrder = sortOrder;
     }
 
-    public LocalDateTime getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(LocalDateTime createTime) {
-        this.createTime = createTime;
-    }
-
-    public String getCreateBy() {
-        return createBy;
-    }
-
-    public void setCreateBy(String createBy) {
-        this.createBy = createBy;
-    }
-
-    public LocalDateTime getUpdateTime() {
-        return updateTime;
-    }
-
-    public void setUpdateTime(LocalDateTime updateTime) {
-        this.updateTime = updateTime;
-    }
-
-    public String getUpdateBy() {
-        return updateBy;
-    }
-
-    public void setUpdateBy(String updateBy) {
-        this.updateBy = updateBy;
-    }
-
-    public Integer getDeleteFlag() {
-        return deleteFlag;
-    }
-
-    public void setDeleteFlag(Integer deleteFlag) {
-        this.deleteFlag = deleteFlag;
-    }
-
     @Override
     public String toString() {
         return "OshPermission{" +
@@ -167,11 +123,6 @@ public class OshPermission {
                 ", path='" + path + '\'' +
                 ", component='" + component + '\'' +
                 ", sortOrder=" + sortOrder +
-                ", createTime=" + createTime +
-                ", createBy='" + createBy + '\'' +
-                ", updateTime=" + updateTime +
-                ", updateBy='" + updateBy + '\'' +
-                ", deleteFlag=" + deleteFlag +
                 '}';
     }
 }

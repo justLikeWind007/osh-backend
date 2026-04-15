@@ -27,11 +27,11 @@
 
       <el-dropdown class="avatar-container right-menu-item hover-effect" trigger="hover">
         <div class="avatar-wrapper">
-          <img :src="avatar" class="user-avatar">
-          <span class="user-nickname"> {{ nickName }} </span>
+          <img :src="avatar" class="oshUser-avatar">
+          <span class="oshUser-nickname"> {{ nickName }} </span>
         </div>
         <el-dropdown-menu slot="dropdown">
-          <router-link to="/user/profile">
+          <router-link to="/oshUser/profile">
             <el-dropdown-item>个人中心</el-dropdown-item>
           </router-link>
           <el-dropdown-item divided @click.native="logout">
@@ -180,14 +180,14 @@ export default {
         margin-top: 10px;
         position: relative;
 
-        .user-avatar {
+        .oshUser-avatar {
           cursor: pointer;
           width: 30px;
           height: 30px;
           border-radius: 50%;
         }
 
-        .user-nickname{
+        .oshUser-nickname{
           position: relative;
           bottom: 10px;
           font-size: 14px;

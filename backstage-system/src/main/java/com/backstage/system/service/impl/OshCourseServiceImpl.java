@@ -11,7 +11,7 @@ import com.backstage.system.domain.course.vo.CourseSearchLoginVo;
 import com.backstage.system.domain.course.vo.OshCourseDetailVo;
 import com.backstage.system.domain.course.vo.OshCourseSectionVo;
 import com.backstage.system.domain.course.vo.OshCourseTagSimpleVo;
-import com.backstage.system.domain.user.User;
+import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.enums.CourseResourceEnum;
 import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.course.OshCourseMaterialMapper;
@@ -255,7 +255,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Long createCourse(CourseCreateRequest request, User operator) {
+    public Long createCourse(CourseCreateRequest request, OshUser operator) {
         OshCourse course = buildCourseForCreate(request, operator);
         int rows = oshCourseMapper.insertCourse(course);
         if (rows <= 0) {
@@ -268,7 +268,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Long updateCourse(CourseUpdateRequest request, User operator) {
+    public Long updateCourse(CourseUpdateRequest request, OshUser operator) {
         OshCourse existingCourse = ensureCourseExists(request.getId());
         ensureCourseEditableByOperator(existingCourse, operator);
         OshCourse course = buildCourseForUpdate(request, operator);
@@ -282,14 +282,14 @@ public class OshCourseServiceImpl implements IOshCourseService {
     }
 
     @Override
-    public Long createCourseChapter(CourseChapterCreateRequest request, User operator) {
+    public Long createCourseChapter(CourseChapterCreateRequest request, OshUser operator) {
         ensureCourseExists(request.getCourseId());
         OshCourseSection section = buildChapterSectionForCreate(request, operator);
         return insertCourseSection(section);
     }
 
     @Override
-    public Long createCourseTextSection(CourseTextSectionCreateRequest request, User operator) {
+    public Long createCourseTextSection(CourseTextSectionCreateRequest request, OshUser operator) {
         ensureCourseExists(request.getCourseId());
         ensureParentChapter(request.getCourseId(), request.getParentId());
         OshCourseSection section = buildTextSectionForCreate(request, operator);
@@ -297,7 +297,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
     }
 
     @Override
-    public Long createCourseVideoSection(CourseVideoSectionCreateRequest request, User operator) {
+    public Long createCourseVideoSection(CourseVideoSectionCreateRequest request, OshUser operator) {
         // 有 id → 更新
         if (request.getId() != null) {
             OshCourseSection section = buildVideoSectionForUpdate(request, operator);
@@ -352,7 +352,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean safeDeleteSection(Long id, User operator) {
+    public boolean safeDeleteSection(Long id, OshUser operator) {
         // 1. 先查一下这个东西到底是什么
         OshCourseSection section = oshCourseMapper.selectCourseSectionById(id);
         if (section == null) return false;
@@ -367,7 +367,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         }
     }
 
-    private OshCourseSection buildVideoSectionForUpdate(CourseVideoSectionCreateRequest req, User operator) {
+    private OshCourseSection buildVideoSectionForUpdate(CourseVideoSectionCreateRequest req, OshUser operator) {
         OshCourseSection s = new OshCourseSection();
         s.setTitle(req.getTitle());
         s.setFreeFlag(req.getFreeFlag());
@@ -448,7 +448,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         }
     }
 
-    static OshCourse buildCourseForCreate(CourseCreateRequest request, User operator) {
+    static OshCourse buildCourseForCreate(CourseCreateRequest request, OshUser operator) {
         OshCourse course = new OshCourse();
         course.setTitle(StringUtils.trimToNull(request.getTitle()));
         course.setCover(StringUtils.trimToNull(request.getCover()));
@@ -485,7 +485,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         return value == null ? CourseConstants.DEFAULT_COUNT : value;
     }
 
-    static OshCourse buildCourseForUpdate(CourseUpdateRequest request, User operator) {
+    static OshCourse buildCourseForUpdate(CourseUpdateRequest request, OshUser operator) {
         OshCourse course = new OshCourse();
         course.setId(request.getId());
         course.setTitle(StringUtils.trimToNull(request.getTitle()));
@@ -506,7 +506,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         return course;
     }
 
-    private void bindCourseMaterial(Long courseId, CourseMaterialCreateRequest materialRequest, User operator) {
+    private void bindCourseMaterial(Long courseId, CourseMaterialCreateRequest materialRequest, OshUser operator) {
         if (materialRequest == null) {
             return;
         }
@@ -514,7 +514,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         oshCourseMaterialMapper.insertMaterialEntity(material);
     }
 
-    static OshCourseMaterial buildCourseMaterialForCreate(Long courseId, CourseMaterialCreateRequest materialRequest, User operator) {
+    static OshCourseMaterial buildCourseMaterialForCreate(Long courseId, CourseMaterialCreateRequest materialRequest, OshUser operator) {
         String fileName = StringUtils.trimToNull(materialRequest.getFileName());
         String fileUrl = StringUtils.trimToNull(materialRequest.getFileUrl());
         String fileType = StringUtils.trimToNull(materialRequest.getFileType());
@@ -534,7 +534,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         return material;
     }
 
-    private void rebuildCourseMaterial(Long courseId, CourseMaterialCreateRequest materialRequest, User operator) {
+    private void rebuildCourseMaterial(Long courseId, CourseMaterialCreateRequest materialRequest, OshUser operator) {
         oshCourseMaterialMapper.deleteMaterialsByCourseId(courseId);
         bindCourseMaterial(courseId, materialRequest, operator);
     }
@@ -553,7 +553,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         return list;
     }
 
-    private void bindCourseTags(Long courseId, List<OshCourseTagSimpleVo> tags, User operator) {
+    private void bindCourseTags(Long courseId, List<OshCourseTagSimpleVo> tags, OshUser operator) {
         List<OshCourseTagSimpleVo> normalizedTags = normalizeCourseTags(tags);
         if (normalizedTags.isEmpty()) {
             return;
@@ -565,7 +565,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         }
     }
 
-    private void rebuildCourseTags(Long courseId, List<OshCourseTagSimpleVo> tags, User operator) {
+    private void rebuildCourseTags(Long courseId, List<OshCourseTagSimpleVo> tags, OshUser operator) {
         oshCourseTagMapper.deleteCourseTagRelationByCourseId(courseId);
         bindCourseTags(courseId, tags, operator);
     }
@@ -592,7 +592,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
     }
 
     // 在创建课程时，如果标签不存在，则创建
-    private OshCourseTag resolveCourseTag(OshCourseTagSimpleVo tagVo, User operator) {
+    private OshCourseTag resolveCourseTag(OshCourseTagSimpleVo tagVo, OshUser operator) {
         OshCourseTag existing = oshCourseTagMapper.selectCourseTagByName(tagVo.getName());
         if (existing != null) {
             return existing;
@@ -611,7 +611,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         }
     }
 
-    private void insertCourseTagRelation(Long courseId, Long tagId, User operator) {
+    private void insertCourseTagRelation(Long courseId, Long tagId, OshUser operator) {
         OshCourseTagRel relation = new OshCourseTagRel();
         Date now = new Date();
         relation.setCourseId(courseId);
@@ -625,7 +625,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         oshCourseTagMapper.insertCourseTagRel(relation);
     }
 
-    static OshCourseTag buildCourseTagForCreate(OshCourseTagSimpleVo request, User operator) {
+    static OshCourseTag buildCourseTagForCreate(OshCourseTagSimpleVo request, OshUser operator) {
         OshCourseTag tag = new OshCourseTag();
         Date now = new Date();
         tag.setName(StringUtils.trimToNull(request.getName()));
@@ -641,14 +641,14 @@ public class OshCourseServiceImpl implements IOshCourseService {
         return tag;
     }
 
-    static OshCourseSection buildChapterSectionForCreate(CourseChapterCreateRequest request, User operator) {
+    static OshCourseSection buildChapterSectionForCreate(CourseChapterCreateRequest request, OshUser operator) {
         OshCourseSection section = buildBaseSection(request.getCourseId(), CourseSectionConstants.ROOT_PARENT_ID,
                 request.getTitle(), request.getSort(), operator);
         section.setFreeFlag(CourseSectionConstants.CHAPTER_FREE_FLAG);
         return section;
     }
 
-    static OshCourseSection buildVideoSectionForCreate(CourseVideoSectionCreateRequest request, User operator) {
+    static OshCourseSection buildVideoSectionForCreate(CourseVideoSectionCreateRequest request, OshUser operator) {
         OshCourseSection section = buildBaseSection(request.getCourseId(), request.getParentId(),
                 request.getTitle(), request.getSort(), operator);
         section.setFreeFlag(defaultFreeFlag(request.getFreeFlag()));
@@ -662,7 +662,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         return section;
     }
 
-    static OshCourseSection buildTextSectionForCreate(CourseTextSectionCreateRequest request, User operator) {
+    static OshCourseSection buildTextSectionForCreate(CourseTextSectionCreateRequest request, OshUser operator) {
         OshCourseSection section = buildBaseSection(request.getCourseId(), request.getParentId(),
                 request.getTitle(), request.getSort(), operator);
         section.setFreeFlag(defaultFreeFlag(request.getFreeFlag()));
@@ -684,7 +684,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         return course;
     }
 
-    private void ensureCourseEditableByOperator(OshCourse course, User operator) {
+    private void ensureCourseEditableByOperator(OshCourse course, OshUser operator) {
         String creator = course == null ? null : StringUtils.trimToNull(course.getCreateBy());
         String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
         if (!StringUtils.equals(creator, operatorName)) {
@@ -705,7 +705,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         }
     }
 
-    private static OshCourseSection buildBaseSection(Long courseId, Long parentId, String title, Integer sort, User operator) {
+    private static OshCourseSection buildBaseSection(Long courseId, Long parentId, String title, Integer sort, OshUser operator) {
         OshCourseSection section = new OshCourseSection();
         Date now = new Date();
         section.setCourseId(courseId);
