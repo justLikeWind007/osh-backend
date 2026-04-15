@@ -102,7 +102,7 @@ public class OshQAController {
 
     @Anonymous
     @ApiOperation("问题列表")
-    @GetMapping("/question/list")
+    @PostMapping("/question/list")
     public TableDataInfo list(@RequestBody QueryQuestionListDTO queryQuestionListDTO) {
         return IOshQAQuestionService.list(UserContextUtil.getCurrentUserId(), queryQuestionListDTO.getResourceNo(),
                 queryQuestionListDTO.getResourceType(), queryQuestionListDTO.getType(), queryQuestionListDTO.getKeyword(), queryQuestionListDTO.getPageNum(), queryQuestionListDTO.getPageSize());
@@ -131,7 +131,7 @@ public class OshQAController {
 
     @Anonymous
     @ApiOperation("问题详情")
-    @GetMapping("/question/detail")
+    @PostMapping("/question/detail")
     @OshUserActionLog(module = "答疑模块", actionType = "查询", description = "查询问题详情")
     public R<QueryQuestionDetailVO> detail(@RequestBody QueryQuestionDetailDTO queryQuestionDetailDTO) {
         return IOshQAQuestionService.detail(UserContextUtil.getCurrentUserId(), queryQuestionDetailDTO.getQuestionId());

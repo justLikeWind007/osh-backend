@@ -1,5 +1,7 @@
 package com.backstage.system.domain.vo.book;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.io.Serializable;
 
 /**
@@ -17,11 +19,16 @@ public class BookChapterVO implements Serializable
     /** 章节标题 */
     private String title;
 
-    /** 排序 */
-    private Integer orderby;
+    /** 第几章 */
+    @JsonProperty("chapter_no")
+    private Integer chapterNo;
+
+    /** 展示排序 */
+    @JsonProperty("sort_order")
+    private Integer sortOrder;
 
     /** 是否免费（0收费 1免费） */
-    private Integer isfree;
+    private Integer isFree;
 
     public Long getId()
     {
@@ -43,23 +50,33 @@ public class BookChapterVO implements Serializable
         this.title = title;
     }
 
-    public Integer getOrderby()
+    public Integer getChapterNo()
     {
-        return orderby;
+        return chapterNo;
     }
 
-    public void setOrderby(Integer orderby)
+    public void setChapterNo(Integer chapterNo)
     {
-        this.orderby = orderby;
+        this.chapterNo = chapterNo;
     }
 
-    public Integer getIsfree()
+    public Integer getSortOrder()
     {
-        return isfree;
+        return sortOrder;
     }
 
-    public void setIsfree(Integer isfree)
+    public void setSortOrder(Integer sortOrder)
     {
-        this.isfree = isfree;
+        this.sortOrder = sortOrder;
+    }
+
+    public Integer getIsFree()
+    {
+        return isFree;
+    }
+
+    public void setIsFree(Integer isFree)
+    {
+        this.isFree = isFree;
     }
 }

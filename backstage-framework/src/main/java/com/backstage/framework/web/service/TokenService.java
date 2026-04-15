@@ -1,22 +1,17 @@
 package com.backstage.framework.web.service;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import javax.servlet.http.HttpServletRequest;
 
-import com.backstage.common.constant.OshUserConstants;
-import com.backstage.common.core.domain.entity.SysUser;
-import com.backstage.system.domain.user.User;
-import com.backstage.system.mapper.user.OshUserMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import com.backstage.common.constant.Constants;
+import com.backstage.common.constant.OshUserConstants;
 import com.backstage.common.core.domain.model.LoginUser;
 import com.backstage.common.core.redis.RedisCache;
 import com.backstage.common.utils.ServletUtils;
@@ -60,9 +55,6 @@ public class TokenService
     @Autowired
     private RedisCache redisCache;
 
-    @Autowired
-    private OshUserMapper oshUserMapper;
-
     /**
      * 获取用户身份信息
      * 
@@ -78,26 +70,18 @@ public class TokenService
             {
                 Claims claims = parseToken(token);
                 // 解析对应的权限以及用户信息
-                String uuid = String.valueOf(claims.get(OshUserConstants.USER_ID));
+                String uuid = (String) claims.get(Constants.LOGIN_USER_KEY);
                 String userKey = getTokenKey(uuid);
-                String jwtTokenInServer = redisCache.getCacheObject(userKey);
-                if (!StringUtils.equals(token, jwtTokenInServer)) {
+                LoginUser loginUser = redisCache.getCacheObject(userKey);
+                if (StringUtils.isNull(loginUser)) {
                     return null;
                 }
-                User currentUser = oshUserMapper.getUserInfoById(Long.valueOf(uuid));
-                // TODO 临时绕过
-                LoginUser loginUser = new LoginUser();
-                loginUser.setUserId(currentUser.getId());
-                loginUser.setExpireTime(LocalDateTime.now().minusMinutes(30).atZone(ZoneId.systemDefault()).toInstant().getEpochSecond());
-                SysUser sysUser = new SysUser();
-                sysUser.setUserId(currentUser.getId());
-                sysUser.setUserName(currentUser.getUsername());
-                loginUser.setUser(sysUser);
                 return loginUser;
             }
             catch (Exception e)
             {
                 log.error("获取用户信息异常'{}'", e.getMessage());
+                log.debug("Token解析失败的详细信息", e);
             }
         }
         return null;
@@ -182,7 +166,7 @@ public class TokenService
      */
     public void setUserAgent(LoginUser loginUser)
     {
-        UserAgent userAgent = UserAgent.parseUserAgentString(ServletUtils.getRequest().getHeader("User-Agent"));
+        UserAgent userAgent = UserAgent.parseUserAgentString(               ServletUtils.getRequest().getHeader("User-Agent"));
         String ip = IpUtils.getIpAddr();
         loginUser.setIpaddr(ip);
         loginUser.setLoginLocation(AddressUtils.getRealAddressByIP(ip));
@@ -242,6 +226,11 @@ public class TokenService
         if (StringUtils.isNotEmpty(token) && token.startsWith(Constants.TOKEN_PREFIX))
         {
             token = token.replace(Constants.TOKEN_PREFIX, "");
+            log.debug("Token extracted successfully");
+        }
+        else if (StringUtils.isNotEmpty(token))
+        {
+            log.warn("Token format is invalid, expected Bearer prefix");
         }
         return token;
     }

@@ -7,12 +7,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <resultMap type="com.backstage.system.domain.vo.book.BookChapterVO" id="BookChapterVOResult">
         <result property="id" column="id" />
         <result property="title" column="title" />
-        <result property="orderby" column="orderby" />
-        <result property="isfree" column="isfree" />
+        <result property="chapterNo" column="chapter_no" />
+        <result property="sortOrder" column="sort_order" />
+        <result property="isFree" column="isfree" />
     </resultMap>
 
     <sql id="selectBookChapterVo">
-        select id, book_id, title, content, orderby, isfree, del_flag,
+        select id, book_id, title, content, chapter_no, sort_order, isfree, del_flag,
                create_by, create_time, update_by, update_time, remark
         from osh_book_chapter
     </sql>
@@ -23,10 +24,16 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <select id="selectBookChapterListByBookId" parameterType="Long" resultMap="BookChapterVOResult">
-        select id, title, orderby, isfree
+        select id, title, chapter_no, sort_order, isfree
         from osh_book_chapter
         where book_id = #{bookId} and del_flag = '0'
-        order by orderby asc
+        order by sort_order asc, chapter_no asc
+    </select>
+
+    <select id="selectMaxChapterNoByBookId" resultType="java.lang.Integer">
+        select max(chapter_no)
+        from osh_book_chapter
+        where book_id = #{bookId} and del_flag = '0'
     </select>
 
 </mapper>

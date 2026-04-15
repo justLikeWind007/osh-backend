@@ -4,8 +4,10 @@ import java.util.List;
 
 import com.backstage.system.domain.fava.OshFava;
 import com.backstage.system.domain.vo.search.SearchResultVo;
+import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+@Mapper
 public interface OshFavaMapper {
     public List<SearchResultVo> selectFavaList(Long userId);
 
