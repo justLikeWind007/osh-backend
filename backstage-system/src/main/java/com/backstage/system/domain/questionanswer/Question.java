@@ -62,6 +62,20 @@ public class Question extends OSHBaseEntity implements Serializable {
      * 关注数
      */
     private Integer followCount;
+    /**
+     * 删除标志：0=存在，1=删除
+     */
+    @TableLogic
+    private Byte deleteFlag;
+
+    // 别忘了写 Getter 和 Setter
+    public Byte getDeleteFlag() {
+        return deleteFlag;
+    }
+
+    public void setDeleteFlag(Byte deleteFlag) {
+        this.deleteFlag = deleteFlag;
+    }
 
 
     public Long getId() {
