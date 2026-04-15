@@ -28,7 +28,7 @@ import java.util.List;
 /**
  * Created with IntelliJ IDEA.
  * Description:
- * User: 九转苍翎
+ * OshUser: 九转苍翎
  * Date: 2026/3/24
  * Time: 21:50
  */
@@ -123,7 +123,7 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
         if (question.getUserId() == null || !question.getUserId().equals(userId)) {
             return R.fail(ResultCode.FAILED_USER_PERMISSION_DENIED.getMsg());
         }
-        question.setDelete_flag((byte) 1);
+        question.setDeleteFlag((byte) 1);
         oshQaQuestionMapper.update(question, new LambdaQueryWrapper<Question>().eq(Question::getId, questionId));
         return R.ok(ResultCode.SUCCESS.getMsg());
     }

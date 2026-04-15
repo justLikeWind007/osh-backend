@@ -4,7 +4,7 @@
 //import com.backstage.common.core.redis.RedisCache;
 //import com.backstage.common.threadlocal.ThreadLocalUtil;
 //import com.backstage.common.utils.jwt.JwtUtil;
-//import com.backstage.system.domain.user.User;
+//import com.backstage.system.domain.user.OshUser;
 //import com.backstage.system.mapper.user.OshUserMapper;
 //import org.springframework.beans.factory.annotation.Autowired;
 //import org.springframework.stereotype.Component;
@@ -16,7 +16,7 @@
 ///**
 // * Created with IntelliJ IDEA.
 // * Description:
-// * User: 九转苍翎
+// * OshUser: 九转苍翎
 // * Date: 2026/3/30
 // * Time: 14:37
 // */
@@ -36,7 +36,7 @@
 //            try {
 //                Long userId = JwtUtil.getUserIdByToken(token);
 //                if (userId != null) {
-//                    User user = oshUserMapper.getUserInfoById(userId);
+//                    OshUser user = oshUserMapper.getUserInfoById(userId);
 //                    ThreadLocalUtil.set(OshUserConstants.USER_ID, userId);
 //                    ThreadLocalUtil.set(OshUserConstants.USER_INFO, user);
 //                }

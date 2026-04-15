@@ -5,8 +5,9 @@ import com.backstage.common.core.redis.RedisCache;
 import com.backstage.common.core.domain.model.OshUserDetail;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.common.utils.jwt.JwtUtil;
-import com.backstage.system.domain.user.User;
+import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.mapper.user.OshUserMapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,7 +26,7 @@ import java.util.*;
 /**
  * Created with IntelliJ IDEA.
  * Description:
- * User: 九转苍翎
+ * OshUser: 九转苍翎
  * Date: 2026/4/13
  * Time: 14:41
  */
@@ -72,8 +73,10 @@ public class OshAuthenticationFilter extends OncePerRequestFilter {
             if (userId != null) {
                 ThreadLocalUtil.set(OshUserConstants.USER_ID, userId);
                 ThreadLocalUtil.set(OshUserConstants.LEVEL, ((List)userInfoMap.get(OshUserConstants.ROLE)).get(2));
-                User user = oshUserMapper.selectUserById(userId);
-                ThreadLocalUtil.set(OshUserConstants.USER_INFO, user);
+                LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
+                wrapper.eq(OshUser::getId, userId);
+                OshUser oshUser = oshUserMapper.selectOne(wrapper);
+                ThreadLocalUtil.set(OshUserConstants.USER_INFO, oshUser);
                 OshUserDetail oshUserDetail = new OshUserDetail();
                 oshUserDetail.setUserInfoMap(userInfoMap);
 

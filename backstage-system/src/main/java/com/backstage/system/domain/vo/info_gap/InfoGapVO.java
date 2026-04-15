@@ -14,7 +14,7 @@ public class InfoGapVO {
     private Integer badCount;
     private java.time.LocalDateTime createTime;
     
-    // 发布者信息 (从 User 表关联)
+    // 发布者信息 (从 OshUser 表关联)
     private String nickname;
     private String avatar;
     

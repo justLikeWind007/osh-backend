@@ -40,7 +40,7 @@ public class OSHBaseEntity {
     /**
      * 逻辑删除：0=未删除，1=已删除
      */
-    private Byte delete_flag;
+    private Byte deleteFlag;
 
     public LocalDateTime getCreateTime() {
         return createTime;
@@ -74,12 +74,12 @@ public class OSHBaseEntity {
         this.updateBy = updateBy;
     }
 
-    public Byte getDelete_flag() {
-        return delete_flag;
+    public Byte getDeleteFlag() {
+        return deleteFlag;
     }
 
-    public void setDelete_flag(Byte delete_flag) {
-        this.delete_flag = delete_flag;
+    public void setDeleteFlag(Byte deleteFlag) {
+        this.deleteFlag = deleteFlag;
     }
 
     @Override
@@ -89,7 +89,7 @@ public class OSHBaseEntity {
                 ", createBy=" + createBy +
                 ", updateTime=" + updateTime +
                 ", updateBy=" + updateBy +
-                ", delete_flag=" + delete_flag +
+                ", deleteFlag=" + deleteFlag +
                 '}';
     }
 }

@@ -19,7 +19,7 @@ drop table if exists `osh_permission`;
 create table `osh_permission` (
     `id` int primary key auto_increment comment '权限ID',
     `permission_name` varchar(100) not null comment '权限名称',
-    `permission_code` varchar(100) comment '权限标识，如：user:list',
+    `permission_code` varchar(100) comment '权限标识，如：oshUser:list',
     `description` varchar(200) comment '权限描述',
     `parent_id` int default 0 comment '父权限ID，0表示顶级权限',
     `type` tinyint default 1 comment '类型：1-菜单，2-按钮/-API',
@@ -37,7 +37,7 @@ create table `osh_permission` (
 -- 3. 用户-角色关联表
 drop table if exists `osh_user_role`;
 create table `osh_user_role` (
-    `user_id` int not null comment '用户ID',
+    `user_id` bigint not null comment '用户ID',
     `role_id` bigint not null comment '角色ID',
     `create_time` datetime default current_timestamp comment '创建时间',
     `create_by` varchar(64) default 'system' comment '创建人',

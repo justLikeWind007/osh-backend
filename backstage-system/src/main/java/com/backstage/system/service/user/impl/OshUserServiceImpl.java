@@ -6,14 +6,13 @@ import com.backstage.common.core.redis.RedisCache;
 import com.backstage.common.enums.ResultCode;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.common.utils.email.EmailUtil;
+import com.backstage.common.utils.generate.GenerateUtil;
 import com.backstage.common.utils.jwt.JwtUtil;
 import com.backstage.common.utils.StringUtils;
-import com.backstage.system.domain.user.OshPermission;
-import com.backstage.system.domain.user.OshRole;
+import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.domain.user.OshUserViolationRecord;
-import com.backstage.system.domain.user.User;
 import com.backstage.system.domain.user.vo.OshRoleVO;
-import com.backstage.system.domain.user.vo.UserLoginVo;
+import com.backstage.system.domain.user.vo.OshUserLoginVo;
 import com.backstage.system.mapper.user.OshPermissionMapper;
 import com.backstage.system.mapper.user.OshRoleMapper;
 import com.backstage.system.mapper.user.OshUserMapper;
@@ -32,7 +31,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created with IntelliJ IDEA.
  * Description:
- * User: 九转苍翎
+ * OshUser: 九转苍翎
  * Date: 2026/3/7
  * Time: 16:42
  */
@@ -53,32 +52,36 @@ public class OshUserServiceImpl implements IOshUserService {
     private OshUserViolationRecordMapper oshUserViolationRecordMapper;
 
     @Override
-    public R<UserLoginVo> login(String username, String password) {
+    public R<OshUserLoginVo> login(String username, String password) {
         if (StringUtils.isEmpty(username) || StringUtils.isEmpty(password)) {
             return R.fail(ResultCode.FAILED_USER_NAME_OR_PASSWORD_EMPTY.getMsg());
         }
-        User user = oshUserMapper.getUserByUsernameOrEmail(username);
-        if (user == null) {
+        LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(OshUser::getUsername, username)
+                .or()
+                .eq(OshUser::getEmail, username);
+        OshUser oshUser = oshUserMapper.selectOne(wrapper);
+        if (oshUser == null) {
             return R.fail(ResultCode.FAILED_USER_NOT_EXISTS.getMsg());
         }
-        if (user.getStatus() == 0) {
+        if (oshUser.getStatus() == 1) {
             return R.fail(ResultCode.FAILED_USER_BANNED.getMsg());
         }
         if (password.length() == 50) {
-            String uniqueIdByUserId = oshUserMapper.getUniqueIdByUserId(user.getId());
+            String uniqueIdByUserId = oshUserMapper.getUniqueIdByUserId(oshUser.getId());
             if (!uniqueIdByUserId.equals(password)) {
                 return R.fail(ResultCode.FAILED_USER_UNIQUEID_ERROR.getMsg());
             }
         }else {
-            if (!user.getPassword().equals(password)) {
+            if (!oshUser.getPassword().equals(password)) {
                 return R.fail(ResultCode.FAILED_USER_PASSWORD_ERROR.getMsg());
             }
         }
-        String token = createToken(user);
-        UserLoginVo userLoginVo = new UserLoginVo();
-        BeanUtils.copyProperties(user, userLoginVo);
+        String token = createToken(oshUser);
+        OshUserLoginVo userLoginVo = new OshUserLoginVo();
+        BeanUtils.copyProperties(oshUser, userLoginVo);
         userLoginVo.setToken(token);
-        Integer roleId = oshRoleMapper.getRoleIdsByUserId(user.getId());
+        Integer roleId = oshRoleMapper.getRoleIdByUserId(oshUser.getId());
         List<String> role = getRole(roleId);
         List<String> permissionList = getPermission(roleId);
         userLoginVo.setRole(role);
@@ -86,7 +89,7 @@ public class OshUserServiceImpl implements IOshUserService {
         Map<String, Object> map = new HashMap<>();
         map.put(OshUserConstants.ROLE, role);
         map.put(OshUserConstants.PERMISSION, permissionList);
-        redisCache.setCacheObject(OshUserConstants.LOGIN_USER + user.getId(), map, 500, TimeUnit.MINUTES);
+        redisCache.setCacheObject(OshUserConstants.LOGIN_USER + oshUser.getId(), map, 500, TimeUnit.MINUTES);
         return R.ok(userLoginVo);
     }
 
@@ -104,12 +107,16 @@ public class OshUserServiceImpl implements IOshUserService {
         if(!password.equals(repassword)){
             return R.fail(ResultCode.FAILED_USER_PASSWORD_NOT_MATCH.getMsg());
         }
-        User user = oshUserMapper.getUserByUsername(username);
-        if (user != null && user.getUsername().equals(username)) {
+        LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(OshUser::getUsername, username);
+        OshUser oshUser = oshUserMapper.selectOne(wrapper);
+        if (oshUser != null && oshUser.getUsername().equals(username)) {
             return R.fail(ResultCode.AILED_USER_EXISTS.getMsg());
         }
-        user = oshUserMapper.getUserByEmail(email);
-        if (user != null && user.getEmail().equals(email)) {
+        wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(OshUser::getEmail, email);
+        oshUser = oshUserMapper.selectOne(wrapper);
+        if (oshUser != null && oshUser.getEmail().equals(email)) {
             return R.fail(ResultCode.FAILED_USER_EMAIL_BOUND.getMsg());
         }
         String uniqueId = emailUtil.sendEmailGetUniqueId(username, email);
@@ -125,10 +132,16 @@ public class OshUserServiceImpl implements IOshUserService {
     public R<String> registerVerity(String uniqueId) {
         Map<String,String> userMap = redisCache.getCacheObject(OshUserConstants.UNIQUE_ID + uniqueId);
         if(userMap == null) return R.fail("唯一标识错误或已过期");
-        oshUserMapper.register(userMap.get(OshUserConstants.USERNAME), userMap.get(OshUserConstants.PASSWORD), userMap.get(OshUserConstants.EMAIL));
-        User user = oshUserMapper.getUserByUsername(userMap.get(OshUserConstants.USERNAME));
-        oshUserMapper.addUniqueId(user.getId(), uniqueId);
-        oshUserMapper.addRole(user.getId());
+        Long userId = GenerateUtil.generateSnowflakeId();
+        OshUser oshUser = new OshUser();
+        oshUser.setId(userId);
+        oshUser.setUsername(userMap.get(OshUserConstants.USERNAME));
+        oshUser.setPassword(userMap.get(OshUserConstants.PASSWORD));
+        oshUser.setEmail(userMap.get(OshUserConstants.EMAIL));
+        ThreadLocalUtil.set(OshUserConstants.USER_ID, userId);
+        oshUserMapper.insert(oshUser);
+        oshUserMapper.addUniqueId(oshUser.getId(), uniqueId);
+        oshUserMapper.addRole(oshUser.getId());
         redisCache.deleteObject(OshUserConstants.UNIQUE_ID + uniqueId);
         return R.ok(ResultCode.SUCCESS.getMsg());
     }
@@ -147,19 +160,23 @@ public class OshUserServiceImpl implements IOshUserService {
     @Override
     public R<String> changeEmailSubmit(String uniqueId, String newEmail) throws MessagingException {
         Long userId = ThreadLocalUtil.get(OshUserConstants.USER_ID,Long.class);
-        User user = oshUserMapper.selectUserById(userId);
-        if (user == null) {
+        LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(OshUser::getId, userId);
+        OshUser oshUser = oshUserMapper.selectOne(wrapper);
+        if (oshUser == null) {
             return R.fail(ResultCode.FAILED_USER_NOT_EXISTS.getMsg());
         }
         String uniqueIdByUserId = oshUserMapper.getUniqueIdByUserId(userId);
         if (!uniqueIdByUserId.equals(uniqueId)) {
             return R.fail(ResultCode.FAILED_USER_UNIQUEID_ERROR.getMsg());
         }
-        User emailUser = oshUserMapper.getUserByEmail(newEmail);
-        if (emailUser != null && user.getEmail().equals(newEmail)) {
+        wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(OshUser::getEmail, newEmail);
+        OshUser emailOshUser = oshUserMapper.selectOne(wrapper);
+        if (emailOshUser != null) {
             return R.fail(ResultCode.FAILED_USER_EMAIL_BOUND.getMsg());
         }
-        String newUniqueId = emailUtil.sendEmailGetUniqueId(user.getUsername(), newEmail);
+        String newUniqueId = emailUtil.sendEmailGetUniqueId(oshUser.getUsername(), newEmail);
         Map<String,String> userMap = new HashMap<>();
         userMap.put(OshUserConstants.USER_ID, userId.toString());
         userMap.put(OshUserConstants.EMAIL, newEmail);
@@ -170,14 +187,20 @@ public class OshUserServiceImpl implements IOshUserService {
     @Override
     public R<String> changeEmailVerity(String uniqueId) {
         Long userId = ThreadLocalUtil.get(OshUserConstants.USER_ID,Long.class);
-        User user = oshUserMapper.selectUserById(userId);
-        if (user == null) {
+        LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(OshUser::getId, userId);
+        OshUser oshUser = oshUserMapper.selectOne(wrapper);
+        if (oshUser == null) {
             return R.fail(ResultCode.FAILED_USER_NOT_EXISTS.getMsg());
         }
         Map<String,String> userMap = redisCache.getCacheObject(OshUserConstants.RE_UNIQUE_ID + uniqueId);
         if (userMap == null) return R.fail("新的唯一标识错误或已过期");
         if (!userId.equals(Long.parseLong(userMap.get(OshUserConstants.USER_ID)))) return R.fail(ResultCode.FAILED.getMsg());
-        oshUserMapper.updateEmailById(userId, userMap.get(OshUserConstants.EMAIL));
+        wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(OshUser::getId, userId);
+        OshUser user = new OshUser();
+        user.setEmail(userMap.get(OshUserConstants.EMAIL));
+        oshUserMapper.update(user, wrapper);
         oshUserMapper.updateUniqueIdByUserId(userId, uniqueId);
         redisCache.deleteObject(OshUserConstants.RE_UNIQUE_ID + uniqueId);
         return R.ok(ResultCode.SUCCESS.getMsg());
@@ -189,8 +212,10 @@ public class OshUserServiceImpl implements IOshUserService {
             return R.fail(ResultCode.FAILED_USER_PASSWORD_NOT_MATCHES.getMsg());
         }
         Long userId = oshUserMapper.getUserIdByUniqueId(uniqueId);
-        User user = oshUserMapper.selectUserById(userId);
-        if (user == null) {
+        LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(OshUser::getId, userId);
+        OshUser oshUser = oshUserMapper.selectOne(wrapper);
+        if (oshUser == null) {
             return R.fail(ResultCode.FAILED_USER_NOT_EXISTS.getMsg());
         }
         if(!password.equals(repassword)){
@@ -200,35 +225,53 @@ public class OshUserServiceImpl implements IOshUserService {
         if (!uniqueIdByUserId.equals(uniqueId)) {
             return R.fail(ResultCode.FAILED_USER_UNIQUEID_ERROR.getMsg());
         }
-        oshUserMapper.updatePasswordById(userId, password);
+        oshUser.setPassword(password);
+        oshUserMapper.update(oshUser, wrapper);
         return R.ok(ResultCode.SUCCESS.getMsg());
     }
 
     @Override
     public R<String> updateInfo(String avatar, String nickname, String sex) {
         Long userId = ThreadLocalUtil.get(OshUserConstants.USER_ID,Long.class);
-        oshUserMapper.updateUserInfoById(userId, avatar, nickname, sex);
+        LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(OshUser::getId, userId);
+        OshUser oshUser = oshUserMapper.selectOne(wrapper);
+        oshUser.setAvatar(avatar);
+        oshUser.setNickname(nickname);
+        oshUser.setSex(sex);
+        oshUserMapper.update(oshUser, wrapper);
         return R.ok(ResultCode.SUCCESS.getMsg());
     }
 
     @Override
     public R<String> updatePassword(String opassword, String password, String repassword) {
         Long userId = ThreadLocalUtil.get(OshUserConstants.USER_ID,Long.class);
-        String passwordById = oshUserMapper.getPasswordById(userId);
-        if (passwordById != null && !passwordById.equals(opassword)) {
+        LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.select(OshUser::getPassword).eq(OshUser::getId, userId);
+        OshUser user = oshUserMapper.selectOne(wrapper);
+        if (user == null) {
+            return R.fail(ResultCode.FAILED_USER_NOT_EXISTS.getMsg());
+        }
+        if (user.getPassword() != null && !user.getPassword().equals(opassword)) {
             return R.fail(ResultCode.FAILED_USER_PASSWORD_ERROR.getMsg());
         }
         if(!password.equals(repassword)){
             return R.fail(ResultCode.FAILED_USER_PASSWORD_NOT_MATCH.getMsg());
         }
-        oshUserMapper.updatePasswordById(userId, password);
+        if (password.length() < OshUserConstants.PASSWORD_MIN_LENGTH || password.length() > OshUserConstants.PASSWORD_MAX_LENGTH || !password.matches(OshUserConstants.PASSWORD_PATTERN)) {
+            return R.fail(ResultCode.FAILED_USER_PASSWORD_NOT_MATCHES.getMsg());
+        }
+        wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(OshUser::getId, userId);
+        user.setPassword(password);
+        oshUserMapper.update(user, wrapper);
         return R.ok(ResultCode.SUCCESS.getMsg());
     }
 
     @Override
-    public R<User> getUserInfo() {
-        User user = UserContextUtil.getCurrentUser();
-        return R.ok(user);
+    public R<OshUser> getUserInfo() {
+        OshUser oshUser = UserContextUtil.getCurrentUser();
+        return R.ok(oshUser);
     }
 
     @Override
@@ -243,27 +286,32 @@ public class OshUserServiceImpl implements IOshUserService {
     }
 
     @Override
-    public R<String> cancelRecord(Long userId, User currentUser) {
+    public R<String> cancelRecord(Long userId, OshUser currentOshUser) {
         LambdaQueryWrapper<OshUserViolationRecord> wrapper = new LambdaQueryWrapper<OshUserViolationRecord>()
                 .eq(OshUserViolationRecord::getUserId, userId);
         OshUserViolationRecord record = oshUserViolationRecordMapper.selectOne(wrapper);
         if (record == null) {
             return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
         }
-        record.setDelete_flag((byte) 1);
+        record.setDeleteFlag((byte) 1);
         oshUserViolationRecordMapper.update(record, wrapper);
         return R.ok(ResultCode.SUCCESS.getMsg());
     }
 
-    public String createToken(User user) {
+
+
+
+
+
+    public String createToken(OshUser oshUser) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put(OshUserConstants.USER_ID, user.getId());
-        claims.put(OshUserConstants.USERNAME, user.getUsername());
+        claims.put(OshUserConstants.USER_ID, oshUser.getId());
+        claims.put(OshUserConstants.USERNAME, oshUser.getUsername());
         return JwtUtil.createToken(claims);
     }
 
     public List<String> getRole(Integer roleId) {
-        OshRoleVO oshRoleVO = oshRoleMapper.getRoleNameByRoleId(roleId);
+        OshRoleVO oshRoleVO = oshRoleMapper.getRoleInfoByRoleId(roleId);
         List<String> role = new ArrayList<>();
         role.add(oshRoleVO.getRoleName());
         role.add(oshRoleVO.getRoleCode());
@@ -279,75 +327,75 @@ public class OshUserServiceImpl implements IOshUserService {
 
 
 
-    /**
-     * 查询用户
-     *
-     * @param id 用户主键
-     * @return 用户
-     */
-    @Override
-    public User selectUserById(Long id)
-    {
-        return oshUserMapper.selectUserById(id);
-    }
-
-    /**
-     * 查询用户列表
-     *
-     * @param user 用户
-     * @return 用户
-     */
-    @Override
-    public List<User> selectUserList(User user)
-    {
-        return oshUserMapper.selectUserList(user);
-    }
-
-    /**
-     * 新增用户
-     *
-     * @param user 用户
-     * @return 结果
-     */
-    @Override
-    public int insertUser(User user)
-    {
-        return oshUserMapper.insertUser(user);
-    }
-
-    /**
-     * 修改用户
-     *
-     * @param user 用户
-     * @return 结果
-     */
-    @Override
-    public int updateUser(User user)
-    {
-        return oshUserMapper.updateUser(user);
-    }
-
-    /**
-     * 批量删除用户
-     *
-     * @param ids 需要删除的用户主键
-     * @return 结果
-     */
-    @Override
-    public int deleteUserByIds(Long[] ids)
-    {
-        return oshUserMapper.deleteUserByIds(ids);
-    }
-
-    /**
-     * 删除用户信息
-     *
-     * @param id 用户主键
-     * @return 结果
-     */
-    @Override
-    public int deleteUserById(Long id)
-    {
-        return oshUserMapper.deleteUserById(id);
-    }
+//    /**
+//     * 查询用户
+//     *
+//     * @param id 用户主键
+//     * @return 用户
+//     */
+//    @Override
+//    public OshUser selectUserById(Long id)
+//    {
+//        return oshUserMapper.selectUserById(id);
+//    }
+//
+//    /**
+//     * 查询用户列表
+//     *
+//     * @param oshUser 用户
+//     * @return 用户
+//     */
+//    @Override
+//    public List<OshUser> selectUserList(OshUser oshUser)
+//    {
+//        return oshUserMapper.selectUserList(oshUser);
+//    }
+//
+//    /**
+//     * 新增用户
+//     *
+//     * @param oshUser 用户
+//     * @return 结果
+//     */
+//    @Override
+//    public int insertUser(OshUser oshUser)
+//    {
+//        return oshUserMapper.insertUser(oshUser);
+//    }
+//
+//    /**
+//     * 修改用户
+//     *
+//     * @param oshUser 用户
+//     * @return 结果
+//     */
+//    @Override
+//    public int updateUser(OshUser oshUser)
+//    {
+//        return oshUserMapper.updateUser(oshUser);
+//    }
+//
+//    /**
+//     * 批量删除用户
+//     *
+//     * @param ids 需要删除的用户主键
+//     * @return 结果
+//     */
+//    @Override
+//    public int deleteUserByIds(Long[] ids)
+//    {
+//        return oshUserMapper.deleteUserByIds(ids);
+//    }
+//
+//    /**
+//     * 删除用户信息
+//     *
+//     * @param id 用户主键
+//     * @return 结果
+//     */
+//    @Override
+//    public int deleteUserById(Long id)
+//    {
+//        return oshUserMapper.deleteUserById(id);
+//    }
 }

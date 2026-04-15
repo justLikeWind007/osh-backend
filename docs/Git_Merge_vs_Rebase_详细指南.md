@@ -362,7 +362,7 @@ git push origin main
 
 ```bash
 # 1. feature 分支开发
-git checkout -b feature/user-auth develop
+git checkout -b feature/oshUser-auth develop
 # 多次提交...
 
 # 2. 准备合并前，同步 develop
@@ -371,7 +371,7 @@ git rebase origin/develop
 
 # 3. 创建 PR/MR，用 merge 合并（保留历史）
 git checkout develop
-git merge --no-ff feature/user-auth
+git merge --no-ff feature/oshUser-auth
 git push origin develop
 
 # 4. 准备发布

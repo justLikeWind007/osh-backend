@@ -3,28 +3,28 @@ package com.backstage.system.utils;
 import com.backstage.common.constant.OshUserConstants;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.system.domain.user.CurrentUser;
-import com.backstage.system.domain.user.User;
+import com.backstage.system.domain.user.OshUser;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Component;
 
 /**
  * Created with IntelliJ IDEA.
  * Description:
- * User: 九转苍翎
+ * OshUser: 九转苍翎
  * Date: 2026/3/30
  * Time: 15:17
  */
 @Component
 public class UserContextUtil {
 
-    public static User getCurrentUser() {
-        return ThreadLocalUtil.get(OshUserConstants.USER_INFO,User.class);
+    public static OshUser getCurrentUser() {
+        return ThreadLocalUtil.get(OshUserConstants.USER_INFO, OshUser.class);
     }
 
     public static CurrentUser getCurrentUserInfo() {
-        User user = getCurrentUser();
+        OshUser oshUser = getCurrentUser();
         CurrentUser currentUser = new CurrentUser();
-        BeanUtils.copyProperties(user,currentUser);
+        BeanUtils.copyProperties(oshUser,currentUser);
         return currentUser;
     }
 

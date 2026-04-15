@@ -5,7 +5,7 @@ import com.backstage.system.domain.course.OshCourseMaterial;
 import com.backstage.system.domain.course.OshCourseTag;
 import com.backstage.system.domain.course.OshCourseTagRel;
 import com.backstage.system.domain.course.vo.OshCourseTagSimpleVo;
-import com.backstage.system.domain.user.User;
+import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.course.OshCourseMaterialMapper;
 import com.backstage.system.mapper.course.OshCourseTagMapper;
@@ -48,7 +48,7 @@ public class OshCourseServiceCreateCourseTagTest {
                 new OshCourseTagSimpleVo(null, " ", 5)
         ));
 
-        User operator = new User();
+        OshUser operator = new OshUser();
         operator.setUsername("course_admin");
 
         when(courseMapper.insertCourse(any(OshCourse.class))).thenAnswer(invocation -> {
@@ -105,7 +105,7 @@ public class OshCourseServiceCreateCourseTagTest {
             return 1;
         });
 
-        Long courseId = service.createCourse(request, new User());
+        Long courseId = service.createCourse(request, new OshUser());
 
         Assert.assertEquals(Long.valueOf(1002L), courseId);
         verify(courseTagMapper, never()).selectCourseTagByName(anyString());
@@ -133,7 +133,7 @@ public class OshCourseServiceCreateCourseTagTest {
         material.setFileSize(new BigDecimal("1536"));
         request.setMaterial(material);
 
-        User operator = new User();
+        OshUser operator = new OshUser();
         operator.setUsername("course_admin");
 
         when(courseMapper.insertCourse(any(OshCourse.class))).thenAnswer(invocation -> {

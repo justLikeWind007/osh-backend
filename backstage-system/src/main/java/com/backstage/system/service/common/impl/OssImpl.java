@@ -148,9 +148,9 @@ public class OssImpl implements OssService {
         OssOperationLogVo log = new OssOperationLogVo();
 
         if (!ossService.existsFileKey(file.getOriginalFilename())) {
-            // 获取浏览器 User-Agent
+            // 获取浏览器 OshUser-Agent
             UserAgent userAgent = UserAgent.parseUserAgentString(
-                    ServletUtils.getRequest().getHeader("User-Agent")
+                    ServletUtils.getRequest().getHeader("OshUser-Agent")
             );
             // 获取客户端IP
             String ip = IpUtils.getIpAddr();

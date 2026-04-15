@@ -1,17 +1,17 @@
 package com.backstage.system.domain.user.vo;
 
-import com.backstage.system.domain.user.User;
+import com.backstage.system.domain.user.OshUser;
 
 import java.util.List;
 
 /**
  * Created with IntelliJ IDEA.
  * Description:
- * User: 九转苍翎
+ * OshUser: 九转苍翎
  * Date: 2026/3/12
  * Time: 20:16
  */
-public class UserLoginVo extends User {
+public class OshUserLoginVo extends OshUser {
     private String token;
 
     private List<String> role;
@@ -44,7 +44,7 @@ public class UserLoginVo extends User {
 
     @Override
     public String toString() {
-        return "UserLoginVo{" +
+        return "OshUserLoginVo{" +
                 "token='" + token + '\'' +
                 ", role=" + role +
                 ", permissionList=" + permissionList +
