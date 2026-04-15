@@ -12,8 +12,8 @@ import com.baomidou.mybatisplus.annotation.TableName;
  * Date: 2026/4/9
  * Time: 19:32
  */
-@TableName("osh_user_violation_record")
-public class OshUserViolationRecord extends OSHBaseEntity {
+@TableName("osh_user_violation")
+public class OshUserViolation extends OSHBaseEntity {
     /**
      * 主键id
      */

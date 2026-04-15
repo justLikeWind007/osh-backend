@@ -17,4 +17,6 @@ public interface OshRoleMapper extends BaseMapper<OshRole> {
     Integer getRoleIdByUserId(@Param("userId") Long userId);
 
     OshRoleVO getRoleInfoByRoleId(@Param("roleId") Integer roleId);
+
+    int deleteUserRole(Long userId);
 }

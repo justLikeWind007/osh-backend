@@ -10,13 +10,11 @@ import com.backstage.common.utils.generate.GenerateUtil;
 import com.backstage.common.utils.jwt.JwtUtil;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.system.domain.user.OshUser;
-import com.backstage.system.domain.user.OshUserViolationRecord;
+import com.backstage.system.domain.user.OshUserAsset;
+import com.backstage.system.domain.user.OshUserViolation;
 import com.backstage.system.domain.user.vo.OshRoleVO;
 import com.backstage.system.domain.user.vo.OshUserLoginVo;
-import com.backstage.system.mapper.user.OshPermissionMapper;
-import com.backstage.system.mapper.user.OshRoleMapper;
-import com.backstage.system.mapper.user.OshUserMapper;
-import com.backstage.system.mapper.user.OshUserViolationRecordMapper;
+import com.backstage.system.mapper.user.*;
 import com.backstage.system.service.user.IOshUserService;
 import com.backstage.system.utils.UserContextUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -49,7 +47,9 @@ public class OshUserServiceImpl implements IOshUserService {
     @Autowired
     private OshPermissionMapper oshPermissionMapper;
     @Autowired
-    private OshUserViolationRecordMapper oshUserViolationRecordMapper;
+    private OshUserViolationMapper oshUserViolationMapper;
+    @Autowired
+    private OshUserAssetMapper oshUserAssetMapper;
 
     @Override
     public R<OshUserLoginVo> login(String username, String password) {
@@ -142,6 +142,9 @@ public class OshUserServiceImpl implements IOshUserService {
         oshUserMapper.insert(oshUser);
         oshUserMapper.addUniqueId(oshUser.getId(), uniqueId);
         oshUserMapper.addRole(oshUser.getId());
+        OshUserAsset oshUserAsset = new OshUserAsset();
+        oshUserAsset.setUserId(oshUser.getId());
+        oshUserAssetMapper.insert(oshUserAsset);
         redisCache.deleteObject(OshUserConstants.UNIQUE_ID + uniqueId);
         return R.ok(ResultCode.SUCCESS.getMsg());
     }
@@ -275,26 +278,49 @@ public class OshUserServiceImpl implements IOshUserService {
     }
 
     @Override
-    public R<String> record(Long userId, Integer violationType, String reason, Long operatorId) {
-        OshUserViolationRecord record = new OshUserViolationRecord();
+    public R<String> deleteUser() {
+        Long userId = ThreadLocalUtil.get(OshUserConstants.USER_ID, Long.class);
+        OshUser user = oshUserMapper.selectOne(new LambdaQueryWrapper<OshUser>().eq(OshUser::getId, userId));
+        if (user == null) {
+            return R.fail(ResultCode.FAILED_USER_NOT_EXISTS.getMsg());
+        }
+        user.setDeleteFlag((byte) 1);
+        oshUserMapper.update(user, new LambdaQueryWrapper<OshUser>().eq(OshUser::getId, userId));
+        oshUserMapper.deleteUniqueId(userId);
+        oshRoleMapper.deleteUserRole(userId);
+        OshUserAsset oshUserAsset = oshUserAssetMapper.selectOne(new LambdaQueryWrapper<OshUserAsset>().eq(OshUserAsset::getUserId, userId));
+        oshUserAsset.setDeleteFlag((byte) 1);
+        oshUserAssetMapper.update(oshUserAsset, new LambdaQueryWrapper<OshUserAsset>().eq(OshUserAsset::getUserId, userId));
+        return R.ok(ResultCode.SUCCESS.getMsg());
+    }
+
+    @Override
+    public R<String> record(Long userId, Integer violationType, String reason) {
+        Long operatorId = ThreadLocalUtil.get(OshUserConstants.USER_ID, Long.class);
+        OshUserViolation record = new OshUserViolation();
         record.setUserId(userId);
         record.setViolationType(violationType);
         record.setReason(reason);
         if (operatorId != null) record.setOperatorId(operatorId);
-        oshUserViolationRecordMapper.insert(record);
+        oshUserViolationMapper.insert(record);
+        LambdaQueryWrapper<OshUserAsset> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(OshUserAsset::getUserId, userId);
+        OshUserAsset oshUserAsset = oshUserAssetMapper.selectOne(wrapper);
+        oshUserAsset.setViolationCount(oshUserAsset.getViolationCount() + 1);
+        oshUserAssetMapper.update(oshUserAsset, wrapper);
         return R.ok(ResultCode.SUCCESS.getMsg());
     }
 
     @Override
     public R<String> cancelRecord(Long userId, OshUser currentOshUser) {
-        LambdaQueryWrapper<OshUserViolationRecord> wrapper = new LambdaQueryWrapper<OshUserViolationRecord>()
-                .eq(OshUserViolationRecord::getUserId, userId);
-        OshUserViolationRecord record = oshUserViolationRecordMapper.selectOne(wrapper);
+        LambdaQueryWrapper<OshUserViolation> wrapper = new LambdaQueryWrapper<OshUserViolation>()
+                .eq(OshUserViolation::getUserId, userId);
+        OshUserViolation record = oshUserViolationMapper.selectOne(wrapper);
         if (record == null) {
             return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
         }
         record.setDeleteFlag((byte) 1);
-        oshUserViolationRecordMapper.update(record, wrapper);
+        oshUserViolationMapper.update(record, wrapper);
         return R.ok(ResultCode.SUCCESS.getMsg());
     }
 

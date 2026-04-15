@@ -123,15 +123,23 @@ OshUserController extends BaseController {
     }
 
     @Anonymous
-    @PostMapping("/record")
-    public R<String> record(
-            @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
-            @RequestBody UserRecordDTO userRecordDTO) {
-        return userService.record(userRecordDTO.getUserId(), userRecordDTO.getViolationType(), userRecordDTO.getReason(), userRecordDTO.getOperatorId());
+    @ApiOperation("注销用户")
+    @PostMapping("/deleteUser")
+    public R<String> deleteUser(
+            @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid) {
+        return userService.deleteUser();
     }
 
     @Anonymous
-    @PostMapping("/record/cancel")
+    @PostMapping("/violation/record")
+    public R<String> record(
+            @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
+            @RequestBody UserRecordDTO userRecordDTO) {
+        return userService.record(userRecordDTO.getUserId(), userRecordDTO.getViolationType(), userRecordDTO.getReason());
+    }
+
+    @Anonymous
+    @PostMapping("/violation/record/cancel")
     public R<String> cancelRecord(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserCancelRecordDTO userCancelRecordDTO) {

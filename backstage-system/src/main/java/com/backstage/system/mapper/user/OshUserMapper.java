@@ -42,6 +42,8 @@ public interface OshUserMapper extends BaseMapper<OshUser> {
 //
 //    int updateEmailById(@Param("userId") Long userId, @Param("email") String email);
 
+    int deleteUniqueId(Long userId);
+
 //    //以下是若依代码生成
 //
     /**

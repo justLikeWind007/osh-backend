@@ -34,11 +34,11 @@ public interface IOshUserService {
 
     R<OshUser> getUserInfo();
 
-    R<String> record(Long userId, Integer violationType, String reason, Long operatorId);
+    R<String> deleteUser();
+
+    R<String> record(Long userId, Integer violationType, String reason);
 
     R<String> cancelRecord(Long userId, OshUser currentOshUser);
-
-
 
 
 //    /**

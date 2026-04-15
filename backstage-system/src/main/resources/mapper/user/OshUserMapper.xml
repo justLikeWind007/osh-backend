@@ -89,6 +89,10 @@
         update osh_user set email = #{email} where id = #{userId}
     </update>
 
+    <update id="deleteUniqueId">
+        update osh_user_unique set delete_flag = 1 where user_id = #{userId}
+    </update>
+
 
 
 

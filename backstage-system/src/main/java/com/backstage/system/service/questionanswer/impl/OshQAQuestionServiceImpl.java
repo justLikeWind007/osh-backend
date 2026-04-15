@@ -225,7 +225,7 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
     public R<String> solve(Long userId, Long questionId, Long answerId) {
         Boolean isLegal = UserContextUtil.hasPermission(4);
         LambdaQueryWrapper<Answer> answerWrapper = new LambdaQueryWrapper<Answer>()
-                .select(Answer::getQuestionId)
+                .select(Answer::getQuestionId, Answer::getIsSolution)
                 .eq(Answer::getId, answerId);
         Answer answer = oshQaAnswerMapper.selectOne(answerWrapper);
         if (answer == null) {
@@ -235,11 +235,14 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
             return R.fail(ResultCode.FAILED.getMsg());
         }
         LambdaQueryWrapper<Question> questionWrapper = new LambdaQueryWrapper<Question>()
-                .select(Question::getUserId)
+                .select(Question::getUserId, Question::getStatus)
                 .eq(Question::getId, questionId);
         Question question = oshQaQuestionMapper.selectOne(questionWrapper);
         if (question == null) {
             return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
+        }
+        if (answer.getIsSolution() == 1 || question.getStatus() == 2) {
+            return R.fail(ResultCode.FAILED_USER_ANSWER_ALREADY_MARKED.getMsg());
         }
         answer.setIsSolution((byte)1);
         oshQaAnswerMapper.update(answer, answerWrapper);

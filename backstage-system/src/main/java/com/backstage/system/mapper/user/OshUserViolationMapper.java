@@ -1,6 +1,6 @@
 package com.backstage.system.mapper.user;
 
-import com.backstage.system.domain.user.OshUserViolationRecord;
+import com.backstage.system.domain.user.OshUserViolation;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
 /**
@@ -10,5 +10,5 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
  * Date: 2026/4/9
  * Time: 19:39
  */
-public interface OshUserViolationRecordMapper extends BaseMapper<OshUserViolationRecord> {
+public interface OshUserViolationMapper extends BaseMapper<OshUserViolation> {
 }
