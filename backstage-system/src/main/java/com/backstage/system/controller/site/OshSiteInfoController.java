@@ -18,11 +18,10 @@ import com.backstage.system.service.user.IOshUserService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -172,85 +171,26 @@ public class OshSiteInfoController extends BaseController {
      */
     @Anonymous
     @ApiOperation("检查网站连接状态")
-    @PostMapping("/check/{id}")
-    public R<Map<String, Object>> checkSiteConnection(@PathVariable Long id) {
-        OshSiteInfo siteInfo = oshSiteInfoService.getById(id);
-        if (siteInfo == null) {
+    @PostMapping("/check")
+    public R<Boolean> checkSiteConnection(@RequestBody List<String> ids) {
+        List<OshSiteInfo> oshSiteInfos = oshSiteInfoService.listByIds(ids.stream().map(Long::valueOf).collect(Collectors.toList()));
+        if (CollectionUtils.isEmpty(oshSiteInfos)) {
             return R.fail("网站不存在");
         }
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("siteId", id);
-        result.put("siteName", siteInfo.getSiteName());
-
-        try {
-            // 尝试连接网站
-            java.net.URL url = new java.net.URL(siteInfo.getSiteUrl());
-            java.net.HttpURLConnection connection = (java.net.HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
-            connection.setConnectTimeout(5000);
-            connection.setReadTimeout(5000);
-            int responseCode = connection.getResponseCode();
-
-            boolean isConnected = responseCode >= 200 && responseCode < 400;
-            result.put("isConnected", isConnected);
-            result.put("responseCode", responseCode);
-            result.put("message", isConnected ? "连接正常" : "连接异常，HTTP状态码: " + responseCode);
-
-            connection.disconnect();
-        } catch (Exception e) {
-            result.put("isConnected", false);
-            result.put("message", "连接失败: " + e.getMessage());
-        }
-
-        // 更新最后检查时间
-        siteInfo.setLastCheckTime(new Date());
-        oshSiteInfoService.updateById(siteInfo);
-        result.put("lastCheckTime", siteInfo.getLastCheckTime());
-
-        return R.ok(result);
+        return R.ok(oshSiteInfoService.testConnection(oshSiteInfos));
     }
 
     /**
-     * 批量检查所有网站连接状态
+     * 检查网站连接状态
      */
     @Anonymous
-    @ApiOperation("批量检查所有网站连接状态")
+    @ApiOperation("检查网站连接状态")
     @PostMapping("/check-all")
-    public R<List<Map<String, Object>>> checkAllSitesConnection() {
-        List<OshSiteInfo> list = oshSiteInfoService.lambdaQuery()
-                .select(OshSiteInfo::getId, OshSiteInfo::getSiteName, OshSiteInfo::getSiteUrl)
-                .eq(OshSiteInfo::getStatus, 1)
-                .list();
-
-        List<Map<String, Object>> results = new ArrayList<>();
-        for (OshSiteInfo siteInfo : list) {
-            Map<String, Object> result = new HashMap<>();
-            result.put("siteId", siteInfo.getId());
-            result.put("siteName", siteInfo.getSiteName());
-
-            try {
-                URL url = new URL(siteInfo.getSiteUrl());
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("GET");
-                connection.setConnectTimeout(5000);
-                connection.setReadTimeout(5000);
-                int responseCode = connection.getResponseCode();
-
-                boolean isConnected = responseCode >= 200 && responseCode < 400;
-                result.put("isConnected", isConnected);
-                result.put("responseCode", responseCode);
-                connection.disconnect();
-            } catch (Exception e) {
-                result.put("isConnected", false);
-                result.put("message", e.getMessage());
-            }
-            // 更新最后检查时间
-            siteInfo.setLastCheckTime(new Date());
-            oshSiteInfoService.updateById(siteInfo);
-            result.put("lastCheckTime", siteInfo.getLastCheckTime());
-            results.add(result);
+    public R<Boolean> checkAllSiteConnection() {
+        List<OshSiteInfo> oshSiteInfos = oshSiteInfoService.list();
+        if (CollectionUtils.isEmpty(oshSiteInfos)) {
+            return R.fail("网站不存在");
         }
-        return R.ok(results);
+        return R.ok(oshSiteInfoService.testConnection(oshSiteInfos));
     }
 }

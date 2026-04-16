@@ -128,13 +128,23 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
     public void testSiteInfoResponseStatus() {
         List<OshSiteInfo> oshSiteInfos = oshSiteInfoMapper.selectList(Wrappers.<OshSiteInfo>lambdaQuery()
                 .eq(OshSiteInfo::getDeleteFlag, 0));
+        testConnection(oshSiteInfos);
+    }
+
+    @Override
+    public boolean testConnection(List<OshSiteInfo> oshSiteInfos) {
+        return testConnection(oshSiteInfos, 5000);
+    }
+
+    @Override
+    public boolean testConnection(List<OshSiteInfo> oshSiteInfos, int timeout) {
         for (OshSiteInfo siteInfo : oshSiteInfos) {
             if (StringUtils.isBlank(siteInfo.getSiteUrl())) {
                 continue;
             }
             try {
                 Integer lastCheckStatus = siteInfo.getLastCheckStatus();
-                if (testUrlConnection(siteInfo.getSiteUrl(), 5000, 5000)) {
+                if (testUrlConnection(siteInfo.getSiteUrl(), timeout, timeout)) {
                     if (Objects.equals(0, siteInfo.getStatus())) {
                         siteInfo.setStatus(1);
                     }
@@ -150,6 +160,7 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
                 LOG.error("failed to test site connection, {}", JSON.toJSONString(siteInfo));
             }
         }
+        return true;
     }
 
     /**

@@ -26,4 +26,8 @@ public interface IOshSiteInfoService extends IService<OshSiteInfo> {
     boolean updateSiteInfo(OshSiteInfo siteInfo);
 
     List<OshSiteInfo> listSites(OshSiteInfo siteInfo);
+
+    boolean testConnection(List<OshSiteInfo> oshSiteInfos);
+
+    boolean testConnection(List<OshSiteInfo> oshSiteInfos, int timeout);
 }
