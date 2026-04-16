@@ -5,6 +5,7 @@ import com.backstage.common.utils.DateUtils;
 import com.backstage.common.utils.ServletUtils;
 import com.backstage.common.utils.ip.IpUtils;
 import com.backstage.system.domain.vo.common.OssOperationLogVo;
+import com.backstage.system.exception.UpLoadException;
 import com.backstage.system.mapper.common.OssMapper;
 import com.backstage.system.service.common.OssService;
 import com.backstage.system.utils.OssUtil;
@@ -17,13 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 
 
 @Service
@@ -63,18 +57,18 @@ public class OssImpl implements OssService {
      * 上传文件
      * @param file  文件
      * @param pathEnum  枚举路径固定
-     * @param id    自定义目录下的子文件夹
+     * @param resultId    自定义目录下的子文件夹
      * @return oss服务的文件路径
      * @throws Exception
      */
-    public String upload(MultipartFile file, UploadPathEnum pathEnum, String id) throws  Exception{
+    public String upload(MultipartFile file, UploadPathEnum pathEnum, String resultId) throws UpLoadException, Exception {
 
 
         String customPath;
-        if(id== null){
-            id="";
+        if(resultId== null){
+            resultId="";
         }else {
-            id=id+"/";
+            resultId=resultId+"/";
         }
 
         // 获取年月
@@ -82,15 +76,15 @@ public class OssImpl implements OssService {
 
 
         if(UploadPathEnum.IMAGE.equals(pathEnum)){
-            customPath = UploadPathEnum.IMAGE.getPath()+id+ym+"/";
+            customPath = UploadPathEnum.IMAGE.getPath()+resultId+ym+"/";
             if(file.getSize() > 1024 * 1024 * 3){
-                return "图片大小不能超过3M";
+                throw new UpLoadException("图片大小不能超过3M");
             }
 
         }else if(UploadPathEnum.COURSE_VIDEO.equals(pathEnum)){
-            customPath = UploadPathEnum.COURSE_VIDEO.getPath()+id+ym+"/";
+            customPath = UploadPathEnum.COURSE_VIDEO.getPath()+resultId+ym+"/";
             if(file.getSize() > 1024 * 1024 * 200){
-                return "视频大小不能超过200MB";
+                throw new UpLoadException("视频大小不能超过200MB");
             }
         }else if(UploadPathEnum.COURSE_MATERIAL.equals(pathEnum)){
             customPath = UploadPathEnum.COURSE_MATERIAL.getPath()+id+ym+"/";
@@ -148,11 +142,12 @@ public class OssImpl implements OssService {
         OssOperationLogVo log = new OssOperationLogVo();
 
         if (!ossService.existsFileKey(file.getOriginalFilename())) {
-            // 获取浏览器 User-Agent
+            // 获取浏览器 OshUser-Agent
             UserAgent userAgent = UserAgent.parseUserAgentString(
-                    ServletUtils.getRequest().getHeader("User-Agent")
+                    ServletUtils.getRequest().getHeader("OshUser-Agent")
             );
             // 获取客户端IP
+            // getRemoteAddr
             String ip = IpUtils.getIpAddr();
             // 原始文件名
             log.setOriginalName(file.getOriginalFilename());

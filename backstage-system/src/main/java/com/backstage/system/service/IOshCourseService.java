@@ -5,7 +5,7 @@ import com.backstage.system.domain.course.vo.CourseSearchLoginVo;
 import com.backstage.system.domain.course.vo.OshCourseDetailVo;
 import com.backstage.system.domain.course.vo.OshCourseSectionVo;
 import com.backstage.system.domain.course.OshCourse;
-import com.backstage.system.domain.user.User;
+import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.request.CourseCreateRequest;
 import com.backstage.system.request.CourseChapterCreateRequest;
 import com.backstage.system.request.CourseSearchRequest;
@@ -51,15 +51,15 @@ public interface IOshCourseService {
      */
     int insertCourse(OshCourse course);
 
-    Long createCourse(CourseCreateRequest request, User operator);
+    Long createCourse(CourseCreateRequest request, OshUser operator);
 
-    Long updateCourse(CourseUpdateRequest request, User operator);
+    Long updateCourse(CourseUpdateRequest request, OshUser operator);
 
-    Long createCourseChapter(CourseChapterCreateRequest request, User operator);
+    Long createCourseChapter(CourseChapterCreateRequest request, OshUser operator);
 
-    Long createCourseTextSection(CourseTextSectionCreateRequest request, User operator);
+    Long createCourseTextSection(CourseTextSectionCreateRequest request, OshUser operator);
 
-    Long createCourseVideoSection(CourseVideoSectionCreateRequest request, User operator);
+    Long createCourseVideoSection(CourseVideoSectionCreateRequest request, OshUser operator);
 
     /**
      * 修改课程
@@ -99,5 +99,5 @@ public interface IOshCourseService {
 
     List<OshCourseMaterial> getCourseMaterials(Long courseId);
 
-    boolean safeDeleteSection(Long id, User currentUser);
+    boolean safeDeleteSection(Long id, OshUser currentOshUser);
 }

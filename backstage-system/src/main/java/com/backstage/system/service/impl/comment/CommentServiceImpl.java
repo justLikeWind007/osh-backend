@@ -6,7 +6,7 @@ import com.backstage.common.enums.CommentType;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.system.domain.comment.Comment;
 import com.backstage.system.domain.comment.dto.CourseCommentAddDTO;
-import com.backstage.system.domain.user.User;
+import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.domain.vo.CommentVo;
 import com.backstage.system.mapper.comment.CommentMapper;
 import com.backstage.system.mapper.user.OshUserMapper;
@@ -115,8 +115,8 @@ public class CommentServiceImpl implements ICommentService {
             return R.fail("登录状态已过期");
         }
 
-        User user = oshUserMapper.getUserInfoById(userId);
-        if (user == null) {
+        OshUser oshUser = oshUserMapper.getUserInfoById(userId);
+        if (oshUser == null) {
             return R.fail("用户不存在或已被禁用");
         }
 

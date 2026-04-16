@@ -166,7 +166,7 @@ public class TokenService
      */
     public void setUserAgent(LoginUser loginUser)
     {
-        UserAgent userAgent = UserAgent.parseUserAgentString(               ServletUtils.getRequest().getHeader("User-Agent"));
+        UserAgent userAgent = UserAgent.parseUserAgentString(               ServletUtils.getRequest().getHeader("OshUser-Agent"));
         String ip = IpUtils.getIpAddr();
         loginUser.setIpaddr(ip);
         loginUser.setLoginLocation(AddressUtils.getRealAddressByIP(ip));

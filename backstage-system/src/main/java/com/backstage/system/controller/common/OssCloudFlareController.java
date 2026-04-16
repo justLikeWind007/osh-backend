@@ -53,7 +53,7 @@ public class OssCloudFlareController {
      *
      * @param file        文件
      * @param type        上传场景模块类型
-     * @param id          用户 id
+     * @param resultId     资源id
      * @param previewFlag 是否需要预览, 默认false
      * @param limitMinute 生成文件预览链接的超时时间, 分钟数, 默认30分钟
      */
@@ -74,11 +74,8 @@ public class OssCloudFlareController {
         }
         if (type.equals("video")) {
             try {
-                String url = ossService.upload(file, UploadPathEnum.COURSE_VIDEO, id);
-                // 判断是否返回了错误信息
-                if (url == null || url.contains("不能超过") || url.contains("类型不正确")) {
-                    return R.fail(url);
-                }
+                String url = ossService.upload(file, UploadPathEnum.COURSE_VIDEO, resultId);
+
                 return R.ok(url);
             } catch (Exception e) {
                 log.error("上传失败", e);
@@ -86,10 +83,8 @@ public class OssCloudFlareController {
             }
         } else {
             try {
-                String url = ossService.upload(file, UploadPathEnum.IMAGE, id);
-                if (Objects.equals(url, "图片大小不能超过3M")) {
-                    return R.fail(url);
-                }
+                String url = ossService.upload(file, UploadPathEnum.IMAGE, resultId);
+
                 OshUploadImage uploadImage = new OshUploadImage();
                 uploadImage.setUserId(1L);
                 uploadImage.setSchoolId(1L);
@@ -123,7 +118,7 @@ public class OssCloudFlareController {
     @Anonymous
     @GetMapping("/upload/avatar")
     public R getUrl() {
-        String signedUrl = ossService.getLimitedUrl("common/image/avatar/微信图片_20260327163452_147_8.jpg", 1);
+        String signedUrl = ossService.getLimitedUrl("common/video/course/946/202604/81c67441-f771-4eb9-be25-86576cd13794_test11.mp4", 1);
 
         return R.ok(signedUrl);
 

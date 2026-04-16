@@ -1,7 +1,7 @@
 package com.backstage.system.service.impl;
 
 import com.backstage.system.domain.course.OshCourseSection;
-import com.backstage.system.domain.user.User;
+import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.request.CourseChapterCreateRequest;
 import com.backstage.system.request.CourseTextSectionCreateRequest;
 import com.backstage.system.request.CourseVideoSectionCreateRequest;
@@ -17,7 +17,7 @@ public class OshCourseSectionCreateBuilderTest {
         request.setTitle("  第一章  ");
         request.setSort(1);
 
-        User operator = new User();
+        OshUser operator = new OshUser();
         operator.setUsername("teacher_hope");
 
         OshCourseSection section = OshCourseServiceImpl.buildChapterSectionForCreate(request, operator);
@@ -48,7 +48,7 @@ public class OshCourseSectionCreateBuilderTest {
         request.setTextContent("  视频补充说明  ");
         request.setFileSize(123456L);
 
-        User operator = new User();
+        OshUser operator = new OshUser();
         operator.setUsername("teacher_hope");
 
         OshCourseSection section = OshCourseServiceImpl.buildVideoSectionForCreate(request, operator);
@@ -79,7 +79,7 @@ public class OshCourseSectionCreateBuilderTest {
         request.setFreeFlag(1);
         request.setTextContent("  这里是图文内容  ");
 
-        User operator = new User();
+        OshUser operator = new OshUser();
         operator.setUsername("teacher_hope");
 
         OshCourseSection section = OshCourseServiceImpl.buildTextSectionForCreate(request, operator);

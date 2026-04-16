@@ -167,7 +167,7 @@
             <el-form-item prop="routeName">
               <el-input v-model="form.routeName" placeholder="请输入路由名称" />
               <span slot="label">
-                <el-tooltip content="默认不填则和路由地址相同：如地址为：`user`，则名称为`User`（注意：为避免名字的冲突，特殊情况下请自定义，保证唯一性）" placement="top">
+                <el-tooltip content="默认不填则和路由地址相同：如地址为：`oshUser`，则名称为`User`（注意：为避免名字的冲突，特殊情况下请自定义，保证唯一性）" placement="top">
                 <i class="el-icon-question"></i>
                 </el-tooltip>
                 路由名称
@@ -193,7 +193,7 @@
           <el-col :span="12" v-if="form.menuType != 'F'">
             <el-form-item prop="path">
               <span slot="label">
-                <el-tooltip content="访问的路由地址，如：`user`，如外网地址需内链访问则以`http(s)://`开头" placement="top">
+                <el-tooltip content="访问的路由地址，如：`oshUser`，如外网地址需内链访问则以`http(s)://`开头" placement="top">
                 <i class="el-icon-question"></i>
                 </el-tooltip>
                 路由地址
@@ -206,7 +206,7 @@
           <el-col :span="12" v-if="form.menuType == 'C'">
             <el-form-item prop="component">
               <span slot="label">
-                <el-tooltip content="访问的组件路径，如：`system/user/index`，默认在`views`目录下" placement="top">
+                <el-tooltip content="访问的组件路径，如：`system/oshUser/index`，默认在`views`目录下" placement="top">
                 <i class="el-icon-question"></i>
                 </el-tooltip>
                 组件路径
@@ -218,7 +218,7 @@
             <el-form-item prop="perms">
               <el-input v-model="form.perms" placeholder="请输入权限标识" maxlength="100" />
               <span slot="label">
-                <el-tooltip content="控制器中定义的权限字符，如：@PreAuthorize(`@ss.hasPermi('system:user:list')`)" placement="top">
+                <el-tooltip content="控制器中定义的权限字符，如：@PreAuthorize(`@ss.hasPermi('system:oshUser:list')`)" placement="top">
                 <i class="el-icon-question"></i>
                 </el-tooltip>
                 权限字符

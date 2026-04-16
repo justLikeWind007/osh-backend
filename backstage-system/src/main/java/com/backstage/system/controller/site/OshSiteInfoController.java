@@ -14,6 +14,7 @@ import com.backstage.system.domain.site.OshSiteTag;
 import com.backstage.system.domain.user.User;
 import com.backstage.system.mapper.site.OshSiteInfoMapper;
 import com.backstage.system.service.common.OssService;
+import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.service.site.IOshSiteInfoService;
 import com.backstage.system.service.site.IOshSiteTagsService;
 import com.backstage.system.service.user.IOshUserService;
