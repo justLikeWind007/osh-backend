@@ -67,7 +67,7 @@ public class OssCloudFlareController {
             @RequestParam("type") String type,
             @RequestParam(value = "preview", required = false, defaultValue = "false") Boolean previewFlag,
             @RequestParam(value = "minute", required = false, defaultValue = "30") Integer limitMinute,
-            @RequestParam(value = "id", required = false) String id) {
+            @RequestParam(value = "id", required = false) String resultId) {
 
         if (file.isEmpty()) {
             return R.fail("上传文件不能为空");

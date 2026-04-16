@@ -89,4 +89,16 @@
         set is_deleted = 1
         where site_id = #{siteId}
     </delete>
+
+    <select id="selectMaintainersBySiteIds" resultType="com.backstage.system.domain.site.OshSiteMaintainer">
+        select m.*, u.username from
+            osh_site_maintainer m
+        left join osh_user u ON m.user_id = u.id
+        <where>
+            site_id IN
+            <foreach collection="siteIds" item="item" open="(" close=")" separator=",">
+                #{item}
+            </foreach>
+        </where>
+    </select>
 </mapper>

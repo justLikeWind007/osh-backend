@@ -3,7 +3,6 @@ package com.backstage.system.domain.site;
 import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.util.Date;
@@ -42,8 +41,7 @@ public class OshSiteMaintainer implements Serializable {
     /**
      * 负责人姓名
      */
-    @NotBlank(message = "负责人姓名不能为空")
-    @TableField(value = "user_name", updateStrategy = FieldStrategy.NOT_EMPTY)
+    @TableField(exist = false)
     private String userName;
 
     /**

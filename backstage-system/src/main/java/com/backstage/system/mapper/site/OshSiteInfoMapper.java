@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -64,4 +65,6 @@ public interface OshSiteInfoMapper extends BaseMapper<OshSiteInfo> {
    * @return 结果
    */
   int deleteResponsibleBySiteId(@Param("siteId") Long siteId);
+
+  List<OshSiteMaintainer> selectMaintainersBySiteIds(@Param("siteIds") Collection<Long> siteIds);
 }
