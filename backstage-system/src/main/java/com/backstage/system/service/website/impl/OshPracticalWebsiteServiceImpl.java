@@ -3,12 +3,14 @@ package com.backstage.system.service.website.impl;
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.common.utils.email.EmailUtil;
+import com.backstage.common.utils.redis.DistributedLockUtil;
 import com.backstage.system.domain.dto.website.WebsiteAuditDTO;
 import com.backstage.system.domain.dto.website.WebsiteQueryDTO;
 import com.backstage.system.domain.dto.website.WebsiteSubmitDTO;
 import com.backstage.system.domain.vo.website.OshPracticalWebsiteVO;
 import com.backstage.system.domain.website.OshPracticalWebsite;
 import com.backstage.system.domain.website.OshWebsiteTag;
+import com.backstage.system.domain.website.WebsiteEsDoc;
 import com.backstage.system.mapper.website.OshPracticalWebsiteMapper;
 import com.backstage.system.mapper.website.OshWebsiteTagMapper;
 import com.backstage.system.service.website.OshPracticalWebsiteService;
@@ -21,11 +23,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+
+import static com.backstage.system.utils.UserContextUtil.getCurrentUser;
 
 /**
  * @author 24333
@@ -41,6 +45,10 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
     private OshWebsiteTagMapper oshWebsiteTagMapper;
     @Autowired
     private EmailUtil emailUtil;
+    @Autowired
+    private DistributedLockUtil distributedLockUtil;
+    @Autowired
+    private WebsiteEsService websiteEsService;
     /**
      * 查询网站列表
      *
@@ -52,6 +60,17 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
         if (queryDTO == null) {
             queryDTO = new WebsiteQueryDTO();
         }
+        // 第一步：先查 ES
+        List<OshPracticalWebsiteVO> esResult = websiteEsService.searchFromEs(queryDTO);
+        // 第二步：判断 ES 结果
+        // esResult == null  → ES 服务异常，降级走 MySQL
+        // esResult.isEmpty() → ES 正常但没有结果，降级走 MySQL
+        if (esResult != null && !esResult.isEmpty()) {
+            log.info("ES 搜索命中，返回 ES 结果，共 {} 条", esResult.size());
+            return esResult;
+        }
+        // 第三步：ES 查不到或不可用，走 MySQL
+        log.info("ES 未命中或不可用，降级走 MySQL 查询");
         Integer pageNum = queryDTO.getPageNum();
         Integer pageSize = queryDTO.getPageSize();
         PageHelper.startPage(pageNum, pageSize);
@@ -85,8 +104,18 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
                 submitDto.getUrl() == null || submitDto.getUrl().trim().isEmpty()) {
             throw new IllegalArgumentException("网站名称和链接不能为空");
         }
+        // key 以用户 ID 为维度，每个用户一把锁，互不影响
+        String lockKey = getCurrentUser().getId().toString();
+        // value 用 UUID，保证释放时只能释放自己的锁
+        String lockValue = java.util.UUID.randomUUID().toString();
+        //尝试获取锁，过期时间20秒
+        boolean locked = distributedLockUtil.tryLock(lockKey, lockValue, 20);
+        if (!locked) {
+            throw new IllegalArgumentException("请勿重复提交，请稍后再试");
+        }
+try{
         OshPracticalWebsite website = new OshPracticalWebsite();
-         OshWebsiteTag  tag = new OshWebsiteTag();
+        OshWebsiteTag tag = new OshWebsiteTag();
         website.setName(submitDto.getName());
         website.setUrl(submitDto.getUrl());
         website.setDescription(submitDto.getDescription());
@@ -108,7 +137,7 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
                         website.getCreateBy(),
                         new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(website.getCreateTime())
                 );
-            }catch (Exception e){
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
@@ -117,6 +146,11 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
         tag.setTagName(submitDto.getTagNames());
         tag.setDeleteFlag(0);
         return oshWebsiteTagMapper.insertWebsiteTag(tag);
+    }finally {
+    // 无论成功还是异常，都释放锁
+    // finally 块保证锁一定会被释放，不会死锁
+        distributedLockUtil.releaseLock(lockKey, lockValue);
+        }
     }
     /**
      * 审核网站
@@ -156,7 +190,46 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
         }
 
         // 5. 更新对应数据库
-       return oshPracticalWebsiteMapper.updateStatusById(website);
+        boolean updateResult = oshPracticalWebsiteMapper.updateStatusById(website);
+        if (updateResult) {
+            // MySQL 更新成功后，把数据同步到 ES
+            try {
+                // 重新查一次完整数据（包含标签）
+                OshPracticalWebsiteVO vo = oshPracticalWebsiteMapper.selectByIdAndStatus(
+                        auditDto.getWebsiteId(), 1);
+                if (vo != null) {
+                    WebsiteEsDoc doc = convertVoToEsDoc(vo);
+                    websiteEsService.saveToEs(doc);
+                }
+            } catch (Exception e) {
+                // ES 同步失败不影响审核结果，只打日志
+                log.error("审核通过后同步 ES 失败，websiteId={}", auditDto.getWebsiteId(), e);
+            }
+        }
+        return updateResult;
+    }
+    /**
+     * 把 VO 转换成 ES 文档对象
+     */
+    private WebsiteEsDoc convertVoToEsDoc(OshPracticalWebsiteVO vo) {
+        WebsiteEsDoc doc = new WebsiteEsDoc();
+        doc.setId(vo.getId());
+        doc.setName(vo.getName());
+        doc.setUrl(vo.getUrl());
+        doc.setDescription(vo.getDescription());
+        doc.setLogoUrl(vo.getLogoUrl());
+        doc.setClickCount(vo.getClickCount());
+        doc.setGoodCount(vo.getGoodCount());
+        doc.setMidCount(vo.getMidCount());
+        doc.setBadCount(vo.getBadCount());
+        doc.setCollectionCount(vo.getCollectionCount());
+        doc.setRatingScore(vo.getRatingScore());
+        doc.setAuditTime(vo.getAuditTime());
+        // tags 从逗号分隔字符串转成 List
+        if (vo.getTags() != null && !vo.getTags().isEmpty()) {
+            doc.setTags(Arrays.asList(vo.getTags().split(",")));
+        }
+        return doc;
     }
     /**
      * 查询待审核列表
