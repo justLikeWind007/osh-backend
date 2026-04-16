@@ -30,6 +30,7 @@ public enum ResultCode {
     FAILED_USER_EMAIL_BOUND (3107, "邮箱已被绑定"),
     FAILED_FREQUENT(3108,"操作频繁,请稍后重试"),
     FAILED_TIME_LIMIT(3109,"当天请求次数已达到上限"),
+    FAILED_USER_ANSWER_ALREADY_MARKED (3110, "重复标记已回答"),
 
     FAILED_USER_NAME_OR_PASSWORD_EMPTY (3200, "用户名或密码为空"),
     FAILED_USER_PASSWORD_NOT_MATCHES (3201, "密码不符合要求"),

@@ -10,6 +10,8 @@ public enum UploadPathEnum {
 
         DOCUMENT("common/document/"),
 
+        COURSE_MATERIAL("common/material/course/"),
+
         AUDIO("common/audio/"),
 
         IMAGE("common/image/"),

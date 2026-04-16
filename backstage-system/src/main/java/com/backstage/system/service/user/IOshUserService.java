@@ -1,21 +1,20 @@
 package com.backstage.system.service.user;
 
 import com.backstage.common.core.domain.R;
-import com.backstage.system.domain.user.User;
-import com.backstage.system.domain.user.vo.UserLoginVo;
+import com.backstage.system.domain.user.OshUser;
+import com.backstage.system.domain.user.vo.OshUserLoginVo;
 
 import javax.mail.MessagingException;
-import java.util.List;
 
 /**
  * Created with IntelliJ IDEA.
  * Description:
- * User: 九转苍翎
+ * OshUser: 九转苍翎
  * Date: 2026/3/7
  * Time: 16:42
  */
 public interface IOshUserService {
-    R<UserLoginVo> login(String username, String password);
+    R<OshUserLoginVo> login(String username, String password);
 
     R<String> registerSubmit(String username, String password, String repassword, String email) throws MessagingException;
 
@@ -33,56 +32,60 @@ public interface IOshUserService {
 
     R<String> updatePassword(String opassword, String password, String repassword);
 
-    R<User> getUserInfo();
+    R<OshUser> getUserInfo();
+
+    R<String> deleteUser();
+
+    R<String> record(Long userId, Integer violationType, String reason);
+
+    R<String> cancelRecord(Long userId, OshUser currentOshUser);
 
 
-
-
-    /**
-     * 查询用户
-     *
-     * @param id 用户主键
-     * @return 用户
-     */
-    public User selectUserById(Long id);
-
-    /**
-     * 查询用户列表
-     *
-     * @param user 用户
-     * @return 用户集合
-     */
-    public List<User> selectUserList(User user);
-
-    /**
-     * 新增用户
-     *
-     * @param user 用户
-     * @return 结果
-     */
-    public int insertUser(User user);
-
-    /**
-     * 修改用户
-     *
-     * @param user 用户
-     * @return 结果
-     */
-    public int updateUser(User user);
-
-    /**
-     * 批量删除用户
-     *
-     * @param ids 需要删除的用户主键集合
-     * @return 结果
-     */
-    public int deleteUserByIds(Long[] ids);
-
-    /**
-     * 删除用户信息
-     *
-     * @param id 用户主键
-     * @return 结果
-     */
-    public int deleteUserById(Long id);
+//    /**
+//     * 查询用户
+//     *
+//     * @param id 用户主键
+//     * @return 用户
+//     */
+//    public OshUser selectUserById(Long id);
+//
+//    /**
+//     * 查询用户列表
+//     *
+//     * @param oshUser 用户
+//     * @return 用户集合
+//     */
+//    public List<OshUser> selectUserList(OshUser oshUser);
+//
+//    /**
+//     * 新增用户
+//     *
+//     * @param oshUser 用户
+//     * @return 结果
+//     */
+//    public int insertUser(OshUser oshUser);
+//
+//    /**
+//     * 修改用户
+//     *
+//     * @param oshUser 用户
+//     * @return 结果
+//     */
+//    public int updateUser(OshUser oshUser);
+//
+//    /**
+//     * 批量删除用户
+//     *
+//     * @param ids 需要删除的用户主键集合
+//     * @return 结果
+//     */
+//    public int deleteUserByIds(Long[] ids);
+//
+//    /**
+//     * 删除用户信息
+//     *
+//     * @param id 用户主键
+//     * @return 结果
+//     */
+//    public int deleteUserById(Long id);
 }

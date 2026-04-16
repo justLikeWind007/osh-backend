@@ -1,11 +1,16 @@
 /**
- * 路径匹配器
+ * 路径匹配器，支持 ** 和 * 通配符
  * @param {string} pattern
  * @param {string} path
  * @returns {Boolean}
  */
 export function isPathMatch(pattern, path) {
-  const regexPattern = pattern.replace(/\//g, '\\/').replace(/\*\*/g, '.*').replace(/\*/g, '[^\\/]*')
+  // 先用占位符保护 **，防止后续 * 替换时误伤 .* 中的 *
+  const regexPattern = pattern
+    .replace(/\//g, '\\/')
+    .replace(/\*\*/g, '___GLOBSTAR___')
+    .replace(/\*/g, '[^\\/]*')
+    .replace(/___GLOBSTAR___/g, '.*')
   const regex = new RegExp(`^${regexPattern}$`)
   return regex.test(path)
 }

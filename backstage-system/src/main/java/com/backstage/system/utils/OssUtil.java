@@ -104,8 +104,15 @@ public class OssUtil {
 
     // 获取文件完整路径
     public String getFullFilePath(String fileName) {
-        String path = ossProperties.getBasePath() + fileName;
-        return ossProperties.getPublicDomain() + "/" + path;
+        // 如果fileName已经包含basePath，直接拼接publicDomain
+        // 否则拼接basePath后再拼接publicDomain
+        String fullPath;
+        if (fileName.startsWith(ossProperties.getBasePath())) {
+            fullPath = fileName;
+        } else {
+            fullPath = ossProperties.getBasePath() + fileName;
+        }
+        return ossProperties.getPublicDomain() + "/" + fullPath;
     }
 
     // 获取OSS配置信息

@@ -18,7 +18,12 @@ SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ----------------------------
--- Table structure for osh_learn
+-- 课程购买记录表
+-- 职责：记录用户对课程的购买/解锁状态，作为鉴权核心依据
+-- 说明：
+--   免费课程 → pay_method='free', pay_status='paid', order_no 可为空
+--   付费课程 → 支付成功回调后写入，pay_status='paid'
+--   重复购买保护：UNIQUE KEY uk_user_course
 -- ----------------------------
 DROP TABLE IF EXISTS `osh_learn`;
 CREATE TABLE `osh_learn`  (

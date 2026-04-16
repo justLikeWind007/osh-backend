@@ -5,11 +5,11 @@ import java.util.List;
 /**
  * Created with IntelliJ IDEA.
  * Description:
- * User: 九转苍翎
+ * OshUser: 九转苍翎
  * Date: 2026/4/7
  * Time: 16:53
  */
-public class CurrentUser extends User{
+public class CurrentUser extends OshUser {
     private List<String> role;
     private List<String> permissionList;
 
