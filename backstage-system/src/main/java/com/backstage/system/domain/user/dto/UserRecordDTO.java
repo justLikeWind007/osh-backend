@@ -6,7 +6,7 @@ import io.swagger.annotations.ApiModelProperty;
 /**
  * Created with IntelliJ IDEA.
  * Description:
- * User: 九转苍翎
+ * OshUser: 九转苍翎
  * Date: 2026/4/9
  * Time: 19:40
  */
@@ -27,10 +27,6 @@ public class UserRecordDTO {
             required = true
     )
     private String reason;
-    @ApiModelProperty(
-            value = "操作者id"
-    )
-    private Long operatorId;
 
     public Long getUserId() {
         return userId;
@@ -56,21 +52,12 @@ public class UserRecordDTO {
         this.reason = reason;
     }
 
-    public Long getOperatorId() {
-        return operatorId;
-    }
-
-    public void setOperatorId(Long operatorId) {
-        this.operatorId = operatorId;
-    }
-
     @Override
     public String toString() {
         return "UserRecordDTO{" +
                 "userId=" + userId +
                 ", violationType=" + violationType +
                 ", reason='" + reason + '\'' +
-                ", operatorId=" + operatorId +
                 '}';
     }
 }

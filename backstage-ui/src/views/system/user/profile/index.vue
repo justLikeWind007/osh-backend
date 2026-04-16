@@ -12,20 +12,20 @@
             </div>
             <ul class="list-group list-group-striped">
               <li class="list-group-item">
-                <svg-icon icon-class="user" />用户名称
-                <div class="pull-right">{{ user.userName }}</div>
+                <svg-icon icon-class="oshUser" />用户名称
+                <div class="pull-right">{{ oshUser.userName }}</div>
               </li>
               <li class="list-group-item">
                 <svg-icon icon-class="phone" />手机号码
-                <div class="pull-right">{{ user.phonenumber }}</div>
+                <div class="pull-right">{{ oshUser.phonenumber }}</div>
               </li>
               <li class="list-group-item">
                 <svg-icon icon-class="email" />用户邮箱
-                <div class="pull-right">{{ user.email }}</div>
+                <div class="pull-right">{{ oshUser.email }}</div>
               </li>
               <li class="list-group-item">
                 <svg-icon icon-class="tree" />所属部门
-                <div class="pull-right" v-if="user.dept">{{ user.dept.deptName }} / {{ postGroup }}</div>
+                <div class="pull-right" v-if="oshUser.dept">{{ oshUser.dept.deptName }} / {{ postGroup }}</div>
               </li>
               <li class="list-group-item">
                 <svg-icon icon-class="peoples" />所属角色
@@ -33,7 +33,7 @@
               </li>
               <li class="list-group-item">
                 <svg-icon icon-class="date" />创建日期
-                <div class="pull-right">{{ user.createTime }}</div>
+                <div class="pull-right">{{ oshUser.createTime }}</div>
               </li>
             </ul>
           </div>
@@ -46,7 +46,7 @@
           </div>
           <el-tabs v-model="selectedTab">
             <el-tab-pane label="基本资料" name="userinfo">
-              <userInfo :user="user" />
+              <userInfo :oshUser="oshUser" />
             </el-tab-pane>
             <el-tab-pane label="修改密码" name="resetPwd">
               <resetPwd />
@@ -62,14 +62,14 @@
 import userAvatar from "./userAvatar"
 import userInfo from "./userInfo"
 import resetPwd from "./resetPwd"
-import { getUserProfile } from "@/api/system/user"
+import { getUserProfile } from "@/api/system/oshUser"
 
 export default {
   name: "Profile",
   components: { userAvatar, userInfo, resetPwd },
   data() {
     return {
-      user: {},
+      oshUser: {},
       roleGroup: {},
       postGroup: {},
       selectedTab: "userinfo"
@@ -85,7 +85,7 @@ export default {
   methods: {
     getUser() {
       getUserProfile().then(response => {
-        this.user = response.data
+        this.oshUser = response.data
         this.roleGroup = response.roleGroup
         this.postGroup = response.postGroup
       })

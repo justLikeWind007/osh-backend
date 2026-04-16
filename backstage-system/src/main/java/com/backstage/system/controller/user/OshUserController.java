@@ -1,32 +1,24 @@
 package com.backstage.system.controller.user;
 
 import com.backstage.common.annotation.Anonymous;
-import com.backstage.common.annotation.Log;
 import com.backstage.common.core.controller.BaseController;
-import com.backstage.common.core.domain.AjaxResult;
 import com.backstage.common.core.domain.R;
-import com.backstage.common.core.page.TableDataInfo;
-import com.backstage.common.enums.BusinessType;
-import com.backstage.common.utils.poi.ExcelUtil;
-import com.backstage.system.domain.user.User;
+import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.domain.user.dto.*;
-import com.backstage.system.domain.user.vo.UserLoginVo;
+import com.backstage.system.domain.user.vo.OshUserLoginVo;
 import com.backstage.system.service.user.IOshUserService;
 import com.backstage.system.utils.UserContextUtil;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import javax.mail.MessagingException;
-import javax.servlet.http.HttpServletResponse;
-import java.util.List;
 
 /**
  * Created with IntelliJ IDEA.
  * Description:
- * User: 九转苍翎
+ * OshUser: 九转苍翎
  * Date: 2026/3/7
  * Time: 16:37
  */
@@ -45,7 +37,7 @@ OshUserController extends BaseController {
     @Anonymous
     @ApiOperation("账号登录")
     @PostMapping("/login")
-    public R<UserLoginVo> login(
+    public R<OshUserLoginVo> login(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserLoginDTO userLoginDTO) {
         return userService.login(userLoginDTO.getUsername(),userLoginDTO.getPassword());
@@ -125,21 +117,29 @@ OshUserController extends BaseController {
     @Anonymous
     @ApiOperation("获取用户信息")
     @GetMapping("/getinfo")
-    public R<User> getUserInfo(
+    public R<OshUser> getUserInfo(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid) {
         return userService.getUserInfo();
     }
 
     @Anonymous
-    @PostMapping("/record")
-    public R<String> record(
-            @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
-            @RequestBody UserRecordDTO userRecordDTO) {
-        return userService.record(userRecordDTO.getUserId(), userRecordDTO.getViolationType(), userRecordDTO.getReason(), userRecordDTO.getOperatorId());
+    @ApiOperation("注销用户")
+    @PostMapping("/deleteUser")
+    public R<String> deleteUser(
+            @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid) {
+        return userService.deleteUser();
     }
 
     @Anonymous
-    @PostMapping("/record/cancel")
+    @PostMapping("/violation/record")
+    public R<String> record(
+            @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
+            @RequestBody UserRecordDTO userRecordDTO) {
+        return userService.record(userRecordDTO.getUserId(), userRecordDTO.getViolationType(), userRecordDTO.getReason());
+    }
+
+    @Anonymous
+    @PostMapping("/violation/record/cancel")
     public R<String> cancelRecord(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserCancelRecordDTO userCancelRecordDTO) {
@@ -150,71 +150,71 @@ OshUserController extends BaseController {
 
 
 
-    /**
-     * 查询用户列表
-     */
-    @PreAuthorize("@ss.hasPermi('system:user:list')")
-    @GetMapping("/list")
-    public TableDataInfo list(User user)
-    {
-        startPage();
-        List<User> list = userService.selectUserList(user);
-        return getDataTable(list);
-    }
-
-    /**
-     * 导出用户列表
-     */
-    @PreAuthorize("@ss.hasPermi('system:user:export')")
-    @Log(title = "用户", businessType = BusinessType.EXPORT)
-    @PostMapping("/export")
-    public void export(HttpServletResponse response, User user)
-    {
-        List<User> list = userService.selectUserList(user);
-        ExcelUtil<User> util = new ExcelUtil<User>(User.class);
-        util.exportExcel(response, list, "用户数据");
-    }
-
-    /**
-     * 获取用户详细信息
-     */
-    @PreAuthorize("@ss.hasPermi('system:user:query')")
-    @GetMapping(value = "/{id}")
-    public AjaxResult getInfo(@PathVariable("id") Long id)
-    {
-        return success(userService.selectUserById(id));
-    }
-
-    /**
-     * 新增用户
-     */
-    @PreAuthorize("@ss.hasPermi('system:user:add')")
-    @Log(title = "用户", businessType = BusinessType.INSERT)
-    @PostMapping
-    public AjaxResult add(@RequestBody User user)
-    {
-        return toAjax(userService.insertUser(user));
-    }
-
-    /**
-     * 修改用户
-     */
-    @PreAuthorize("@ss.hasPermi('system:user:edit')")
-    @Log(title = "用户", businessType = BusinessType.UPDATE)
-    @PutMapping
-    public AjaxResult edit(@RequestBody User user)
-    {
-        return toAjax(userService.updateUser(user));
-    }
-
-    /**
-     * 删除用户
-     */
-    @PreAuthorize("@ss.hasPermi('system:user:remove')")
-    @Log(title = "用户", businessType = BusinessType.DELETE)
-    @DeleteMapping("/{ids}")
-    public AjaxResult remove(@PathVariable Long[] ids)
-    {
-        return toAjax(userService.deleteUserByIds(ids));
-    }
+//    /**
+//     * 查询用户列表
+//     */
+//    @PreAuthorize("@ss.hasPermi('system:user:list')")
+//    @GetMapping("/list")
+//    public TableDataInfo list(OshUser oshUser)
+//    {
+//        startPage();
+//        List<OshUser> list = userService.selectUserList(oshUser);
+//        return getDataTable(list);
+//    }
+//
+//    /**
+//     * 导出用户列表
+//     */
+//    @PreAuthorize("@ss.hasPermi('system:user:export')")
+//    @Log(title = "用户", businessType = BusinessType.EXPORT)
+//    @PostMapping("/export")
+//    public void export(HttpServletResponse response, OshUser oshUser)
+//    {
+//        List<OshUser> list = userService.selectUserList(oshUser);
+//        ExcelUtil<OshUser> util = new ExcelUtil<OshUser>(OshUser.class);
+//        util.exportExcel(response, list, "用户数据");
+//    }
+//
+//    /**
+//     * 获取用户详细信息
+//     */
+//    @PreAuthorize("@ss.hasPermi('system:user:query')")
+//    @GetMapping(value = "/{id}")
+//    public AjaxResult getInfo(@PathVariable("id") Long id)
+//    {
+//        return success(userService.selectUserById(id));
+//    }
+//
+//    /**
+//     * 新增用户
+//     */
+//    @PreAuthorize("@ss.hasPermi('system:user:add')")
+//    @Log(title = "用户", businessType = BusinessType.INSERT)
+//    @PostMapping
+//    public AjaxResult add(@RequestBody OshUser oshUser)
+//    {
+//        return toAjax(userService.insertUser(oshUser));
+//    }
+//
+//    /**
+//     * 修改用户
+//     */
+//    @PreAuthorize("@ss.hasPermi('system:user:edit')")
+//    @Log(title = "用户", businessType = BusinessType.UPDATE)
+//    @PutMapping
+//    public AjaxResult edit(@RequestBody OshUser oshUser)
+//    {
+//        return toAjax(userService.updateUser(oshUser));
+//    }
+//
+//    /**
+//     * 删除用户
+//     */
+//    @PreAuthorize("@ss.hasPermi('system:user:remove')")
+//    @Log(title = "用户", businessType = BusinessType.DELETE)
+//    @DeleteMapping("/{ids}")
+//    public AjaxResult remove(@PathVariable Long[] ids)
+//    {
+//        return toAjax(userService.deleteUserByIds(ids));
+//    }
 }

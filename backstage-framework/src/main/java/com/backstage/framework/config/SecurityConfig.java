@@ -1,5 +1,6 @@
 package com.backstage.framework.config;
 
+import com.backstage.framework.security.filter.OshAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -53,6 +54,9 @@ public class SecurityConfig
      */
     @Autowired
     private JwtAuthenticationTokenFilter authenticationTokenFilter;
+
+    @Autowired
+    private OshAuthenticationFilter oshAuthenticationFilter;
     
     /**
      * 跨域过滤器
@@ -121,9 +125,10 @@ public class SecurityConfig
             // 添加Logout filter
             .logout(logout -> logout.logoutUrl("/logout").logoutSuccessHandler(logoutSuccessHandler))
             // 添加JWT filter
-            .addFilterBefore(authenticationTokenFilter, UsernamePasswordAuthenticationFilter.class)
+            // .addFilterBefore(authenticationTokenFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(oshAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             // 添加CORS filter
-            .addFilterBefore(corsFilter, JwtAuthenticationTokenFilter.class)
+            .addFilterBefore(corsFilter, OshAuthenticationFilter.class)
             .addFilterBefore(corsFilter, LogoutFilter.class)
             .build();
     }

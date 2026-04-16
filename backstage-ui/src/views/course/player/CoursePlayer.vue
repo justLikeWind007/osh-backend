@@ -1617,7 +1617,7 @@ export default {
   color: #303133;
   cursor: pointer;
   transition: background 0.15s;
-  user-select: none;
+  oshUser-select: none;
 
   &:hover {
     background: #f5f7fa;
@@ -1997,7 +1997,7 @@ export default {
   border: 1px solid #dcdfe6;
   border-radius: 4px;
   cursor: pointer;
-  user-select: none;
+  oshUser-select: none;
   background: #fff;
   transition: all 0.15s;
 

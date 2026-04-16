@@ -8,12 +8,12 @@ import com.baomidou.mybatisplus.annotation.TableName;
 /**
  * Created with IntelliJ IDEA.
  * Description:
- * User: 九转苍翎
+ * OshUser: 九转苍翎
  * Date: 2026/4/9
  * Time: 19:32
  */
-@TableName("osh_user_violation_record")
-public class OshUserViolationRecord extends OSHBaseEntity {
+@TableName("osh_user_violation")
+public class OshUserViolation extends OSHBaseEntity {
     /**
      * 主键id
      */

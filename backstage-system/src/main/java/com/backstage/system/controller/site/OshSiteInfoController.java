@@ -10,7 +10,7 @@ import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.system.domain.site.OshSiteInfo;
 import com.backstage.system.domain.site.OshSiteTag;
-import com.backstage.system.domain.user.User;
+import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.service.site.IOshSiteInfoService;
 import com.backstage.system.service.site.IOshSiteTagsService;
 import com.backstage.system.service.common.OssService;
@@ -105,7 +105,7 @@ public class OshSiteInfoController extends BaseController {
     if (siteInfo == null) {
       return R.fail("网站不存在");
     }
-    R<User> userInfo = oshUserService.getUserInfo();
+    R<OshUser> userInfo = oshUserService.getUserInfo();
     oshSiteInfoService.insertUsage(siteInfo, userInfo.getData());
     return R.ok(siteInfo);
   }
