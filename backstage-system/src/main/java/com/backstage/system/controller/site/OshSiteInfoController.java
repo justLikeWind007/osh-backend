@@ -9,9 +9,7 @@ import com.backstage.common.enums.BusinessType;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.system.domain.site.OshSiteInfo;
-import com.backstage.system.domain.site.OshSiteMaintainer;
 import com.backstage.system.domain.site.OshSiteTag;
-import com.backstage.system.mapper.site.OshSiteInfoMapper;
 import com.backstage.system.service.common.OssService;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.service.site.IOshSiteInfoService;
@@ -25,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -115,9 +114,9 @@ public class OshSiteInfoController extends BaseController {
     @PostMapping
     public R<Void> add(@Validated @RequestBody OshSiteInfo siteInfo) {
         long currentUserId = ThreadLocalUtil.getCurrentUserId();
-        siteInfo.setCreatedBy(currentUserId);
-        siteInfo.setCreationTime(new Date());
-        siteInfo.setUpdateTime(new Date());
+        siteInfo.setCreateBy(currentUserId);
+        siteInfo.setCreateTime(LocalDateTime.now());
+        siteInfo.setUpdateTime(LocalDateTime.now());
         siteInfo.setUpdateBy(currentUserId);
         siteInfo.setStatus(1);
         if (oshSiteInfoService.saveSiteInfo(siteInfo)) {
@@ -141,7 +140,7 @@ public class OshSiteInfoController extends BaseController {
     public R<Void> edit(@RequestBody OshSiteInfo siteInfo) {
         long currentUserId = ThreadLocalUtil.getCurrentUserId();
         siteInfo.setUpdateBy(currentUserId);
-        siteInfo.setUpdateTime(new Date());
+        siteInfo.setUpdateTime(LocalDateTime.now());
         if (oshSiteInfoService.updateSiteInfo(siteInfo)) {
             // 更新标签
             if (siteInfo.getTagList() != null) {
