@@ -1,6 +1,5 @@
 package com.backstage.system.domain.site;
 
-import com.backstage.system.domain.user.User;
 import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
@@ -17,221 +16,249 @@ import java.util.List;
 @TableName("osh_site_info")
 public class OshSiteInfo implements Serializable {
 
-  private static final long serialVersionUID = 4936551355109148940L;
+    private static final long serialVersionUID = 4936551355109148940L;
 
-  /**
-   * 网站编号（主键）
-   */
-  @TableId(type = IdType.AUTO)
-  @TableField(value = "id", updateStrategy = FieldStrategy.NEVER)
-  private Long id;
+    /**
+     * 网站编号（主键）
+     */
+    @TableId(type = IdType.AUTO)
+    @TableField(value = "id", updateStrategy = FieldStrategy.NEVER)
+    private Long id;
 
-  /**
-   * 网站名称
-   */
-  @NotBlank(message = "请输入网站名称")
-  @TableField(value = "site_name", updateStrategy = FieldStrategy.NOT_EMPTY)
-  private String siteName;
+    /**
+     * 网站名称
+     */
+    @NotBlank(message = "请输入网站名称")
+    @TableField(value = "site_name", updateStrategy = FieldStrategy.NOT_EMPTY)
+    private String siteName;
 
-  /**
-   * 网站封面地址
-   */
-  @TableField(value = "cover", updateStrategy = FieldStrategy.NOT_EMPTY)
-  private String cover;
+    /**
+     * 网站封面地址
+     */
+    @TableField(value = "cover", updateStrategy = FieldStrategy.NOT_EMPTY)
+    private String cover;
 
-  /**
-   * 网站访问路径
-   */
-  @NotBlank(message = "请输入网站访问路径")
-  @TableField(value = "site_url", updateStrategy = FieldStrategy.NOT_EMPTY)
-  private String siteUrl;
+    /**
+     * 网站访问路径
+     */
+    @NotBlank(message = "请输入网站访问路径")
+    @TableField(value = "site_url", updateStrategy = FieldStrategy.NOT_EMPTY)
+    private String siteUrl;
 
-  /**
-   * 网站描述信息
-   */
-  @TableField(value = "description", updateStrategy = FieldStrategy.NOT_EMPTY)
-  private String description;
+    /**
+     * 网站描述信息
+     */
+    @TableField(value = "description", updateStrategy = FieldStrategy.NOT_EMPTY)
+    private String description;
 
-  /**
-   * 标签（多个标签用逗号分隔）
-   */
-  @TableField(exist = false)
-  private List<OshSiteTag> tagList;
+    /**
+     * 标签（多个标签用逗号分隔）
+     */
+    @TableField(exist = false)
+    private List<OshSiteTag> tagList;
 
-  /**
-   * 状态
-   */
-  @TableField(value = "status", updateStrategy = FieldStrategy.NOT_NULL)
-  private Integer status;
+    /**
+     * 状态
+     */
+    @TableField(value = "status", updateStrategy = FieldStrategy.NOT_NULL)
+    private Integer status;
 
-  /**
-   * 最后检查时间
-   */
-  @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-  @TableField(value = "last_check_time")
-  private Date lastCheckTime;
+    /**
+     * 最后检查时间
+     */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @TableField(value = "last_check_time")
+    private Date lastCheckTime;
 
-  /**
-   * 最后检查状态
-   */
-  @TableField(value = "last_check_status")
-  private String lastCheckStatus;
+    /**
+     * 最后检查状态
+     */
+    @TableField(value = "last_check_status")
+    private Integer lastCheckStatus;
 
-  /**
-   * 创建人ID/账号
-   */
-  @TableField(value = "created_by", updateStrategy = FieldStrategy.NEVER)
-  private Long createdBy;
+    /**
+     * 最后检查状态名称
+     */
+    @TableField(exist = false)
+    private String lastCheckStatusName;
 
-  /**
-   * 创建时间
-   */
-  @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-  @TableField(value = "create_time", updateStrategy = FieldStrategy.NEVER)
-  private Date creationTime;
+    /**
+     * 创建人ID/账号
+     */
+    @TableField(value = "created_by", updateStrategy = FieldStrategy.NEVER)
+    private Long createdBy;
 
-  /**
-   * 更新人ID/账号
-   */
-  @TableField(value = "update_by")
-  private Long updateBy;
+    /**
+     * 创建时间
+     */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @TableField(value = "create_time", updateStrategy = FieldStrategy.NEVER)
+    private Date creationTime;
 
-  /**
-   * 更新时间
-   */
-  @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-  private Date updateTime;
+    /**
+     * 更新人ID/账号
+     */
+    @TableField(value = "update_by")
+    private Long updateBy;
 
-  /**
-   * 是否删除：0=未删除，1=已删除
-   */
-  @TableLogic
-  @TableField(value = "is_deleted")
-  private Integer isDeleted;
+    /**
+     * 更新时间
+     */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date updateTime;
 
-  /**
-   * 维护者
-   */
-  @TableField(exist = false)
-  private List<User> maintainers;
+    /**
+     * 是否删除：0=未删除，1=已删除
+     */
+    @TableLogic
+    @TableField(value = "is_deleted")
+    private Integer isDeleted;
 
-  public Long getId() {
-    return id;
-  }
+    /**
+     * 维护者
+     */
+    @TableField(exist = false)
+    private List<OshSiteMaintainer> maintainers;
 
-  public void setId(Long id) {
-    this.id = id;
-  }
+    /**
+     * 维护者用户ID
+     */
+    @TableField(exist = false)
+    private List<String> maintainerUserIds;
 
-  public String getSiteName() {
-    return siteName;
-  }
+    public List<String> getMaintainerUserIds() {
+        return maintainerUserIds;
+    }
 
-  public void setSiteName(String siteName) {
-    this.siteName = siteName;
-  }
+    public void setMaintainerUserIds(List<String> maintainerUserIds) {
+        this.maintainerUserIds = maintainerUserIds;
+    }
 
-  public String getCover() {
-    return cover;
-  }
+    public Long getId() {
+        return id;
+    }
 
-  public void setCover(String cover) {
-    this.cover = cover;
-  }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-  public String getSiteUrl() {
-    return siteUrl;
-  }
+    public String getSiteName() {
+        return siteName;
+    }
 
-  public void setSiteUrl(String siteUrl) {
-    this.siteUrl = siteUrl;
-  }
+    public void setSiteName(String siteName) {
+        this.siteName = siteName;
+    }
 
-  public String getDescription() {
-    return description;
-  }
+    public String getCover() {
+        return cover;
+    }
 
-  public void setDescription(String description) {
-    this.description = description;
-  }
+    public void setCover(String cover) {
+        this.cover = cover;
+    }
 
-  public List<OshSiteTag> getTagList() {
-    return tagList;
-  }
+    public String getSiteUrl() {
+        return siteUrl;
+    }
 
-  public void setTagList(List<OshSiteTag> tagList) {
-    this.tagList = tagList;
-  }
+    public void setSiteUrl(String siteUrl) {
+        this.siteUrl = siteUrl;
+    }
 
-  public Integer getStatus() {
-    return status;
-  }
+    public String getDescription() {
+        return description;
+    }
 
-  public void setStatus(Integer status) {
-    this.status = status;
-  }
+    public void setDescription(String description) {
+        this.description = description;
+    }
 
-  public Date getLastCheckTime() {
-    return lastCheckTime;
-  }
+    public List<OshSiteTag> getTagList() {
+        return tagList;
+    }
 
-  public void setLastCheckTime(Date lastCheckTime) {
-    this.lastCheckTime = lastCheckTime;
-  }
+    public void setTagList(List<OshSiteTag> tagList) {
+        this.tagList = tagList;
+    }
 
-  public Long getCreatedBy() {
-    return createdBy;
-  }
+    public Integer getStatus() {
+        return status;
+    }
 
-  public void setCreatedBy(Long createdBy) {
-    this.createdBy = createdBy;
-  }
+    public void setStatus(Integer status) {
+        this.status = status;
+    }
 
-  public Date getCreationTime() {
-    return creationTime;
-  }
+    public Date getLastCheckTime() {
+        return lastCheckTime;
+    }
 
-  public void setCreationTime(Date creationTime) {
-    this.creationTime = creationTime;
-  }
+    public void setLastCheckTime(Date lastCheckTime) {
+        this.lastCheckTime = lastCheckTime;
+    }
 
-  public Long getUpdateBy() {
-    return updateBy;
-  }
+    public Long getCreatedBy() {
+        return createdBy;
+    }
 
-  public void setUpdateBy(Long updateBy) {
-    this.updateBy = updateBy;
-  }
+    public void setCreatedBy(Long createdBy) {
+        this.createdBy = createdBy;
+    }
 
-  public Date getUpdateTime() {
-    return updateTime;
-  }
+    public Date getCreationTime() {
+        return creationTime;
+    }
 
-  public void setUpdateTime(Date updateTime) {
-    this.updateTime = updateTime;
-  }
+    public void setCreationTime(Date creationTime) {
+        this.creationTime = creationTime;
+    }
 
-  public Integer getIsDeleted() {
-    return isDeleted;
-  }
+    public Long getUpdateBy() {
+        return updateBy;
+    }
 
-  public void setIsDeleted(Integer isDeleted) {
-    this.isDeleted = isDeleted;
-  }
+    public void setUpdateBy(Long updateBy) {
+        this.updateBy = updateBy;
+    }
 
-  public List<User> getMaintainers() {
-    return maintainers;
-  }
+    public Date getUpdateTime() {
+        return updateTime;
+    }
 
-  public void setMaintainers(List<User> maintainers) {
-    this.maintainers = maintainers;
-  }
+    public void setUpdateTime(Date updateTime) {
+        this.updateTime = updateTime;
+    }
 
-  public String getLastCheckStatus() {
-    return lastCheckStatus;
-  }
+    public Integer getIsDeleted() {
+        return isDeleted;
+    }
 
-  public void setLastCheckStatus(String lastCheckStatus) {
-    this.lastCheckStatus = lastCheckStatus;
-  }
+    public void setIsDeleted(Integer isDeleted) {
+        this.isDeleted = isDeleted;
+    }
+
+    public List<OshSiteMaintainer> getMaintainers() {
+        return maintainers;
+    }
+
+    public void setMaintainers(List<OshSiteMaintainer> maintainers) {
+        this.maintainers = maintainers;
+    }
+
+    public Integer getLastCheckStatus() {
+        return lastCheckStatus;
+    }
+
+    public void setLastCheckStatus(Integer lastCheckStatus) {
+        this.lastCheckStatus = lastCheckStatus;
+    }
+
+    public String getLastCheckStatusName() {
+        return lastCheckStatusName;
+    }
+
+    public void setLastCheckStatusName(String lastCheckStatusName) {
+        this.lastCheckStatusName = lastCheckStatusName;
+    }
 }

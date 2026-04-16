@@ -15,7 +15,6 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import eu.bitwalker.useragentutils.UserAgent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
 
@@ -87,17 +86,17 @@ public class OssImpl implements OssService {
                 throw new UpLoadException("视频大小不能超过200MB");
             }
         }else if(UploadPathEnum.COURSE_MATERIAL.equals(pathEnum)){
-            customPath = UploadPathEnum.COURSE_MATERIAL.getPath()+id+ym+"/";
+            customPath = UploadPathEnum.COURSE_MATERIAL.getPath()+resultId+ym+"/";
             if(file.getSize() > 1024 * 1024 * 100){
                 return "资料大小不能超过100MB";
             }
         }else if(UploadPathEnum.COURSE_COVER.equals(pathEnum)){
-            customPath = UploadPathEnum.COURSE_COVER.getPath()+id+ym+"/";
+            customPath = UploadPathEnum.COURSE_COVER.getPath()+resultId+ym+"/";
             if(file.getSize() > 1024 * 1024 * 5){
                 return "封面图片大小不能超过5MB";
             }
         }else if(UploadPathEnum.COURSE_MATERIAL.equals(pathEnum)){
-            customPath = UploadPathEnum.COURSE_MATERIAL.getPath()+id+ym+"/";
+            customPath = UploadPathEnum.COURSE_MATERIAL.getPath()+resultId+ym+"/";
             if(file.getSize() > 1024 * 1024 * 100){
                 return "资料文件大小不能超过100MB";
             }

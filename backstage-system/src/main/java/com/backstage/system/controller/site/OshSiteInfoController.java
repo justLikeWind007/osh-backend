@@ -11,7 +11,6 @@ import com.backstage.common.utils.StringUtils;
 import com.backstage.system.domain.site.OshSiteInfo;
 import com.backstage.system.domain.site.OshSiteMaintainer;
 import com.backstage.system.domain.site.OshSiteTag;
-import com.backstage.system.domain.user.User;
 import com.backstage.system.mapper.site.OshSiteInfoMapper;
 import com.backstage.system.service.common.OssService;
 import com.backstage.system.domain.user.OshUser;
@@ -51,9 +50,6 @@ public class OshSiteInfoController extends BaseController {
     @Autowired
     IOshUserService oshUserService;
 
-    @Autowired
-    OshSiteInfoMapper oshSiteResponsibleMapper;
-
     /**
      * 查询网站列表
      */
@@ -61,16 +57,7 @@ public class OshSiteInfoController extends BaseController {
     @ApiOperation("查询网站列表")
     @GetMapping("/list")
     public R<TableDataInfo> list(OshSiteInfo siteInfo) {
-        List<OshSiteInfo> list = oshSiteInfoService.lambdaQuery()
-                .select(OshSiteInfo::getId,
-                        OshSiteInfo::getSiteName,
-                        OshSiteInfo::getCover,
-                        OshSiteInfo::getDescription,
-                        OshSiteInfo::getStatus,
-                        OshSiteInfo::getLastCheckTime)
-                .like(StringUtils.hasText(siteInfo.getSiteName()), OshSiteInfo::getSiteName, siteInfo.getSiteName())
-                .eq(siteInfo.getStatus() != null, OshSiteInfo::getStatus, siteInfo.getStatus())
-                .list();
+        List<OshSiteInfo> list = oshSiteInfoService.listSites(siteInfo);
         // 获取封面图片访问
         for (OshSiteInfo oshSiteInfo : list) {
             if (StringUtils.isNotEmpty(oshSiteInfo.getCover())) {
@@ -114,7 +101,7 @@ public class OshSiteInfoController extends BaseController {
         if (siteInfo == null) {
             return R.fail("网站不存在");
         }
-        R<User> userInfo = oshUserService.getUserInfo();
+        R<OshUser> userInfo = oshUserService.getUserInfo();
         oshSiteInfoService.insertUsage(siteInfo, userInfo.getData());
         return R.ok(siteInfo);
     }
@@ -133,7 +120,7 @@ public class OshSiteInfoController extends BaseController {
         siteInfo.setUpdateTime(new Date());
         siteInfo.setUpdateBy(currentUserId);
         siteInfo.setStatus(1);
-        if (oshSiteInfoService.save(siteInfo)) {
+        if (oshSiteInfoService.saveSiteInfo(siteInfo)) {
             // 保存标签
             if (siteInfo.getTagList() != null && !siteInfo.getTagList().isEmpty()) {
                 oshSiteTagsService.saveSiteTags(siteInfo.getId(), siteInfo.getTagList(), currentUserId);
@@ -155,7 +142,7 @@ public class OshSiteInfoController extends BaseController {
         long currentUserId = ThreadLocalUtil.getCurrentUserId();
         siteInfo.setUpdateBy(currentUserId);
         siteInfo.setUpdateTime(new Date());
-        if (oshSiteInfoService.updateById(siteInfo)) {
+        if (oshSiteInfoService.updateSiteInfo(siteInfo)) {
             // 更新标签
             if (siteInfo.getTagList() != null) {
                 oshSiteTagsService.saveSiteTags(siteInfo.getId(), siteInfo.getTagList(), currentUserId);
@@ -266,52 +253,5 @@ public class OshSiteInfoController extends BaseController {
             results.add(result);
         }
         return R.ok(results);
-    }
-
-    /**
-     * 查询网站负责人列表
-     */
-    @Anonymous
-    @ApiOperation("查询网站负责人列表")
-    @GetMapping("/maintainer/{siteId}")
-    public R<List<OshSiteMaintainer>> getSiteMaintainers(@PathVariable Long siteId) {
-        List<OshSiteMaintainer> maintainer = oshSiteResponsibleMapper.selectResponsibleBySiteId(siteId);
-        return R.ok(maintainer);
-    }
-
-    /**
-     * 新增网站负责人
-     */
-    @Anonymous
-    @Log(title = "网站负责人", businessType = BusinessType.INSERT)
-    @ApiOperation("新增网站负责人")
-    @PostMapping("/maintainer")
-    public R<Void> addResponsible(@RequestBody OshSiteMaintainer maintainer) {
-        long currentUserId = ThreadLocalUtil.getCurrentUserId();
-        maintainer.setCreatedBy(currentUserId);
-        maintainer.setCreationTime(new Date());
-        maintainer.setUpdateTime(new Date());
-        maintainer.setUpdateBy(currentUserId);
-        maintainer.setIsDeleted(0);
-        if (oshSiteResponsibleMapper.insertResponsible(maintainer) > 0) {
-            return R.ok();
-        } else {
-            return R.fail("新增负责人失败");
-        }
-    }
-
-    /**
-     * 删除网站负责人
-     */
-    @Anonymous
-    @Log(title = "网站负责人", businessType = BusinessType.DELETE)
-    @ApiOperation("删除网站负责人")
-    @DeleteMapping("/maintainer/{ids}")
-    public R<Void> removeResponsible(@PathVariable Long[] ids) {
-        if (oshSiteResponsibleMapper.deleteResponsibleByIds(ids) > 0) {
-            return R.ok();
-        } else {
-            return R.fail("删除负责人失败");
-        }
     }
 }

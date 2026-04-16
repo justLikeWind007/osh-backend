@@ -19,7 +19,6 @@ import java.util.stream.Collectors;
  */
 @Service
 public class OshSiteTagsServiceImpl extends ServiceImpl<OshSiteTagsMapper, OshSiteTag> implements IOshSiteTagsService {
-
   /**
    * 查询网站的标签列表
    *
