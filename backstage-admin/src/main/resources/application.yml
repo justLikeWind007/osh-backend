@@ -107,6 +107,18 @@ spring:
         max-active: 8
         # #连接池最大阻塞等待时间（使用负值表示没有限制）
         max-wait: -1ms
+    redisson:
+      config: |
+        singleServerConfig:
+          address: "redis://${spring.redis.host}:${spring.redis.port}"
+          database: ${spring.redis.database}
+          connectTimeout: 10000
+          timeout: 3000
+          connectionPoolSize: 32
+          connectionMinimumIdleSize: 8
+        threads: 16
+        nettyThreads: 32
+
   kafka:
     bootstrap-servers: 43.242.200.25:9092
     producer:

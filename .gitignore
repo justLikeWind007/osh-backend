@@ -105,6 +105,7 @@ yarn.lock
 *.bak
 *.backup
 
+AGENTS.md
 
 *.js
 backstage-ui/

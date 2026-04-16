@@ -99,5 +99,5 @@ public interface IOshCourseService {
 
     List<OshCourseMaterial> getCourseMaterials(Long courseId);
 
-    boolean safeDeleteSection(Long id, User currentUser);
+    boolean safeDeleteSection(Long courseId, Long sectionId, User currentUser);
 }

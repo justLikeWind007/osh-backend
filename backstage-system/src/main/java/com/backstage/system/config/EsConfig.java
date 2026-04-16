@@ -1,4 +1,4 @@
-package com.backstage.system.controller.order;
+package com.backstage.system.config;
 
 import org.elasticsearch.client.RestHighLevelClient;
 import org.springframework.beans.factory.annotation.Value;
