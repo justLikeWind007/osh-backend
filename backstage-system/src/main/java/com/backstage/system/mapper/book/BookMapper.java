@@ -24,4 +24,6 @@ public interface BookMapper extends BaseMapper<BookDO> {
      * @return 电子书集合
      */
     List<BookListVO> getBookPageList(Page<BookDO> pageParam, @Param("reqVO") BookListReqVO reqVO);
+
+    Page<BookListVO> selectFreeBookPage(Page<BookDO> page);
 }

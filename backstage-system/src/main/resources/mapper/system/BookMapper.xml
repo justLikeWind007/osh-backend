@@ -37,4 +37,28 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         order by book.create_time desc
     </select>
 
+    <select id="selectFreeBookPage" resultType="com.backstage.system.domain.vo.book.BookListVO">
+        SELECT
+        b.id,
+        b.title,
+        b.cover,
+        b.description AS `desc`,  <!-- 这里加反引号 `desc` 就不报错了 -->
+        b.price,
+        b.original_price AS tPrice,
+        b.sub_count AS subCount,
+        GROUP_CONCAT(bt.tag_name) AS tagNames
+        FROM osh_book b
+
+        LEFT JOIN osh_book_tag bt
+        ON b.id = bt.book_id
+        AND bt.del_flag = 0
+
+        WHERE b.price = 0
+        AND b.del_flag = 0
+        AND b.status = 0
+
+        GROUP BY b.id
+
+        ORDER BY b.create_time DESC
+    </select>
 </mapper>
