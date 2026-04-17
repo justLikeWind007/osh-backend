@@ -11,6 +11,7 @@ import com.backstage.common.config.OssProperties;
 import com.backstage.common.utils.ServletUtils;
 import com.backstage.common.utils.ip.IpUtils;
 import com.backstage.system.domain.vo.common.OssOperationLogVo;
+import com.backstage.system.exception.UpLoadException;
 import com.backstage.system.mapper.common.OssMapper;
 import com.backstage.system.service.common.OssService;
 import eu.bitwalker.useragentutils.UserAgent;
@@ -60,12 +61,10 @@ public class OssUtil {
 
 
     // 上传文件 带路径
-    public String uploadFile(MultipartFile file, String customPath) throws Exception {
+    public String uploadFile(MultipartFile file, String customPath) throws Exception, UpLoadException {
         AmazonS3Client s3 = createS3Client();
 
         String path = customPath != null ? customPath : ossProperties.getBasePath();
-
-
 
         String fileName = path + UUID.randomUUID() + "_" + file.getOriginalFilename();
 

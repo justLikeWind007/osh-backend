@@ -14,6 +14,7 @@ import com.backstage.system.service.questionanswer.IOshQATagService;
 import com.backstage.system.utils.UserContextUtil;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,7 +22,7 @@ import java.util.List;
 /**
  * Created with IntelliJ IDEA.
  * Description:
- * User: 九转苍翎
+ * OshUser: 九转苍翎
  * Date: 2026/3/24
  * Time: 21:08
  */
@@ -102,7 +103,7 @@ public class OshQAController {
 
     @Anonymous
     @ApiOperation("问题列表")
-    @GetMapping("/question/list")
+    @PostMapping("/question/list")
     public TableDataInfo list(@RequestBody QueryQuestionListDTO queryQuestionListDTO) {
         return IOshQAQuestionService.list(UserContextUtil.getCurrentUserId(), queryQuestionListDTO.getResourceNo(),
                 queryQuestionListDTO.getResourceType(), queryQuestionListDTO.getType(), queryQuestionListDTO.getKeyword(), queryQuestionListDTO.getPageNum(), queryQuestionListDTO.getPageSize());
@@ -115,9 +116,10 @@ public class OshQAController {
         return iOshQAAnswerService.answer(UserContextUtil.getCurrentUserId(), answerDTO.getQuestionId(), answerDTO.getContent());
     }
 
-    @Anonymous
     @ApiOperation("采纳回答")
     @PostMapping("/question/solve")
+    @OshUserActionLog(module = "答疑模块", actionType = "查询", description = "采纳回答")
+    @PreAuthorize("hasAuthority('qna:question:solve')")
     public R<String> solve(@RequestBody SolveQuestionDTO solveQuestionDTO) {
         return IOshQAQuestionService.solve(UserContextUtil.getCurrentUserId(), solveQuestionDTO.getQuestionId(), solveQuestionDTO.getAnswerId());
     }
@@ -129,10 +131,10 @@ public class OshQAController {
         return IOshQAQuestionService.cancelSolve(UserContextUtil.getCurrentUserId(), solveQuestionDTO.getQuestionId(), solveQuestionDTO.getAnswerId());
     }
 
-    @Anonymous
     @ApiOperation("问题详情")
-    @GetMapping("/question/detail")
+    @PostMapping("/question/detail")
     @OshUserActionLog(module = "答疑模块", actionType = "查询", description = "查询问题详情")
+    @PreAuthorize("hasAuthority('qna:question:detail')")
     public R<QueryQuestionDetailVO> detail(@RequestBody QueryQuestionDetailDTO queryQuestionDetailDTO) {
         return IOshQAQuestionService.detail(UserContextUtil.getCurrentUserId(), queryQuestionDetailDTO.getQuestionId());
     }

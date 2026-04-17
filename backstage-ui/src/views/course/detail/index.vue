@@ -35,7 +35,7 @@
               收藏 {{ course.favoriteCount }}
             </span>
             <span class="divider">|</span>
-            <span class="stat"><i class="el-icon-user-solid"></i> {{ course.studentCount }}人学习</span>
+            <span class="stat"><i class="el-icon-oshUser-solid"></i> {{ course.studentCount }}人学习</span>
           </div>
           <div class="hero-meta">
             <div class="meta-item">

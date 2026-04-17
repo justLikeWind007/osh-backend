@@ -1,15 +1,17 @@
 package com.backstage.system.domain.user;
 
-import java.time.LocalDateTime;
+import com.backstage.common.core.domain.entity.OSHBaseEntity;
+import com.baomidou.mybatisplus.annotation.TableName;
 
 /**
  * Created with IntelliJ IDEA.
  * Description:
- * User: 九转苍翎
+ * OshUser: 九转苍翎
  * Date: 2026/3/7
  * Time: 16:29
  */
-public class User {
+@TableName("osh_user")
+public class OshUser extends OSHBaseEntity {
     /**
      * 用户id
      */
@@ -51,21 +53,12 @@ public class User {
     /**
      * 个人简介/描述
      */
-    private String desc;
+    private String introduction;
 
     /**
      * 状态：0-禁用，1-正常
      */
     private Integer status;
-    /**
-     * 创建时间
-     */
-    private LocalDateTime createdTime;
-
-    /**
-     * 更新时间
-     */
-    private LocalDateTime updatedTime;
 
     public Long getId() {
         return id;
@@ -131,12 +124,12 @@ public class User {
         this.sex = sex;
     }
 
-    public String getDesc() {
-        return desc;
+    public String getIntroduction() {
+        return introduction;
     }
 
-    public void setDesc(String desc) {
-        this.desc = desc;
+    public void setIntroduction(String introduction) {
+        this.introduction = introduction;
     }
 
     public Integer getStatus() {
@@ -147,25 +140,9 @@ public class User {
         this.status = status;
     }
 
-    public LocalDateTime getCreatedTime() {
-        return createdTime;
-    }
-
-    public void setCreatedTime(LocalDateTime createdTime) {
-        this.createdTime = createdTime;
-    }
-
-    public LocalDateTime getUpdatedTime() {
-        return updatedTime;
-    }
-
-    public void setUpdatedTime(LocalDateTime updatedTime) {
-        this.updatedTime = updatedTime;
-    }
-
     @Override
     public String toString() {
-        return "User{" +
+        return "OshUser{" +
                 "id=" + id +
                 ", username='" + username + '\'' +
                 ", nickname='" + nickname + '\'' +
@@ -174,10 +151,8 @@ public class User {
                 ", avatar='" + avatar + '\'' +
                 ", weixinUnionid='" + weixinUnionid + '\'' +
                 ", sex='" + sex + '\'' +
-                ", desc='" + desc + '\'' +
+                ", introduction='" + introduction + '\'' +
                 ", status=" + status +
-                ", createdTime=" + createdTime +
-                ", updatedTime=" + updatedTime +
                 '}';
     }
 }

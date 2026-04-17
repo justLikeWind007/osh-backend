@@ -1,7 +1,7 @@
 package com.backstage.system.service.impl;
 
 import com.backstage.system.domain.course.OshCourse;
-import com.backstage.system.domain.user.User;
+import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.request.CourseCreateRequest;
 import org.junit.Assert;
 import org.junit.Test;
@@ -27,7 +27,7 @@ public class OshCourseCreateBuilderTest {
         request.setResourceType(3);
         request.setLevel(2);
 
-        User operator = new User();
+        OshUser operator = new OshUser();
         operator.setUsername("teacher_hope");
 
         OshCourse course = OshCourseServiceImpl.buildCourseForCreate(request, operator);

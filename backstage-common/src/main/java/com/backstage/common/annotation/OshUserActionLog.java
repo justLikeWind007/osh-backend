@@ -15,6 +15,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface OshUserActionLog {
+    //todo: 枚举
     /**
      * 业务模块
      */

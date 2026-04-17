@@ -6,7 +6,7 @@ import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.course.OshCourseQuestion;
 import com.backstage.system.domain.course.OshCourseSection;
-import com.backstage.system.domain.user.User;
+import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.course.OshCourseQuestionMapper;
 import com.backstage.system.request.CourseChapterCreateRequest;
@@ -420,23 +420,23 @@ public class OshCourseControllerSectionApiTest {
         return section.getId();
     }
 
-    private User buildCurrentUser() {
-        User user = new User();
-        user.setId(1L);
-        user.setUsername("integration_test_user");
-        return user;
+    private OshUser buildCurrentUser() {
+        OshUser oshUser = new OshUser();
+        oshUser.setId(1L);
+        oshUser.setUsername("integration_test_user");
+        return oshUser;
     }
 
-    private User buildUserOne() {
-        User user = new User();
-        user.setId(1L);
-        user.setUsername("user_1_test");
-        return user;
+    private OshUser buildUserOne() {
+        OshUser oshUser = new OshUser();
+        oshUser.setId(1L);
+        oshUser.setUsername("user_1_test");
+        return oshUser;
     }
 
-    private ResultActions performAsUser(User user, RequestBuilder requestBuilder) throws Exception {
-        ThreadLocalUtil.set(OshUserConstants.USER_ID, user.getId());
-        ThreadLocalUtil.set(OshUserConstants.USER_INFO, user);
+    private ResultActions performAsUser(OshUser oshUser, RequestBuilder requestBuilder) throws Exception {
+        ThreadLocalUtil.set(OshUserConstants.USER_ID, oshUser.getId());
+        ThreadLocalUtil.set(OshUserConstants.USER_INFO, oshUser);
         return mockMvc.perform(requestBuilder);
     }
 }
