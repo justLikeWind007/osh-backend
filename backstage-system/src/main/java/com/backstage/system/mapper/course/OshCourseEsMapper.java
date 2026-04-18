@@ -5,6 +5,7 @@ import com.backstage.common.utils.StringUtils;
 import com.backstage.system.domain.course.es.OshCourseEsDocument;
 import com.backstage.system.domain.course.vo.CourseSearchLoginVo;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
@@ -12,6 +13,8 @@ import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.client.indices.GetIndexRequest;
 import com.backstage.system.request.CourseSearchRequest;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.BoolQueryBuilder;
@@ -73,6 +76,19 @@ public class OshCourseEsMapper {
         return documents.size();
     }
 
+    public void recreateCourseSearchIndex(String indexDefinitionJson) throws Exception {
+        GetIndexRequest getIndexRequest = new GetIndexRequest(COURSE_SEARCH_INDEX);
+        boolean exists = restHighLevelClient.indices().exists(getIndexRequest, RequestOptions.DEFAULT);
+        if (exists) {
+            DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest(COURSE_SEARCH_INDEX);
+            restHighLevelClient.indices().delete(deleteIndexRequest, RequestOptions.DEFAULT);
+        }
+
+        CreateIndexRequest createIndexRequest = new CreateIndexRequest(COURSE_SEARCH_INDEX);
+        createIndexRequest.source(indexDefinitionJson, XContentType.JSON);
+        restHighLevelClient.indices().create(createIndexRequest, RequestOptions.DEFAULT);
+    }
+
     private SearchSourceBuilder buildSearchSource(CourseSearchRequest request, int pageNum, int pageSize) {
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
                 .from((pageNum - 1) * pageSize)
@@ -115,7 +131,9 @@ public class OshCourseEsMapper {
         vo.setType(document.getType());
         vo.setSubCount(document.getSubCount());
         vo.setRemark(document.getRemark());
+        vo.setCreateBy(document.getCreateBy());
         vo.setCreateTime(document.getCreateTime());
+        vo.setUpdateBy(document.getUpdateBy());
         vo.setUpdateTime(document.getUpdateTime());
         vo.setTotalDuration(document.getTotalDuration());
         vo.setFreeLessonCount(document.getFreeLessonCount());

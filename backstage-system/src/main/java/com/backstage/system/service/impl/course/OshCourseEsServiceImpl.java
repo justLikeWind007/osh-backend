@@ -9,11 +9,11 @@ import com.backstage.system.mapper.course.OshCourseEsMapper;
 import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.course.OshCourseTagMapper;
 import com.backstage.system.request.CourseSearchRequest;
-import com.backstage.system.service.IOshCourseService;
 import com.backstage.system.service.course.ICourseManageService;
 import com.backstage.system.service.course.IOshCourseEsService;
 import com.github.pagehelper.PageHelper;
-import com.github.pagehelper.PageInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +25,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class OshCourseEsServiceImpl implements IOshCourseEsService {
+
+    private static final Logger log = LoggerFactory.getLogger(OshCourseEsServiceImpl.class);
 
     @Autowired
     private OshCourseEsMapper oshCourseEsMapper;
@@ -38,19 +40,14 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
     @Autowired
     private ICourseManageService courseManageService;
 
-    @Autowired
-    private IOshCourseService oshCourseService;
-
     @Override
     public PageResponse<CourseSearchLoginVo> searchCourses(CourseSearchRequest request, Long userId) {
         PageResponse<CourseSearchLoginVo> pageResponse;
         try {
             pageResponse = oshCourseEsMapper.searchCourses(request);
         } catch (Exception ex) {
-            pageResponse = null;
-        }
-        if (pageResponse == null) {
-            return fallbackSearch(request, userId);
+            log.error("search courses from es failed, request={}, userId={}", request, userId, ex);
+            throw new IllegalStateException("search courses from es failed", ex);
         }
 
         List<CourseSearchLoginVo> rows = pageResponse.getRows();
@@ -99,12 +96,6 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
         }
 
         return total;
-    }
-
-    private PageResponse<CourseSearchLoginVo> fallbackSearch(CourseSearchRequest request, Long userId) {
-        List<CourseSearchLoginVo> rows = oshCourseService.pageQuerySearchCourse(userId, request);
-        PageInfo<CourseSearchLoginVo> pageInfo = new PageInfo<>(rows);
-        return PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize());
     }
 
     private void fillBuyFlag(List<CourseSearchLoginVo> rows, Long userId) {
@@ -176,6 +167,8 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
         document.setType(row.getType());
         document.setSubCount(row.getSubCount());
         document.setRemark(row.getRemark());
+        document.setCreateBy(row.getCreateBy());
+        document.setUpdateBy(row.getUpdateBy());
         document.setTotalDuration(row.getTotalDuration());
         document.setFreeLessonCount(row.getFreeLessonCount());
         document.setVideoCount(row.getVideoCount());
@@ -195,7 +188,6 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
         document.setDeleteFlag(0);
         document.setCreateTime(row.getCreateTime());
         document.setUpdateTime(row.getUpdateTime());
-        document.setPublishTime(row.getCreateTime());
 
         List<String> tagNames = extractTagNames(row.getId());
         document.setTagNames(tagNames);
