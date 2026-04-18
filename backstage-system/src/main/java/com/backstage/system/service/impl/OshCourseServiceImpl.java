@@ -14,6 +14,7 @@ import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.enums.CourseResourceEnum;
 import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.course.OshCourseMaterialMapper;
+import com.backstage.system.mapper.course.OshCourseSectionMapper;
 import com.backstage.system.mapper.course.OshCourseTagMapper;
 import com.backstage.system.request.CourseCreateRequest;
 import com.backstage.system.request.CourseChapterCreateRequest;
@@ -65,6 +66,10 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
     @Autowired
     private CourseIndexMessageMapper courseIndexMessageMapper;
+
+    @Autowired
+    private OshCourseSectionMapper oshCourseSectionMapper;
+
 
 
     // 注入你之前提到的 OSS 服务接口
@@ -266,7 +271,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
     @Transactional(rollbackFor = Exception.class)
     public Long updateCourse(CourseUpdateRequest request, OshUser operator) {
         OshCourse existingCourse = ensureCourseExists(request.getId());
-        ensureCourseEditableByOperator(existingCourse, operator);
+//        ensureCourseEditableByOperator(existingCourse, operator);
         OshCourse course = buildCourseForUpdate(request, operator);
         int rows = oshCourseMapper.updateCourse(course);
         if (rows <= 0) {
@@ -280,11 +285,48 @@ public class OshCourseServiceImpl implements IOshCourseService {
     }
 
     @Override
+    public void updateCourseChapter(CourseChapterCreateRequest request, OshUser operator) {
+        OshCourseSection section = new OshCourseSection();
+        Date now = new Date();
+        section.setId(request.getId());
+        section.setTitle(request.getTitle());
+        section.setSort(request.getSort());
+        section.setUpdateBy(String.valueOf(operator.getId()));
+        section.setUpdateTime(now);
+        oshCourseMapper.updateCourseSection(section);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteCoursesByIds(List<Long> ids, OshUser operator) {
+        if (ids == null || ids.isEmpty()) return;
+        String operatorName = operator == null ? null : operator.getUsername();
+
+        for (Long courseId : ids) {
+            // 1. 软删除课程主表
+            oshCourseMapper.deleteCourseById(courseId);
+
+            // 2. 软删除所有章节和小节（delete_flag=1）
+            oshCourseMapper.deleteSectionsByCourseId(courseId, operatorName);
+
+            // 3. 删除标签关联
+            oshCourseTagMapper.deleteCourseTagRelationByCourseId(courseId);
+
+            // 4. 删除资料
+            oshCourseMaterialMapper.deleteMaterialsByCourseId(courseId);
+        }
+    }
+
+
+
+    @Override
     public Long createCourseChapter(CourseChapterCreateRequest request, OshUser operator) {
         ensureCourseExists(request.getCourseId());
         OshCourseSection section = buildChapterSectionForCreate(request, operator);
         return insertCourseSection(section);
     }
+
+
 
     @Override
     public Long createCourseTextSection(CourseTextSectionCreateRequest request, OshUser operator) {
@@ -351,20 +393,29 @@ public class OshCourseServiceImpl implements IOshCourseService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean safeDeleteSection(Long courseId, Long sectionId, OshUser operator) {
+        // 1. 获取要删除的节点
         OshCourseSection section = oshCourseMapper.selectCourseSectionById(sectionId);
+
+        // 2. 基础安全性校验：是否存在、是否已删除、是否属于当前课程
         if (section == null || section.getDeleteFlag().intValue() != CourseSectionConstants.DELETE_FLAG_NORMAL) {
             return false;
         }
-        if (!courseId.equals(section.getCourseId())) {
+        if (courseId != null && !courseId.equals(section.getCourseId())) {
             return false;
         }
 
         String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
+
+        // 3. 逻辑判断：如果是父章节，需要联通下面的子小节一起删除
         if (section.getParentId() == null || CourseSectionConstants.ROOT_PARENT_ID.equals(section.getParentId())) {
+            // 是章节：调用按 parent_id 批量删除子小节
             oshCourseMapper.deleteCourseSectionsByParentId(sectionId, operatorName);
         }
+
+        // 4. 删除当前节点本身
         return oshCourseMapper.deleteCourseSectionById(sectionId, operatorName) > 0;
     }
+
 
     private OshCourseSection buildVideoSectionForUpdate(CourseVideoSectionCreateRequest req, OshUser operator) {
         OshCourseSection s = new OshCourseSection();

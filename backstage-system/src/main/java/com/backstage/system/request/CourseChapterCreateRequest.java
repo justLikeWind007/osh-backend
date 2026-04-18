@@ -8,11 +8,14 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.PositiveOrZero;
 
-@ApiModel("一级章节创建请求")
+@ApiModel("一级章节创建/修改请求")
 public class CourseChapterCreateRequest {
 
+
+    @ApiModelProperty(value = "章节ID（有则更新，无则新增）", example = "200")
+    private Long id;
+
     @ApiModelProperty(value = "课程ID", required = true, example = "100")
-    @NotNull(message = "课程ID不能为空")
     private Long courseId;
 
     @ApiModelProperty(value = "章节标题", required = true, example = "第一章")
@@ -23,6 +26,14 @@ public class CourseChapterCreateRequest {
     @NotNull(message = "排序不能为空")
     @PositiveOrZero(message = "排序不能小于0")
     private Integer sort;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
 
     public Long getCourseId() {
         return courseId;
