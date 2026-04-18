@@ -4,10 +4,8 @@ import com.backstage.common.response.PageResponse;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.system.domain.course.es.OshCourseEsDocument;
 import com.backstage.system.domain.course.vo.CourseSearchLoginVo;
-import com.backstage.system.domain.course.vo.CourseSearchUserStateVo;
 import com.backstage.system.enums.CourseResourceEnum;
 import com.backstage.system.mapper.course.OshCourseEsMapper;
-import com.backstage.system.mapper.course.OshCourseEsSearchMapper;
 import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.course.OshCourseTagMapper;
 import com.backstage.system.request.CourseSearchRequest;
@@ -21,7 +19,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -31,9 +28,6 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
 
     @Autowired
     private OshCourseEsMapper oshCourseEsMapper;
-
-    @Autowired
-    private OshCourseEsSearchMapper oshCourseEsSearchMapper;
 
     @Autowired
     private OshCourseMapper oshCourseMapper;
@@ -64,8 +58,8 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
             return pageResponse;
         }
 
-        fillUserState(rows, userId);
-        fillResourceTypeDesc(rows);
+        fillBuyFlag(rows, userId);
+        fillResourceTypeDesc(rows, userId);
         convertToExpiryUrls(rows);
         return pageResponse;
     }
@@ -108,14 +102,12 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
     }
 
     private PageResponse<CourseSearchLoginVo> fallbackSearch(CourseSearchRequest request, Long userId) {
-        List<CourseSearchLoginVo> rows = userId == null
-                ? oshCourseService.pageQuerySearchCourse(request)
-                : oshCourseService.pageQueryLoginSearchCourse(userId, request);
+        List<CourseSearchLoginVo> rows = oshCourseService.pageQuerySearchCourse(userId, request);
         PageInfo<CourseSearchLoginVo> pageInfo = new PageInfo<>(rows);
         return PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize());
     }
 
-    private void fillUserState(List<CourseSearchLoginVo> rows, Long userId) {
+    private void fillBuyFlag(List<CourseSearchLoginVo> rows, Long userId) {
         if (userId == null || StringUtils.isEmpty(rows)) {
             return;
         }
@@ -126,21 +118,16 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
             return;
         }
 
-        List<CourseSearchUserStateVo> states = oshCourseEsSearchMapper.selectUserCourseStates(userId, courseIds);
-        if (StringUtils.isEmpty(states)) {
+        List<Long> boughtCourseIds = oshCourseMapper.selectUserBoughtCourseIds(userId, courseIds);
+        if (StringUtils.isEmpty(boughtCourseIds)) {
             return;
         }
-        Map<Long, CourseSearchUserStateVo> stateMap = states
-                .stream()
-                .collect(Collectors.toMap(CourseSearchUserStateVo::getCourseId, item -> item, (left, right) -> left, LinkedHashMap::new));
+        java.util.Set<Long> boughtCourseIdSet = new java.util.HashSet<>(boughtCourseIds);
 
         for (CourseSearchLoginVo row : rows) {
-            CourseSearchUserStateVo state = stateMap.get(row.getId());
-            if (state == null) {
-                continue;
+            if (boughtCourseIdSet.contains(row.getId())) {
+                row.setBuyFlag(1);
             }
-            row.setCollectionFlag(state.getCollectionFlag());
-            row.setBuyFlag(state.getBuyFlag());
         }
     }
 
@@ -164,10 +151,16 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
         return rows;
     }
 
-    private void fillResourceTypeDesc(List<CourseSearchLoginVo> rows) {
+    private void fillResourceTypeDesc(List<CourseSearchLoginVo> rows, Long userId) {
         for (CourseSearchLoginVo row : rows) {
+            boolean needPurchasedDesc = CourseResourceEnum.CASH_ONLY.getCode().equals(row.getResourceType())
+                    || CourseResourceEnum.CASH_POINT.getCode().equals(row.getResourceType());
+            if (userId != null && needPurchasedDesc && Integer.valueOf(1).equals(row.getBuyFlag())) {
+                row.setResourceTypeDesc("已购买");
+                continue;
+            }
             CourseResourceEnum resourceEnum = CourseResourceEnum.fromCode(row.getResourceType());
-            row.setResourceTypeDesc(resourceEnum == null ? null : resourceEnum.getDesc());
+            row.setResourceTypeDesc(resourceEnum == null ? row.getResourceType() : resourceEnum.getDesc());
         }
     }
 

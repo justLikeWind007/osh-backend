@@ -50,7 +50,7 @@ public class CourseCreateRequest {
 
     private String remark;
 
-    private Integer resourceType;
+    private String resourceType;
 
     private Integer level;
 
@@ -186,12 +186,12 @@ public class CourseCreateRequest {
         this.tPrice = tPrice;
     }
 
-    public Integer getResourceType() {
+    public String getResourceType() {
         return resourceType;
     }
 
-    public void setResourceType(Integer resourceType) {
-        this.resourceType = resourceType;
+    public void setResourceType(String resourceType) {
+        this.resourceType = StringUtils.trimToNull(resourceType);
     }
 
     public Integer getLevel() {

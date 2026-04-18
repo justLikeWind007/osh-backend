@@ -90,6 +90,10 @@ public class OshCourseEsMapper {
             boolQuery.filter(QueryBuilders.termsQuery("tagNames", request.getTags()));
         }
 
+        if (request != null && StringUtils.isNotEmpty(request.getResourceType())) {
+            boolQuery.filter(QueryBuilders.termQuery("resourceType", request.getResourceType()));
+        }
+
         sourceBuilder.query(boolQuery);
         sourceBuilder.sort(SortBuilders.fieldSort("createTime").order(SortOrder.DESC));
         return sourceBuilder;

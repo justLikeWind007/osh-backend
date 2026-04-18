@@ -10,9 +10,7 @@ import com.backstage.system.domain.course.OshCourseTagRel;
 import com.backstage.system.domain.course.vo.CourseSearchLoginVo;
 import com.backstage.system.domain.course.vo.OshCourseDetailVo;
 import com.backstage.system.domain.course.vo.OshCourseSectionVo;
-import com.backstage.system.domain.course.vo.OshCourseTagSimpleVo;
 import com.backstage.system.domain.user.OshUser;
-import com.backstage.system.domain.user.User;
 import com.backstage.system.enums.CourseResourceEnum;
 import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.course.OshCourseMaterialMapper;
@@ -74,24 +72,11 @@ public class OshCourseServiceImpl implements IOshCourseService {
     private OssService ossService;
 
     @Override
-    public List<CourseSearchLoginVo> pageQuerySearchCourse(CourseSearchRequest request) {
+    public List<CourseSearchLoginVo> pageQuerySearchCourse(Long userId, CourseSearchRequest request) {
         PageHelper.startPage(request.getPageNum(), request.getPageSize());
-        // 1. 查出数据库原始数据
         List<CourseSearchLoginVo> list = oshCourseMapper.pageQuerySearchCourse(request);
-        // 2. 填充资源描述
-        fillResourceTypeDesc(list);
-        // 3. 重点：批量将相对路径转换为带签名的临时 URL
-        return convertToExpiryUrls(list);
-    }
-
-    @Override
-    public List<CourseSearchLoginVo> pageQueryLoginSearchCourse(Long userId, CourseSearchRequest request) {
-        PageHelper.startPage(request.getPageNum(), request.getPageSize());
-        // 1. 查出数据库原始数据
-        List<CourseSearchLoginVo> list = oshCourseMapper.pageQueryLoginSearchCourse(userId, request);
-        // 2. 填充资源描述
-        fillResourceTypeDesc(list);
-        // 3. 重点：批量将相对路径转换为带签名的临时 URL
+        fillBuyFlag(list, userId);
+        fillResourceTypeDesc(list, userId);
         return convertToExpiryUrls(list);
     }
     @Override
@@ -105,6 +90,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         // 1. 拿到详情 VO
         OshCourseDetailVo vo = oshCourseMapper.getCourseDetail(id, userId);
         if (vo == null) return null;
+        fillResourceTypeDetail(vo);
 
         // 2. 封面处理（如果封面没写批量接口，就单调一次，或者你有 getCoverUrl 也可以换掉）
         if (StringUtils.isNotEmpty(vo.getCover())) {
@@ -364,7 +350,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean safeDeleteSection(Long courseId, Long sectionId, User operator) {
+    public boolean safeDeleteSection(Long courseId, Long sectionId, OshUser operator) {
         OshCourseSection section = oshCourseMapper.selectCourseSectionById(sectionId);
         if (section == null || section.getDeleteFlag().intValue() != CourseSectionConstants.DELETE_FLAG_NORMAL) {
             return false;
@@ -372,10 +358,6 @@ public class OshCourseServiceImpl implements IOshCourseService {
         if (!courseId.equals(section.getCourseId())) {
             return false;
         }
-    public boolean safeDeleteSection(Long id, OshUser operator) {
-        // 1. 先查一下这个东西到底是什么
-        OshCourseSection section = oshCourseMapper.selectCourseSectionById(id);
-        if (section == null) return false;
 
         String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
         if (section.getParentId() == null || CourseSectionConstants.ROOT_PARENT_ID.equals(section.getParentId())) {
@@ -556,7 +538,12 @@ public class OshCourseServiceImpl implements IOshCourseService {
         bindCourseMaterial(courseId, materialRequest, operator);
     }
 
-    static List<CourseSearchLoginVo> fillResourceTypeDesc(List<CourseSearchLoginVo> list) {
+    /**
+     * 填充资源类型描述,
+     * @param list
+     * @return
+     */
+    static List<CourseSearchLoginVo> fillResourceTypeDesc(List<CourseSearchLoginVo> list, Long userId) {
         if (list == null || list.isEmpty()) {
             return list;
         }
@@ -564,16 +551,50 @@ public class OshCourseServiceImpl implements IOshCourseService {
             if (item == null) {
                 continue;
             }
+            boolean needPurchasedDesc = CourseResourceEnum.CASH_ONLY.getCode().equals(item.getResourceType())
+                    || CourseResourceEnum.CASH_POINT.getCode().equals(item.getResourceType());
+            if (userId != null && needPurchasedDesc && Integer.valueOf(1).equals(item.getBuyFlag())) {
+                item.setResourceTypeDesc("已购买");
+                continue;
+            }
             CourseResourceEnum resourceEnum = CourseResourceEnum.fromCode(item.getResourceType());
-            item.setResourceTypeDesc(resourceEnum == null ? null : resourceEnum.getDesc());
+            item.setResourceTypeDesc(resourceEnum == null ? item.getResourceType() : resourceEnum.getDesc());
         }
         return list;
     }
 
-    private void bindCourseTags(Long courseId, List<String> tags, User operator) {
+    private void fillBuyFlag(List<CourseSearchLoginVo> list, Long userId) {
+        if (userId == null || list == null || list.isEmpty()) {
+            return;
+        }
+        List<Long> courseIds = list.stream().map(CourseSearchLoginVo::getId).collect(Collectors.toList());
+        if (courseIds.isEmpty()) {
+            return;
+        }
+        List<Long> boughtCourseIds = oshCourseMapper.selectUserBoughtCourseIds(userId, courseIds);
+        if (boughtCourseIds == null || boughtCourseIds.isEmpty()) {
+            return;
+        }
+        Set<Long> boughtCourseIdSet = new HashSet<>(boughtCourseIds);
+        for (CourseSearchLoginVo item : list) {
+            if (boughtCourseIdSet.contains(item.getId())) {
+                item.setBuyFlag(1);
+            }
+        }
+    }
+
+    private void fillResourceTypeDetail(OshCourseDetailVo vo) {
+        if (vo == null) {
+            return;
+        }
+        CourseResourceEnum resourceEnum = CourseResourceEnum.fromCode(vo.getResourceType());
+        if (resourceEnum != null) {
+            vo.setResourceType(resourceEnum.getDesc());
+        }
+    }
+
+    private void bindCourseTags(Long courseId, List<String> tags, OshUser operator) {
         List<String> normalizedTags = normalizeCourseTags(tags);
-    private void bindCourseTags(Long courseId, List<OshCourseTagSimpleVo> tags, OshUser operator) {
-        List<OshCourseTagSimpleVo> normalizedTags = normalizeCourseTags(tags);
         if (normalizedTags.isEmpty()) {
             return;
         }
@@ -584,8 +605,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         }
     }
 
-    private void rebuildCourseTags(Long courseId, List<String> tags, User operator) {
-    private void rebuildCourseTags(Long courseId, List<OshCourseTagSimpleVo> tags, OshUser operator) {
+    private void rebuildCourseTags(Long courseId, List<String> tags, OshUser operator) {
         oshCourseTagMapper.deleteCourseTagRelationByCourseId(courseId);
         bindCourseTags(courseId, tags, operator);
     }
@@ -606,10 +626,8 @@ public class OshCourseServiceImpl implements IOshCourseService {
     }
 
     // 在创建课程时，如果标签不存在，则创建
-    private OshCourseTag resolveCourseTag(String tagName, User operator) {
+    private OshCourseTag resolveCourseTag(String tagName, OshUser operator) {
         OshCourseTag existing = oshCourseTagMapper.selectCourseTagByName(tagName);
-    private OshCourseTag resolveCourseTag(OshCourseTagSimpleVo tagVo, OshUser operator) {
-        OshCourseTag existing = oshCourseTagMapper.selectCourseTagByName(tagVo.getName());
         if (existing != null) {
             return existing;
         }
@@ -641,8 +659,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         oshCourseTagMapper.insertCourseTagRel(relation);
     }
 
-    static OshCourseTag buildCourseTagForCreate(String tagName, User operator) {
-    static OshCourseTag buildCourseTagForCreate(OshCourseTagSimpleVo request, OshUser operator) {
+    static OshCourseTag buildCourseTagForCreate(String tagName, OshUser operator) {
         OshCourseTag tag = new OshCourseTag();
         Date now = new Date();
         tag.setName(StringUtils.trimToNull(tagName));
@@ -743,7 +760,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         return freeFlag == null ? CourseSectionConstants.DEFAULT_FREE_FLAG : freeFlag;
     }
 
-    private CourseIndexUpsertMessage buildCourseIndexUpsertMessage(OshCourse course, CourseCreateRequest request, User operator) {
+    private CourseIndexUpsertMessage buildCourseIndexUpsertMessage(OshCourse course, CourseCreateRequest request, OshUser operator) {
         Date now = new Date();
         String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
         CourseIndexUpsertMessage message = courseIndexMessageMapper.toMessage(course, operatorName);

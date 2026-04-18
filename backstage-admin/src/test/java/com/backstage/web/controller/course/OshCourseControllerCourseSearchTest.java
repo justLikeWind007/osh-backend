@@ -5,7 +5,7 @@ import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.common.response.PageResponse;
 import com.backstage.system.controller.course.OshCourseController;
 import com.backstage.system.domain.course.vo.CourseSearchLoginVo;
-import com.backstage.system.domain.user.User;
+import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.request.CourseCreateRequest;
 import com.backstage.system.request.CourseSearchRequest;
 import com.backstage.system.service.IOshCourseCollectionService;
@@ -87,7 +87,7 @@ public class OshCourseControllerCourseSearchTest {
 
         ArgumentCaptor<CourseSearchRequest> requestCaptor = ArgumentCaptor.forClass(CourseSearchRequest.class);
         verify(oshCourseEsService).searchCourses(requestCaptor.capture(), eq(null));
-        verify(oshCourseService, never()).pageQuerySearchCourse(any(CourseSearchRequest.class));
+        verify(oshCourseService, never()).pageQuerySearchCourse(eq(null), any(CourseSearchRequest.class));
         assertEquals("ES", requestCaptor.getValue().getKeyword());
         assertEquals(1, requestCaptor.getValue().getPageNum());
         assertEquals(10, requestCaptor.getValue().getPageSize());
@@ -108,7 +108,7 @@ public class OshCourseControllerCourseSearchTest {
 
     @Test
     public void shouldAcceptStringTagListWhenSavingCourse() throws Exception {
-        User currentUser = new User();
+        OshUser currentUser = new OshUser();
         currentUser.setId(100L);
         currentUser.setUsername("tester");
         ThreadLocalUtil.set(OshUserConstants.USER_INFO, currentUser);
@@ -121,6 +121,7 @@ public class OshCourseControllerCourseSearchTest {
                 + "\"price\":19.9,"
                 + "\"tPrice\":99.9,"
                 + "\"type\":\"media\","
+                + "\"resourceType\":\"FREE\","
                 + "\"tags\":[\" Kafka \",\"Spring\",\"Kafka\",\"\"]"
                 + "}";
 
@@ -134,6 +135,7 @@ public class OshCourseControllerCourseSearchTest {
         ArgumentCaptor<CourseCreateRequest> requestCaptor = ArgumentCaptor.forClass(CourseCreateRequest.class);
         verify(oshCourseService).createCourse(requestCaptor.capture(), eq(currentUser));
         assertEquals(4, requestCaptor.getValue().getTags().size());
+        assertEquals("FREE", requestCaptor.getValue().getResourceType());
         assertEquals(" Kafka ", requestCaptor.getValue().getTags().get(0));
         assertEquals("Spring", requestCaptor.getValue().getTags().get(1));
         assertEquals("Kafka", requestCaptor.getValue().getTags().get(2));

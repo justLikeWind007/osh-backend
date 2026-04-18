@@ -57,23 +57,18 @@ public class OshCourseController extends BaseController {
     @Anonymous
     public R<PageResponse<CourseSearchLoginVo>> courseSearch(@RequestBody CourseSearchRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
-        if (currentOshUser == null) {
-            List<CourseSearchLoginVo> list = oshCourseService.pageQuerySearchCourse(request);
-            PageInfo<CourseSearchLoginVo> pageInfo = new PageInfo<>(list);
-            return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
-        }else{
-            List<CourseSearchLoginVo> list = oshCourseService.pageQueryLoginSearchCourse(currentOshUser.getId(), request);
-            PageInfo<CourseSearchLoginVo> pageInfo = new PageInfo<>(list);
-            return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
-        }
+        Long userId = currentOshUser == null ? null : currentOshUser.getId();
+        List<CourseSearchLoginVo> list = oshCourseService.pageQuerySearchCourse(userId, request);
+        PageInfo<CourseSearchLoginVo> pageInfo = new PageInfo<>(list);
+        return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
     }
 
     @ApiOperation("ES课程搜索")
     @PostMapping("/esSearch")
     @Anonymous
     public R esCourseSearch(@RequestBody CourseSearchRequest request) {
-        User currentUser = UserContextUtil.getCurrentUser();
-        Long userId = currentUser == null ? null : currentUser.getId();
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long userId = currentOshUser == null ? null : currentOshUser.getId();
         return R.ok(oshCourseEsService.searchCourses(request, userId), "ok");
     }
 
@@ -93,10 +88,7 @@ public class OshCourseController extends BaseController {
         if (currentOshUser == null) {
             return R.fail("请先登录");
         }
-        List<CourseSearchLoginVo> list = oshCourseService.pageQueryLoginSearchCourse(currentOshUser.getId(), request);
-        PageInfo<CourseSearchLoginVo> pageInfo = new PageInfo<>(list);
-        return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
-        return R.ok(oshCourseEsService.searchCourses(request, currentUser.getId()), "ok");
+        return R.ok(oshCourseEsService.searchCourses(request, currentOshUser.getId()), "ok");
     }
 
     @ApiOperation("收藏课程搜索")
@@ -189,7 +181,7 @@ public class OshCourseController extends BaseController {
     @ApiOperation("新增课程")
     @PostMapping("/save")
     @Anonymous
-    @DistributeLock(key = "resourceOperation", expireTime = 60000, waitTime = 0)
+    @DistributeLock( scene = "resource", key = "operation", expireTime = 60000, waitTime = 0)
     public R<Long> save(@Validated @RequestBody CourseCreateRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         if (currentOshUser == null) {
@@ -206,7 +198,7 @@ public class OshCourseController extends BaseController {
     @ApiOperation("修改课程")
     @PostMapping("/update")
     @Anonymous
-    @DistributeLock(key = "resourceOperation", expireTime = 60000, waitTime = 0)
+    @DistributeLock(scene = "resource", key = "operation", expireTime = 60000, waitTime = 0)
     public R<Long> update(@Validated @RequestBody CourseUpdateRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         if (currentOshUser == null) {
@@ -319,15 +311,10 @@ public class OshCourseController extends BaseController {
     @PostMapping("/sectionDelete")
     @Anonymous // 建议根据实际权限调整
     public R<String> deleteSection(@Validated @RequestBody CourseSectionDeleteRequest request) {
-        User currentUser = UserContextUtil.getCurrentUser();
-        if (currentUser == null) return R.fail("请先登录");
-    public R<String> deleteSection(@PathVariable("id") Long id) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         if (currentOshUser == null) return R.fail("请先登录");
 
-        boolean success = oshCourseService.safeDeleteSection(request.getCourseId(), request.getSectionId(), currentUser);
-        // 调用一个通用的安全删除 Service
-        boolean success = oshCourseService.safeDeleteSection(id, currentOshUser);
+        boolean success = oshCourseService.safeDeleteSection(request.getCourseId(), request.getSectionId(), currentOshUser);
         return success ? R.ok("删除成功") : R.fail("删除失败");
     }
 }

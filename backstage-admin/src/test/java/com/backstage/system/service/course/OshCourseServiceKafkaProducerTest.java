@@ -1,7 +1,7 @@
 package com.backstage.system.service.course;
 
 import com.backstage.system.domain.course.OshCourse;
-import com.backstage.system.domain.user.User;
+import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.course.OshCourseMaterialMapper;
 import com.backstage.system.mapper.course.OshCourseTagMapper;
@@ -73,11 +73,11 @@ public class OshCourseServiceKafkaProducerTest {
         request.setType("media");
         request.setFreeType(0);
         request.setAfterServiceDays(30);
-        request.setResourceType(1);
+        request.setResourceType("FREE");
         request.setLevel(2);
         request.setTags(Collections.singletonList("Kafka"));
 
-        User operator = new User();
+        OshUser operator = new OshUser();
         operator.setUsername("tester");
 
         Long courseId = oshCourseService.createCourse(request, operator);
@@ -87,6 +87,7 @@ public class OshCourseServiceKafkaProducerTest {
         assertEquals(Long.valueOf(123L), courseId);
         assertEquals(Long.valueOf(123L), captor.getValue().getCourseId());
         assertEquals("Kafka 课程", captor.getValue().getTitle());
+        assertEquals("FREE", captor.getValue().getResourceType());
         assertEquals("Kafka", captor.getValue().getTagNames().get(0));
     }
 
@@ -118,7 +119,7 @@ public class OshCourseServiceKafkaProducerTest {
         request.setType("media");
         request.setTags(Collections.emptyList());
 
-        User operator = new User();
+        OshUser operator = new OshUser();
         operator.setUsername("tester");
 
         Long courseId = oshCourseService.updateCourse(request, operator);
@@ -154,7 +155,7 @@ public class OshCourseServiceKafkaProducerTest {
         request.setType("media");
         request.setTags(Arrays.asList(" Kafka ", "Spring", "Kafka", "", null, " Spring "));
 
-        User operator = new User();
+        OshUser operator = new OshUser();
         operator.setUsername("tester");
 
         oshCourseService.createCourse(request, operator);

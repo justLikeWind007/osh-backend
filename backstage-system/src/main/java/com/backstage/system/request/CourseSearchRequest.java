@@ -1,11 +1,12 @@
 package com.backstage.system.request;
 
 import com.backstage.common.request.PageRequest;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 
 /**
- * @Author: Hope_Liu
+ * @Author: Hope_Lau
  * @createTime: 2026年03月30日 21:56:42
  * @version:
  * @Description:
@@ -14,6 +15,7 @@ public class CourseSearchRequest extends PageRequest {
 
     private List<String> tags;
     private String keyword;
+    private String resourceType;
 
     public CourseSearchRequest() {
     }
@@ -36,6 +38,14 @@ public class CourseSearchRequest extends PageRequest {
     }
 
     public void setKeyword(String keyword) {
-        this.keyword = keyword;
+        this.keyword = StringUtils.trimToNull(keyword);
+    }
+
+    public String getResourceType() {
+        return resourceType;
+    }
+
+    public void setResourceType(String resourceType) {
+        this.resourceType = StringUtils.trimToNull(resourceType);
     }
 }

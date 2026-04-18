@@ -2,7 +2,7 @@ package com.backstage.system.service.course;
 
 import com.backstage.system.constants.CourseSectionConstants;
 import com.backstage.system.domain.course.OshCourseSection;
-import com.backstage.system.domain.user.User;
+import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.course.OshCourseMaterialMapper;
 import com.backstage.system.mapper.course.OshCourseTagMapper;
@@ -26,7 +26,7 @@ public class OshCourseSectionDeleteServiceTest {
 
     private OshCourseMapper oshCourseMapper;
     private OshCourseServiceImpl oshCourseService;
-    private User operator;
+    private OshUser operator;
 
     @Before
     public void setUp() {
@@ -41,7 +41,7 @@ public class OshCourseSectionDeleteServiceTest {
         ReflectionTestUtils.setField(oshCourseService, "courseIndexKafkaProducer", mock(CourseIndexKafkaProducer.class));
         ReflectionTestUtils.setField(oshCourseService, "courseIndexMessageMapper", Mappers.getMapper(CourseIndexMessageMapper.class));
 
-        operator = new User();
+        operator = new OshUser();
         operator.setUsername("tester");
     }
 

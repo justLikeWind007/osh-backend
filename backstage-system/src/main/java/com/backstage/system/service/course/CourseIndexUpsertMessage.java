@@ -28,7 +28,7 @@ public class CourseIndexUpsertMessage {
     private BigDecimal ratingScore;
     private Integer freeType;
     private Integer afterServiceDays;
-    private Integer resourceType;
+    private String resourceType;
     private Integer level;
     private Integer status;
     private Integer examId;
@@ -216,11 +216,11 @@ public class CourseIndexUpsertMessage {
         this.afterServiceDays = afterServiceDays;
     }
 
-    public Integer getResourceType() {
+    public String getResourceType() {
         return resourceType;
     }
 
-    public void setResourceType(Integer resourceType) {
+    public void setResourceType(String resourceType) {
         this.resourceType = resourceType;
     }
 

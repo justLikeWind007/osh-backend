@@ -3,7 +3,7 @@ package com.backstage.web.controller.course;
 import com.backstage.common.constant.OshUserConstants;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.system.controller.course.OshCourseController;
-import com.backstage.system.domain.user.User;
+import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.service.IOshCourseCollectionService;
 import com.backstage.system.service.IOshCourseQuestionService;
 import com.backstage.system.service.IOshCourseService;
@@ -28,7 +28,7 @@ public class OshCourseControllerSectionDeleteTest {
 
     private MockMvc mockMvc;
     private IOshCourseService oshCourseService;
-    private User currentUser;
+    private OshUser currentUser;
 
     @Before
     public void setUp() {
@@ -42,7 +42,7 @@ public class OshCourseControllerSectionDeleteTest {
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
-        currentUser = new User();
+        currentUser = new OshUser();
         currentUser.setId(100L);
         currentUser.setUsername("tester");
         ThreadLocalUtil.set(OshUserConstants.USER_INFO, currentUser);
