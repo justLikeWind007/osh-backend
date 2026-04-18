@@ -53,12 +53,10 @@ public class OssCloudFlareController {
      *
      * @param file        文件
      * @param type        上传场景模块类型
-     * @param resultId     资源id
      * @param previewFlag 是否需要预览, 默认false
      * @param limitMinute 生成文件预览链接的超时时间, 分钟数, 默认30分钟
      */
     @RateLimiter(limitType = LimitType.IP, time = 60, count = 10)
-    @Anonymous
     @ApiParam(value = "上传文件", required = true)
     @ApiOperation("上传接口")
     @PostMapping("/upload")
@@ -74,7 +72,7 @@ public class OssCloudFlareController {
         }
         if (type.equals("video")) {
             try {
-                String url = ossService.upload(file, UploadPathEnum.COURSE_VIDEO, id);
+                String url = ossService.upload(file, UploadPathEnum.COURSE_VIDEO, resultId);
                 // 判断是否返回了错误信息
                 if (url == null || url.contains("不能超过") || url.contains("类型不正确")) {
                     return R.fail(url);
@@ -86,12 +84,12 @@ public class OssCloudFlareController {
             }
         } else {
             try {
-                String url = ossService.upload(file, UploadPathEnum.IMAGE, id);
+                String url = ossService.upload(file, UploadPathEnum.IMAGE, resultId);
                 if (Objects.equals(url, "图片大小不能超过3M")) {
                     return R.fail(url);
                 }
                 OshUploadImage uploadImage = new OshUploadImage();
-                uploadImage.setUserId(1L);
+                uploadImage.setUserId(UserContextUtil.getCurrentUserId());
                 uploadImage.setSchoolId(1L);
                 uploadImage.setFileName(file.getOriginalFilename());
                 uploadImage.setFilePath(url);
