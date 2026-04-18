@@ -1,5 +1,6 @@
 package com.backstage.system.service.website.impl;
 
+import com.backstage.common.annotation.DistributeLock;
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.common.utils.email.EmailUtil;
@@ -97,6 +98,7 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
      */
 
     @Override
+    @DistributeLock(scene = "website_submit", key = "website_submit_lock", includeUserId = true)
     public int submitWebsite(WebsiteSubmitDTO submitDto) {
         // 1. 参数校验（必填字段检查）
         if (submitDto == null ||
@@ -104,16 +106,8 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
                 submitDto.getUrl() == null || submitDto.getUrl().trim().isEmpty()) {
             throw new IllegalArgumentException("网站名称和链接不能为空");
         }
-        // key 以用户 ID 为维度，每个用户一把锁，互不影响
-        String lockKey = getCurrentUser().getId().toString();
-        // value 用 UUID，保证释放时只能释放自己的锁
-        String lockValue = java.util.UUID.randomUUID().toString();
-        //尝试获取锁，过期时间20秒
-        boolean locked = distributedLockUtil.tryLock(lockKey, lockValue, 20);
-        if (!locked) {
-            throw new IllegalArgumentException("请勿重复提交，请稍后再试");
-        }
-try{
+
+
         OshPracticalWebsite website = new OshPracticalWebsite();
         OshWebsiteTag tag = new OshWebsiteTag();
         website.setName(submitDto.getName());
@@ -146,11 +140,7 @@ try{
         tag.setTagName(submitDto.getTagNames());
         tag.setDeleteFlag(0);
         return oshWebsiteTagMapper.insertWebsiteTag(tag);
-    }finally {
-    // 无论成功还是异常，都释放锁
-    // finally 块保证锁一定会被释放，不会死锁
-        distributedLockUtil.releaseLock(lockKey, lockValue);
-        }
+
     }
     /**
      * 审核网站
