@@ -35,6 +35,8 @@ public interface OshCourseMapper
      */
     OshCourse selectCourseById(Long id);
 
+
+
     /**
      * 查询课程列表
      *
@@ -139,4 +141,5 @@ public interface OshCourseMapper
     List<OshCourse> selectCoursesByIds(List<Long> ids);
 
 
+    int deleteSectionsByCourseId(@Param("courseId") Long courseId, @Param("updateBy") String updateBy);
 }

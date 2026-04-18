@@ -17,13 +17,14 @@ import java.util.List;
  */
 public class CourseCreateRequest {
 
+    // 新增：有值时走更新，null 时走新增
+    private Long id;
+
     @NotBlank(message = "课程标题不能为空")
     private String title;
 
-    @NotBlank(message = "课程封面不能为空")
     private String cover;
 
-    @NotBlank(message = "课程介绍不能为空")
     private String intro;
 
     private String serviceContent;
@@ -64,6 +65,10 @@ public class CourseCreateRequest {
      */
     @Valid
     private CourseMaterialCreateRequest material;
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
 
     public String getTitle() {
         return title;

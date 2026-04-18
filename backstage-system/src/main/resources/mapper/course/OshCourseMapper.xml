@@ -320,6 +320,21 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         and delete_flag = 0
     </update>
 
+    <update id="deleteSectionsByCourseId">
+        update osh_course_section
+        set delete_flag = 1,
+        update_by = #{updateBy},
+        update_time = now()
+        where course_id = #{courseId}
+        and delete_flag = 0
+    </update>
+
+    <update id="deleteCourseById" parameterType="Long">
+        update osh_course set delete_flag = 1, update_time = now()
+        where id = #{id}
+    </update>
+
+
 
     <select id="pageQuerySearchCourse" resultMap="CourseSearchLoginResult">
         select distinct
@@ -459,6 +474,25 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
           and id = #{sectionId}
           and delete_flag = 0
     </select>
+
+    <update id="deleteCourseSectionById">
+        UPDATE osh_course_section
+        SET delete_flag = 1,
+        update_by = #{updateBy},
+        update_time = NOW()
+        WHERE id = #{id}
+        AND delete_flag = 0
+    </update>
+
+    <update id="deleteCourseSectionsByParentId">
+        UPDATE osh_course_section
+        SET delete_flag = 1,
+        update_by = #{updateBy},
+        update_time = NOW()
+        WHERE parent_id = #{parentId}
+        AND delete_flag = 0
+    </update>
+
 
     <select id="selectCourseSectionById" resultMap="OshCourseSectionEntityResult">
         select id,

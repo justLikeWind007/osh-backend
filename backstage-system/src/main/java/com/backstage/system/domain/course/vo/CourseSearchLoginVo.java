@@ -108,6 +108,7 @@ public class CourseSearchLoginVo {
     @ApiModelProperty("收藏数")
     private Integer collectionCount;
 
+
     public Integer getCollectionCount() {
         return collectionCount;
     }
