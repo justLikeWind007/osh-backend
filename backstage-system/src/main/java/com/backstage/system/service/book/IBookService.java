@@ -19,17 +19,16 @@ public interface IBookService extends IService<BookDO> {
      * 查询电子书详情
      *
      * @param id 电子书ID
-     * @param userId 用户ID（可选）
+     * @param forEdit 是否用于编辑（true时返回原始相对路径，false时返回临时访问URL）
      * @return 电子书详情
      */
-    BookDetailVO selectBookDetail(Long id);
+    BookDetailVO selectBookDetail(Long id, Boolean forEdit);
 
     /**
      * 查询电子书章节内容
      *
      * @param bookId 电子书ID
      * @param id 章节ID
-     * @param userId 用户ID（可选）
      * @return 章节内容
      */
     BookChapterContentVO selectBookChapterContent(Long bookId, Long id);
@@ -38,7 +37,6 @@ public interface IBookService extends IService<BookDO> {
      * 查询电子书章节菜单
      *
      * @param id 电子书ID
-     * @param userId 用户ID（可选）
      * @return 章节菜单
      */
     BookMenuVO selectBookMenu(Long id);

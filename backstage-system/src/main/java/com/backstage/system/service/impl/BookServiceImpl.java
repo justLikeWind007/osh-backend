@@ -55,6 +55,9 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
     @Resource
     private BookTagDOMapper bookTagDOMapper;
 
+    @Autowired
+    private com.backstage.system.service.common.OssService ossService;
+
     /**
      * 查询电子书列表
      *
@@ -78,6 +81,10 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
             if (StringUtils.isNotEmpty(vo.getTagNames())) {
                 vo.setTagNameList(Arrays.asList(vo.getTagNames().split(",")));
             }
+            // 处理封面URL - 生成临时访问链接（30分钟有效期）
+            if (StringUtils.isNotEmpty(vo.getCover())) {
+                vo.setCover(ossService.getLimitedUrl(vo.getCover(), 30));
+            }
         }
 
         Page<BookListVO> result = new Page<>(pageParam.getCurrent(), pageParam.getSize(), pageParam.getTotal());
@@ -99,6 +106,10 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
                 List<String> tagList = Arrays.asList(vo.getTagNames().split(","));
                 vo.setTagNameList(tagList);
             }
+            // 处理封面URL - 生成临时访问链接（30分钟有效期）
+            if (StringUtils.isNotEmpty(vo.getCover())) {
+                vo.setCover(ossService.getLimitedUrl(vo.getCover(), 30));
+            }
         }
         return voPage;
     }
@@ -113,10 +124,11 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
      * 查询电子书详情
      *
      * @param id 电子书ID
+     * @param forEdit 是否用于编辑（true时返回原始相对路径，false时返回临时访问URL）
      * @return 电子书详情
      */
     @Override
-    public BookDetailVO selectBookDetail(Long id) {
+    public BookDetailVO selectBookDetail(Long id, Boolean forEdit) {
         BookDO bookDO = getById(id);
         checkEntityNotNull(bookDO, "该记录不存在");
 
@@ -127,6 +139,17 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
         vo.setPrice(Optional.ofNullable(bookDO.getPrice()).map(Object::toString).orElse("0"));
         vo.setTPrice(Optional.ofNullable(bookDO.getOriginalPrice()).map(Object::toString).orElse("0"));
         vo.setSubCount(Optional.ofNullable(bookDO.getSubCount()).orElse(0));
+
+        // 处理封面URL - 如果是编辑模式，返回原始相对路径；否则生成临时访问链接
+        if (StringUtils.isNotEmpty(bookDO.getCover())) {
+            if (forEdit != null && forEdit) {
+                // 编辑模式：返回原始相对路径
+                vo.setCover(bookDO.getCover());
+            } else {
+                // 查看模式：生成临时访问链接（30分钟有效期）
+                vo.setCover(ossService.getLimitedUrl(bookDO.getCover(), 30));
+            }
+        }
 
         // 查询章节列表
         List<BookChapterVO> chapters = bookChapterMapper.selectBookChapterListByBookId(id);
@@ -145,7 +168,6 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
      *
      * @param bookId 电子书ID
      * @param id 章节ID
-     * @param userId 用户ID（可选）
      * @return 章节内容
      */
     @Override
@@ -170,7 +192,6 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
      * 查询电子书章节菜单
      *
      * @param id 电子书ID
-     * @param userId 用户ID（可选）
      * @return 章节菜单
      */
     @Override
