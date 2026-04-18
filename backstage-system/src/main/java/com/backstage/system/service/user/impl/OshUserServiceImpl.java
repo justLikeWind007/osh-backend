@@ -15,9 +15,11 @@ import com.backstage.system.domain.user.OshUserViolation;
 import com.backstage.system.domain.user.vo.OshRoleVO;
 import com.backstage.system.domain.user.vo.OshUserLoginVo;
 import com.backstage.system.mapper.user.*;
+import com.backstage.system.request.UserListRequest;
 import com.backstage.system.service.user.IOshUserService;
 import com.backstage.system.utils.UserContextUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -365,17 +367,16 @@ public class OshUserServiceImpl implements IOshUserService {
 //        return oshUserMapper.selectUserById(id);
 //    }
 //
-//    /**
-//     * 查询用户列表
-//     *
-//     * @param oshUser 用户
-//     * @return 用户
-//     */
-//    @Override
-//    public List<OshUser> selectUserList(OshUser oshUser)
-//    {
-//        return oshUserMapper.selectUserList(oshUser);
-//    }
+    /**
+     * 查询用户列表
+     *
+     * @param req 用户
+     * @return 用户
+     */
+    @Override
+    public List<OshUser> selectUserList(UserListRequest req) {
+        return oshUserMapper.selectList(Wrappers.lambdaQuery());
+    }
 //
 //    /**
 //     * 新增用户
