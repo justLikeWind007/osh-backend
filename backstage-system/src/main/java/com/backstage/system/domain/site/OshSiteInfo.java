@@ -1,5 +1,6 @@
 package com.backstage.system.domain.site;
 
+import com.backstage.common.core.domain.entity.OSHBaseEntity;
 import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
@@ -14,7 +15,7 @@ import java.util.List;
  * @author backstage
  */
 @TableName("osh_site_info")
-public class OshSiteInfo implements Serializable {
+public class OshSiteInfo extends OSHBaseEntity implements Serializable {
 
     private static final long serialVersionUID = 4936551355109148940L;
 
@@ -81,38 +82,6 @@ public class OshSiteInfo implements Serializable {
      */
     @TableField(exist = false)
     private String lastCheckStatusName;
-
-    /**
-     * 创建人ID/账号
-     */
-    @TableField(value = "created_by", updateStrategy = FieldStrategy.NEVER)
-    private Long createdBy;
-
-    /**
-     * 创建时间
-     */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @TableField(value = "create_time", updateStrategy = FieldStrategy.NEVER)
-    private Date creationTime;
-
-    /**
-     * 更新人ID/账号
-     */
-    @TableField(value = "update_by")
-    private Long updateBy;
-
-    /**
-     * 更新时间
-     */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private Date updateTime;
-
-    /**
-     * 是否删除：0=未删除，1=已删除
-     */
-    @TableLogic
-    @TableField(value = "is_deleted")
-    private Integer isDeleted;
 
     /**
      * 维护者
@@ -196,46 +165,6 @@ public class OshSiteInfo implements Serializable {
 
     public void setLastCheckTime(Date lastCheckTime) {
         this.lastCheckTime = lastCheckTime;
-    }
-
-    public Long getCreatedBy() {
-        return createdBy;
-    }
-
-    public void setCreatedBy(Long createdBy) {
-        this.createdBy = createdBy;
-    }
-
-    public Date getCreationTime() {
-        return creationTime;
-    }
-
-    public void setCreationTime(Date creationTime) {
-        this.creationTime = creationTime;
-    }
-
-    public Long getUpdateBy() {
-        return updateBy;
-    }
-
-    public void setUpdateBy(Long updateBy) {
-        this.updateBy = updateBy;
-    }
-
-    public Date getUpdateTime() {
-        return updateTime;
-    }
-
-    public void setUpdateTime(Date updateTime) {
-        this.updateTime = updateTime;
-    }
-
-    public Integer getIsDeleted() {
-        return isDeleted;
-    }
-
-    public void setIsDeleted(Integer isDeleted) {
-        this.isDeleted = isDeleted;
     }
 
     public List<OshSiteMaintainer> getMaintainers() {

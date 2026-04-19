@@ -1,7 +1,6 @@
 package com.backstage.system.service.site.impl;
 
 import com.alibaba.fastjson2.JSON;
-import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.system.domain.site.OshSiteInfo;
 import com.backstage.system.domain.site.OshSiteMaintainer;
 import com.backstage.system.domain.site.OshSiteUsage;
@@ -9,6 +8,7 @@ import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.mapper.site.OshSiteInfoMapper;
 import com.backstage.system.mapper.site.OshSiteMaintainerMapper;
 import com.backstage.system.service.site.IOshSiteInfoService;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.apache.commons.lang3.StringUtils;
@@ -51,9 +51,7 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
         OshSiteUsage oshSiteUsage = new OshSiteUsage();
         oshSiteUsage.setSiteId(siteInfo.getId());
         oshSiteUsage.setUserId(oshUser.getId());
-        oshSiteUsage.setCreatedBy(oshUser.getUsername());
-        oshSiteUsage.setCreationTime(new Date());
-        oshSiteUsage.setUpdateTime(new Date());
+        oshSiteUsage.setDeleted(false);
         return oshSiteInfoMapper.insertUsage(oshSiteUsage);
     }
 
@@ -76,16 +74,11 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
         updateById(siteInfo);
         oshSiteMaintainerMapper.delete(Wrappers.<OshSiteMaintainer>lambdaQuery()
                 .eq(true, OshSiteMaintainer::getSiteId, siteInfo.getId()));
-        long currentUserId = ThreadLocalUtil.getCurrentUserId();
         for (String maintainerUserId : siteInfo.getMaintainerUserIds()) {
             OshSiteMaintainer maintainer = new OshSiteMaintainer();
             maintainer.setSiteId(siteInfo.getId());
             maintainer.setUserId(Long.valueOf(maintainerUserId));
-            maintainer.setCreatedBy(currentUserId);
-            maintainer.setUpdateBy(currentUserId);
-            maintainer.setCreationTime(new Date());
-            maintainer.setUpdateTime(new Date());
-            maintainer.setIsDeleted(0);
+            maintainer.setDeleted(false);
             oshSiteMaintainerMapper.insert(maintainer);
         }
         return false;
@@ -104,6 +97,15 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
                 .eq(siteInfo.getStatus() != null, OshSiteInfo::getStatus, siteInfo.getStatus())
                 .list();
 
+        setMaintainers(list);
+
+        return list;
+    }
+
+    private void setMaintainers(List<OshSiteInfo> list) {
+        if (CollectionUtils.isEmpty(list)) {
+            return;
+        }
         Set<Long> siteIds = list.stream().map(OshSiteInfo::getId).collect(Collectors.toSet());
         Map<Long, List<OshSiteMaintainer>> maintainersMap = oshSiteInfoMapper.selectMaintainersBySiteIds(siteIds)
                 .stream()
@@ -117,7 +119,6 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
                     .collect(Collectors.toList()));
             oshSiteInfo.setMaintainers(maintainers);
         }
-        return list;
     }
 
     /**
@@ -126,14 +127,24 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
     @Scheduled(cron = "0 0/10 * * * ?")
     public void testSiteInfoResponseStatus() {
         List<OshSiteInfo> oshSiteInfos = oshSiteInfoMapper.selectList(Wrappers.<OshSiteInfo>lambdaQuery()
-                .eq(OshSiteInfo::getIsDeleted, 0));
+                .eq(OshSiteInfo::getDeleteFlag, 0));
+        testConnection(oshSiteInfos);
+    }
+
+    @Override
+    public boolean testConnection(List<OshSiteInfo> oshSiteInfos) {
+        return testConnection(oshSiteInfos, 5000);
+    }
+
+    @Override
+    public boolean testConnection(List<OshSiteInfo> oshSiteInfos, int timeout) {
         for (OshSiteInfo siteInfo : oshSiteInfos) {
             if (StringUtils.isBlank(siteInfo.getSiteUrl())) {
                 continue;
             }
             try {
                 Integer lastCheckStatus = siteInfo.getLastCheckStatus();
-                if (testUrlConnection(siteInfo.getSiteUrl(), 5000, 5000)) {
+                if (testUrlConnection(siteInfo.getSiteUrl(), timeout, timeout)) {
                     if (Objects.equals(0, siteInfo.getStatus())) {
                         siteInfo.setStatus(1);
                     }
@@ -149,6 +160,7 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
                 LOG.error("failed to test site connection, {}", JSON.toJSONString(siteInfo));
             }
         }
+        return true;
     }
 
     /**
