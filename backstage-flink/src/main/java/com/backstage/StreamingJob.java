@@ -30,14 +30,21 @@ import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.connectors.elasticsearch.RestClientFactory;
 import org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchSinkFunction;
 import org.apache.flink.streaming.connectors.elasticsearch6.ElasticsearchSink;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,9 +54,11 @@ public class StreamingJob
 
     public static void main(String[] args) throws Exception
     {
-        CourseIndexJobConfig config = CourseIndexJobConfig.fromSystem();
+        Properties properties = CourseIndexJobConfig.loadProperties();
+        configureLogging(properties);
+        CourseIndexJobConfig config = CourseIndexJobConfig.fromProperties(properties);
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.setParallelism(1);
+        env.setParallelism(config.getParallelism());
 
         Properties kafkaProps = new Properties();
         kafkaProps.setProperty("bootstrap.servers", config.getKafkaBootstrapServers());
@@ -89,7 +98,7 @@ public class StreamingJob
         createStream.addSink(buildCreateSink(config)).name("course-index-create-es-sink");
         updateStream.addSink(buildUpdateSink(config)).name("course-index-update-es-sink");
 
-        env.execute("backstage-course-index-job");
+        env.execute(config.getJobName());
     }
 
     private static void applyStartMode(FlinkKafkaConsumer<String> consumer, String startMode)
@@ -116,7 +125,8 @@ public class StreamingJob
         ElasticsearchSink.Builder<CourseIndexMessage> builder = new ElasticsearchSink.Builder<>(
                 parseHosts(config.getEsHosts()),
                 buildCreateSinkFunction(indexName));
-        builder.setBulkFlushMaxActions(200);
+        applyEsAuth(builder, config);
+        builder.setBulkFlushMaxActions(config.getEsBulkFlushMaxActions());
         return builder.build();
     }
 
@@ -127,8 +137,48 @@ public class StreamingJob
         ElasticsearchSink.Builder<CourseIndexMessage> builder = new ElasticsearchSink.Builder<>(
                 parseHosts(config.getEsHosts()),
                 buildUpdateSinkFunction(indexName));
-        builder.setBulkFlushMaxActions(200);
+        applyEsAuth(builder, config);
+        builder.setBulkFlushMaxActions(config.getEsBulkFlushMaxActions());
         return builder.build();
+    }
+
+    private static void applyEsAuth(ElasticsearchSink.Builder<CourseIndexMessage> builder, CourseIndexJobConfig config)
+    {
+        String username = config.getEsUsername();
+        String password = config.getEsPassword();
+        if (isBlank(username) || isBlank(password))
+        {
+            return;
+        }
+
+        builder.setRestClientFactory(new RestClientFactory()
+        {
+            @Override
+            public void configureRestClientBuilder(RestClientBuilder restClientBuilder)
+            {
+                CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+                credentialsProvider.setCredentials(AuthScope.ANY,
+                        new UsernamePasswordCredentials(username, password));
+                restClientBuilder.setHttpClientConfigCallback(httpAsyncClientBuilder ->
+                        httpAsyncClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
+            }
+        });
+    }
+
+    private static void configureLogging(Properties sourceProperties)
+    {
+        Properties log4jProperties = new Properties();
+        for (String propertyName : sourceProperties.stringPropertyNames())
+        {
+            if (propertyName.startsWith("log4j."))
+            {
+                log4jProperties.setProperty(propertyName, sourceProperties.getProperty(propertyName));
+            }
+        }
+        if (!log4jProperties.isEmpty())
+        {
+            PropertyConfigurator.configure(log4jProperties);
+        }
     }
 
     static ElasticsearchSinkFunction<CourseIndexMessage> buildCreateSinkFunction(String indexName)
@@ -169,5 +219,10 @@ public class StreamingJob
             hosts.add(new HttpHost(url.getHost(), port, url.getProtocol()));
         }
         return hosts;
+    }
+
+    private static boolean isBlank(String value)
+    {
+        return value == null || value.trim().isEmpty();
     }
 }
