@@ -64,7 +64,11 @@ public interface OshCourseSectionMapper {
      * 删除章节
      */
     int deleteSectionById(@Param("id") Long id);
-    
+
+    int deleteCourseSectionById(@Param("id") Long id, @Param("updateBy") String updateBy);
+
+    int deleteCourseSectionsByParentId(@Param("parentId") Long parentId, @Param("updateBy") String updateBy);
+
     /**
      * 批量删除章节
      */

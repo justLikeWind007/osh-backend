@@ -8,22 +8,22 @@ package com.backstage.system.enums;
  */
 public enum CourseResourceEnum {
 
-    FREE(1, "免费"),
-    CASH_PAY(2, "现金付费"),
-    POINTS_OR_CASH_PAY(3, "积分/现金付费"),
-    VIP_ONLY(4, "vip专属"),
-    SMALL_CLASS_ONLY(5, "小班专属"),
-    INTERNAL_MEMBER_ONLY(6, "内部成员专属");
+    FREE("FREE", "免费"),
+    CASH_ONLY("CASH_ONLY", "仅现金"),
+    CASH_POINT("CASH_POINT", "现金&积分"),
+    VIP("VIP", "VIP免费"),
+    SAMLL_CLASS("SAMLL_CLASS", "小班免费"),
+    INTERNAL("INTERNAL", "内部免费");
 
-    private final Integer code;
+    private final String code;
     private final String desc;
 
-    CourseResourceEnum(Integer code, String desc) {
+    CourseResourceEnum(String code, String desc) {
         this.code = code;
         this.desc = desc;
     }
 
-    public Integer getCode() {
+    public String getCode() {
         return code;
     }
 
@@ -31,12 +31,13 @@ public enum CourseResourceEnum {
         return desc;
     }
 
-    public static CourseResourceEnum fromCode(Integer code) {
+    public static CourseResourceEnum fromCode(String code) {
         if (code == null) {
             return null;
         }
+        String normalizedCode = code.trim();
         for (CourseResourceEnum value : values()) {
-            if (value.code.equals(code)) {
+            if (value.code.equalsIgnoreCase(normalizedCode)) {
                 return value;
             }
         }

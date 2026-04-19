@@ -1,0 +1,140 @@
+package com.backstage.system.mapper.course;
+
+import com.backstage.common.response.PageResponse;
+import com.backstage.common.utils.StringUtils;
+import com.backstage.system.domain.course.es.OshCourseEsDocument;
+import com.backstage.system.domain.course.vo.CourseSearchLoginVo;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestHighLevelClient;
+import com.backstage.system.request.CourseSearchRequest;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.SortBuilders;
+import org.elasticsearch.search.sort.SortOrder;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Component
+public class OshCourseEsMapper {
+
+    private static final String COURSE_SEARCH_INDEX = "osh_course_search_read";
+
+    @Autowired
+    private RestHighLevelClient restHighLevelClient;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    public PageResponse<CourseSearchLoginVo> searchCourses(CourseSearchRequest request) throws Exception {
+        int pageNum = request.getPageNum();
+        int pageSize = request.getPageSize();
+
+        SearchRequest searchRequest = new SearchRequest(COURSE_SEARCH_INDEX);
+        searchRequest.source(buildSearchSource(request, pageNum, pageSize));
+        SearchResponse searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+        List<CourseSearchLoginVo> rows = new ArrayList<>();
+        for (SearchHit searchHit : searchResponse.getHits().getHits()) {
+            OshCourseEsDocument document = objectMapper.convertValue(searchHit.getSourceAsMap(), OshCourseEsDocument.class);
+            rows.add(toVo(document));
+        }
+
+        return PageResponse.of(rows, searchResponse.getHits().getTotalHits().value, pageNum, pageSize);
+    }
+
+    public int bulkUpsertCourses(List<OshCourseEsDocument> documents) throws Exception {
+        if (StringUtils.isEmpty(documents)) {
+            return 0;
+        }
+
+        BulkRequest bulkRequest = new BulkRequest();
+        for (OshCourseEsDocument document : documents) {
+            bulkRequest.add(new IndexRequest(COURSE_SEARCH_INDEX)
+                    .id(String.valueOf(document.getId()))
+                    .source(objectMapper.writeValueAsString(document), XContentType.JSON));
+        }
+
+        BulkResponse bulkResponse = restHighLevelClient.bulk(bulkRequest, RequestOptions.DEFAULT);
+        if (bulkResponse.hasFailures()) {
+            throw new IllegalStateException("bulk upsert courses to es failed: " + bulkResponse.buildFailureMessage());
+        }
+        return documents.size();
+    }
+
+    private SearchSourceBuilder buildSearchSource(CourseSearchRequest request, int pageNum, int pageSize) {
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
+                .from((pageNum - 1) * pageSize)
+                .size(pageSize);
+        BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
+                .filter(QueryBuilders.termQuery("status", 2))
+                .filter(QueryBuilders.termQuery("deleteFlag", 0));
+
+        if (request != null && StringUtils.isNotEmpty(request.getKeyword())) {
+            boolQuery.must(buildKeywordQuery(request.getKeyword()));
+            sourceBuilder.sort(SortBuilders.scoreSort().order(SortOrder.DESC));
+        }
+
+        if (request != null && StringUtils.isNotEmpty(request.getTags())) {
+            boolQuery.filter(QueryBuilders.termsQuery("tagNames", request.getTags()));
+        }
+
+        if (request != null && StringUtils.isNotEmpty(request.getResourceType())) {
+            boolQuery.filter(QueryBuilders.termQuery("resourceType", request.getResourceType()));
+        }
+
+        sourceBuilder.query(boolQuery);
+        sourceBuilder.sort(SortBuilders.fieldSort("createTime").order(SortOrder.DESC));
+        return sourceBuilder;
+    }
+
+    private QueryBuilder buildKeywordQuery(String keyword) {
+        return QueryBuilders.multiMatchQuery(keyword, "title^8", "tagNamesText^4", "intro^3", "serviceContent^2", "searchText");
+    }
+
+    private CourseSearchLoginVo toVo(OshCourseEsDocument document) {
+        CourseSearchLoginVo vo = new CourseSearchLoginVo();
+        vo.setId(document.getId());
+        vo.setTitle(document.getTitle());
+        vo.setCover(document.getCover());
+        vo.setIntro(document.getIntro());
+        vo.setServiceContent(document.getServiceContent());
+        vo.setPrice(document.getPrice());
+        vo.setTPrice(document.getTPrice());
+        vo.setType(document.getType());
+        vo.setSubCount(document.getSubCount());
+        vo.setRemark(document.getRemark());
+        vo.setCreateTime(document.getCreateTime());
+        vo.setUpdateTime(document.getUpdateTime());
+        vo.setTotalDuration(document.getTotalDuration());
+        vo.setFreeLessonCount(document.getFreeLessonCount());
+        vo.setVideoCount(document.getVideoCount());
+        vo.setSalesCount(document.getSalesCount());
+        vo.setViewCount(document.getViewCount());
+        vo.setLikeCount(document.getLikeCount());
+        vo.setCommentCount(document.getCommentCount());
+        vo.setQuestionCount(document.getQuestionCount());
+        vo.setCollectionCount(document.getCollectionCount());
+        vo.setRatingScore(document.getRatingScore());
+        vo.setFreeType(document.getFreeType());
+        vo.setAfterServiceDays(document.getAfterServiceDays());
+        vo.setResourceType(document.getResourceType());
+        vo.setLevel(document.getLevel());
+        vo.setStatus(document.getStatus());
+        vo.setExamId(document.getExamId());
+        vo.setCollectionFlag(0);
+        vo.setBuyFlag(0);
+        return vo;
+    }
+}

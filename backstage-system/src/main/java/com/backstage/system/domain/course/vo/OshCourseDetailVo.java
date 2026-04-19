@@ -69,7 +69,7 @@ public class OshCourseDetailVo {
     private Integer buyFlag;
 
     /** 资源类型 */
-    private Integer resourceType;
+    private String resourceType;
 
     private String level; // 或者 Integer level，根据你数据库类型来
 
@@ -97,11 +97,11 @@ public class OshCourseDetailVo {
 
 
     // 如果类上没有 @Data 注解，务必手动加上 Setter
-    public void setResourceType(Integer resourceType) {
+    public void setResourceType(String resourceType) {
         this.resourceType = resourceType;
     }
 
-    public Integer getResourceType() {
+    public String getResourceType() {
         return resourceType;
     }
 
