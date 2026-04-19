@@ -3,9 +3,11 @@ package com.backstage.system.controller.user;
 import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.controller.BaseController;
 import com.backstage.common.core.domain.R;
+import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.domain.user.dto.*;
 import com.backstage.system.domain.user.vo.OshUserLoginVo;
+import com.backstage.system.request.UserListRequest;
 import com.backstage.system.service.user.IOshUserService;
 import com.backstage.system.utils.UserContextUtil;
 import io.swagger.annotations.ApiOperation;
@@ -14,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.mail.MessagingException;
+import java.util.List;
 
 /**
  * Created with IntelliJ IDEA.
@@ -146,21 +149,13 @@ OshUserController extends BaseController {
         return userService.cancelRecord(userCancelRecordDTO.getUserId(), UserContextUtil.getCurrentUser());
     }
 
-
-
-
-
-//    /**
-//     * 查询用户列表
-//     */
-//    @PreAuthorize("@ss.hasPermi('system:user:list')")
-//    @GetMapping("/list")
-//    public TableDataInfo list(OshUser oshUser)
-//    {
-//        startPage();
-//        List<OshUser> list = userService.selectUserList(oshUser);
-//        return getDataTable(list);
-//    }
+    /**
+     * 查询用户列表
+     */
+    @GetMapping("/all")
+    public R<List<OshUser>> list(UserListRequest req) {
+        return R.ok(userService.selectUserList(req));
+    }
 //
 //    /**
 //     * 导出用户列表

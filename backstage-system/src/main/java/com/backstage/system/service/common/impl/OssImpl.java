@@ -15,7 +15,6 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import eu.bitwalker.useragentutils.UserAgent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
 
@@ -57,7 +56,6 @@ public class OssImpl implements OssService {
      * 上传文件
      * @param file  文件
      * @param pathEnum  枚举路径固定
-     * @param resultId    自定义目录下的子文件夹
      * @return oss服务的文件路径
      * @throws Exception
      */
