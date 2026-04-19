@@ -16,6 +16,7 @@ import io.swagger.annotations.ApiParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -59,6 +60,7 @@ public class OssCloudFlareController {
     @RateLimiter(limitType = LimitType.IP, time = 60, count = 10)
     @ApiParam(value = "上传文件", required = true)
     @ApiOperation("上传接口")
+    @PreAuthorize("hasAuthority('upload:file')")
     @PostMapping("/upload")
     public R<Object> upload(
             @RequestParam("file") MultipartFile file,
