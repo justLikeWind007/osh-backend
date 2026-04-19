@@ -96,6 +96,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="ratingScore"   column="rating_score"    />
         <result property="freeType"   column="free_type"    />
         <result property="afterServiceDays"   column="after_service_days"    />
+        <result property="resourceType" column="resource_type" />
+        <result property="level" column="level" />
         <result property="status"   column="status"    />
         <result property="examId" column="exam_id"/>
     </resultMap>
@@ -318,56 +320,27 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         and delete_flag = 0
     </update>
 
+    <update id="deleteSectionsByCourseId">
+        update osh_course_section
+        set delete_flag = 1,
+        update_by = #{updateBy},
+        update_time = now()
+        where course_id = #{courseId}
+        and delete_flag = 0
+    </update>
 
-    <select id="pageQuerySearchCourse" parameterType="com.backstage.system.request.CourseSearchRequest" resultMap="CourseSearchLoginResult">
+    <update id="deleteCourseById" parameterType="Long">
+        update osh_course set delete_flag = 1, update_time = now()
+        where id = #{id}
+    </update>
+
+
+
+    <select id="pageQuerySearchCourse" resultMap="CourseSearchLoginResult">
         select distinct
         <include refid="searchCourseColumns"/>,
         0 as collection_flag,
         0 as buy_flag,
-        (ifnull(c.sales_count, 0) * 2 + ifnull(c.collection_count, 0)) as sort_score
-        from osh_course c
-        left join osh_course_tag_rel ctr on ctr.course_id = c.id
-            and ctr.delete_flag = 0
-        left join osh_course_tag ct on ct.id = ctr.tag_id
-            and ct.delete_flag = 0
-            and ct.status = 1
-        <where>
-            c.delete_flag = 0
-            and c.status = 2
-            <if test="keyword != null and keyword != ''">
-                and c.title like concat('%', #{keyword}, '%')
-            </if>
-            <if test="tags != null and tags.size() > 0">
-                and ct.name in
-                <foreach collection="tags" item="tag" open="(" separator="," close=")">
-                    #{tag}
-                </foreach>
-            </if>
-        </where>
-        order by sort_score desc,c.create_time desc
-    </select>
-
-    <select id="pageQueryLoginSearchCourse" resultMap="CourseSearchLoginResult">
-        select distinct
-        <include refid="searchCourseColumns"/>,
-        case
-            when exists (
-                select 1
-                from osh_course_collection occ2
-                where occ2.course_id = c.id
-                  and occ2.user_id = #{userId}
-                  and occ2.delete_flag = 0
-            ) then 1 else 0
-        end as collection_flag,
-        case
-            when exists (
-                select 1
-                from osh_course_buy ocb
-                where ocb.course_id = c.id
-                  and ocb.user_id = #{userId}
-                  and ocb.pay_status = 'paid'
-            ) then 1 else 0
-        end as buy_flag,
         (ifnull(c.sales_count, 0) * 2 + ifnull(c.collection_count, 0)) as sort_score
         from osh_course c
         left join osh_course_tag_rel ctr on ctr.course_id = c.id
@@ -387,8 +360,23 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                     #{tag}
                 </foreach>
             </if>
+            <if test="request.resourceType != null and request.resourceType != ''">
+                and c.resource_type = #{request.resourceType}
+            </if>
         </where>
-        order by buy_flag desc, sort_score desc, c.create_time desc, c.id desc
+        order by sort_score desc,c.create_time desc
+    </select>
+
+    <select id="selectUserBoughtCourseIds" resultType="java.lang.Long">
+        select distinct course_id
+        from osh_course_buy
+        where user_id = #{userId}
+          and delete_flag = 0
+          and pay_status = 'paid'
+          and course_id in
+        <foreach collection="courseIds" item="courseId" open="(" separator="," close=")">
+            #{courseId}
+        </foreach>
     </select>
 
     <select id="pageQueryUserCollectionCourse" resultMap="OshCouresResult">
@@ -414,6 +402,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                 <foreach collection="request.tags" item="tag" open="(" separator="," close=")">
                     #{tag}
                 </foreach>
+            </if>
+            <if test="request.resourceType != null and request.resourceType != ''">
+                and c.resource_type = #{request.resourceType}
             </if>
         </where>
         order by occ.create_time desc, c.id desc
@@ -483,6 +474,25 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
           and id = #{sectionId}
           and delete_flag = 0
     </select>
+
+    <update id="deleteCourseSectionById">
+        UPDATE osh_course_section
+        SET delete_flag = 1,
+        update_by = #{updateBy},
+        update_time = NOW()
+        WHERE id = #{id}
+        AND delete_flag = 0
+    </update>
+
+    <update id="deleteCourseSectionsByParentId">
+        UPDATE osh_course_section
+        SET delete_flag = 1,
+        update_by = #{updateBy},
+        update_time = NOW()
+        WHERE parent_id = #{parentId}
+        AND delete_flag = 0
+    </update>
+
 
     <select id="selectCourseSectionById" resultMap="OshCourseSectionEntityResult">
         select id,

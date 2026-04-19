@@ -9,4 +9,6 @@ package com.backstage.common.constant;
  */
 public class KafkaConstants {
     public static final String USER_ACTION_TOPIC = "user-action";
+    public static final String COURSE_INDEX_CREATE_TOPIC = "osh.course.index.create";
+    public static final String COURSE_INDEX_UPDATE_TOPIC = "osh.course.index.update";
 }

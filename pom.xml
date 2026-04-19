@@ -36,6 +36,7 @@
         <spring-security.version>5.7.12</spring-security.version>
         <spring-framework.version>5.3.39</spring-framework.version>
         <sensitive-word.version>0.29.2</sensitive-word.version>
+        <mapstruct.version>1.5.5.Final</mapstruct.version>
     </properties>
 
     <!-- 依赖声明 -->
@@ -232,6 +233,12 @@
                 <version>${sensitive-word.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct</artifactId>
+                <version>${mapstruct.version}</version>
+            </dependency>
+
 
 
             <!-- Cloudflare R2 对象存储（S3兼容）-->
@@ -251,21 +258,6 @@
         </dependencies>
     </dependencyManagement>
 
-    <dependencies>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.13.2</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
-
     <modules>
         <module>backstage-admin</module>
         <module>backstage-framework</module>
@@ -273,6 +265,7 @@
         <module>backstage-quartz</module>
         <module>backstage-generator</module>
         <module>backstage-common</module>
+        <module>backstage-flink</module>
     </modules>
     <packaging>pom</packaging>
 

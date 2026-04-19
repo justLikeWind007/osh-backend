@@ -1,15 +1,15 @@
 package com.backstage.system.request;
 
-import com.backstage.system.domain.course.vo.OshCourseTagSimpleVo;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.lang3.StringUtils;
 
-import javax.validation.constraints.DecimalMin;
 import javax.validation.Valid;
+import javax.validation.constraints.DecimalMin;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -17,13 +17,14 @@ import java.util.List;
  */
 public class CourseCreateRequest {
 
+    // 新增：有值时走更新，null 时走新增
+    private Long id;
+
     @NotBlank(message = "课程标题不能为空")
     private String title;
 
-    @NotBlank(message = "课程封面不能为空")
     private String cover;
 
-    @NotBlank(message = "课程介绍不能为空")
     private String intro;
 
     private String serviceContent;
@@ -50,20 +51,24 @@ public class CourseCreateRequest {
 
     private String remark;
 
-    private Integer resourceType;
+    private String resourceType;
 
     private Integer level;
 
     /**
      * 课程标签
      */
-    private List<OshCourseTagSimpleVo> tags;
+    private List<String> tags;
 
     /**
      * 课程资料
      */
     @Valid
     private CourseMaterialCreateRequest material;
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
 
     public String getTitle() {
         return title;
@@ -153,19 +158,20 @@ public class CourseCreateRequest {
         this.remark = StringUtils.trimToNull(remark);
     }
 
-    public List<OshCourseTagSimpleVo> getTags() {
+    public List<String> getTags() {
         return tags;
     }
 
-    public void setTags(List<OshCourseTagSimpleVo> tags) {
-        if (tags != null) {
-            for (OshCourseTagSimpleVo tag : tags) {
-                if (tag != null) {
-                    tag.setName(StringUtils.trimToNull(tag.getName()));
-                }
-            }
+    public void setTags(List<String> tags) {
+        if (tags == null) {
+            this.tags = null;
+            return;
         }
-        this.tags = tags;
+        List<String> normalizedTags = new ArrayList<>(tags.size());
+        for (String tag : tags) {
+            normalizedTags.add(tag);
+        }
+        this.tags = normalizedTags;
     }
 
     public CourseMaterialCreateRequest getMaterial() {
@@ -185,12 +191,12 @@ public class CourseCreateRequest {
         this.tPrice = tPrice;
     }
 
-    public Integer getResourceType() {
+    public String getResourceType() {
         return resourceType;
     }
 
-    public void setResourceType(Integer resourceType) {
-        this.resourceType = resourceType;
+    public void setResourceType(String resourceType) {
+        this.resourceType = StringUtils.trimToNull(resourceType);
     }
 
     public Integer getLevel() {

@@ -22,11 +22,9 @@ import java.util.Map;
 @Mapper
 public interface OshCourseMapper
 {
+    List<CourseSearchLoginVo> pageQuerySearchCourse(@Param("request") CourseSearchRequest request);
 
-
-    List<CourseSearchLoginVo> pageQuerySearchCourse(CourseSearchRequest request);
-
-    List<CourseSearchLoginVo> pageQueryLoginSearchCourse(@Param("userId") Long userId, @Param("request") CourseSearchRequest request);
+    List<Long> selectUserBoughtCourseIds(@Param("userId") Long userId, @Param("courseIds") List<Long> courseIds);
 
     List<OshCourse> pageQueryUserCollectionCourse(@Param("userId") Long userId, @Param("request") CourseSearchRequest request);
     /**
@@ -36,6 +34,8 @@ public interface OshCourseMapper
      * @return 课程信息
      */
     OshCourse selectCourseById(Long id);
+
+
 
     /**
      * 查询课程列表
@@ -141,4 +141,5 @@ public interface OshCourseMapper
     List<OshCourse> selectCoursesByIds(List<Long> ids);
 
 
+    int deleteSectionsByCourseId(@Param("courseId") Long courseId, @Param("updateBy") String updateBy);
 }
