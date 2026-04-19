@@ -40,6 +40,10 @@ public class BookListVO implements Serializable {
 
     private List<String> tagNameList;
 
+    /** 购买人数 */
+    @JsonProperty("purchase_count")
+    private Integer purchaseCount;
+
     /** SQL 返回的逗号拼接字符串（不返回给前端） */
     @JsonIgnore
     private String tagNames;
@@ -136,5 +140,13 @@ public class BookListVO implements Serializable {
 
     public void setTagNames(String tagNames) {
         this.tagNames = tagNames;
+    }
+
+    public Integer getPurchaseCount() {
+        return purchaseCount;
+    }
+
+    public void setPurchaseCount(Integer purchaseCount) {
+        this.purchaseCount = purchaseCount;
     }
 }

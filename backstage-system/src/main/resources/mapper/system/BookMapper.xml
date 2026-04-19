@@ -17,10 +17,17 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <select id="getBookPageList" parameterType="BookDO" resultType="com.backstage.system.domain.vo.book.BookListVO">
         SELECT
             book.id, book.title, book.cover, book.description, book.price, book.original_price, book.sub_count,
-            GROUP_CONCAT(DISTINCT tag.tag_name) AS tag_names
+            GROUP_CONCAT(DISTINCT tag.tag_name) AS tag_names,
+            IFNULL(ubr.purchase_count, 0) AS purchaseCount
         FROM
             osh_book book
             LEFT JOIN osh_book_tag tag ON book.id = tag.book_id AND tag.del_flag = '0'
+            LEFT JOIN (
+                SELECT book_id, COUNT(*) AS purchase_count
+                FROM osh_user_book_relation
+                WHERE purchased = 1 AND deleted = 0
+                GROUP BY book_id
+            ) ubr ON book.id = ubr.book_id
         <where>
             book.del_flag = '0' and book.status = '0'
             <if test="reqVO.tagNameList != null and reqVO.tagNameList.size() > 0">
@@ -32,9 +39,20 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="reqVO.title != null and reqVO.title != ''">
                 and book.title like concat('%', #{reqVO.title}, '%')
             </if>
+            <if test="reqVO.filterType != null and reqVO.filterType == 1">
+                and (book.price is null or book.price = 0)
+            </if>
         </where>
         GROUP BY book.id
-        order by book.create_time desc
+        <choose>
+            <when test="reqVO.filterType != null and reqVO.filterType == 3">
+                ORDER BY (CASE WHEN book.price IS NOT NULL AND book.price > 0 THEN 0 ELSE 1 END),
+                purchaseCount DESC, book.sub_count DESC, book.create_time DESC
+            </when>
+            <otherwise>
+                ORDER BY purchaseCount DESC, book.sub_count DESC, book.create_time DESC
+            </otherwise>
+        </choose>
     </select>
 
     <select id="selectFreeBookPage" resultType="com.backstage.system.domain.vo.book.BookListVO">

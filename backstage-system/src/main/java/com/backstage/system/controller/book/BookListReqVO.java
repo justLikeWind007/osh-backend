@@ -15,6 +15,11 @@ public class BookListReqVO {
     @ApiModelProperty(value = "电子书标题")
     private String title;
 
+    
+
+    @ApiModelProperty(value = "筛选类型：1-免费课程 2-热门/已付费 3-付费优先")
+    private Integer filterType;
+
     /**
      * 标签名列表
      */
@@ -34,6 +39,14 @@ public class BookListReqVO {
 
     public void setPageSize(Long pageSize) {
         this.pageSize = pageSize;
+    }
+
+    public Integer getFilterType() {
+        return filterType;
+    }
+
+    public void setFilterType(Integer filterType) {
+        this.filterType = filterType;
     }
 
     public List<String> getTagNameList() {

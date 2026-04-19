@@ -11,12 +11,12 @@ import com.backstage.system.domain.book.BookTagDO;
 import com.backstage.system.domain.vo.book.*;
 import com.backstage.system.mapper.book.BookChapterMapper;
 import com.backstage.system.mapper.book.BookMapper;
-import com.backstage.system.mapper.UserBookMapper;
+import com.backstage.system.mapper.book.UserBookRelationMapper;
 import com.backstage.system.mapper.book.BookTagDOMapper;
 import com.backstage.system.service.book.BookChapterService;
 import com.backstage.system.service.book.IBookService;
+import com.backstage.system.utils.UserContextUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.BeanUtils;
@@ -25,12 +25,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.time.LocalDateTime;
 
 /**
  * 电子书 服务层实现
@@ -50,13 +49,16 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
     private BookChapterService bookChapterService;
 
     @Resource
-    private UserBookMapper userBookMapper;
+    private UserBookRelationMapper userBookRelationMapper;
 
     @Resource
     private BookTagDOMapper bookTagDOMapper;
 
     @Autowired
     private com.backstage.system.service.common.OssService ossService;
+
+    @Resource
+    private UserContextUtil userContextUtil;
 
     /**
      * 查询电子书列表
@@ -222,7 +224,7 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
     @Override
     public List<BookDO> selectUserBookList(Long userId)
     {
-        return userBookMapper.selectUserBookList(userId);
+        return userBookRelationMapper.selectUserBookList(userId);
     }
 
     /**
@@ -234,7 +236,7 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
      */
     @Override
     public Page<BookDO> selectUserBookListPage(Long userId, Page<BookDO> page) {
-        return userBookMapper.selectUserBookListPage(userId, page);
+        return userBookRelationMapper.selectUserBookListPage(userId, page);
     }
 
     @Override
@@ -464,8 +466,8 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
         if (StringUtils.isNull(userId)) {
             return false;
         }
-        UserBookRelation userBookRelation = userBookMapper.selectUserBookByUserIdAndBookId(userId, bookId);
-        return StringUtils.isNotNull(userBookRelation);
+        UserBookRelation relation = userBookRelationMapper.selectByUserIdAndBookId(userId, bookId);
+        return relation != null && Integer.valueOf(1).equals(relation.getPurchased());
     }
 
     /**
@@ -476,12 +478,85 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
      */
     private void checkUserHasBoughtOrThrow(Long userId, Long bookId)
     {
-        if (StringUtils.isNull(userId)) {
+        if (!checkUserHasBought(userId, bookId)) {
             throw new ServiceException("请先购买该电子书");
         }
-        UserBookRelation userBookRelation = userBookMapper.selectUserBookByUserIdAndBookId(userId, bookId);
-        if (StringUtils.isNull(userBookRelation)) {
-            throw new ServiceException("请先购买该电子书");
+    }
+
+    /**
+     * 获取或创建用户电子书关联记录
+     */
+    private UserBookRelation getOrCreateRelation(Long userId, Long bookId) {
+        UserBookRelation relation = userBookRelationMapper.selectByUserIdAndBookId(userId, bookId);
+        if (relation == null) {
+            relation = new UserBookRelation();
+            relation.setUserId(userId);
+            relation.setBookId(bookId);
+            relation.setFavorited(0);
+            relation.setFollowed(0);
+            relation.setPurchased(0);
+            userBookRelationMapper.insert(relation);
         }
+        return relation;
+    }
+
+    @Override
+    @Transactional
+    public void favoriteBook(Long bookId, Integer status) {
+        Long userId = UserContextUtil.getCurrentUserId();
+        BookDO bookDO = getById(bookId);
+        checkEntityNotNull(bookDO, "电子书不存在");
+
+        UserBookRelation relation = getOrCreateRelation(userId, bookId);
+        relation.setFavorited(status);
+        relation.setFavoriteTime(status == 1 ? LocalDateTime.now() : null);
+        userBookRelationMapper.updateById(relation);
+    }
+
+    @Override
+    @Transactional
+    public void followBook(Long bookId, Integer status) {
+        Long userId = ThreadLocalUtil.getCurrentUserId();
+        BookDO bookDO = getById(bookId);
+        checkEntityNotNull(bookDO, "电子书不存在");
+
+        UserBookRelation relation = getOrCreateRelation(userId, bookId);
+        relation.setFollowed(status);
+        relation.setFollowTime(status == 1 ? LocalDateTime.now() : null);
+        userBookRelationMapper.updateById(relation);
+    }
+
+    @Override
+    @Transactional
+    public void purchaseBook(Long bookId) {
+        Long userId = ThreadLocalUtil.getCurrentUserId();
+        BookDO bookDO = getById(bookId);
+        checkEntityNotNull(bookDO, "电子书不存在");
+
+        UserBookRelation relation = getOrCreateRelation(userId, bookId);
+        if (Integer.valueOf(1).equals(relation.getPurchased())) {
+            throw new ServiceException("您已购买该电子书");
+        }
+        relation.setPurchased(1);
+        relation.setPurchasePrice(bookDO.getPrice());
+        relation.setPayTime(LocalDateTime.now());
+        userBookRelationMapper.updateById(relation);
+    }
+
+    @Override
+    public BookRelationStatusVO getBookRelationStatus(Long bookId) {
+        Long userId = ThreadLocalUtil.getCurrentUserId();
+        BookRelationStatusVO vo = new BookRelationStatusVO();
+        UserBookRelation relation = userBookRelationMapper.selectByUserIdAndBookId(userId, bookId);
+        if (relation == null) {
+            vo.setFavorited(0);
+            vo.setFollowed(0);
+            vo.setPurchased(0);
+        } else {
+            vo.setFavorited(Optional.ofNullable(relation.getFavorited()).orElse(0));
+            vo.setFollowed(Optional.ofNullable(relation.getFollowed()).orElse(0));
+            vo.setPurchased(Optional.ofNullable(relation.getPurchased()).orElse(0));
+        }
+        return vo;
     }
 }
