@@ -1,70 +1,0 @@
-[WARNING] 
-[WARNING] Some problems were encountered while building the effective settings
-[WARNING] Unrecognised tag: 'pluginRepositories' (position: START_TAG seen ...</repositories> -->\n\n <pluginRepositories>... @192:22)  @ /Users/chenshuwei/Downloads/code/dev_tools/apache-maven-3.6.0/conf/settings.xml, line 192, column 22
-[WARNING] 
-[INFO] Scanning for projects...
-[INFO] ------------------------------------------------------------------------
-[INFO] Reactor Build Order:
-[INFO] 
-[INFO] backstage                                                          [pom]
-[INFO] backstage-common                                                   [jar]
-[INFO] backstage-system                                                   [jar]
-[INFO] backstage-framework                                                [jar]
-[INFO] backstage-quartz                                                   [jar]
-[INFO] backstage-generator                                                [jar]
-[INFO] backstage-admin                                                    [jar]
-[INFO] backstage-flink                                                    [jar]
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-deploy-plugin/2.7/maven-deploy-plugin-2.7.pom
-Progress (1): 1.9/5.6 kBProgress (1): 5.6 kB                        Downloaded from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-deploy-plugin/2.7/maven-deploy-plugin-2.7.pom (5.6 kB at 2.9 kB/s)
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-deploy-plugin/2.7/maven-deploy-plugin-2.7.jar
-Progress (1): 4.1/27 kBProgress (1): 7.3/27 kBProgress (1): 11/27 kB Progress (1): 16/27 kBProgress (1): 20/27 kBProgress (1): 24/27 kBProgress (1): 27 kB                      Downloaded from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-deploy-plugin/2.7/maven-deploy-plugin-2.7.jar (27 kB at 152 kB/s)
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-antrun-plugin/1.3/maven-antrun-plugin-1.3.pom
-Progress (1): 4.1/4.7 kBProgress (1): 4.7 kB                        Downloaded from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-antrun-plugin/1.3/maven-antrun-plugin-1.3.pom (4.7 kB at 8.2 kB/s)
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-plugins/12/maven-plugins-12.pom
-Progress (1): 4.1/12 kBProgress (1): 7.3/12 kBProgress (1): 11/12 kB Progress (1): 12 kB                      Downloaded from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-plugins/12/maven-plugins-12.pom (12 kB at 13 kB/s)
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/maven-parent/9/maven-parent-9.pom
-Progress (1): 4.1/33 kBProgress (1): 4.9/33 kBProgress (1): 8.9/33 kBProgress (1): 13/33 kB Progress (1): 17/33 kBProgress (1): 21/33 kBProgress (1): 25/33 kBProgress (1): 29/33 kBProgress (1): 33 kB                      Downloaded from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/maven-parent/9/maven-parent-9.pom (33 kB at 46 kB/s)
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-antrun-plugin/1.3/maven-antrun-plugin-1.3.jar
-Progress (1): 4.1/24 kBProgress (1): 7.3/24 kBProgress (1): 11/24 kB Progress (1): 15/24 kBProgress (1): 20/24 kBProgress (1): 24 kB                      Downloaded from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-antrun-plugin/1.3/maven-antrun-plugin-1.3.jar (24 kB at 57 kB/s)
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-assembly-plugin/2.2-beta-5/maven-assembly-plugin-2.2-beta-5.pom
-Progress (1): 4.1/15 kBProgress (1): 7.3/15 kBProgress (1): 11/15 kB Progress (1): 15 kB                      Downloaded from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-assembly-plugin/2.2-beta-5/maven-assembly-plugin-2.2-beta-5.pom (15 kB at 42 kB/s)
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-plugins/16/maven-plugins-16.pom
-Progress (1): 4.1/13 kBProgress (1): 7.3/13 kBProgress (1): 11/13 kB Progress (1): 13 kB                      Downloaded from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-plugins/16/maven-plugins-16.pom (13 kB at 23 kB/s)
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-assembly-plugin/2.2-beta-5/maven-assembly-plugin-2.2-beta-5.jar
-Progress (1): 4.1/209 kBProgress (1): 7.3/209 kBProgress (1): 7.7/209 kBProgress (1): 12/209 kB Progress (1): 16/209 kBProgress (1): 20/209 kBProgress (1): 24/209 kBProgress (1): 28/209 kBProgress (1): 32/209 kBProgress (1): 35/209 kBProgress (1): 40/209 kBProgress (1): 43/209 kBProgress (1): 46/209 kBProgress (1): 50/209 kBProgress (1): 54/209 kBProgress (1): 57/209 kBProgress (1): 60/209 kBProgress (1): 64/209 kBProgress (1): 69/209 kBProgress (1): 72/209 kBProgress (1): 75/209 kBProgress (1): 79/209 kBProgress (1): 83/209 kBProgress (1): 87/209 kBProgress (1): 91/209 kBProgress (1): 92/209 kBProgress (1): 95/209 kBProgress (1): 99/209 kBProgress (1): 101/209 kBProgress (1): 105/209 kBProgress (1): 109/209 kBProgress (1): 113/209 kBProgress (1): 118/209 kBProgress (1): 119/209 kBProgress (1): 123/209 kBProgress (1): 123/209 kBProgress (1): 127/209 kBProgress (1): 131/209 kBProgress (1): 135/209 kBProgress (1): 139/209 kBProgress (1): 142/209 kBProgress (1): 145/209 kBProgress (1): 149/209 kBProgress (1): 153/209 kBProgress (1): 157/209 kBProgress (1): 161/209 kBProgress (1): 165/209 kBProgress (1): 170/209 kBProgress (1): 170/209 kBProgress (1): 173/209 kBProgress (1): 177/209 kBProgress (1): 181/209 kBProgress (1): 181/209 kBProgress (1): 186/209 kBProgress (1): 186/209 kBProgress (1): 190/209 kBProgress (1): 194/209 kBProgress (1): 198/209 kBProgress (1): 202/209 kBProgress (1): 206/209 kBProgress (1): 209 kB                        Downloaded from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-assembly-plugin/2.2-beta-5/maven-assembly-plugin-2.2-beta-5.jar (209 kB at 269 kB/s)
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-dependency-plugin/2.8/maven-dependency-plugin-2.8.pom
-Progress (1): 1.9/11 kBProgress (1): 6.0/11 kBProgress (1): 10/11 kB Progress (1): 11 kB                      Downloaded from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-dependency-plugin/2.8/maven-dependency-plugin-2.8.pom (11 kB at 38 kB/s)
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-dependency-plugin/2.8/maven-dependency-plugin-2.8.jar
-Progress (1): 4.1/153 kBProgress (1): 7.3/153 kBProgress (1): 11/153 kB Progress (1): 16/153 kBProgress (1): 20/153 kBProgress (1): 24/153 kBProgress (1): 28/153 kBProgress (1): 32/153 kBProgress (1): 36/153 kBProgress (1): 40/153 kBProgress (1): 44/153 kBProgress (1): 48/153 kBProgress (1): 52/153 kBProgress (1): 56/153 kBProgress (1): 60/153 kBProgress (1): 65/153 kBProgress (1): 69/153 kBProgress (1): 73/153 kBProgress (1): 77/153 kBProgress (1): 81/153 kBProgress (1): 85/153 kBProgress (1): 89/153 kBProgress (1): 93/153 kBProgress (1): 97/153 kBProgress (1): 101/153 kBProgress (1): 106/153 kBProgress (1): 110/153 kBProgress (1): 114/153 kBProgress (1): 118/153 kBProgress (1): 122/153 kBProgress (1): 126/153 kBProgress (1): 130/153 kBProgress (1): 134/153 kBProgress (1): 138/153 kBProgress (1): 142/153 kBProgress (1): 146/153 kBProgress (1): 151/153 kBProgress (1): 153 kB                        Downloaded from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-dependency-plugin/2.8/maven-dependency-plugin-2.8.jar (153 kB at 279 kB/s)
-[INFO] 
-[INFO] ----------------------< com.backstage:backstage >-----------------------
-[INFO] Building backstage 3.9.0                                           [1/8]
-[INFO] --------------------------------[ pom ]---------------------------------
-[INFO] 
-[INFO] --- maven-dependency-plugin:2.8:tree (default-cli) @ backstage ---
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/doxia/doxia-sink-api/1.0-alpha-10/doxia-sink-api-1.0-alpha-10.pom
-Progress (1): 1.3 kB                    Downloaded from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/doxia/doxia-sink-api/1.0-alpha-10/doxia-sink-api-1.0-alpha-10.pom (1.3 kB at 4.3 kB/s)
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/doxia/doxia/1.0-alpha-10/doxia-1.0-alpha-10.pom
-Progress (1): 4.1/9.2 kBProgress (1): 7.3/9.2 kBProgress (1): 9.2 kB                        Downloaded from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/doxia/doxia/1.0-alpha-10/doxia-1.0-alpha-10.pom (9.2 kB at 35 kB/s)
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/maven-parent/6/maven-parent-6.pom
-Progress (1): 4.1/20 kBProgress (1): 7.3/20 kBProgress (1): 11/20 kB Progress (1): 14/20 kBProgress (1): 18/20 kBProgress (1): 20 kB                      Downloaded from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/maven-parent/6/maven-parent-6.pom (20 kB at 147 kB/s)
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/reporting/maven-reporting-impl/2.0.5/maven-reporting-impl-2.0.5.pom
-Progress (1): 4.1/4.2 kBProgress (1): 4.2 kB                        Downloaded from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/reporting/maven-reporting-impl/2.0.5/maven-reporting-impl-2.0.5.pom (4.2 kB at 6.8 kB/s)
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/doxia/doxia-core/1.0/doxia-core-1.0.pom
-Progress (1): 2.4 kB                    Downloaded from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/doxia/doxia-core/1.0/doxia-core-1.0.pom (2.4 kB at 4.7 kB/s)
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/codehaus/plexus/plexus-utils/1.5.7/plexus-utils-1.5.7.pom
-Progress (1): 1.9/8.1 kBProgress (1): 6.0/8.1 kBProgress (1): 8.1 kB                        Downloaded from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/codehaus/plexus/plexus-utils/1.5.7/plexus-utils-1.5.7.pom (8.1 kB at 20 kB/s)
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/doxia/doxia-site-renderer/1.0/doxia-site-renderer-1.0.pom
-Progress (1): 4.1/4.4 kBProgress (1): 4.4 kB                        Downloaded from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/doxia/doxia-site-renderer/1.0/doxia-site-renderer-1.0.pom (4.4 kB at 9.0 kB/s)
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/doxia/doxia-sitetools/1.0/doxia-sitetools-1.0.pom
-Progress (1): 1.9/9.6 kBProgress (1): 6.0/9.6 kBProgress (1): 9.6 kB                        Downloaded from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/doxia/doxia-sitetools/1.0/doxia-sitetools-1.0.pom (9.6 kB at 22 kB/s)
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/doxia/doxia-decoration-model/1.0/doxia-decoration-model-1.0.pom
-Progress (1): 1.9/3.2 kBProgress (1): 3.2 kB                        Downloaded from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/doxia/doxia-decoration-model/1.0/doxia-decoration-model-1.0.pom (3.2 kB at 5.4 kB/s)
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/doxia/doxia-module-apt/1.0/doxia-module-apt-1.0.pom
-Progress (1): 2.3 kB                    Downloaded from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/doxia/doxia-module-apt/1.0/doxia-module-apt-1.0.pom (2.3 kB at 2.8 kB/s)
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/doxia/doxia-modules/1.0/doxia-modules-1.0.pom
-Progress (1): 2.4 kB                    Downloaded from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/doxia/doxia-modules/1.0/doxia-modules-1.0.pom (2.4 kB at 3.9 kB/s)
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/doxia/doxia-module-fml/1.0/doxia-module-fml-1.0.pom
-Progress (1): 2.7 kB                    Downloaded from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/doxia/doxia-module-fml/1.0/doxia-module-fml-1.0.pom (2.7 kB at 8.8 kB/s)
-Downloading from nexus-aliyun: https://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/doxia/doxia-module-xdoc/1.0/doxia-module-xdoc-1.0.pom
-Progress (1): 1.9/2.2 kBProgress (1): 2.2 kB    

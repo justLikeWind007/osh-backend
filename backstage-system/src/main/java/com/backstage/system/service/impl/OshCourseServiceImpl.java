@@ -271,7 +271,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
     @Transactional(rollbackFor = Exception.class)
     public Long updateCourse(CourseUpdateRequest request, OshUser operator) {
         OshCourse existingCourse = ensureCourseExists(request.getId());
-//        ensureCourseEditableByOperator(existingCourse, operator);
+        ensureCourseEditableByOperator(existingCourse, operator);
         OshCourse course = buildCourseForUpdate(request, operator);
         int rows = oshCourseMapper.updateCourse(course);
         if (rows <= 0) {
