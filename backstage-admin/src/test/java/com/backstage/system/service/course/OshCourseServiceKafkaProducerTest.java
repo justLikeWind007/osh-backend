@@ -1,5 +1,6 @@
 package com.backstage.system.service.course;
 
+import com.alibaba.fastjson2.JSON;
 import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.mapper.course.OshCourseMapper;
@@ -20,6 +21,8 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -77,6 +80,23 @@ public class OshCourseServiceKafkaProducerTest {
         request.setLevel(2);
         request.setTags(Collections.singletonList("Kafka"));
 
+        OshCourse latestCourse = new OshCourse();
+        latestCourse.setId(123L);
+        latestCourse.setTitle("Kafka 课程");
+        latestCourse.setCover("course/cover.png");
+        latestCourse.setIntro("课程简介");
+        latestCourse.setServiceContent("课程服务");
+        latestCourse.setPrice(new BigDecimal("19.90"));
+        latestCourse.setTPrice(new BigDecimal("99.90"));
+        latestCourse.setType("media");
+        latestCourse.setFreeType(0);
+        latestCourse.setAfterServiceDays(30);
+        latestCourse.setResourceType("FREE");
+        latestCourse.setLevel(2);
+        latestCourse.setCreateBy("tester");
+        latestCourse.setUpdateBy("tester");
+        when(oshCourseMapper.selectCourseById(123L)).thenReturn(latestCourse);
+
         OshUser operator = new OshUser();
         operator.setUsername("tester");
 
@@ -85,7 +105,7 @@ public class OshCourseServiceKafkaProducerTest {
         ArgumentCaptor<CourseIndexUpsertMessage> captor = ArgumentCaptor.forClass(CourseIndexUpsertMessage.class);
         verify(courseIndexKafkaProducer).sendCourseIndexCreate(captor.capture());
         assertEquals(Long.valueOf(123L), courseId);
-        assertEquals(Long.valueOf(123L), captor.getValue().getCourseId());
+        assertEquals(Long.valueOf(123L), captor.getValue().getId());
         assertEquals("Kafka 课程", captor.getValue().getTitle());
         assertEquals("FREE", captor.getValue().getResourceType());
         assertEquals("Kafka", captor.getValue().getTagNames().get(0));
@@ -128,7 +148,7 @@ public class OshCourseServiceKafkaProducerTest {
         verify(courseIndexKafkaProducer).sendCourseIndexUpdate(captor.capture());
         verify(oshCourseMapper, times(2)).selectCourseById(123L);
         assertEquals(Long.valueOf(123L), courseId);
-        assertEquals(Long.valueOf(123L), captor.getValue().getCourseId());
+        assertEquals(Long.valueOf(123L), captor.getValue().getId());
         assertEquals("更新后的课程", captor.getValue().getTitle());
     }
 
@@ -155,6 +175,19 @@ public class OshCourseServiceKafkaProducerTest {
         request.setType("media");
         request.setTags(Arrays.asList(" Kafka ", "Spring", "Kafka", "", null, " Spring "));
 
+        OshCourse latestCourse = new OshCourse();
+        latestCourse.setId(123L);
+        latestCourse.setTitle("Kafka 课程");
+        latestCourse.setCover("course/cover.png");
+        latestCourse.setIntro("课程简介");
+        latestCourse.setServiceContent("课程服务");
+        latestCourse.setPrice(new BigDecimal("19.90"));
+        latestCourse.setTPrice(new BigDecimal("99.90"));
+        latestCourse.setType("media");
+        latestCourse.setCreateBy("tester");
+        latestCourse.setUpdateBy("tester");
+        when(oshCourseMapper.selectCourseById(123L)).thenReturn(latestCourse);
+
         OshUser operator = new OshUser();
         operator.setUsername("tester");
 
@@ -164,5 +197,23 @@ public class OshCourseServiceKafkaProducerTest {
         verify(courseIndexKafkaProducer, times(1)).sendCourseIndexCreate(captor.capture());
         assertEquals(Arrays.asList("Kafka", "Spring"), captor.getValue().getTagNames());
         assertEquals("Kafka Spring", captor.getValue().getTagNamesText());
+    }
+
+    @Test
+    public void shouldSerializeCourseIndexMessageUsingEsFieldNames() {
+        CourseIndexUpsertMessage message = new CourseIndexUpsertMessage();
+        message.setId(123L);
+        message.setTitle("Kafka 课程");
+        message.setCreateBy("tester");
+        message.setUpdateBy("tester");
+        message.setOperator("tester");
+
+        String payload = JSON.toJSONString(message);
+
+        assertTrue(payload.contains("\"id\":123"));
+        assertTrue(payload.contains("\"createBy\":\"tester\""));
+        assertTrue(payload.contains("\"updateBy\":\"tester\""));
+        assertFalse(payload.contains("\"courseId\""));
+        assertFalse(payload.contains("\"operator\""));
     }
 }

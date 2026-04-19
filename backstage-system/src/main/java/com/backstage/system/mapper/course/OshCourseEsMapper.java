@@ -15,9 +15,11 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.GetIndexRequest;
+import org.elasticsearch.ElasticsearchStatusException;
 import com.backstage.system.request.CourseSearchRequest;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
@@ -45,9 +47,21 @@ public class OshCourseEsMapper {
         int pageNum = request.getPageNum();
         int pageSize = request.getPageSize();
 
+        if (!restHighLevelClient.indices().exists(new GetIndexRequest(COURSE_SEARCH_INDEX), RequestOptions.DEFAULT)) {
+            return PageResponse.of(new ArrayList<>(), 0L, pageNum, pageSize);
+        }
+
         SearchRequest searchRequest = new SearchRequest(COURSE_SEARCH_INDEX);
         searchRequest.source(buildSearchSource(request, pageNum, pageSize));
-        SearchResponse searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+        SearchResponse searchResponse;
+        try {
+            searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+        } catch (ElasticsearchStatusException ex) {
+            if (ex.status() != null && ex.status().getStatus() == 404) {
+                return PageResponse.of(new ArrayList<>(), 0L, pageNum, pageSize);
+            }
+            throw ex;
+        }
         List<CourseSearchLoginVo> rows = new ArrayList<>();
         for (SearchHit searchHit : searchResponse.getHits().getHits()) {
             OshCourseEsDocument document = objectMapper.convertValue(searchHit.getSourceAsMap(), OshCourseEsDocument.class);
@@ -116,7 +130,13 @@ public class OshCourseEsMapper {
     }
 
     private QueryBuilder buildKeywordQuery(String keyword) {
-        return QueryBuilders.multiMatchQuery(keyword, "title^8", "tagNamesText^4", "intro^3", "serviceContent^2", "searchText");
+        return QueryBuilders.multiMatchQuery(keyword)
+                .field("title", 8.0f)
+                .field("tagNamesText", 4.0f)
+                .field("intro", 3.0f)
+                .field("serviceContent", 2.0f)
+                .field("searchText", 1.0f)
+                .type(MultiMatchQueryBuilder.Type.BEST_FIELDS);
     }
 
     private CourseSearchLoginVo toVo(OshCourseEsDocument document) {

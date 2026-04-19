@@ -38,9 +38,13 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StreamingJob
 {
+    private static final Logger log = LoggerFactory.getLogger(StreamingJob.class);
+
     public static void main(String[] args) throws Exception
     {
         CourseIndexJobConfig config = CourseIndexJobConfig.fromSystem();
@@ -50,18 +54,36 @@ public class StreamingJob
         Properties kafkaProps = new Properties();
         kafkaProps.setProperty("bootstrap.servers", config.getKafkaBootstrapServers());
         kafkaProps.setProperty("group.id", config.getKafkaGroupId());
-        kafkaProps.setProperty("auto.offset.reset", "latest");
+        kafkaProps.setProperty("auto.offset.reset", config.getKafkaStartMode());
+
+        FlinkKafkaConsumer<String> createConsumer =
+                new FlinkKafkaConsumer<>(config.getCreateTopic(), new SimpleStringSchema(), kafkaProps);
+        applyStartMode(createConsumer, config.getKafkaStartMode());
 
         DataStream<CourseIndexMessage> createStream = env
-                .addSource(new FlinkKafkaConsumer<>(config.getCreateTopic(), new SimpleStringSchema(), kafkaProps))
+                .addSource(createConsumer)
                 .name("course-index-create-source")
-                .map((MapFunction<String, CourseIndexMessage>) value -> JSON.parseObject(value, CourseIndexMessage.class))
+                .map((MapFunction<String, CourseIndexMessage>) value ->
+                {
+                    CourseIndexMessage message = JSON.parseObject(value, CourseIndexMessage.class);
+                    log.info("Consumed create message, id={}, title={}", message.getId(), message.getTitle());
+                    return message;
+                })
                 .name("course-index-create-parse");
 
+        FlinkKafkaConsumer<String> updateConsumer =
+                new FlinkKafkaConsumer<>(config.getUpdateTopic(), new SimpleStringSchema(), kafkaProps);
+        applyStartMode(updateConsumer, config.getKafkaStartMode());
+
         DataStream<CourseIndexMessage> updateStream = env
-                .addSource(new FlinkKafkaConsumer<>(config.getUpdateTopic(), new SimpleStringSchema(), kafkaProps))
+                .addSource(updateConsumer)
                 .name("course-index-update-source")
-                .map((MapFunction<String, CourseIndexMessage>) value -> JSON.parseObject(value, CourseIndexMessage.class))
+                .map((MapFunction<String, CourseIndexMessage>) value ->
+                {
+                    CourseIndexMessage message = JSON.parseObject(value, CourseIndexMessage.class);
+                    log.info("Consumed update message, id={}, title={}", message.getId(), message.getTitle());
+                    return message;
+                })
                 .name("course-index-update-parse");
 
         createStream.addSink(buildCreateSink(config)).name("course-index-create-es-sink");
@@ -70,19 +92,30 @@ public class StreamingJob
         env.execute("backstage-course-index-job");
     }
 
+    private static void applyStartMode(FlinkKafkaConsumer<String> consumer, String startMode)
+    {
+        String mode = startMode == null ? "" : startMode.trim().toLowerCase();
+        switch (mode)
+        {
+            case "earliest":
+                consumer.setStartFromEarliest();
+                break;
+            case "latest":
+                consumer.setStartFromLatest();
+                break;
+            default:
+                consumer.setStartFromGroupOffsets();
+                break;
+        }
+    }
+
     private static ElasticsearchSink<CourseIndexMessage> buildCreateSink(CourseIndexJobConfig config)
             throws MalformedURLException
     {
+        String indexName = config.getEsIndex();
         ElasticsearchSink.Builder<CourseIndexMessage> builder = new ElasticsearchSink.Builder<>(
                 parseHosts(config.getEsHosts()),
-                (ElasticsearchSinkFunction<CourseIndexMessage>) (message, context, indexer) -> {
-                    IndexRequest request = Requests.indexRequest()
-                            .index(config.getEsIndex())
-                            .type("_doc")
-                            .id(String.valueOf(message.getCourseId()))
-                            .source(JSON.toJSONString(message), XContentType.JSON);
-                    indexer.add(request);
-                });
+                buildCreateSinkFunction(indexName));
         builder.setBulkFlushMaxActions(200);
         return builder.build();
     }
@@ -90,17 +123,35 @@ public class StreamingJob
     private static ElasticsearchSink<CourseIndexMessage> buildUpdateSink(CourseIndexJobConfig config)
             throws MalformedURLException
     {
+        String indexName = config.getEsIndex();
         ElasticsearchSink.Builder<CourseIndexMessage> builder = new ElasticsearchSink.Builder<>(
                 parseHosts(config.getEsHosts()),
-                (ElasticsearchSinkFunction<CourseIndexMessage>) (message, context, indexer) -> {
-                    UpdateRequest request = new UpdateRequest(config.getEsIndex(), "_doc",
-                            String.valueOf(message.getCourseId()))
-                            .doc(JSON.toJSONString(message), XContentType.JSON)
-                            .docAsUpsert(true);
-                    indexer.add(request);
-                });
+                buildUpdateSinkFunction(indexName));
         builder.setBulkFlushMaxActions(200);
         return builder.build();
+    }
+
+    static ElasticsearchSinkFunction<CourseIndexMessage> buildCreateSinkFunction(String indexName)
+    {
+        return (message, context, indexer) -> {
+            IndexRequest request = Requests.indexRequest()
+                    .index(indexName)
+                    .type("_doc")
+                    .id(String.valueOf(message.getId()))
+                    .source(JSON.toJSONString(message), XContentType.JSON);
+            indexer.add(request);
+        };
+    }
+
+    static ElasticsearchSinkFunction<CourseIndexMessage> buildUpdateSinkFunction(String indexName)
+    {
+        return (message, context, indexer) -> {
+            UpdateRequest request = new UpdateRequest(indexName, "_doc",
+                    String.valueOf(message.getId()))
+                    .doc(JSON.toJSONString(message), XContentType.JSON)
+                    .docAsUpsert(true);
+            indexer.add(request);
+        };
     }
 
     private static List<HttpHost> parseHosts(String esHosts) throws MalformedURLException

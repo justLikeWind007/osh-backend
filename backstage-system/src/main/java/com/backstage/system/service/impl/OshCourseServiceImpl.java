@@ -263,7 +263,8 @@ public class OshCourseServiceImpl implements IOshCourseService {
         }
         bindCourseMaterial(course.getId(), request.getMaterial(), operator);
         bindCourseTags(course.getId(), request.getTags(), operator);
-        courseIndexKafkaProducer.sendCourseIndexCreate(buildCourseIndexUpsertMessage(course, request, operator));
+        OshCourse latestCourse = ensureCourseExists(course.getId());
+        courseIndexKafkaProducer.sendCourseIndexCreate(buildCourseIndexUpsertMessage(latestCourse, request, operator));
         return course.getId();
     }
 

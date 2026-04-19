@@ -67,7 +67,7 @@ public class OshCourseController extends BaseController {
 
     @ApiOperation("ES课程搜索")
     @PostMapping("/esSearch")
-    @PreAuthorize("hasAuthority('course:list')")
+//    @PreAuthorize("hasAuthority('course:list')")
     public R esCourseSearch(@RequestBody CourseSearchRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         Long userId = currentOshUser == null ? null : currentOshUser.getId();
@@ -182,7 +182,7 @@ public class OshCourseController extends BaseController {
 
     @ApiOperation("新增/修改课程")
     @PostMapping("/save")
-    @PreAuthorize("hasAuthority('course:create')")
+//    @PreAuthorize("hasAuthority('course:create')")
     @DistributeLock(scene = "resource", key = "operation", expireTime = 60000, waitTime = 0)
     public R<Long> save(@RequestBody CourseCreateRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();

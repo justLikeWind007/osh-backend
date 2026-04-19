@@ -8,6 +8,7 @@ import com.backstage.system.domain.course.OshCourse;
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface CourseIndexMessageMapper
 {
+    @Mapping(target = "id", source = "course.id")
     @Mapping(target = "operator", source = "operatorName")
     CourseIndexUpsertMessage toMessage(OshCourse course, String operatorName);
 }
