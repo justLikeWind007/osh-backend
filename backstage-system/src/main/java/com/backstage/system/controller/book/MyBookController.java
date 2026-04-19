@@ -1,12 +1,14 @@
 package com.backstage.system.controller.book;
 
-import com.backstage.common.annotation.Anonymous;
+import com.backstage.common.annotation.OshUserActionLog;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.utils.SecurityUtils;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.system.domain.book.BookDO;
 import com.backstage.system.service.book.IBookService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -27,8 +29,10 @@ public class MyBookController {
     /**
      * 我购买的电子书列表
      */
+    @ApiOperation(value = "我的电子书列表")
+    @OshUserActionLog(module = "电子书模块", actionType = "查询", description = "查询我的电子书")
+    @PreAuthorize("hasAuthority('book:my:list')")
     @GetMapping("/mybook")
-    @Anonymous
     public R<Map<String, Object>> myBook(@RequestParam(defaultValue = "1") Integer page)
     {
         Long userId = SecurityUtils.getUserId();

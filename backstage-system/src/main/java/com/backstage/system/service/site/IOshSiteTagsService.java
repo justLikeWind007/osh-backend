@@ -1,5 +1,6 @@
 package com.backstage.system.service.site;
 
+import com.backstage.system.domain.site.OshSiteInfo;
 import com.backstage.system.domain.site.OshSiteTag;
 import com.baomidou.mybatisplus.extension.service.IService;
 
