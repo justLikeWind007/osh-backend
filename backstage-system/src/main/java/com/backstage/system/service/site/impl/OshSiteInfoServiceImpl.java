@@ -202,7 +202,7 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
         MimeMessageHelper mimeMessageHelper = new MimeMessageHelper(mimeMessage, true);
         // 设置邮件内容
         mimeMessageHelper.setSubject(subject);
-        mimeMessageHelper.setText(content, true);
+        mimeMessageHelper.setText(content, false);
         mimeMessageHelper.setTo(receiver);
         mimeMessageHelper.setFrom(from);
         javaMailSender.send(mimeMessage);
