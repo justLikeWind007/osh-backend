@@ -11,6 +11,7 @@ import com.backstage.system.service.site.IOshSiteInfoService;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.extension.toolkit.Db;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,29 +60,33 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
     @Transactional(rollbackFor = Exception.class)
     public boolean saveSiteInfo(OshSiteInfo siteInfo) {
         save(siteInfo);
-        for (String maintainerUserId : siteInfo.getMaintainerUserIds()) {
-            OshSiteMaintainer maintainer = new OshSiteMaintainer();
-            maintainer.setSiteId(siteInfo.getId());
-            maintainer.setUserId(Long.valueOf(maintainerUserId));
-            oshSiteMaintainerMapper.insert(maintainer);
-        }
-        return true;
+        return saveMaintainers(siteInfo.getId(), siteInfo.getMaintainerUserIds());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateSiteInfo(OshSiteInfo siteInfo) {
         updateById(siteInfo);
-        oshSiteMaintainerMapper.delete(Wrappers.<OshSiteMaintainer>lambdaQuery()
-                .eq(true, OshSiteMaintainer::getSiteId, siteInfo.getId()));
-        for (String maintainerUserId : siteInfo.getMaintainerUserIds()) {
+        removeAllMaintainers(siteInfo.getId());
+        return saveMaintainers(siteInfo.getId(), siteInfo.getMaintainerUserIds());
+    }
+
+    private void removeAllMaintainers(Long siteId) {
+        oshSiteMaintainerMapper.update(Wrappers.<OshSiteMaintainer>lambdaUpdate()
+                .set(OshSiteMaintainer::getDeleteFlag, 1)
+                .eq(true, OshSiteMaintainer::getSiteId, siteId));
+    }
+
+    private boolean saveMaintainers(Long siteId, List<String> maintainerUserIds) {
+        List<OshSiteMaintainer> maintainers = new ArrayList<>();
+        for (String maintainerUserId : maintainerUserIds) {
             OshSiteMaintainer maintainer = new OshSiteMaintainer();
-            maintainer.setSiteId(siteInfo.getId());
+            maintainer.setSiteId(siteId);
             maintainer.setUserId(Long.valueOf(maintainerUserId));
             maintainer.setDeleted(false);
-            oshSiteMaintainerMapper.insert(maintainer);
+            maintainers.add(maintainer);
         }
-        return false;
+        return Db.saveBatch(maintainers);
     }
 
     @Override
@@ -93,7 +98,7 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
                         OshSiteInfo::getDescription,
                         OshSiteInfo::getStatus,
                         OshSiteInfo::getLastCheckTime)
-                .like(com.backstage.common.utils.StringUtils.hasText(siteInfo.getSiteName()), OshSiteInfo::getSiteName, siteInfo.getSiteName())
+                .like(StringUtils.isNoneBlank(siteInfo.getSiteName()), OshSiteInfo::getSiteName, siteInfo.getSiteName())
                 .eq(siteInfo.getStatus() != null, OshSiteInfo::getStatus, siteInfo.getStatus())
                 .list();
 

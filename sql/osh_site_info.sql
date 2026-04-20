@@ -12,7 +12,7 @@ CREATE TABLE `osh_site_info`
     `status`            tinyint                                          DEFAULT '1' COMMENT '状态：1=启用，0=禁用',
     `create_by`        bigint unsigned                         NOT NULL COMMENT '创建人ID/账号',
     `create_time`       timestamp                               NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `last_check_time`   timestamp                               NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '上次检查时间',
+    `last_check_time`   timestamp                               DEFAULT NULL COMMENT '上次检查时间',
     `last_check_status` tinyint COMMENT '上次检查状态',
     `update_by`         bigint unsigned                                  DEFAULT NULL COMMENT '更新人ID/账号',
     `update_time`       timestamp                               NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
