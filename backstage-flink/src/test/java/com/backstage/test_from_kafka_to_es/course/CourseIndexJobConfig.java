@@ -1,4 +1,4 @@
-package com.backstage.course;
+package com.backstage.test_from_kafka_to_es.course;
 
 public class CourseIndexJobConfig
 {
@@ -23,11 +23,11 @@ public class CourseIndexJobConfig
     public static CourseIndexJobConfig fromSystem()
     {
         return new CourseIndexJobConfig(
-                read("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
+                read("KAFKA_BOOTSTRAP_SERVERS", "43.242.200.25:9092"),
                 read("KAFKA_GROUP_ID", "backstage-course-index-flink"),
                 read("COURSE_INDEX_CREATE_TOPIC", "osh.course.index.create"),
                 read("COURSE_INDEX_UPDATE_TOPIC", "osh.course.index.update"),
-                read("ES_HOSTS", "http://localhost:9200"),
+                read("ES_HOSTS", "http://43.242.200.25:9200"),
                 read("ES_INDEX", "osh_course_index"));
     }
 

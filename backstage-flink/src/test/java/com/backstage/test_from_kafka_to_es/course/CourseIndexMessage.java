@@ -1,4 +1,4 @@
-package com.backstage.course;
+package com.backstage.test_from_kafka_to_es.course;
 
 import java.math.BigDecimal;
 import java.util.Date;
