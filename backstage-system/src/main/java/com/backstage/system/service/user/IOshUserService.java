@@ -3,8 +3,10 @@ package com.backstage.system.service.user;
 import com.backstage.common.core.domain.R;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.domain.user.vo.OshUserLoginVo;
+import com.backstage.system.request.UserListRequest;
 
 import javax.mail.MessagingException;
+import java.util.List;
 
 /**
  * Created with IntelliJ IDEA.
@@ -49,13 +51,13 @@ public interface IOshUserService {
 //     */
 //    public OshUser selectUserById(Long id);
 //
-//    /**
-//     * 查询用户列表
-//     *
-//     * @param oshUser 用户
-//     * @return 用户集合
-//     */
-//    public List<OshUser> selectUserList(OshUser oshUser);
+    /**
+     * 查询用户列表
+     *
+     * @param req 参数
+     * @return 用户集合
+     */
+    List<OshUser> selectUserList(UserListRequest req);
 //
 //    /**
 //     * 新增用户

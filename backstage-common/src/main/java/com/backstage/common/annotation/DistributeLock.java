@@ -1,51 +1,65 @@
 package com.backstage.common.annotation;
 
+import com.backstage.common.constant.DistributeLockConstant;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * @author xuanqing
- * @create 2026-04-17 22:39
+ * 分布式锁注解
+ *
+ * @author Hope_Lau
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface DistributeLock {
+
     /**
-     * 业务场景名，用于区分不同业务的锁
-     * 例如：order:pay、coupon:receive、course:create
+     * 锁的场景
+     *
+     * @return
      */
-    String scene();
+    public String scene() default DistributeLockConstant.BLANK;
+
     /**
-     * 固定字符串 key
-     * 适合全局锁、粒度较粗的互斥控制
-     * key 和 keyExpression 二选一，keyExpression 优先
+     * 加锁的key，优先取key()，如果没有，则取keyExpression()
+     *
+     * @return
      */
-    String key() default "";
+    public String key() default DistributeLockConstant.NONE_KEY;
+
     /**
-     * SpEL 表达式动态生成 key
-     * 例如：#orderId、#dto.courseId
-     * 适合按业务对象唯一标识加锁
+     * SPEL表达式:
+     * <pre>
+     *     #id
+     *     #insertResult.id
+     * </pre>
+     *
+     * @return
      */
-    String keyExpression() default "";
+    public String keyExpression() default DistributeLockConstant.NONE_KEY;
+
     /**
-     * 是否把当前用户 ID 拼进锁 key
-     * true  → 用户维度锁，不同用户互不影响
-     * false → 资源维度锁 / 全局锁
+     * 是否在锁 key 中拼接当前用户 ID。
+     *
+     * @return
      */
-    boolean includeUserId() default true;
+    public boolean includeUserId() default true;
+
     /**
-     * 锁过期时间，单位毫秒
-     * -1 → Redisson watchdog 自动续期（推荐）
-     * >0 → 显式指定租约时间
+     * 超时时间，毫秒
+     * 默认情况下不设置超时时间，会自动续期
+     *
+     * @return
      */
-    long expireTime() default -1;
+    public int expireTime() default DistributeLockConstant.DEFAULT_EXPIRE_TIME;
+
     /**
-     * 等待获取锁的时间，单位毫秒
-     * -1 → 阻塞等待直到拿到锁
-     *  0 → 立即尝试，拿不到直接失败（接口请求推荐）
-     * >0 → 等待指定时间，超时失败
+     * 加锁等待时长，毫秒
+     * 默认情况下不设置等待时长，不做等待
+     * @return
      */
-    long waitTime() default 0;
+    public int waitTime() default DistributeLockConstant.DEFAULT_WAIT_TIME;
 }

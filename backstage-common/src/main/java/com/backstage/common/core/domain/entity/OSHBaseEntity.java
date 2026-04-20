@@ -82,6 +82,10 @@ public class OSHBaseEntity {
         this.deleteFlag = deleteFlag;
     }
 
+    public final void setDeleted(boolean deleted) {
+        this.deleteFlag = (byte) (deleted ? 1 : 0);
+    }
+
     @Override
     public String toString() {
         return "OSHBaseEntity{" +

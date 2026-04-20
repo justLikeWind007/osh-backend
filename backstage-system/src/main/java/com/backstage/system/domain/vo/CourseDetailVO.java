@@ -82,14 +82,14 @@ public class CourseDetailVO implements Serializable
 
     /** 资源类型 */
     @ApiModelProperty("资源类型")
-    private Integer resourceType;
+    private String resourceType;
 
     // 如果类上没有 @Data 注解，务必手动加上 Setter
-    public void setResourceType(Integer resourceType) {
+    public void setResourceType(String resourceType) {
         this.resourceType = resourceType;
     }
 
-    public Integer getResourceType() {
+    public String getResourceType() {
         return resourceType;
     }
 

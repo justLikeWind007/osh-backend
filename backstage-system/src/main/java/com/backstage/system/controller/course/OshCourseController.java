@@ -1,9 +1,11 @@
 package com.backstage.system.controller.course;
 
 import com.backstage.common.annotation.Anonymous;
+import com.backstage.common.annotation.DistributeLock;
 import com.backstage.common.core.controller.BaseController;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.response.PageResponse;
+import com.backstage.common.utils.StringUtils;
 import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.course.OshCourseMaterial;
 import com.backstage.system.domain.course.vo.*;
@@ -12,11 +14,13 @@ import com.backstage.system.request.*;
 import com.backstage.system.service.IOshCourseCollectionService;
 import com.backstage.system.service.IOshCourseQuestionService;
 import com.backstage.system.service.IOshCourseService;
+import com.backstage.system.service.course.IOshCourseEsService;
 import com.backstage.system.utils.UserContextUtil;
 import com.github.pagehelper.PageInfo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -44,6 +48,8 @@ public class OshCourseController extends BaseController {
     @Autowired
     private IOshCourseCollectionService oshCourseCollectionService;
 
+    @Autowired
+    private IOshCourseEsService oshCourseEsService;
 
 
     // TODO 后续追加 ES 查课
@@ -53,16 +59,28 @@ public class OshCourseController extends BaseController {
     @Anonymous
     public R<PageResponse<CourseSearchLoginVo>> courseSearch(@RequestBody CourseSearchRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
-        if (currentOshUser == null) {
-            List<CourseSearchLoginVo> list = oshCourseService.pageQuerySearchCourse(request);
-            PageInfo<CourseSearchLoginVo> pageInfo = new PageInfo<>(list);
-            return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
-        }else{
-            List<CourseSearchLoginVo> list = oshCourseService.pageQueryLoginSearchCourse(currentOshUser.getId(), request);
-            PageInfo<CourseSearchLoginVo> pageInfo = new PageInfo<>(list);
-            return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
-        }
+        Long userId = currentOshUser == null ? null : currentOshUser.getId();
+        List<CourseSearchLoginVo> list = oshCourseService.pageQuerySearchCourse(userId, request);
+        PageInfo<CourseSearchLoginVo> pageInfo = new PageInfo<>(list);
+        return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
     }
+
+    @ApiOperation("ES课程搜索")
+    @PostMapping("/esSearch")
+    @PreAuthorize("hasAuthority('course:list')")
+    public R esCourseSearch(@RequestBody CourseSearchRequest request) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long userId = currentOshUser == null ? null : currentOshUser.getId();
+        return R.ok(oshCourseEsService.searchCourses(request, userId), "ok");
+    }
+
+    @ApiOperation("全量同步课程到ES")
+    @PostMapping("/esSync/all")
+    @Anonymous
+    public R<Integer> syncAllCoursesToEs() {
+        return R.ok(oshCourseEsService.syncAllCoursesToEs(), "ok");
+    }
+
 
     @ApiOperation("登录态课程搜索")
     @PostMapping("/loginSearch/")
@@ -72,9 +90,7 @@ public class OshCourseController extends BaseController {
         if (currentOshUser == null) {
             return R.fail("请先登录");
         }
-        List<CourseSearchLoginVo> list = oshCourseService.pageQueryLoginSearchCourse(currentOshUser.getId(), request);
-        PageInfo<CourseSearchLoginVo> pageInfo = new PageInfo<>(list);
-        return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
+        return R.ok(oshCourseEsService.searchCourses(request, currentOshUser.getId()), "ok");
     }
 
     @ApiOperation("收藏课程搜索")
@@ -140,7 +156,7 @@ public class OshCourseController extends BaseController {
 
     @ApiOperation("课程提问提交")
     @PostMapping("/section/submit")
-    @Anonymous
+    @PreAuthorize("hasAuthority('course:question:submit')")
     public R<Long> submitCourseSectionQuestion(@Validated @RequestBody CourseSectionQuestionRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         if (currentOshUser == null) {
@@ -155,7 +171,7 @@ public class OshCourseController extends BaseController {
     // TODO 需要校验只有购买了课程以及服务角色才能回答和追问, 部分免费的课程 没买课的也不能提问
     @ApiOperation("课程问题回答")
     @PostMapping("/question/answer")
-    @Anonymous
+    @PreAuthorize("hasAuthority('course:question:answer')")
     public R<Long> answerCourseQuestion(@Validated @RequestBody CourseQuestionAnswerRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         if (currentOshUser == null) {
@@ -164,25 +180,70 @@ public class OshCourseController extends BaseController {
         return R.ok(oshCourseQuestionService.answerQuestion(currentOshUser.getId(), currentOshUser.getUsername(), request));
     }
 
-    @ApiOperation("新增课程")
+    @ApiOperation("新增/修改课程")
     @PostMapping("/save")
-    @Anonymous
-    public R<Long> save(@Validated @RequestBody CourseCreateRequest request) {
+    @PreAuthorize("hasAuthority('course:create')")
+    @DistributeLock(scene = "resource", key = "operation", expireTime = 60000, waitTime = 0)
+    public R<Long> save(@RequestBody CourseCreateRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
-        if (currentOshUser == null) {
-            return R.fail("请先登录");
+        if (currentOshUser == null) return R.fail("请先登录");
+
+        // 手动校验必填（新增时才强制校验关键字段，更新时可部分修改）
+        if (request.getId() == null) {
+            if (StringUtils.isBlank(request.getTitle())) return R.fail("课程标题不能为空");
+            if (StringUtils.isBlank(request.getCover())) return R.fail("课程封面不能为空");
+            if (StringUtils.isBlank(request.getIntro())) return R.fail("课程介绍不能为空");
+            if (request.getPrice() == null) return R.fail("课程价格不能为空");
+            if (request.getTPrice() == null) return R.fail("课程原价不能为空");
+            if (StringUtils.isBlank(request.getType())) return R.fail("课程类型不能为空");
+        } else {
+            if (StringUtils.isBlank(request.getTitle())) return R.fail("课程标题不能为空");
         }
-        Long courseId = oshCourseService.createCourse(request, currentOshUser);
-        if (courseId == null) {
-            return R.fail("新增课程失败");
+
+        Long courseId;
+        if (request.getId() != null) {
+            // 更新逻辑：将 CreateRequest 转换为 UpdateRequest
+            CourseUpdateRequest updateRequest = buildUpdateRequest(request);
+            courseId = oshCourseService.updateCourse(updateRequest, currentOshUser);
+            if (courseId == null) return R.fail("修改课程失败");
+        } else {
+            // 新增逻辑
+            courseId = oshCourseService.createCourse(request, currentOshUser);
+            if (courseId == null) return R.fail("新增课程失败");
         }
         return R.ok(courseId);
     }
 
+    /**
+     * 将 CourseCreateRequest 转换为 CourseUpdateRequest
+     */
+    private CourseUpdateRequest buildUpdateRequest(CourseCreateRequest req) {
+        CourseUpdateRequest update = new CourseUpdateRequest();
+        update.setId(req.getId());
+        update.setTitle(req.getTitle());
+        if (StringUtils.isNotBlank(req.getCover())) update.setCover(req.getCover());
+        if (StringUtils.isNotBlank(req.getIntro())) update.setIntro(req.getIntro());
+        update.setServiceContent(req.getServiceContent());
+        update.setPrice(req.getPrice());
+        update.setTPrice(req.getTPrice());
+        update.setType(req.getType());
+        update.setFreeType(req.getFreeType());
+        update.setAfterServiceDays(req.getAfterServiceDays());
+        update.setExamId(req.getExamId());
+        update.setRemark(req.getRemark());
+        update.setResourceType(req.getResourceType());
+        update.setLevel(req.getLevel());
+        update.setTags(req.getTags());
+        update.setMaterial(req.getMaterial());
+        return update;
+    }
+
+
     // TODO 暂时只管控创建人可修改
     @ApiOperation("修改课程")
     @PostMapping("/update")
-    @Anonymous
+    @PreAuthorize("hasAuthority('course:update')")
+    @DistributeLock(scene = "resource", key = "operation", expireTime = 60000, waitTime = 0)
     public R<Long> update(@Validated @RequestBody CourseUpdateRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         if (currentOshUser == null) {
@@ -196,25 +257,37 @@ public class OshCourseController extends BaseController {
         }
     }
 
-    @ApiOperation("章节添加")
+    @ApiOperation("章节新增/修改")
     @PostMapping("/section/chapter/save")
-    @Anonymous
+    @PreAuthorize("hasAuthority('course:chapter:save')")
     public R<Long> saveChapterSection(@Validated @RequestBody CourseChapterCreateRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         if (currentOshUser == null) {
             return R.fail("请先登录");
         }
         try {
-            Long sectionId = oshCourseService.createCourseChapter(request, currentOshUser);
-            return sectionId == null ? R.fail("新增一级章节失败") : R.ok(sectionId);
+            Long sectionId;
+            if (request.getId() != null) {
+                // 有 id → 更新章节标题/排序
+                oshCourseService.updateCourseChapter(request, currentOshUser);
+                sectionId = request.getId();
+            } else {
+                // 无 id → 新增章节（courseId 必填）
+                if (request.getCourseId() == null) {
+                    return R.fail("新增章节时课程ID不能为空");
+                }
+                sectionId = oshCourseService.createCourseChapter(request, currentOshUser);
+            }
+            return sectionId == null ? R.fail("操作失败") : R.ok(sectionId);
         } catch (IllegalArgumentException ex) {
             return R.fail(ex.getMessage());
         }
     }
 
+
     @ApiOperation("视频小节添加")
     @PostMapping("/section/video/save")
-    @Anonymous
+    @PreAuthorize("hasAuthority('course:section:video')")
     public R<Long> saveVideoSection(@Validated @RequestBody CourseVideoSectionCreateRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         if (currentOshUser == null) {
@@ -230,7 +303,7 @@ public class OshCourseController extends BaseController {
 
     @ApiOperation("文本内容小节添加")
     @PostMapping("/section/textContent/save")
-    @Anonymous
+    @PreAuthorize("hasAuthority('course:section:text')")
     public R<Long> saveTextSection(@Validated @RequestBody CourseTextSectionCreateRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         if (currentOshUser == null) {
@@ -269,7 +342,7 @@ public class OshCourseController extends BaseController {
 
     @ApiOperation("收藏课程")
     @PostMapping("/collection/add")
-    @Anonymous
+    @PreAuthorize("hasAuthority('course:collection:add')")
     public R collectCourse(@Validated @RequestBody CourseCollectionRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         if (currentOshUser == null) {
@@ -281,7 +354,7 @@ public class OshCourseController extends BaseController {
 
     @ApiOperation("取消收藏课程")
     @PostMapping("/collection/remove")
-    @Anonymous
+    @PreAuthorize("hasAuthority('course:collection:remove')")
     public R removeCourseCollection(@Validated @RequestBody CourseCollectionRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         if (currentOshUser == null) {
@@ -292,14 +365,26 @@ public class OshCourseController extends BaseController {
     }
 
     @ApiOperation("删除章节/小节")
-    @DeleteMapping("/section/{id}")
+    @PostMapping("/sectionDelete")
     @Anonymous // 建议根据实际权限调整
-    public R<String> deleteSection(@PathVariable("id") Long id) {
+    public R<String> deleteSection(@Validated @RequestBody CourseSectionDeleteRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         if (currentOshUser == null) return R.fail("请先登录");
 
-        // 调用一个通用的安全删除 Service
-        boolean success = oshCourseService.safeDeleteSection(id, currentOshUser);
+        boolean success = oshCourseService.safeDeleteSection(request.getCourseId(), request.getSectionId(), currentOshUser);
         return success ? R.ok("删除成功") : R.fail("删除失败");
     }
+
+    @ApiOperation("批量删除课程")
+    @PostMapping("/delete")
+    @PreAuthorize("hasAuthority('course:delete')")
+    public R<String> deleteCourses(@RequestBody CourseDeleteRequest request) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        if (currentOshUser == null) return R.fail("请先登录");
+        if (request.getIds() == null || request.getIds().isEmpty()) return R.fail("请选择要删除的课程");
+
+        oshCourseService.deleteCoursesByIds(request.getIds(), currentOshUser);
+        return R.ok("删除成功");
+    }
+
 }

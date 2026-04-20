@@ -134,7 +134,7 @@ public class OshCourse {
     private Integer examId;
 
     @ApiModelProperty("资源类型")
-    private Integer resourceType;
+    private String resourceType;
 
     @ApiModelProperty("课程等级")
     private Integer level;
@@ -169,11 +169,11 @@ public class OshCourse {
         this.examId = examId;
     }
 
-    public Integer getResourceType() {
+    public String getResourceType() {
         return resourceType;
     }
 
-    public void setResourceType(Integer resourceType) {
+    public void setResourceType(String resourceType) {
         this.resourceType = resourceType;
     }
 

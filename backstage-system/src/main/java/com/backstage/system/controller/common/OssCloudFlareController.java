@@ -16,6 +16,7 @@ import io.swagger.annotations.ApiParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -53,28 +54,27 @@ public class OssCloudFlareController {
      *
      * @param file        文件
      * @param type        上传场景模块类型
-     * @param resultId     资源id
      * @param previewFlag 是否需要预览, 默认false
      * @param limitMinute 生成文件预览链接的超时时间, 分钟数, 默认30分钟
      */
     @RateLimiter(limitType = LimitType.IP, time = 60, count = 10)
-    @Anonymous
     @ApiParam(value = "上传文件", required = true)
     @ApiOperation("上传接口")
+    @PreAuthorize("hasAuthority('upload:file')")
     @PostMapping("/upload")
     public R<Object> upload(
             @RequestParam("file") MultipartFile file,
             @RequestParam("type") String type,
             @RequestParam(value = "preview", required = false, defaultValue = "false") Boolean previewFlag,
             @RequestParam(value = "minute", required = false, defaultValue = "30") Integer limitMinute,
-            @RequestParam(value = "id", required = false) String id) {
+            @RequestParam(value = "id", required = false) String resultId) {
 
         if (file.isEmpty()) {
             return R.fail("上传文件不能为空");
         }
         if (type.equals("video")) {
             try {
-                String url = ossService.upload(file, UploadPathEnum.COURSE_VIDEO, id);
+                String url = ossService.upload(file, UploadPathEnum.COURSE_VIDEO, resultId);
                 // 判断是否返回了错误信息
                 if (url == null || url.contains("不能超过") || url.contains("类型不正确")) {
                     return R.fail(url);
@@ -86,12 +86,12 @@ public class OssCloudFlareController {
             }
         } else {
             try {
-                String url = ossService.upload(file, UploadPathEnum.IMAGE, id);
+                String url = ossService.upload(file, UploadPathEnum.IMAGE, resultId);
                 if (Objects.equals(url, "图片大小不能超过3M")) {
                     return R.fail(url);
                 }
                 OshUploadImage uploadImage = new OshUploadImage();
-                uploadImage.setUserId(1L);
+                uploadImage.setUserId(UserContextUtil.getCurrentUserId());
                 uploadImage.setSchoolId(1L);
                 uploadImage.setFileName(file.getOriginalFilename());
                 uploadImage.setFilePath(url);

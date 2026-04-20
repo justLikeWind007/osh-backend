@@ -1,0 +1,126 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 1
+  },
+  "mappings": {
+    "_doc": {
+      "dynamic": "false",
+      "properties": {
+        "courseId": {
+          "type": "long"
+        },
+        "title": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "intro": {
+          "type": "text"
+        },
+        "serviceContent": {
+          "type": "text"
+        },
+        "cover": {
+          "type": "keyword",
+          "ignore_above": 512
+        },
+        "price": {
+          "type": "scaled_float",
+          "scaling_factor": 100
+        },
+        "tPrice": {
+          "type": "scaled_float",
+          "scaling_factor": 100
+        },
+        "type": {
+          "type": "keyword",
+          "ignore_above": 64
+        },
+        "subCount": {
+          "type": "integer"
+        },
+        "remark": {
+          "type": "text"
+        },
+        "totalDuration": {
+          "type": "integer"
+        },
+        "freeLessonCount": {
+          "type": "integer"
+        },
+        "videoCount": {
+          "type": "integer"
+        },
+        "salesCount": {
+          "type": "integer"
+        },
+        "viewCount": {
+          "type": "long"
+        },
+        "likeCount": {
+          "type": "integer"
+        },
+        "commentCount": {
+          "type": "integer"
+        },
+        "questionCount": {
+          "type": "integer"
+        },
+        "collectionCount": {
+          "type": "integer"
+        },
+        "ratingScore": {
+          "type": "scaled_float",
+          "scaling_factor": 100
+        },
+        "freeType": {
+          "type": "integer"
+        },
+        "afterServiceDays": {
+          "type": "integer"
+        },
+        "resourceType": {
+          "type": "integer"
+        },
+        "level": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "integer"
+        },
+        "examId": {
+          "type": "integer"
+        },
+        "deleteFlag": {
+          "type": "integer"
+        },
+        "tagNames": {
+          "type": "keyword"
+        },
+        "tagNamesText": {
+          "type": "text"
+        },
+        "searchText": {
+          "type": "text"
+        },
+        "createTime": {
+          "type": "date",
+          "format": "strict_date_optional_time||epoch_millis"
+        },
+        "updateTime": {
+          "type": "date",
+          "format": "strict_date_optional_time||epoch_millis"
+        },
+        "operator": {
+          "type": "keyword",
+          "ignore_above": 128
+        }
+      }
+    }
+  }
+}

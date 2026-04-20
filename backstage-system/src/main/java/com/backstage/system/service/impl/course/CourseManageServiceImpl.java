@@ -15,6 +15,7 @@ import com.backstage.system.constants.CourseTagConstants;
 import com.backstage.system.domain.course.*;
 import com.backstage.system.domain.dto.*;
 import com.backstage.system.domain.vo.*;
+import com.backstage.system.enums.CourseResourceEnum;
 import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.course.OshCourseSectionMapper;
 import com.backstage.system.mapper.course.OshCourseMaterialMapper;
@@ -163,7 +164,9 @@ public class CourseManageServiceImpl implements ICourseManageService {
         vo.setPrice(course.getPrice() != null ? course.getPrice().toString() : "0.00");
         vo.setTPrice(course.getTPrice() != null ? course.getTPrice().toString() : "0.00");
         vo.setType(course.getType());
-        
+        CourseResourceEnum resourceEnum = CourseResourceEnum.fromCode(course.getResourceType());
+        vo.setResourceType(resourceEnum == null ? course.getResourceType() : resourceEnum.getDesc());
+
         // 3. 设置服务周期和服务内容（从扩展字段或配置表获取）
         vo.setServiceCycle("永久有效");
         vo.setServiceContent("包含答疑、资料下载等");
@@ -2187,4 +2190,3 @@ public class CourseManageServiceImpl implements ICourseManageService {
         }
     }
 }
-

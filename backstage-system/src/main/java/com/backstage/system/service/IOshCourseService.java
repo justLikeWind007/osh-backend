@@ -22,9 +22,8 @@ import java.util.List;
  * @date 2026-01-XX
  */
 public interface IOshCourseService {
-    List<CourseSearchLoginVo> pageQuerySearchCourse(CourseSearchRequest request);
 
-    List<CourseSearchLoginVo> pageQueryLoginSearchCourse(Long userId, CourseSearchRequest request);
+    List<CourseSearchLoginVo> pageQuerySearchCourse(Long userId, CourseSearchRequest request);
 
     List<OshCourse> pageQueryUserCollectionCourse(Long userId, CourseSearchRequest request);
 
@@ -99,5 +98,9 @@ public interface IOshCourseService {
 
     List<OshCourseMaterial> getCourseMaterials(Long courseId);
 
-    boolean safeDeleteSection(Long id, OshUser currentOshUser);
+    boolean safeDeleteSection(Long courseId, Long sectionId, OshUser currentOshUser);
+
+    void updateCourseChapter(CourseChapterCreateRequest request, OshUser currentOshUser);
+
+    void deleteCoursesByIds(List<Long> ids, OshUser currentOshUser);
 }
