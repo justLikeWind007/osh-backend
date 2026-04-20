@@ -1,7 +1,10 @@
 package com.backstage.system.domain.course.es;
 
+import com.backstage.system.jackson.FlexibleLocalDateTimeDeserializer;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class OshCourseEsDocument {
@@ -38,8 +41,11 @@ public class OshCourseEsDocument {
     private List<String> tagNames;
     private String tagNamesText;
     private String searchText;
-    private Date createTime;
-    private Date updateTime;
+    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
+    private LocalDateTime createTime;
+
+    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
+    private LocalDateTime updateTime;
 
     public Long getId() {
         return id;
@@ -297,19 +303,19 @@ public class OshCourseEsDocument {
         this.searchText = searchText;
     }
 
-    public Date getCreateTime() {
+    public LocalDateTime getCreateTime() {
         return createTime;
     }
 
-    public void setCreateTime(Date createTime) {
+    public void setCreateTime(LocalDateTime createTime) {
         this.createTime = createTime;
     }
 
-    public Date getUpdateTime() {
+    public LocalDateTime getUpdateTime() {
         return updateTime;
     }
 
-    public void setUpdateTime(Date updateTime) {
+    public void setUpdateTime(LocalDateTime updateTime) {
         this.updateTime = updateTime;
     }
 

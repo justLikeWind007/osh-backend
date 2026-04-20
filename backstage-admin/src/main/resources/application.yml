@@ -189,6 +189,11 @@ elasticsearch:
   connect-timeout: 10000
   socket-timeout: 10000
 
+search:
+  es:
+    enabled: true
+    fallback-timeout-millis: 800
+
 # cloude flare OSS
 x-file-storage:
   cloudflare-r2:
