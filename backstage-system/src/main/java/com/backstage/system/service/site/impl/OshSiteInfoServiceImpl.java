@@ -171,6 +171,9 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
                 userIdSiteMap.add(userId, oshSiteInfo);
             }
         }
+        if (CollectionUtils.isEmpty(userIdSiteMap)) {
+            return;
+        }
         final Map<Long, OshUser> userMap = userMapper.selectList(Wrappers.<OshUser>lambdaQuery()
                         .in(OshUser::getId, userIdSiteMap.keySet()))
                 .stream()
