@@ -41,61 +41,13 @@
         from osh_site_maintainer
     </sql>
 
-    <select id="selectResponsibleBySiteId" parameterType="Long" resultMap="OshSiteResponsibleResult">
-        <include refid="selectResponsibleVo"/>
-        where site_id = #{siteId} and delete_flag = 0
-        order by create_time asc
-    </select>
-
-    <insert id="insertResponsible" parameterType="OshSiteMaintainer" useGeneratedKeys="true" keyProperty="id">
-        insert into osh_site_maintainer
-        <trim prefix="(" suffix=")" suffixOverrides=",">
-            <if test="siteId != null">site_id,</if>
-            <if test="userId != null">user_id,</if>
-            <if test="userName != null and userName != ''">user_name,</if>
-            <if test="createBy != null">created_by,</if>
-            <if test="createTime != null">create_time,</if>
-            <if test="updateBy != null">update_by,</if>
-            <if test="updateTime != null">update_time,</if>
-            <if test="deleteFlag != null">delete_flag,</if>
-        </trim>
-        <trim prefix="values (" suffix=")" suffixOverrides=",">
-            <if test="siteId != null">#{siteId},</if>
-            <if test="userId != null">#{userId},</if>
-            <if test="userName != null and userName != ''">#{userName},</if>
-            <if test="createBy != null">#{createBy},</if>
-            <if test="createTime != null">#{createTime},</if>
-            <if test="updateBy != null">#{updateBy},</if>
-            <if test="updateTime != null">#{updateTime},</if>
-            <if test="deleteFlag != null">#{deleteFlag},</if>
-        </trim>
-    </insert>
-
-    <delete id="deleteResponsibleById" parameterType="Long">
-        update osh_site_maintainer
-        set delete_flag = 1
-        where id = #{id}
-    </delete>
-
-    <delete id="deleteResponsibleByIds" parameterType="Long">
-        update osh_site_maintainer set delete_flag = 1 where id in
-        <foreach item="id" collection="ids" open="(" separator="," close=")">
-            #{id}
-        </foreach>
-    </delete>
-
-    <delete id="deleteResponsibleBySiteId" parameterType="Long">
-        update osh_site_maintainer
-        set delete_flag = 1
-        where site_id = #{siteId}
-    </delete>
-
     <select id="selectMaintainersBySiteIds" resultType="com.backstage.system.domain.site.OshSiteMaintainer">
         select m.*, u.username from
             osh_site_maintainer m
         left join osh_user u ON m.user_id = u.id
         <where>
-            site_id IN
+            m.delete_flag = 0 AND u.delete_flag = 0
+            AND site_id IN
             <foreach collection="siteIds" item="item" open="(" close=")" separator=",">
                 #{item}
             </foreach>

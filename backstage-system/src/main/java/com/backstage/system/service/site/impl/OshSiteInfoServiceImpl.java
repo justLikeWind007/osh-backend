@@ -29,6 +29,7 @@ import org.springframework.util.MultiValueMap;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.*;
@@ -100,7 +101,8 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
     private void removeAllMaintainers(Long siteId) {
         oshSiteMaintainerMapper.update(Wrappers.<OshSiteMaintainer>lambdaUpdate()
                 .set(OshSiteMaintainer::getDeleteFlag, 1)
-                .eq(true, OshSiteMaintainer::getSiteId, siteId));
+                .eq(OshSiteMaintainer::getSiteId, siteId)
+                .eq(OshSiteMaintainer::getDeleteFlag, 0));
     }
 
     private boolean saveMaintainers(Long siteId, List<String> maintainerUserIds) {
@@ -118,9 +120,7 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
     @Override
     public List<OshSiteInfo> listSites(OshSiteInfo siteInfo) {
         List<OshSiteInfo> list = this.lambdaQuery().select(OshSiteInfo::getId, OshSiteInfo::getSiteName, OshSiteInfo::getCover, OshSiteInfo::getDescription, OshSiteInfo::getStatus, OshSiteInfo::getLastCheckTime).like(StringUtils.isNoneBlank(siteInfo.getSiteName()), OshSiteInfo::getSiteName, siteInfo.getSiteName()).eq(siteInfo.getStatus() != null, OshSiteInfo::getStatus, siteInfo.getStatus()).list();
-
         setMaintainers(list);
-
         return list;
     }
 
@@ -148,7 +148,7 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
             List<OshSiteInfo> oshSiteInfos = oshSiteInfoMapper.selectList(Wrappers.<OshSiteInfo>lambdaQuery().eq(OshSiteInfo::getDeleteFlag, 0));
             List<OshSiteInfo> siteList = checkConnectionStatus(oshSiteInfos, maxConnectionTimeout);
             updateBatchById(siteList);
-            List<OshSiteInfo> failedList = siteList.stream().filter(site -> site.getLastCheckStatus() == 0).collect(Collectors.toList());
+            List<OshSiteInfo> failedList = siteList.stream().filter(site -> site.getStatus() == 0).collect(Collectors.toList());
             if (CollectionUtils.isNotEmpty(failedList)) {
                 sendEmail(failedList);
             }
@@ -210,7 +210,9 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
 
     @Override
     public MultiValueMap<Long, OshSiteMaintainer> getSiteMaintainers(Collection<Long> siteIds) {
-        List<OshSiteMaintainer> maintainers = oshSiteMaintainerMapper.selectList(siteIds);
+        List<OshSiteMaintainer> maintainers = oshSiteMaintainerMapper.selectList(Wrappers.<OshSiteMaintainer>lambdaQuery()
+                .eq(OshSiteMaintainer::getDeleteFlag, 0)
+                .in(CollectionUtils.isNotEmpty(siteIds), OshSiteMaintainer::getSiteId, siteIds));
         MultiValueMap<Long, OshSiteMaintainer> siteMaintainers = new LinkedMultiValueMap<>();
         for (OshSiteMaintainer maintainer : maintainers) {
             siteMaintainers.add(maintainer.getSiteId(), maintainer);
@@ -239,21 +241,15 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
                 continue;
             }
             try {
-                Integer lastCheckStatus = siteInfo.getLastCheckStatus();
-                if (testUrlConnection(siteInfo.getSiteUrl(), timeout, timeout)) {
-                    if (Objects.equals(0, siteInfo.getStatus())) {
-                        siteInfo.setStatus(1);
-                    }
-                } else {
-                    if (!Objects.equals(0, siteInfo.getStatus())) {
-                        siteInfo.setStatus(0);
-                    }
-                }
-                siteInfo.setLastCheckStatus(lastCheckStatus);
-                siteInfo.setLastCheckTime(new Date());
+                boolean connectionOk = testUrlConnection(siteInfo.getSiteUrl(), timeout, timeout);
+                siteInfo.setStatus(connectionOk ? 1 : 0);
+            } catch (IOException exception) {
+                siteInfo.setStatus(0);
             } catch (Throwable throwable) {
                 LOG.error("failed to test site connection, {}", JSON.toJSONString(siteInfo));
             }
+            siteInfo.setLastCheckStatus(siteInfo.getStatus());
+            siteInfo.setLastCheckTime(new Date());
         }
         return oshSiteInfos;
     }
@@ -266,7 +262,7 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
      * @param readTimeout    读取超时时间（毫秒）
      * @return true=能连通，false=访问不通/超时/异常
      */
-    private static boolean testUrlConnection(String urlStr, int connectTimeout, int readTimeout) throws Throwable {
+    private static boolean testUrlConnection(String urlStr, int connectTimeout, int readTimeout) throws IOException {
         HttpURLConnection conn = null;
         try {
             URL url = new URL(urlStr);

@@ -11,5 +11,4 @@ import java.util.List;
 @Mapper
 public interface OshSiteMaintainerMapper extends BaseMapper<OshSiteMaintainer> {
 
-    List<OshSiteMaintainer> selectList(Collection<Long> siteIds);
 }
