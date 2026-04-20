@@ -32,7 +32,13 @@
         <dependency>
             <groupId>org.redisson</groupId>
             <artifactId>redisson-spring-boot-starter</artifactId>
-            <version>3.24.3</version>
+            <version>3.17.7</version>
+        </dependency>
+        
+        <!-- Spring Data Redis (确保版本兼容) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
         <!-- 阿里数据库连接池 -->
