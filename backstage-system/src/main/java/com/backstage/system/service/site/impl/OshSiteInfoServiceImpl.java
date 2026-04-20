@@ -240,6 +240,7 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
             if (StringUtils.isBlank(siteInfo.getSiteUrl())) {
                 continue;
             }
+            siteInfo.setLastCheckStatus(siteInfo.getStatus());
             try {
                 boolean connectionOk = testUrlConnection(siteInfo.getSiteUrl(), timeout, timeout);
                 siteInfo.setStatus(connectionOk ? 1 : 0);
@@ -248,7 +249,6 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
             } catch (Throwable throwable) {
                 LOG.error("failed to test site connection, {}", JSON.toJSONString(siteInfo));
             }
-            siteInfo.setLastCheckStatus(siteInfo.getStatus());
             siteInfo.setLastCheckTime(new Date());
         }
         return oshSiteInfos;
