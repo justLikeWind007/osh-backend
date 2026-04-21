@@ -2,8 +2,10 @@ package com.backstage.system.mapper.course;
 
 import com.backstage.common.response.PageResponse;
 import com.backstage.common.utils.StringUtils;
+import com.backstage.system.config.properties.SearchEsProperties;
 import com.backstage.system.domain.course.es.OshCourseEsDocument;
 import com.backstage.system.domain.course.vo.CourseSearchLoginVo;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -11,12 +13,16 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.ElasticsearchStatusException;
 import com.backstage.system.request.CourseSearchRequest;
+import org.apache.http.util.EntityUtils;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
@@ -43,6 +49,9 @@ public class OshCourseEsMapper {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private SearchEsProperties searchEsProperties;
+
     public PageResponse<CourseSearchLoginVo> searchCourses(CourseSearchRequest request) throws Exception {
         int pageNum = request.getPageNum();
         int pageSize = request.getPageSize();
@@ -61,6 +70,9 @@ public class OshCourseEsMapper {
                 return PageResponse.of(new ArrayList<>(), 0L, pageNum, pageSize);
             }
             throw ex;
+        }
+        if (searchResponse.isTimedOut()) {
+            throw new IllegalStateException("search courses from es timed out");
         }
         List<CourseSearchLoginVo> rows = new ArrayList<>();
         for (SearchHit searchHit : searchResponse.getHits().getHits()) {
@@ -90,6 +102,23 @@ public class OshCourseEsMapper {
         return documents.size();
     }
 
+    public int deleteAllCourses() throws Exception {
+        GetIndexRequest getIndexRequest = new GetIndexRequest(COURSE_SEARCH_INDEX);
+        if (!restHighLevelClient.indices().exists(getIndexRequest, RequestOptions.DEFAULT)) {
+            return 0;
+        }
+
+        Request request = new Request("POST", "/" + COURSE_SEARCH_INDEX + "/_delete_by_query");
+        request.addParameter("refresh", "true");
+        request.addParameter("conflicts", "proceed");
+        request.setJsonEntity("{\"query\":{\"match_all\":{}}}");
+
+        Response response = restHighLevelClient.getLowLevelClient().performRequest(request);
+        String json = EntityUtils.toString(response.getEntity(), "UTF-8");
+        JsonNode root = objectMapper.readTree(json);
+        return root.path("deleted").asInt(0);
+    }
+
     public void recreateCourseSearchIndex(String indexDefinitionJson) throws Exception {
         GetIndexRequest getIndexRequest = new GetIndexRequest(COURSE_SEARCH_INDEX);
         boolean exists = restHighLevelClient.indices().exists(getIndexRequest, RequestOptions.DEFAULT);
@@ -106,7 +135,8 @@ public class OshCourseEsMapper {
     private SearchSourceBuilder buildSearchSource(CourseSearchRequest request, int pageNum, int pageSize) {
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
                 .from((pageNum - 1) * pageSize)
-                .size(pageSize);
+                .size(pageSize)
+                .timeout(TimeValue.timeValueMillis(searchEsProperties.getFallbackTimeoutMillis()));
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
                 .filter(QueryBuilders.termQuery("status", 2))
                 .filter(QueryBuilders.termQuery("deleteFlag", 0));

@@ -7,6 +7,7 @@ import com.backstage.common.core.domain.R;
 import com.backstage.common.response.PageResponse;
 import com.backstage.common.utils.SecurityUtils;
 import com.backstage.common.utils.StringUtils;
+import com.backstage.system.config.properties.SearchEsProperties;
 import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.course.OshCourseMaterial;
 import com.backstage.system.domain.course.vo.*;
@@ -20,6 +21,8 @@ import com.backstage.system.utils.UserContextUtil;
 import com.github.pagehelper.PageInfo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -39,6 +42,7 @@ import java.util.List;
 @RequestMapping("/pc/course")
 public class OshCourseController extends BaseController {
 
+    private static final Logger log = LoggerFactory.getLogger(OshCourseController.class);
 
     @Autowired
     private IOshCourseService oshCourseService;
@@ -52,6 +56,9 @@ public class OshCourseController extends BaseController {
     @Autowired
     private IOshCourseEsService oshCourseEsService;
 
+    @Autowired
+    private SearchEsProperties searchEsProperties;
+
 
     // TODO 后续追加 ES 查课
     // 免费,
@@ -61,6 +68,14 @@ public class OshCourseController extends BaseController {
     public R<PageResponse<CourseSearchLoginVo>> courseSearch(@RequestBody CourseSearchRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         Long userId = currentOshUser == null ? null : currentOshUser.getId();
+        if (searchEsProperties.isEnabled()) {
+            try {
+                log.info("使用es 查询");
+                return R.ok(oshCourseEsService.searchCourses(request, userId), "ok");
+            } catch (Exception ex) {
+                log.warn("course search fallback to mysql after es failure, request={}, userId={}", request, userId, ex);
+            }
+        }
         List<CourseSearchLoginVo> list = oshCourseService.pageQuerySearchCourse(userId, request);
         PageInfo<CourseSearchLoginVo> pageInfo = new PageInfo<>(list);
         return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
@@ -68,7 +83,7 @@ public class OshCourseController extends BaseController {
 
     @ApiOperation("ES课程搜索")
     @PostMapping("/esSearch")
-//    @PreAuthorize("hasAuthority('course:list')")
+    @PreAuthorize("hasAuthority('course:list')")
     public R esCourseSearch(@RequestBody CourseSearchRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         Long userId = currentOshUser == null ? null : currentOshUser.getId();
@@ -183,7 +198,7 @@ public class OshCourseController extends BaseController {
 
     @ApiOperation("新增/修改课程")
     @PostMapping("/save")
-//    @PreAuthorize("hasAuthority('course:create')")
+    @PreAuthorize("hasAuthority('course:create')")
     @DistributeLock(scene = "resource", key = "operation", expireTime = 60000, waitTime = 0)
     public R<Long> save(@RequestBody CourseCreateRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
