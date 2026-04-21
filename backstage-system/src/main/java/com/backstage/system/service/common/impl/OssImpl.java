@@ -31,9 +31,6 @@ public class OssImpl implements OssService {
     @Autowired
     private OssService ossService;
 
-    @Autowired
-    private UserContextUtil userContextUtil;
-
 
     // 需要OSS的文件路径，怎么存的就怎么从数据库里面取
     /**
@@ -158,8 +155,8 @@ public class OssImpl implements OssService {
             log.setOperationType("upload");
             log.setOperationCount(1);
             try {
-                if (userContextUtil.getCurrentUser().getUsername()!= null)
-                    log.setUsername(userContextUtil.getCurrentUser().getUsername());
+                if (UserContextUtil.getCurrentUser().getUsername()!= null)
+                    log.setUsername(UserContextUtil.getCurrentUser().getUsername());
             } catch (Exception e) {
                 log.setUsername("");
             }

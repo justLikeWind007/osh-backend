@@ -2,7 +2,7 @@ package com.backstage.system.service.user;
 
 import com.backstage.common.core.domain.R;
 import com.backstage.system.domain.user.OshUser;
-import com.backstage.system.domain.user.vo.OshUserLoginVo;
+import com.backstage.system.domain.user.vo.OshUserLoginVO;
 import com.backstage.system.request.UserListRequest;
 
 import javax.mail.MessagingException;
@@ -16,7 +16,7 @@ import java.util.List;
  * Time: 16:42
  */
 public interface IOshUserService {
-    R<OshUserLoginVo> login(String username, String password);
+    R<OshUserLoginVO> login(String username, String password);
 
     R<String> registerSubmit(String username, String password, String repassword, String email) throws MessagingException;
 

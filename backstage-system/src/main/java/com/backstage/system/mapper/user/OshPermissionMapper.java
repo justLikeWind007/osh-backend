@@ -16,6 +16,4 @@ import java.util.List;
 public interface OshPermissionMapper extends BaseMapper<OshPermission> {
 
     List<Integer> selectPermissionIdsByRoleId(@Param("roleId") Integer roleId);
-
-    List<String> selectPermissionCodeByIds(@Param("permissionIds") List<Integer> permissionIds);
 }

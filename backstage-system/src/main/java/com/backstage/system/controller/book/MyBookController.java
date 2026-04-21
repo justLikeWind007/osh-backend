@@ -1,6 +1,6 @@
 package com.backstage.system.controller.book;
 
-import com.backstage.common.annotation.OshUserActionLog;
+import com.backstage.common.annotation.OshUserEvent;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.utils.SecurityUtils;
 import com.backstage.common.utils.StringUtils;
@@ -30,7 +30,7 @@ public class MyBookController {
      * 我购买的电子书列表
      */
     @ApiOperation(value = "我的电子书列表")
-    @OshUserActionLog(module = "电子书模块", actionType = "查询", description = "查询我的电子书")
+    @OshUserEvent(module = "电子书模块", actionType = "查询", description = "查询我的电子书")
     @PreAuthorize("hasAuthority('book:my:list')")
     @GetMapping("/mybook")
     public R<Map<String, Object>> myBook(@RequestParam(defaultValue = "1") Integer page)

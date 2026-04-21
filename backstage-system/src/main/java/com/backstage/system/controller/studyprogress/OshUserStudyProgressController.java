@@ -25,7 +25,6 @@ public class OshUserStudyProgressController extends BaseController {
      * 获取学习记录列表
      */
     @GetMapping("/list")
-    @Anonymous
     public R list() {
         startPage(); // 开启 RuoYi 分页逻辑
         

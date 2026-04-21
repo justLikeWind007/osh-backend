@@ -1,6 +1,8 @@
 package com.backstage.system.domain.user;
 
 import com.backstage.common.core.domain.entity.OSHBaseEntity;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
 /**
@@ -15,6 +17,7 @@ public class OshUser extends OSHBaseEntity {
     /**
      * 用户id
      */
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
     /**
@@ -54,6 +57,11 @@ public class OshUser extends OSHBaseEntity {
      * 个人简介/描述
      */
     private String introduction;
+
+    /**
+     * 违规次数
+     */
+    private Integer violationCount;
 
     /**
      * 状态：0-禁用，1-正常
@@ -132,6 +140,14 @@ public class OshUser extends OSHBaseEntity {
         this.introduction = introduction;
     }
 
+    public Integer getViolationCount() {
+        return violationCount;
+    }
+
+    public void setViolationCount(Integer violationCount) {
+        this.violationCount = violationCount;
+    }
+
     public Integer getStatus() {
         return status;
     }
@@ -152,6 +168,7 @@ public class OshUser extends OSHBaseEntity {
                 ", weixinUnionid='" + weixinUnionid + '\'' +
                 ", sex='" + sex + '\'' +
                 ", introduction='" + introduction + '\'' +
+                ", violationCount=" + violationCount +
                 ", status=" + status +
                 '}';
     }

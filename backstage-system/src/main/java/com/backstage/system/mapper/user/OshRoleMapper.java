@@ -1,7 +1,6 @@
 package com.backstage.system.mapper.user;
 
 import com.backstage.system.domain.user.OshRole;
-import com.backstage.system.domain.user.vo.OshRoleVO;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -15,8 +14,6 @@ import org.apache.ibatis.annotations.Param;
 public interface OshRoleMapper extends BaseMapper<OshRole> {
 
     Integer getRoleIdByUserId(@Param("userId") Long userId);
-
-    OshRoleVO getRoleInfoByRoleId(@Param("roleId") Integer roleId);
 
     int deleteUserRole(Long userId);
 }
