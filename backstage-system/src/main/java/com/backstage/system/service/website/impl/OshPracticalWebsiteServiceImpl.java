@@ -13,13 +13,16 @@ import com.backstage.system.domain.vo.website.OshPracticalWebsiteVO;
 import com.backstage.system.domain.website.OshPracticalWebsite;
 import com.backstage.system.domain.website.OshWebsiteTag;
 import com.backstage.system.domain.website.WebsiteEsDoc;
+import com.backstage.system.domain.website.OshWebsiteTagRel;
 import com.backstage.system.mapper.website.OshPracticalWebsiteMapper;
 import com.backstage.system.mapper.website.OshWebsiteTagMapper;
+import com.backstage.system.mapper.website.OshWebsiteTagRelMapper;
 import com.backstage.system.service.website.OshPracticalWebsiteService;
 import com.backstage.system.utils.WebsiteRatingCalculatorUtil;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
+import com.sun.org.apache.bcel.internal.generic.NEW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -46,6 +50,8 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
     private OshPracticalWebsiteMapper oshPracticalWebsiteMapper;
     @Autowired
     private OshWebsiteTagMapper oshWebsiteTagMapper;
+    @Autowired
+    private OshWebsiteTagRelMapper oshWebsiteTagRelMapper;
     @Autowired
     private EmailUtil emailUtil;
     @Autowired
@@ -108,7 +114,8 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
      */
 
     @Override
-    @DistributeLock(scene = "website_submit", key = "website_submit_lock", includeUserId = true)
+    @Transactional(rollbackFor = Exception.class)
+    @DistributeLock(scene = "website_submit", key = "website_submit_lock", includeUserId = true, waitTime = 0)
     public int submitWebsite(WebsiteSubmitDTO submitDto) {
         // 1. 参数校验（必填字段检查）
         if (submitDto == null ||
@@ -116,41 +123,66 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
                 submitDto.getUrl() == null || submitDto.getUrl().trim().isEmpty()) {
             throw new IllegalArgumentException("网站名称和链接不能为空");
         }
+        // 2. URL 格式简单校验
+        String url = submitDto.getUrl().trim();
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            throw new IllegalArgumentException("网站链接格式不正确，请以 http:// 或 https:// 开头");
+        }
 
-
+        // 3. 构建网站对象
         OshPracticalWebsite website = new OshPracticalWebsite();
-        OshWebsiteTag tag = new OshWebsiteTag();
-        website.setName(submitDto.getName());
-        website.setUrl(submitDto.getUrl());
+        website.setName(submitDto.getName().trim());
+        website.setUrl(url);
         website.setDescription(submitDto.getDescription());
         website.setLogoUrl(submitDto.getLogoUrl());
         website.setStatus(0);  // 0=待审核状态
         website.setClickCount(0); // 初始点击次数为 0
-        website.setDeleteFlag(0);  // 0=正常，未删除
-        //保存到数据库
-        int result = oshPracticalWebsiteMapper.insertWebsite(website);
-        website.getId();
-        if (result > 0) {
-            try {
-                //emailUtil.sendEmailCommon("新网站提交", "新网站提交，请审核");
-                emailUtil.sendNewWebsiteSubmitEmail(
-                        website.getId(),
-                        website.getName(),
-                        website.getUrl(),
-                        website.getDescription(),
-                        website.getCreateBy(),
-                        new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(website.getCreateTime())
-                );
-            } catch (Exception e) {
-                e.printStackTrace();
+        website.setDeleteFlag(0);
+        website.setCreateBy(getCurrentUser().getUsername());
+        //website.setCreateBy("admin");
+
+        // 4. 插入网站主表
+        int websiteResult = oshPracticalWebsiteMapper.insertWebsite(website);
+        if (websiteResult <= 0) {
+            throw new RuntimeException("网站数据保存失败");
+        }
+
+        // 5. 处理标签关联（tagNames 可选，为空则跳过）
+        if (submitDto.getTagNames() != null && !submitDto.getTagNames().isEmpty()) {
+
+            // 5.1 根据标签名批量查出 tag_id
+            List<OshWebsiteTag> tagList = oshWebsiteTagMapper.selectByTagNames(submitDto.getTagNames());
+
+            if (tagList != null && !tagList.isEmpty()) {
+                // 5.2 构建关联记录，插入 osh_website_tag_rel
+                List<OshWebsiteTagRel> relList = new ArrayList<>();
+                for (OshWebsiteTag tag : tagList) {
+                    OshWebsiteTagRel rel = new OshWebsiteTagRel();
+                    rel.setWebsiteId(website.getId());
+                    rel.setTagId(tag.getId());
+                    rel.setDeleteFlag(0);
+                    relList.add(rel);
+                }
+                oshWebsiteTagRelMapper.batchInsertRel(relList);
             }
         }
 
-        tag.setId(website.getId());
-        tag.setTagName(submitDto.getTagNames());
-        tag.setDeleteFlag(0);
-        return oshWebsiteTagMapper.insertWebsiteTag(tag);
+        // 6. 发送邮件通知（失败不影响主流程）
+        try {
+            emailUtil.sendNewWebsiteSubmitEmail(
+                    website.getId(),
+                    website.getName(),
+                    website.getUrl(),
+                    website.getDescription(),
+                    website.getCreateBy(),
+                    new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())
+            );
+        } catch (Exception e) {
+            log.error("网站提交邮件发送失败，websiteId={}", website.getId(), e);
+        }
 
+        // 7. 返回网站插入结果
+        return websiteResult;
     }
     /**
      * 审核网站
@@ -255,10 +287,10 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
     @Transactional(rollbackFor = Exception.class)
     @Override
     public int batchDeleteWebsite(List<Integer> websiteIds) {
-        // 1. 批量删除网站信息
+        // 1. 批量软删除网站主表
         oshPracticalWebsiteMapper.batchDeleteWebsite(websiteIds);
-        // 2. 批量删除网站标签信息
-        return oshWebsiteTagMapper.batchDeleteWebsiteTag(websiteIds);
+        // 2. 批量软删除网站标签关联表
+        return oshWebsiteTagRelMapper.deleteByWebsiteIds(websiteIds);
     }
 
     @Override

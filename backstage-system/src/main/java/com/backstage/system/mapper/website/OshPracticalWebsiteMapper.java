@@ -75,7 +75,7 @@ public interface OshPracticalWebsiteMapper  {
      * @param websiteIds 要删除的网站 ID 列表
      * @return 删除的网站数量
      */
-    int batchDeleteWebsite(List<Integer> websiteIds);
+    int batchDeleteWebsite(@Param("ids") List<Integer> websiteIds);
 
     @Select("SELECT * FROM osh_practical_website WHERE id = #{websiteId} AND delete_flag = 0 AND status = #{status}")
     OshPracticalWebsiteVO selectByIdAndStatus(@Param("websiteId") Long websiteId, @Param("status") Integer status);
