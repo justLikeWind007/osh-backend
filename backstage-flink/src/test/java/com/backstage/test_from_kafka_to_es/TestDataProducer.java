@@ -123,7 +123,7 @@ public class TestDataProducer {
         message.setRatingScore(new BigDecimal("4.5"));
         message.setFreeType(0);
         message.setAfterServiceDays(365);
-        message.setResourceType(1);
+        message.setResourceType(String.valueOf(1));
         message.setLevel(index % 3 + 1);
         
         // 70% 的课程状态为 1（已发布），30% 为 0（未发布）
