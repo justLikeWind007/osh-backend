@@ -93,6 +93,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="likeCount"   column="like_count"    />
         <result property="commentCount"   column="comment_count"    />
         <result property="questionCount"   column="question_count"    />
+        <result property="collectionCount" column="collection_count" />
         <result property="ratingScore"   column="rating_score"    />
         <result property="freeType"   column="free_type"    />
         <result property="afterServiceDays"   column="after_service_days"    />
@@ -100,6 +101,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="level" column="level" />
         <result property="status"   column="status"    />
         <result property="examId" column="exam_id"/>
+        <result property="deleteFlag" column="delete_flag"/>
     </resultMap>
 
     <resultMap type="com.backstage.system.domain.course.vo.CourseSearchLoginVo" id="CourseSearchLoginResult">
@@ -256,20 +258,26 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                t_price,
                type,
                sub_count,
+               delete_flag,
                create_by,
                create_time,
                update_by,
                update_time,
-               remark,
+                remark,
                total_duration,
+               free_lesson_count,
                video_count,
                sales_count,
                view_count,
                like_count,
                comment_count,
+               question_count,
+               collection_count,
                rating_score,
                free_type,
                after_service_days,
+               resource_type,
+               level,
                status,
                exam_id
         from osh_course

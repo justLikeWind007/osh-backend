@@ -16,6 +16,8 @@ public class OshCourseEsDocument {
     private String type;
     private Integer subCount;
     private String remark;
+    private String createBy;
+    private String updateBy;
     private Integer totalDuration;
     private Integer freeLessonCount;
     private Integer videoCount;
@@ -38,7 +40,6 @@ public class OshCourseEsDocument {
     private String searchText;
     private Date createTime;
     private Date updateTime;
-    private Date publishTime;
 
     public Long getId() {
         return id;
@@ -118,6 +119,22 @@ public class OshCourseEsDocument {
 
     public void setRemark(String remark) {
         this.remark = remark;
+    }
+
+    public String getCreateBy() {
+        return createBy;
+    }
+
+    public void setCreateBy(String createBy) {
+        this.createBy = createBy;
+    }
+
+    public String getUpdateBy() {
+        return updateBy;
+    }
+
+    public void setUpdateBy(String updateBy) {
+        this.updateBy = updateBy;
     }
 
     public Integer getTotalDuration() {
@@ -296,11 +313,4 @@ public class OshCourseEsDocument {
         this.updateTime = updateTime;
     }
 
-    public Date getPublishTime() {
-        return publishTime;
-    }
-
-    public void setPublishTime(Date publishTime) {
-        this.publishTime = publishTime;
-    }
 }
