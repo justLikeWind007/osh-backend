@@ -169,8 +169,24 @@ public class OshCourseServiceImpl implements IOshCourseService {
     @Override
     public List<OshCourseMaterial> getCourseMaterials(Long courseId) {
         List<OshCourseMaterial> courseMaterials = oshCourseMapper.getCourseMaterials(courseId);
+        if (courseMaterials == null || courseMaterials.isEmpty()) return courseMaterials;
+
+        // 批量生成临时URL回填
+        List<Long> ids = courseMaterials.stream()
+                .map(OshCourseMaterial::getId)
+                .collect(Collectors.toList());
+        Map<Long, String> urlMap = courseManageService.batchGetMaterialUrls(ids, 120);
+
+        courseMaterials.forEach(m -> {
+            String signedUrl = urlMap.get(m.getId());
+            if (StringUtils.isNotEmpty(signedUrl)) {
+                m.setUrl(signedUrl);
+            }
+        });
         return courseMaterials;
     }
+
+
 
     @Override
     public List<OshCourseSectionVo> getCourseSectionOutline(Long courseId) {

@@ -209,3 +209,7 @@ baidu:
     api-key: Ozc7BMQUP6NHJDJddANFLdwC     # 复制的API Key
     secret-key: xecF7Z7HZmAVhUPlje7djcaxkfY6CrYT # 复制的Secret Key
     timeout: 3000             # 超时时间（毫秒）
+
+# 内部邮件发送方
+email:
+  from: 18482663265@163.com
