@@ -5,6 +5,7 @@ import com.backstage.common.annotation.DistributeLock;
 import com.backstage.common.core.controller.BaseController;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.response.PageResponse;
+import com.backstage.common.utils.SecurityUtils;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.course.OshCourseMaterial;
@@ -134,17 +135,17 @@ public class OshCourseController extends BaseController {
         }
     }
 
-    // TODO 需校验当前用户是否拥有当前课程材小节权限
     @ApiOperation("获取课程资料数组")
     @GetMapping("/section/materials/{courseId}")
-    @Anonymous
     public R<List<OshCourseMaterial>> getCourseMaterials(@NotNull @PathVariable Long courseId) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
-        if (currentOshUser == null || !oshCourseService.hasUserBoughtCourse(courseId, currentOshUser.getId())) {
-            return R.fail("您还未购买该课程，无法查看课程资料");
+        if (currentOshUser == null) {
+            return R.fail("请先登录");
         }
         return R.ok(oshCourseService.getCourseMaterials(courseId));
     }
+
+
 
     @ApiOperation("课程章节内容")
     @GetMapping("/section/outline/{courseId}")
