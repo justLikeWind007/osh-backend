@@ -5,7 +5,9 @@ import com.backstage.common.annotation.DistributeLock;
 import com.backstage.common.core.controller.BaseController;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.response.PageResponse;
+import com.backstage.common.utils.SecurityUtils;
 import com.backstage.common.utils.StringUtils;
+import com.backstage.system.config.properties.SearchEsProperties;
 import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.course.OshCourseMaterial;
 import com.backstage.system.domain.course.vo.*;
@@ -19,6 +21,8 @@ import com.backstage.system.utils.UserContextUtil;
 import com.github.pagehelper.PageInfo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -38,6 +42,7 @@ import java.util.List;
 @RequestMapping("/pc/course")
 public class OshCourseController extends BaseController {
 
+    private static final Logger log = LoggerFactory.getLogger(OshCourseController.class);
 
     @Autowired
     private IOshCourseService oshCourseService;
@@ -51,6 +56,9 @@ public class OshCourseController extends BaseController {
     @Autowired
     private IOshCourseEsService oshCourseEsService;
 
+    @Autowired
+    private SearchEsProperties searchEsProperties;
+
 
     // TODO 后续追加 ES 查课
     // 免费,
@@ -60,6 +68,14 @@ public class OshCourseController extends BaseController {
     public R<PageResponse<CourseSearchLoginVo>> courseSearch(@RequestBody CourseSearchRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         Long userId = currentOshUser == null ? null : currentOshUser.getId();
+        if (searchEsProperties.isEnabled()) {
+            try {
+                log.info("使用es 查询");
+                return R.ok(oshCourseEsService.searchCourses(request, userId), "ok");
+            } catch (Exception ex) {
+                log.warn("course search fallback to mysql after es failure, request={}, userId={}", request, userId, ex);
+            }
+        }
         List<CourseSearchLoginVo> list = oshCourseService.pageQuerySearchCourse(userId, request);
         PageInfo<CourseSearchLoginVo> pageInfo = new PageInfo<>(list);
         return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
@@ -134,17 +150,17 @@ public class OshCourseController extends BaseController {
         }
     }
 
-    // TODO 需校验当前用户是否拥有当前课程材小节权限
     @ApiOperation("获取课程资料数组")
     @GetMapping("/section/materials/{courseId}")
-    @Anonymous
     public R<List<OshCourseMaterial>> getCourseMaterials(@NotNull @PathVariable Long courseId) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
-        if (currentOshUser == null || !oshCourseService.hasUserBoughtCourse(courseId, currentOshUser.getId())) {
-            return R.fail("您还未购买该课程，无法查看课程资料");
+        if (currentOshUser == null) {
+            return R.fail("请先登录");
         }
         return R.ok(oshCourseService.getCourseMaterials(courseId));
     }
+
+
 
     @ApiOperation("课程章节内容")
     @GetMapping("/section/outline/{courseId}")
@@ -342,7 +358,8 @@ public class OshCourseController extends BaseController {
 
     @ApiOperation("收藏课程")
     @PostMapping("/collection/add")
-    @PreAuthorize("hasAuthority('course:collection:add')")
+    @Anonymous
+//    @PreAuthorize("hasAuthority('course:collection:add')")
     public R collectCourse(@Validated @RequestBody CourseCollectionRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         if (currentOshUser == null) {
@@ -354,7 +371,8 @@ public class OshCourseController extends BaseController {
 
     @ApiOperation("取消收藏课程")
     @PostMapping("/collection/remove")
-    @PreAuthorize("hasAuthority('course:collection:remove')")
+    @Anonymous
+//    @PreAuthorize("hasAuthority('course:collection:remove')")
     public R removeCourseCollection(@Validated @RequestBody CourseCollectionRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         if (currentOshUser == null) {

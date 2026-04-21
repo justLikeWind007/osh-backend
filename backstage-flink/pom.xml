@@ -65,13 +65,15 @@ under the License.
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-java</artifactId>
             <version>${flink.version}</version>
-            <scope>provided</scope>
+            <!-- 本地调试时使用 compile，打包部署时改为 provided -->
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-streaming-java_${scala.binary.version}</artifactId>
             <version>${flink.version}</version>
-            <scope>provided</scope>
+            <!-- 本地调试时使用 compile，打包部署时改为 provided -->
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
@@ -90,12 +92,52 @@ under the License.
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-connector-elasticsearch6_${scala.binary.version}</artifactId>
             <version>${flink.version}</version>
+            <exclusions>
+                <!-- 排除默认的 ES 客户端，使用兼容版本 -->
+                <exclusion>
+                    <groupId>org.elasticsearch.client</groupId>
+                    <artifactId>elasticsearch-rest-high-level-client</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- 使用与 Flink 1.8.0 兼容的 ES 6.x 客户端 -->
+        <dependency>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>elasticsearch-rest-high-level-client</artifactId>
+            <version>6.8.23</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>elasticsearch-rest-client</artifactId>
+            <version>6.8.23</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.elasticsearch</groupId>
+            <artifactId>elasticsearch</artifactId>
+            <version>6.8.23</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-statebackend-rocksdb_${scala.binary.version}</artifactId>
             <version>${flink.version}</version>
+        </dependency>
+
+        <!-- Commons Logging - ES 客户端需要 -->
+        <dependency>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+            <version>1.2</version>
+        </dependency>
+
+        <!-- Apache HttpClient - ES 认证需要 -->
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.13</version>
         </dependency>
 
         <dependency>
@@ -129,6 +171,41 @@ under the License.
                     <source>${java.version}</source>
                     <target>${java.version}</target>
                 </configuration>
+            </plugin>
+
+            <!-- Exec Maven Plugin - 用于直接运行 Java 程序 -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <mainClass>com.backstage.test_from_kafka_to_es.StreamingJob</mainClass>
+                    <classpathScope>test</classpathScope>
+                </configuration>
+                <executions>
+                    <!-- StreamingJob 配置 -->
+                    <execution>
+                        <id>run-streaming-job</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>com.backstage.test_from_kafka_to_es.StreamingJob</mainClass>
+                            <classpathScope>test</classpathScope>
+                        </configuration>
+                    </execution>
+                    <!-- TestDataProducer 配置 -->
+                    <execution>
+                        <id>run-test-producer</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>com.backstage.test_from_kafka_to_es.TestDataProducer</mainClass>
+                            <classpathScope>test</classpathScope>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <!-- We use the maven-shade plugin to create a fat jar that contains all necessary dependencies. -->

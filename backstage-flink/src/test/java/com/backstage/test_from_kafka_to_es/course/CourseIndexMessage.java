@@ -1,12 +1,13 @@
-package com.backstage.course;
+package com.backstage.test_from_kafka_to_es.course;
 
+import com.alibaba.fastjson2.annotation.JSONField;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 
 public class CourseIndexMessage
 {
-    private Long courseId;
+    private Long id;
     private String title;
     private String intro;
     private String serviceContent;
@@ -16,6 +17,8 @@ public class CourseIndexMessage
     private String type;
     private Integer subCount;
     private String remark;
+    private String createBy;
+    private String updateBy;
     private Integer totalDuration;
     private Integer freeLessonCount;
     private Integer videoCount;
@@ -28,7 +31,7 @@ public class CourseIndexMessage
     private BigDecimal ratingScore;
     private Integer freeType;
     private Integer afterServiceDays;
-    private Integer resourceType;
+    private String resourceType;
     private Integer level;
     private Integer status;
     private Integer examId;
@@ -38,16 +41,29 @@ public class CourseIndexMessage
     private String searchText;
     private Date createTime;
     private Date updateTime;
+    @JSONField(serialize = false)
     private String operator;
 
-    public Long getCourseId()
+    public Long getId()
     {
-        return courseId;
+        return id;
     }
 
+    public void setId(Long id)
+    {
+        this.id = id;
+    }
+
+    @JSONField(serialize = false)
+    public Long getCourseId()
+    {
+        return id;
+    }
+
+    @JSONField(serialize = false)
     public void setCourseId(Long courseId)
     {
-        this.courseId = courseId;
+        this.id = courseId;
     }
 
     public String getTitle()
@@ -138,6 +154,26 @@ public class CourseIndexMessage
     public void setRemark(String remark)
     {
         this.remark = remark;
+    }
+
+    public String getCreateBy()
+    {
+        return createBy;
+    }
+
+    public void setCreateBy(String createBy)
+    {
+        this.createBy = createBy;
+    }
+
+    public String getUpdateBy()
+    {
+        return updateBy;
+    }
+
+    public void setUpdateBy(String updateBy)
+    {
+        this.updateBy = updateBy;
     }
 
     public Integer getTotalDuration()
@@ -260,12 +296,12 @@ public class CourseIndexMessage
         this.afterServiceDays = afterServiceDays;
     }
 
-    public Integer getResourceType()
+    public String getResourceType()
     {
         return resourceType;
     }
 
-    public void setResourceType(Integer resourceType)
+    public void setResourceType(String resourceType)
     {
         this.resourceType = resourceType;
     }
