@@ -1,4 +1,4 @@
-package com.backstage.course;
+package com.backstage.test_from_kafka_to_es.course;
 
 import com.alibaba.fastjson2.annotation.JSONField;
 import java.math.BigDecimal;

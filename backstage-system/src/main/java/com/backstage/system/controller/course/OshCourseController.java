@@ -342,7 +342,8 @@ public class OshCourseController extends BaseController {
 
     @ApiOperation("收藏课程")
     @PostMapping("/collection/add")
-    @PreAuthorize("hasAuthority('course:collection:add')")
+    @Anonymous
+//    @PreAuthorize("hasAuthority('course:collection:add')")
     public R collectCourse(@Validated @RequestBody CourseCollectionRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         if (currentOshUser == null) {
@@ -354,7 +355,8 @@ public class OshCourseController extends BaseController {
 
     @ApiOperation("取消收藏课程")
     @PostMapping("/collection/remove")
-    @PreAuthorize("hasAuthority('course:collection:remove')")
+    @Anonymous
+//    @PreAuthorize("hasAuthority('course:collection:remove')")
     public R removeCourseCollection(@Validated @RequestBody CourseCollectionRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         if (currentOshUser == null) {
