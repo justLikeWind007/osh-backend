@@ -1,12 +1,14 @@
 package com.backstage.system.service.course;
 
+import com.alibaba.fastjson2.annotation.JSONField;
+
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 
 public class CourseIndexUpsertMessage {
 
-    private Long courseId;
+    private Long id;
     private String title;
     private String intro;
     private String serviceContent;
@@ -16,6 +18,8 @@ public class CourseIndexUpsertMessage {
     private String type;
     private Integer subCount;
     private String remark;
+    private String createBy;
+    private String updateBy;
     private Integer totalDuration;
     private Integer freeLessonCount;
     private Integer videoCount;
@@ -38,14 +42,25 @@ public class CourseIndexUpsertMessage {
     private String searchText;
     private Date createTime;
     private Date updateTime;
+    @JSONField(serialize = false)
     private String operator;
 
-    public Long getCourseId() {
-        return courseId;
+    public Long getId() {
+        return id;
     }
 
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    @JSONField(serialize = false, deserialize = false)
+    public Long getCourseId() {
+        return id;
+    }
+
+    @JSONField(serialize = false, deserialize = false)
     public void setCourseId(Long courseId) {
-        this.courseId = courseId;
+        this.id = courseId;
     }
 
     public String getTitle() {
@@ -118,6 +133,22 @@ public class CourseIndexUpsertMessage {
 
     public void setRemark(String remark) {
         this.remark = remark;
+    }
+
+    public String getCreateBy() {
+        return createBy;
+    }
+
+    public void setCreateBy(String createBy) {
+        this.createBy = createBy;
+    }
+
+    public String getUpdateBy() {
+        return updateBy;
+    }
+
+    public void setUpdateBy(String updateBy) {
+        this.updateBy = updateBy;
     }
 
     public Integer getTotalDuration() {

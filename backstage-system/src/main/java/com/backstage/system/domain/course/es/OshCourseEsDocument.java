@@ -1,7 +1,10 @@
 package com.backstage.system.domain.course.es;
 
+import com.backstage.system.jackson.FlexibleLocalDateTimeDeserializer;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class OshCourseEsDocument {
@@ -16,6 +19,8 @@ public class OshCourseEsDocument {
     private String type;
     private Integer subCount;
     private String remark;
+    private String createBy;
+    private String updateBy;
     private Integer totalDuration;
     private Integer freeLessonCount;
     private Integer videoCount;
@@ -36,9 +41,11 @@ public class OshCourseEsDocument {
     private List<String> tagNames;
     private String tagNamesText;
     private String searchText;
-    private Date createTime;
-    private Date updateTime;
-    private Date publishTime;
+    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
+    private LocalDateTime createTime;
+
+    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
+    private LocalDateTime updateTime;
 
     public Long getId() {
         return id;
@@ -118,6 +125,22 @@ public class OshCourseEsDocument {
 
     public void setRemark(String remark) {
         this.remark = remark;
+    }
+
+    public String getCreateBy() {
+        return createBy;
+    }
+
+    public void setCreateBy(String createBy) {
+        this.createBy = createBy;
+    }
+
+    public String getUpdateBy() {
+        return updateBy;
+    }
+
+    public void setUpdateBy(String updateBy) {
+        this.updateBy = updateBy;
     }
 
     public Integer getTotalDuration() {
@@ -280,27 +303,20 @@ public class OshCourseEsDocument {
         this.searchText = searchText;
     }
 
-    public Date getCreateTime() {
+    public LocalDateTime getCreateTime() {
         return createTime;
     }
 
-    public void setCreateTime(Date createTime) {
+    public void setCreateTime(LocalDateTime createTime) {
         this.createTime = createTime;
     }
 
-    public Date getUpdateTime() {
+    public LocalDateTime getUpdateTime() {
         return updateTime;
     }
 
-    public void setUpdateTime(Date updateTime) {
+    public void setUpdateTime(LocalDateTime updateTime) {
         this.updateTime = updateTime;
     }
 
-    public Date getPublishTime() {
-        return publishTime;
-    }
-
-    public void setPublishTime(Date publishTime) {
-        this.publishTime = publishTime;
-    }
 }

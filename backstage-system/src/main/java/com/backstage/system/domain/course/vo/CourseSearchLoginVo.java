@@ -1,10 +1,11 @@
 package com.backstage.system.domain.course.vo;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @ApiModel(description = "登录态课程搜索响应")
 public class CourseSearchLoginVo {
@@ -43,13 +44,15 @@ public class CourseSearchLoginVo {
     private String createBy;
 
     @ApiModelProperty("创建时间")
-    private Date createTime;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime createTime;
 
     @ApiModelProperty("修改人")
     private String updateBy;
 
     @ApiModelProperty("更新时间")
-    private Date updateTime;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime updateTime;
 
     @ApiModelProperty("总时长")
     private Integer totalDuration;
@@ -205,11 +208,11 @@ public class CourseSearchLoginVo {
         this.createBy = createBy;
     }
 
-    public Date getCreateTime() {
+    public LocalDateTime getCreateTime() {
         return createTime;
     }
 
-    public void setCreateTime(Date createTime) {
+    public void setCreateTime(LocalDateTime createTime) {
         this.createTime = createTime;
     }
 
@@ -221,11 +224,11 @@ public class CourseSearchLoginVo {
         this.updateBy = updateBy;
     }
 
-    public Date getUpdateTime() {
+    public LocalDateTime getUpdateTime() {
         return updateTime;
     }
 
-    public void setUpdateTime(Date updateTime) {
+    public void setUpdateTime(LocalDateTime updateTime) {
         this.updateTime = updateTime;
     }
 

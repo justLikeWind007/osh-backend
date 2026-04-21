@@ -2,19 +2,30 @@ package com.backstage.system.mapper.course;
 
 import com.backstage.common.response.PageResponse;
 import com.backstage.common.utils.StringUtils;
+import com.backstage.system.config.properties.SearchEsProperties;
 import com.backstage.system.domain.course.es.OshCourseEsDocument;
 import com.backstage.system.domain.course.vo.CourseSearchLoginVo;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.client.indices.GetIndexRequest;
+import org.elasticsearch.ElasticsearchStatusException;
 import com.backstage.system.request.CourseSearchRequest;
+import org.apache.http.util.EntityUtils;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
@@ -38,13 +49,31 @@ public class OshCourseEsMapper {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private SearchEsProperties searchEsProperties;
+
     public PageResponse<CourseSearchLoginVo> searchCourses(CourseSearchRequest request) throws Exception {
         int pageNum = request.getPageNum();
         int pageSize = request.getPageSize();
 
+        if (!restHighLevelClient.indices().exists(new GetIndexRequest(COURSE_SEARCH_INDEX), RequestOptions.DEFAULT)) {
+            return PageResponse.of(new ArrayList<>(), 0L, pageNum, pageSize);
+        }
+
         SearchRequest searchRequest = new SearchRequest(COURSE_SEARCH_INDEX);
         searchRequest.source(buildSearchSource(request, pageNum, pageSize));
-        SearchResponse searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+        SearchResponse searchResponse;
+        try {
+            searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+        } catch (ElasticsearchStatusException ex) {
+            if (ex.status() != null && ex.status().getStatus() == 404) {
+                return PageResponse.of(new ArrayList<>(), 0L, pageNum, pageSize);
+            }
+            throw ex;
+        }
+        if (searchResponse.isTimedOut()) {
+            throw new IllegalStateException("search courses from es timed out");
+        }
         List<CourseSearchLoginVo> rows = new ArrayList<>();
         for (SearchHit searchHit : searchResponse.getHits().getHits()) {
             OshCourseEsDocument document = objectMapper.convertValue(searchHit.getSourceAsMap(), OshCourseEsDocument.class);
@@ -73,10 +102,41 @@ public class OshCourseEsMapper {
         return documents.size();
     }
 
+    public int deleteAllCourses() throws Exception {
+        GetIndexRequest getIndexRequest = new GetIndexRequest(COURSE_SEARCH_INDEX);
+        if (!restHighLevelClient.indices().exists(getIndexRequest, RequestOptions.DEFAULT)) {
+            return 0;
+        }
+
+        Request request = new Request("POST", "/" + COURSE_SEARCH_INDEX + "/_delete_by_query");
+        request.addParameter("refresh", "true");
+        request.addParameter("conflicts", "proceed");
+        request.setJsonEntity("{\"query\":{\"match_all\":{}}}");
+
+        Response response = restHighLevelClient.getLowLevelClient().performRequest(request);
+        String json = EntityUtils.toString(response.getEntity(), "UTF-8");
+        JsonNode root = objectMapper.readTree(json);
+        return root.path("deleted").asInt(0);
+    }
+
+    public void recreateCourseSearchIndex(String indexDefinitionJson) throws Exception {
+        GetIndexRequest getIndexRequest = new GetIndexRequest(COURSE_SEARCH_INDEX);
+        boolean exists = restHighLevelClient.indices().exists(getIndexRequest, RequestOptions.DEFAULT);
+        if (exists) {
+            DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest(COURSE_SEARCH_INDEX);
+            restHighLevelClient.indices().delete(deleteIndexRequest, RequestOptions.DEFAULT);
+        }
+
+        CreateIndexRequest createIndexRequest = new CreateIndexRequest(COURSE_SEARCH_INDEX);
+        createIndexRequest.source(indexDefinitionJson, XContentType.JSON);
+        restHighLevelClient.indices().create(createIndexRequest, RequestOptions.DEFAULT);
+    }
+
     private SearchSourceBuilder buildSearchSource(CourseSearchRequest request, int pageNum, int pageSize) {
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
                 .from((pageNum - 1) * pageSize)
-                .size(pageSize);
+                .size(pageSize)
+                .timeout(TimeValue.timeValueMillis(searchEsProperties.getFallbackTimeoutMillis()));
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
                 .filter(QueryBuilders.termQuery("status", 2))
                 .filter(QueryBuilders.termQuery("deleteFlag", 0));
@@ -100,7 +160,13 @@ public class OshCourseEsMapper {
     }
 
     private QueryBuilder buildKeywordQuery(String keyword) {
-        return QueryBuilders.multiMatchQuery(keyword, "title^8", "tagNamesText^4", "intro^3", "serviceContent^2", "searchText");
+        return QueryBuilders.multiMatchQuery(keyword)
+                .field("title", 8.0f)
+                .field("tagNamesText", 4.0f)
+                .field("intro", 3.0f)
+                .field("serviceContent", 2.0f)
+                .field("searchText", 1.0f)
+                .type(MultiMatchQueryBuilder.Type.BEST_FIELDS);
     }
 
     private CourseSearchLoginVo toVo(OshCourseEsDocument document) {
@@ -115,7 +181,9 @@ public class OshCourseEsMapper {
         vo.setType(document.getType());
         vo.setSubCount(document.getSubCount());
         vo.setRemark(document.getRemark());
+        vo.setCreateBy(document.getCreateBy());
         vo.setCreateTime(document.getCreateTime());
+        vo.setUpdateBy(document.getUpdateBy());
         vo.setUpdateTime(document.getUpdateTime());
         vo.setTotalDuration(document.getTotalDuration());
         vo.setFreeLessonCount(document.getFreeLessonCount());
