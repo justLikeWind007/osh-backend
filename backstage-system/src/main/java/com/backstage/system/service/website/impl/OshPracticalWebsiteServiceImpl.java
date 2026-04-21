@@ -8,6 +8,7 @@ import com.backstage.common.utils.redis.DistributedLockUtil;
 import com.backstage.system.domain.dto.website.WebsiteAuditDTO;
 import com.backstage.system.domain.dto.website.WebsiteQueryDTO;
 import com.backstage.system.domain.dto.website.WebsiteSubmitDTO;
+import com.backstage.system.domain.vo.website.EsPageResult;
 import com.backstage.system.domain.vo.website.OshPracticalWebsiteVO;
 import com.backstage.system.domain.website.OshPracticalWebsite;
 import com.backstage.system.domain.website.OshWebsiteTag;
@@ -16,6 +17,7 @@ import com.backstage.system.mapper.website.OshPracticalWebsiteMapper;
 import com.backstage.system.mapper.website.OshWebsiteTagMapper;
 import com.backstage.system.service.website.OshPracticalWebsiteService;
 import com.backstage.system.utils.WebsiteRatingCalculatorUtil;
+import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.slf4j.Logger;
@@ -62,13 +64,21 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
             queryDTO = new WebsiteQueryDTO();
         }
         // 第一步：先查 ES
-        List<OshPracticalWebsiteVO> esResult = websiteEsService.searchFromEs(queryDTO);
+        EsPageResult<OshPracticalWebsiteVO> esResult = websiteEsService.searchFromEs(queryDTO);
         // 第二步：判断 ES 结果
         // esResult == null  → ES 服务异常，降级走 MySQL
         // esResult.isEmpty() → ES 正常但没有结果，降级走 MySQL
-        if (esResult != null && !esResult.isEmpty()) {
-            log.info("ES 搜索命中，返回 ES 结果，共 {} 条", esResult.size());
-            return esResult;
+        if (esResult != null) {
+            int pageNum = queryDTO.getPageNum() == null ? 1 : queryDTO.getPageNum();
+            int pageSize = queryDTO.getPageSize() == null ? 10 : queryDTO.getPageSize();
+
+            // 用 PageHelper 的 Page 对象包装，让 PageInfo 能读到正确的 total
+            Page<OshPracticalWebsiteVO> page = new Page<>(pageNum, pageSize);
+            page.addAll(esResult.getList());       // 填入数据
+            page.setTotal(esResult.getTotal());    // 设置 ES 的真实 total
+
+            log.info("ES 搜索命中，共 {} 条", esResult.getTotal());
+            return page;
         }
         // 第三步：ES 查不到或不可用，走 MySQL
         log.info("ES 未命中或不可用，降级走 MySQL 查询");
@@ -175,8 +185,8 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
         if (auditDto.getStatus() == 2) {
             // 如果拒绝，记录拒绝原因
             website.setRejectReason(auditDto.getRejectReason());
-            oshPracticalWebsiteMapper.updateStatusById(website);
-            return false;
+            boolean rejectResult = oshPracticalWebsiteMapper.updateStatusById(website);
+            return rejectResult;
         }
 
         // 5. 更新对应数据库

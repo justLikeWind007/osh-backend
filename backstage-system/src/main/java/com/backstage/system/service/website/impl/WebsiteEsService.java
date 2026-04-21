@@ -1,9 +1,9 @@
 package com.backstage.system.service.website.impl;
 import com.alibaba.fastjson2.JSON;
 import com.backstage.system.domain.dto.website.WebsiteQueryDTO;
+import com.backstage.system.domain.vo.website.EsPageResult;
 import com.backstage.system.domain.website.WebsiteEsDoc;
 import com.backstage.system.domain.vo.website.OshPracticalWebsiteVO;
-import com.backstage.system.domain.website.WebsiteEsDoc;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -21,7 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -48,7 +47,7 @@ public class WebsiteEsService {
      * @param queryDTO 查询条件（名称、标签、分页）
      * @return 搜索结果列表，搜索不到返回空列表
      */
-    public List<OshPracticalWebsiteVO> searchFromEs(WebsiteQueryDTO queryDTO) {
+    public EsPageResult<OshPracticalWebsiteVO> searchFromEs(WebsiteQueryDTO queryDTO) {
         try {
             // 1. 构建搜索请求
             SearchRequest searchRequest = new SearchRequest(INDEX_NAME);
@@ -86,27 +85,28 @@ public class WebsiteEsService {
 
             // 4. 按评分降序排列（与 MySQL 保持一致）
             sourceBuilder.sort("ratingScore", SortOrder.DESC);
-
+            //诉 ES 精确统计总数（默认超过 10000 会截断）
+            //sourceBuilder.trackTotalHits(true);
             searchRequest.source(sourceBuilder);
 
             // 5. 执行搜索
             SearchResponse response = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
 
-            // 6. 解析结果
+            // 6. 拿到 totalHits 和 hits
+            long totalHits = response.getHits().getTotalHits().value;
             SearchHit[] hits = response.getHits().getHits();
-            if (hits == null || hits.length == 0) {
-                // ES 没有搜到结果，返回空列表，外层会降级走 MySQL
-                return new ArrayList<>();
-            }
 
             // 7. 把 ES 文档转换成 VO 对象返回
             List<OshPracticalWebsiteVO> result = new ArrayList<>();
-            for (SearchHit hit : hits) {
-                Map<String, Object> sourceMap = hit.getSourceAsMap();
-                OshPracticalWebsiteVO vo = convertToVO(sourceMap);
-                result.add(vo);
+            if (hits != null) {
+                for (SearchHit hit : hits) {
+                    Map<String, Object> sourceMap = hit.getSourceAsMap();
+                    OshPracticalWebsiteVO vo = convertToVO(sourceMap);
+                    result.add(vo);
+                }
             }
-            return result;
+            //返回EsPageResult，携带 list 和真实 total
+            return new EsPageResult<>(result, totalHits);
 
         } catch (Exception e) {
             // ES 查询异常（比如 ES 服务挂了），打日志后返回 null

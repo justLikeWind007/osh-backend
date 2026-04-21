@@ -169,9 +169,12 @@ public class OshPracticalWebsiteController extends BaseController {
         try {
             boolean auditResult = oshPracticalWebsiteService.auditWebsite(auditDto);
             if (auditResult) {
-                return R.ok("审核成功");
+                // 通过和拒绝都算操作成功
+                Integer status = auditDto.getStatus();
+                String msg = (status == 1) ? "审核通过" : "已拒绝";
+                return R.ok(msg);
             } else {
-                return R.fail("审核失败: " + auditDto.getRejectReason());
+                return R.fail("审核操作失败，请稍后重试");
             }
         } catch (IllegalArgumentException e) {
             return R.fail(e.getMessage());
