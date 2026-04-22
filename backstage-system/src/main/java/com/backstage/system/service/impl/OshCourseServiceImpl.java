@@ -12,6 +12,7 @@ import com.backstage.system.domain.course.vo.OshCourseDetailVo;
 import com.backstage.system.domain.course.vo.OshCourseSectionVo;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.enums.CourseResourceEnum;
+import com.backstage.system.enums.OshCourseStatusEnum;
 import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.course.OshCourseMaterialMapper;
 import com.backstage.system.mapper.course.OshCourseSectionMapper;
@@ -305,13 +306,13 @@ public class OshCourseServiceImpl implements IOshCourseService {
     @Transactional(rollbackFor = Exception.class)
     public Long auditCourse(Long courseId, OshUser operator) {
         OshCourse existingCourse = ensureCourseExists(courseId);
-        if (!Objects.equals(existingCourse.getStatus(), CourseConstants.STATUS_PENDING_AUDIT)) {
+        if (!Objects.equals(existingCourse.getStatus(), OshCourseStatusEnum.PENDING_AUDIT.getCode())) {
             throw new IllegalArgumentException("只有待审核课程才可以审核通过");
         }
 
         OshCourse course = new OshCourse();
         course.setId(courseId);
-        course.setStatus(CourseConstants.STATUS_PUBLISHED);
+        course.setStatus(OshCourseStatusEnum.PUBLISHED.getCode());
         course.setUpdateBy(operator == null ? null : StringUtils.trimToNull(operator.getUsername()));
         int rows = oshCourseMapper.updateCourse(course);
         if (rows <= 0) {
@@ -559,7 +560,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         course.setLikeCount(CourseConstants.DEFAULT_COUNT);
         course.setCommentCount(CourseConstants.DEFAULT_COUNT);
         course.setRatingScore(CourseConstants.DEFAULT_RATING_SCORE);
-        course.setStatus(CourseConstants.STATUS_DRAFT);
+        course.setStatus(OshCourseStatusEnum.DRAFT.getCode());
 
         String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
         course.setCreateBy(operatorName);
