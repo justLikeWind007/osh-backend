@@ -17,8 +17,11 @@ public class BookListReqVO {
 
     
 
-    @ApiModelProperty(value = "筛选类型：1-免费课程 2-热门/已付费 3-付费优先")
-    private Integer filterType;
+    @ApiModelProperty(value = "权限等级：0-免费 1-小班专属 2-付费 3-VIP 4-内部")
+    private Integer level;
+
+    @ApiModelProperty(value = "当前用户权限等级（后端自动设置）", hidden = true)
+    private Integer userLevel;
 
     /**
      * 标签名列表
@@ -41,12 +44,20 @@ public class BookListReqVO {
         this.pageSize = pageSize;
     }
 
-    public Integer getFilterType() {
-        return filterType;
+    public Integer getLevel() {
+        return level;
     }
 
-    public void setFilterType(Integer filterType) {
-        this.filterType = filterType;
+    public void setLevel(Integer level) {
+        this.level = level;
+    }
+
+    public Integer getUserLevel() {
+        return userLevel;
+    }
+
+    public void setUserLevel(Integer userLevel) {
+        this.userLevel = userLevel;
     }
 
     public List<String> getTagNameList() {

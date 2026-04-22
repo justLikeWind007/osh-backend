@@ -16,7 +16,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <select id="getBookPageList" parameterType="BookDO" resultType="com.backstage.system.domain.vo.book.BookListVO">
         SELECT
-            book.id, book.title, book.cover, book.description, book.price, book.original_price, book.sub_count,
+            book.id, book.title, book.cover, book.description, book.price, book.original_price, book.sub_count, book.level,
             GROUP_CONCAT(DISTINCT tag.tag_name) AS tag_names,
             IFNULL(ubr.purchase_count, 0) AS purchaseCount
         FROM
@@ -39,20 +39,18 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="reqVO.title != null and reqVO.title != ''">
                 and book.title like concat('%', #{reqVO.title}, '%')
             </if>
-            <if test="reqVO.filterType != null and reqVO.filterType == 1">
-                and (book.price is null or book.price = 0)
-            </if>
+            <choose>
+                <when test="reqVO.level != null">
+                    and book.level = #{reqVO.level}
+                    and #{reqVO.userLevel} &gt;= #{reqVO.level}
+                </when>
+                <otherwise>
+                    and (book.level &lt;= #{reqVO.userLevel} or book.level is null)
+                </otherwise>
+            </choose>
         </where>
         GROUP BY book.id
-        <choose>
-            <when test="reqVO.filterType != null and reqVO.filterType == 3">
-                ORDER BY (CASE WHEN book.price IS NOT NULL AND book.price > 0 THEN 0 ELSE 1 END),
-                purchaseCount DESC, book.sub_count DESC, book.create_time DESC
-            </when>
-            <otherwise>
-                ORDER BY purchaseCount DESC, book.sub_count DESC, book.create_time DESC
-            </otherwise>
-        </choose>
+        ORDER BY purchaseCount DESC, book.sub_count DESC, book.create_time DESC
     </select>
 
     <select id="selectFreeBookPage" resultType="com.backstage.system.domain.vo.book.BookListVO">

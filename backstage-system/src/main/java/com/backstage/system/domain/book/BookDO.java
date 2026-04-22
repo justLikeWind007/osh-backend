@@ -76,6 +76,9 @@ public class BookDO implements Serializable {
     /** 更新者 */
     private String updateBy;
 
+    /** 权限等级 */
+    private Integer level;
+
     /** 备注 */
     private String remark;
 
@@ -189,6 +192,14 @@ public class BookDO implements Serializable {
 
     public void setUpdateTime(LocalDateTime updateTime) {
         this.updateTime = updateTime;
+    }
+
+    public Integer getLevel() {
+        return level;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
     }
 
     public String getRemark() {

@@ -44,6 +44,9 @@ public class BookListVO implements Serializable {
     @JsonProperty("purchase_count")
     private Integer purchaseCount;
 
+    /** 权限等级 */
+    private Integer level;
+
     /** SQL 返回的逗号拼接字符串（不返回给前端） */
     @JsonIgnore
     private String tagNames;
@@ -148,5 +151,13 @@ public class BookListVO implements Serializable {
 
     public void setPurchaseCount(Integer purchaseCount) {
         this.purchaseCount = purchaseCount;
+    }
+
+    public Integer getLevel() {
+        return level;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
     }
 }
