@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": 1775635487329,
+  "timestamp": 1776527016261,
   "projectRoot": "e:\\桌面\\judge-osh",
   "entries": [
     {
@@ -34,29 +34,45 @@
       "size": 6557
     },
     {
-      "path": "backstage-framework\\target\\classes\\com\\backstage\\framework\\config\\ApplicationConfig.class",
-      "mtime": 1775543704542.1003,
-      "size": 1852
-    },
-    {
-      "path": "backstage-generator\\target\\classes\\com\\backstage\\generator\\config\\GenConfig.class",
-      "mtime": 1775564209545.635,
-      "size": 1863
-    },
-    {
-      "path": "backstage-system\\target\\classes\\com\\backstage\\system\\controller\\order\\EsConfig.class",
-      "mtime": 1775635116151.9526,
-      "size": 2998
-    },
-    {
-      "path": "backstage-system\\target\\classes\\com\\backstage\\system\\domain\\SysConfig.class",
-      "mtime": 1775635116816.987,
-      "size": 3501
-    },
-    {
       "path": "backstage-common\\target\\classes\\com\\backstage\\common\\config\\WebConfig.class",
       "mtime": 1775635474690.4617,
       "size": 1486
+    },
+    {
+      "path": "backstage-common\\target\\classes\\com\\backstage\\common\\config\\RuoYiConfig.class",
+      "mtime": 1776352129022.0496,
+      "size": 2346
+    },
+    {
+      "path": "backstage-generator\\target\\classes\\com\\backstage\\generator\\config\\GenConfig.class",
+      "mtime": 1776352137233.7017,
+      "size": 1863
+    },
+    {
+      "path": "backstage-system\\target\\classes\\com\\backstage\\system\\domain\\SysConfig.class",
+      "mtime": 1776525709882.062,
+      "size": 3501
+    },
+    {
+      "path": "backstage-system\\target\\classes\\com\\backstage\\system\\controller\\order\\EsConfig.class",
+      "mtime": 1776525792880.819,
+      "size": 2882
+    },
+    {
+      "path": "backstage-system\\target\\classes\\com\\backstage\\system\\interceptor\\config\\WebConfig.class",
+      "mtime": 1776525796029.9563,
+      "size": 1635
+    },
+    {
+      "path": "backstage-framework\\target\\classes\\com\\backstage\\framework\\config\\ApplicationConfig.class",
+      "mtime": 1776527014623.001,
+      "size": 1883,
+      "mapperScan": {
+        "basePackages": [
+          "com.backstage.**.mapper"
+        ],
+        "sourceFile": "e:\\桌面\\judge-osh\\backstage-framework\\target\\classes\\com\\backstage\\framework\\config\\ApplicationConfig.class"
+      }
     }
   ]
 }

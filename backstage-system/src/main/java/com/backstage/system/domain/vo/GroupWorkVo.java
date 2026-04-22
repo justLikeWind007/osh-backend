@@ -66,15 +66,15 @@ public class GroupWorkVo {
         this.users = users;
     }
 
-    @Override
-    public String toString() {
-        return "GroupWorkVo{" +
-                "id=" + id +
-                ", num=" + num +
-                ", total=" + total +
-                ", expire=" + expire +
-                ", created_time='" + createdTime + '\'' +
-                ", users=" + users +
-                '}';
-    }
+//    @Override
+//    public String toString() {
+//        return "GroupWorkVo{" +
+//                "id=" + id +
+//                ", num=" + num +
+//                ", total=" + total +
+//                ", expire=" + expire +
+//                ", created_time='" + createdTime + '\'' +
+//                ", users=" + users +
+//                '}';
+//    }
 }

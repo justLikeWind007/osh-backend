@@ -7,124 +7,192 @@
 - **请求方式**: GET
 - **完整路径**: `/pc/group/activity/list`
 - **认证要求**: 匿名可访问（`@Anonymous`）
-- **接口说明**: 查询正在进行中的拼团活动列表，支持按类型筛选，按 sort_order 降序排列
+- **接口说明**: 查询正在进行中的服务器拼团活动列表，按 sort_order 降序排列
 
- 2. Query Parameters:
+**业务规则说明：**
+1. **参团条件**：人数未达上限(`current_num < group_max_num`) 且 距离服务器结束时间 > 1个月
+2. **动态定价**：参团费用按剩余月数比例计算，公式：`实际费用 = 基础拼团价 × (剩余月数 / 总月数)`
+3. **自动续团**：定时任务检测，满足任一条件自动创建新拼团：
+   - 人数达到上限(`current_num >= group_max_num`)
+   - 距离服务器结束时间 ≤ 1个月
+4. **资源配置**：服务器CPU、内存、存储等配置固定，由系统自动分配，用户不可选择 
+ 
+2. Query Parameters:
 
 | 参数名   | 类型    | 必填 | 说明                                                                 
-| -------- | ------- | ---- | -------------------------------------------------------------------
-| type     | String  | 否   | 拼团类型筛选：`server`-服务器、`course`-课程、`book`-电子书
+| -------- | ------- | ---- | ----------------------------------
+| type     | String  | 否   | 拼团类型筛选：`server`-服务器
 | page     | Integer | 否   | 页码，默认 1                                                         
 | pageSize | Integer | 否   | 每页条数，默认 10                                                   
 
 3. 响应示例
 
 **成功响应:**
+```json
 {
   "total": 12,
   "rows": [
     {
       "id": 1,
-      "title": "服务器5人拼团",
-      "type": "server",
-      "goods_id": 101,
-      "goods_detail": { 
-            "cpu": "4核",
-            "memory": "8GB",
-            "storage": "100GB SSD"
-      }
+      "title": "高性能服务器5人拼团",
+      "cpu": "4核",
+      "memory": "8GB",
+      "storage": "100GB SSD",
       "price": 199.00,
-      "duration_time": 365,
+      "current_price": 165.83,
+      "total_duration": 12,
+      "remaining_months": null,
       "start_time": "2026-04-01 00:00:00",
       "end_time": "2027-04-01 00:00:00",
+      "server_start_time": null,
+      "server_end_time": null,
       "status": 1,
-      "current_group_num": 3，
-      "group_num": 5
+      "current_num": 3,
+      "group_min_num": 2,
+      "group_max_num": 5,
+      "is_success": false,
+      "can_join": true,
+      "server_tutorial_url": "/tutorial/server-config"
     }
   ],
   "code": 200,
   "msg": "查询成功"
 }
+```
 
 ### 4. 响应字段说明
 
 | 字段名              | 类型       | 说明                                      |
 | ------------------- | ---------- | ----------------------------------------- |
-| id                  | Long       | 拼团ID                                |
-| title               | String     | 拼团标题                                |
-| type                | String     | 拼团类型：server/course/column           |
-| goods_id            | Long       | 关联商品 ID                                 |
-| goods_snapshot      | Object     | 商品快照（含 title、cover 等核心信息）       |
-| original_price      | BigDecimal | 商品原价                                    |
-| price               | BigDecimal | 拼团价格                                    |
-| p_num               | Integer    | 成团人数                                    |
-| duration_hours      | Integer    | 单次组团有效期（小时）                        |
-| start_time          | String     | 活动开始时间                                 |
-| end_time            | String     | 活动结束时间                                 |
-| status              | Integer    | 活动状态：0-草稿 1-上架 2-下架 3-已结束       |
-| active_group_count  | Integer    | 当前进行中的组团数（动态计算，非表字段）       |
-| success_group_count | Integer    | 已成团数量（动态计算，非表字段）               |
+| id                  | Long       | 拼团ID                                    |
+| title               | String     | 拼团标题，如"高性能服务器5人拼团"        |
+| cpu                 | String     | 服务器CPU配置，如"4核"                   |
+| memory              | String     | 服务器内存配置，如"8GB"                  |
+| storage             | String     | 服务器存储配置，如"100GB SSD"            |
+| base_price          | BigDecimal | 拼团价格（按月计算，完整周期价格）        |
+| current_price       | BigDecimal | 当前参团实际价格（按剩余月数比例计算）    |
+| total_duration      | Integer    | 服务器总使用时长（月）                    |
+| remaining_months    | BigDecimal | 剩余可使用月数（成团后动态计算，未成团为null） |
+| start_time          | String     | 拼团开始时间，格式：yyyy-MM-dd HH:mm:ss |
+| server_start_time   | String     | 服务器开始使用时间（成团后有值，未成团为null） |
+| server_end_time     | String     | 服务器使用结束时间（成团后有值，未成团为null） |
+| status              | Integer    | 活动状态： 1-进行中 2-拼团成功（达到最低人数，可继续加入） 3-结束：已达到人数上限 or 服务器使用时间不足一个月 |
+| current_num         | Integer    | 当前已参团人数                            |
+| group_min_num       | Integer    | 拼团所需最低人数                          |
+| group_max_num       | Integer    | 拼团人数上限                              |
+| is_success          | Boolean    | 是否已成团（current_num >= group_min_num）|
+| can_join            | Boolean    | 当前是否可参团（综合人数、时间判断）      |
+| server_tutorial_url | String     | 服务器配置操作教程链接（成团后可访问）    |
 
 ### 5. 业务逻辑
 
 ```
-2. 查询条件：status = 1（上架）AND NOW() BETWEEN start_time AND end_time
-3. 如传入 type，追加 type 条件筛选
-4. 按 sort_order DESC, created_time DESC 排序
-5. 分页返回，使用 PageUtils 分页
-6. active_group_count 通过子查询计算：
-   SELECT COUNT(*) FROM osh_group_work WHERE group_activity_id = ? AND status = 0
-7. success_group_count 通过子查询计算：
-   SELECT COUNT(*) FROM osh_group_work WHERE group_activity_id = ? AND status = 1
+1. 查询条件：status IN (1, 2)（进中或 已 拼团成功 未满员的）
+2. 拼团成功判定：current_num >= group_min_num 时，is_success = true
+3. 服务器时间字段逻辑：
+   - 未成团时（is_success = false）：
+     * server_start_time = null
+     * server_end_time = null
+     * remaining_months = null
+   - 已成团时（is_success = true）：
+     * server_start_time = 成团时间（达到最低人数的时间）
+     * server_end_time = server_start_time + total_duration 月
+     * remaining_months = (server_end_time - NOW()) / 30
+4. 计算当前价格：current_price = base_price × (remaining_months / total_duration)
+   - 未成团时：按预计服务器使用时长计算（预售阶段，使用total_duration）
+   - 已成团时：按server_end_time计算剩余时间
+5. 判断是否可参团：
+   - can_join = (status = 1 或 status = 2)
+   - 即：只要状态是「进行中」或「拼团成功」，就可以参团
+   - 当 status = 3（已结束）时，can_join = false
+6. 按 sort_order DESC, created_time DESC 排序
+7. 分页返回，使用 PageUtils 分页，限制最大 pageSize=50
+8. 服务器配置信息直接从活动表读取（固定配置）
 ```
-## 二、查询我的拼团列表接口——拼团活动详情、
+
+### 6. 状态流转规则（重要）
+
+**状态变更触发机制：**
+
+```
+1. 用户参团时更新状态：
+   - 触发时机：每次用户成功参团后
+   - 判断条件：current_num >= group_max_num
+   - 操作：UPDATE status = 3 WHERE id = #{activityId}
+   - 说明：人数达到上限，立即标记为已结束
+
+2. 定时任务更新状态：
+   - 执行频率：每天凌晨2点（可配置）
+   - 判断条件：已成团（status = 2）AND remaining_months <= 1
+   - 操作：UPDATE status = 3 WHERE status = 2 AND (server_end_time - NOW()) / 30 <= 1
+   - 说明：服务器剩余使用时间不足一个月，标记为已结束
+
+3. 状态流转图：
+   创建(0-草稿) → 上架(1-进行中) → 达到最低人数 → 拼团成功(2)
+                                              ↓
+                                    满足以下任一条件：
+                                    - 人数达到上限（用户参团时触发）
+                                    - 服务器剩余时间 ≤ 1个月（定时任务触发）
+                                              ↓
+                                        已结束(3)
+```
+```
+## 二、查询我的拼团列表接口
 
 - **请求方式**: GET
 - **完整路径**: `/pc/group/activity/mylist`
-- **认证要求**: 匿名可访问（`@Anonymous`）
-- **接口说明**: 查询当前用户参与的拼团活动列表（进行中、已完成、未完成），支持按类型筛选，按 sort_order 降序排列
+- **认证要求**: **需要登录**（需传 token）
+- **接口说明**: 查询当前用户参与的服务器拼团活动列表，包含参团状态、服务器信息、订单信息
 
 
  2. Query Parameters:
 
 | 参数名   | 类型    | 必填 | 说明                                                                 
 | -------- | ------- | ---- | -------------------------------------------------------------------
-| type     | String  | 否   | 拼团类型筛选：`server`-服务器、`course`-课程、`book`-电子书
-| page     | Integer | 否   | 页码，默认 1                                                         
-| pageSize | Integer | 否   | 每页条数，默认 10                                                   
+| status   | Integer | 否   | 筛选状态：0-进行中 1-已成团 2-已取消/过期，不传则返回全部
+| page     | Integer | 否   | 页码，默认 1，最大 100                                                         
+| pageSize | Integer | 否   | 每页条数，默认 10，最大 50                                                   
 
 3. 响应示例
 
 **成功响应:**
+```json
 {
   "total": 12,
   "rows": [
     {
-      "id": 1,
-      "title": "服务器5人拼团",
-      "type": "server",
-      "goods_id": 101,
-      "goods_detail": { 
-            "cpu": "4核",
-            "memory": "8GB",
-            "storage": "100GB SSD"
-            -- 服务器的配置文件下载链接 / 服务器的配置信息
-            （判断status=2 成功后，才展示）
-      }
-      "price": 199.00,
-      "duration_time": 365,
+      "activity_id": 1,
+      "group_work_id": 1001,
+      "title": "高性能服务器5人拼团",
+      "cpu": "4核",
+      "memory": "8GB",
+      "storage": "100GB SSD",
+      "base_price": 199.00,
+      "actual_price": 165.83,
+      "total_duration": 12,
       "start_time": "2026-04-01 00:00:00",
       "end_time": "2027-04-01 00:00:00",
-      "status": 1,
-      "success_msg": "恭喜您拼团成功！请扫描二维码加入学习群。",
-      -- "wechat_group_qr": "/uploads/qr/group_101.jpg",
-      "current_group_num": 3，
-      "group_num": 5
+      "server_start_time": "2026-04-15 10:30:00",
+      "server_expire_time": "2027-04-15 10:30:00",
+      "group_status": 1,
+      "group_status_text": "已成团",
+      "current_num": 5,
+      "group_max_num": 5,
+      "is_leader": false,
+      "join_time": "2026-04-10 15:30:00",
+      "order_no": "GRP20260410001",
+      "order_status": "success",
+      "server_ip": "192.168.1.100",
+      "server_account": "user001",
+      "server_password": "******",
+      "server_tutorial_url": "/tutorial/server-config",
+      "wechat_phone": "13800138000"
     }
   ],
   "code": 200,
   "msg": "查询成功"
 }
+```
 
 
 
@@ -132,72 +200,88 @@
 
 | 字段名            | 类型       | 说明                                       |
 | ----------------- | ---------- | ------------------------------------------ |
-| id                | Long       | 拼团活动 ID                                 |
-| title             | String     | 活动标题                                    |
-| type              | String     | 商品类型                                    |
-| goods_id          | Long       | 商品 ID                                     |
-| goods_snapshot    | Object     | 商品快照 JSON                               |
-| original_price    | BigDecimal | 商品原价                                    |
-| price             | BigDecimal | 拼团价                                      |
-| p_num             | Integer    | 成团人数                                    |
-| max_groups        | Integer    | 最大组团数（0=不限）                          |
-| per_user_limit    | Integer    | 每人限购次数                                 |
-| duration_hours    | Integer    | 单次组团有效期（小时）                        |
-| start_time        | String     | 活动开始时间                                 |
-| end_time          | String     | 活动结束时间                                 |
-| status            | Integer    | 活动状态                                    |
-| auto_refund       | Integer    | 未成团是否自动退款：0-否 1-是                 |
-| success_msg       | String     | 成团推送消息模板                              |
-| wechat_group_qr   | String     | 微信群二维码 URL                              |
-| active_group_count | Integer   | 进行中组团数（动态计算）                      |
-| success_group_count| Integer   | 已成团数量（动态计算）                        |
-| total_order_count | Integer    | 累计订单数（动态计算）                        |
+| activity_id       | Long       | 拼团活动 ID                                 |
+| group_work_id     | Long       | 组团记录 ID（用户参团记录）                 |
+| title             | String     | 拼团活动标题                                |
+| cpu               | String     | 服务器CPU配置                               |
+| memory            | String     | 服务器内存配置                              |
+| storage           | String     | 服务器存储配置                              |
+| base_price        | BigDecimal | 基础拼团价格（完整周期）                    |
+| actual_price      | BigDecimal | 用户实际支付价格                            |
+| total_duration    | Integer    | 服务器总使用时长（月）                      |
+| start_time        | String     | 拼团活动开始时间                            |
+| server_start_time | String     | 服务器开始使用时间（成团后有值，未成团null）|
+| server_expire_time| String     | 服务器使用到期时间（成团后有值，未成团null）|
+| group_status      | Integer    | 组团状态：0-进行中 1-已成团 2-已取消/过期   |
+| group_status_text | String     | 组团状态文字描述                            |
+| current_num       | Integer    | 当前已参团人数                              |
+| group_max_num     | Integer    | 拼团人数上限                                |
+| is_leader         | Boolean    | 是否团长（服务器拼团无团长概念，固定false） |
+| join_time         | String     | 用户参团时间                                |
+| order_no          | String     | 订单编号                                    |
+| order_status      | String     | 订单状态：pending/success/refunded/cancel   |
+| server_ip         | String     | 服务器IP地址（仅成团后返回）                |
+| server_account    | String     | 服务器登录账号（仅成团后返回）              |
+| server_password   | String     | 服务器登录密码（脱敏显示，仅成团后返回）    |
+| server_tutorial_url | String   | 服务器配置操作教程链接                      |
+| wechat_phone      | String     | 服务器负责人微信号（仅成团后返回）          ||
 
 ### 5. 业务逻辑
 
 ```
-1. 根据 activityId 查询 osh_group_activity 主表
-2. 校验活动存在性 → 不存在返回 "活动不存在"
-3. 校验活动状态 → status != 1（非上架）返回 "活动已下架"
-4. 聚合统计数据：active_group_count、success_group_count、total_order_count
-5. 返回完整活动详情
+1. 鉴权：校验 token，获取 userId
+2. 查询当前用户的参团记录：
+   SELECT * FROM osh_group_user WHERE user_id = #{userId}
+3. 关联查询拼团活动和组团信息：
+   LEFT JOIN osh_group_work gw ON gu.group_work_id = gw.id
+   LEFT JOIN osh_group_activity ga ON gw.group_activity_id = ga.id
+   LEFT JOIN osh_group_order go ON gu.order_id = go.id
+4. 如传入 status 参数，追加 gw.status = #{status} 筛选条件
+5. 按 gu.join_time DESC 排序
+6. 成团后才返回服务器连接信息（server_ip、server_account、server_password）
+7. 密码字段需要脱敏处理，显示为 "******"
+8. 分页返回，使用 PageUtils 分页
 ```
 
-### 6. 错误码
-
-| code | msg          | 场景                    |
-| ---- | ------------ | ----------------------- |
-| 200  | 操作成功      | 正常返回                 |
-| 500  | 活动不存在    | activityId 无对应记录    |
-| 500  | 活动已下架    | 活动 status != 1         |
-
----
-
-## 三、课程拼团详情
+## 三、拼团详情接口
 
 ### 1. 接口信息
 
 - **请求方式**: GET
-- **完整路径**: `/pc/group/course/read`
-- **认证要求**: 匿名可访问（`@Anonymous`）
-- **接口说明**: 查询某个课程的完整信息 + 关联的拼团活动信息，用于拼团课程详情页展示
-- **现有实现**: [GroupController.java](backstage-system/src/main/java/com/backstage/system/controller/group/GroupController.java:34)
+- **完整路径**: `/pc/group/work/detail`
+- **认证要求**: 匿名可访问（已登录用户返回更多交互信息）
+- **接口说明**: 查询单个拼团组团的详细信息，包含参团用户列表、组团进度、服务器配置信息
+
+**业务规则：**
+- 拼团成功后（group_status=1），展示服务器配置信息和操作教程入口
+- 用户不可主动发起拼团，只能加入系统创建的拼团活动
+
+
+
+
+## 三、拼团详情
+
+### 1. 接口信息
+
+- **请求方式**: GET
+- **完整路径**: `/pc/group/work/detail`
+- **接口说明**: 查询单个组团的详细信息，包含参团用户列表、组团进度、关联服务器信息，展示该服务器的配置信息（根据服务器Id）
+
+注：拼团成功后（status=2），可点击跳转到  服务器配置操作的图文教程
 
 ### 2. 请求参数
 
 **Header:**
 
-| Header | 类型   | 必填 | 说明       |
-| ------ | ------ | ---- | ---------- |
-| appid  | String | 否   | 网校 appid |
-| token  | String | 否   | 用户令牌    |
+| Header | 类型   | 必填 | 说明                      |
+| ------ | ------ | ---- | ------------------------- |
+| token  | String | 否   | 用户令牌（已登录则传）    |
 
 **Query Parameters:**
 
-| 参数名  | 类型 | 必填 | 说明                            |
-| ------- | ---- | ---- | ------------------------------- |
-| id      | Long | 是   | 课程 ID（osh_course.id）         |
-| groupId | Long | 是   | 拼团活动 ID（osh_group_activity.id） |
+| 参数名      | 类型 | 必填 | 说明                         |
+| ----------- | ---- | ---- | ---------------------------- |
+| groupWorkId | Long | 是   | 组团 ID（osh_group_work.id）  |
 
 ### 3. 响应示例
 
@@ -207,182 +291,352 @@
   "code": 200,
   "msg": "操作成功",
   "data": {
-    "id": 101,
-    "title": "Python从入门到精通",
-    "cover": "/uploads/course/python.jpg",
-    "description": "零基础学Python，30天入门",
-    "teacher_name": "张老师",
-    "price": 299.00,
-    "status": 1,
-    "group": {
-      "id": 1,
-      "type": "course",
-      "goods_id": 101,
-      "price": "99.00",
-      "p_num": 3,
-      "start_time": "2026-04-01T00:00:00",
-      "end_time": "2026-05-01T00:00:00"
-    }
+    "group_work_id": 1001,
+    "group_activity_id": 1,
+    "activity_title": "高性能服务器5人拼团",
+    "cpu": "4核",
+    "memory": "8GB",
+    "storage": "100GB SSD",
+    "base_price": 199.00,
+    "current_price": 165.83,
+    "total_duration": 12,
+    "remaining_months": null,
+    "current_num": 3,
+    "group_min_num": 2,
+    "group_max_num": 5,
+    "remain_num": 2,
+    "group_status": 0,
+    "group_status_text": "进行中",
+    "start_time": "2026-04-01 00:00:00",
+    "end_time": "2027-04-01 00:00:00",
+    "server_start_time": null,
+    "server_expire_time": null,
+    "created_time": "2026-04-16 18:00:00",
+    "users": [
+      {
+        "username": "user001",
+        "nickname": "张三",
+        "avatar": "/uploads/avatar/001.jpg",
+        "join_time": "2026-04-16 18:00:00"
+      },
+      {
+        "username": "user002",
+        "nickname": "李四",
+        "avatar": "/uploads/avatar/002.jpg",
+        "join_time": "2026-04-16 18:30:00"
+      },
+      {
+        "username": "user003",
+        "nickname": "王五",
+        "avatar": "/uploads/avatar/003.jpg",
+        "join_time": "2026-04-16 19:00:00"
+      }
+    ],
+    "current_user_joined": false,
+    "can_join": true,
+    "server_tutorial_url": "/tutorial/server-config",
+    "wechat_phone": "13800138000",
+    "server_detail": null
   }
 }
 ```
 
 ### 4. 响应字段说明
 
-**顶层字段**（继承自 `OshCourse`）:
-
-| 字段名       | 类型       | 说明                |
-| ------------ | ---------- | ------------------- |
-| id           | Long       | 课程 ID              |
-| title        | String     | 课程标题             |
-| cover        | String     | 课程封面 URL          |
-| description  | String     | 课程描述             |
-| teacher_name | String     | 讲师名               |
-| price        | BigDecimal | 课程原价             |
-| status       | Integer    | 课程状态             |
-
-**group 子对象**（`GroupActivity`）:
-
-| 字段名     | 类型          | 说明                  |
-| ---------- | ------------- | --------------------- |
-| id         | Long          | 拼团活动 ID            |
-| type       | String        | 商品类型：course       |
-| goods_id   | Long          | 关联商品 ID            |
-| price      | String        | 拼团价格               |
-| p_num      | Integer       | 成团人数               |
-| start_time | LocalDateTime | 活动开始时间            |
-| end_time   | LocalDateTime | 活动结束时间            |
-
-### 5. 业务逻辑
-
-```
-现有实现（GroupServiceImpl.course()）：
-1. 通过 groupMapper.getGroupActivityById(groupId) 获取拼团活动
-2. 通过 courseMapper.selectCourseById(id) 获取课程详情
-3. 使用 BeanUtils.copyProperties 将课程属性拷贝到 GroupCourseVo
-4. 将 GroupActivity 设置到 vo.group 字段
-5. 返回 GroupCourseVo
-
-建议增强：
-- 校验 activity.type == "course" 且 activity.goods_id == id
-- 校验活动状态为上架且在有效期内
-- 增加用户已购/已参团状态判断（需 token）
-```
-
-### 6. 错误码
-
-| code | msg          | 场景                        |
-| ---- | ------------ | --------------------------- |
-| 200  | 操作成功      | 正常返回                     |
-| 500  | 课程不存在    | id 对应的课程不存在           |
-| 500  | 活动不存在    | groupId 对应的活动不存在      |
-| 500  | 活动已结束    | 活动不在有效期内              |
-
----
-
-## 四、专栏拼团详情
-
-### 1. 接口信息
-
-- **请求方式**: GET
-- **完整路径**: `/pc/group/column/read`
-- **认证要求**: 匿名可访问（`@Anonymous`）
-- **接口说明**: 查询某个专栏的完整信息 + 关联的拼团活动信息，用于拼团专栏详情页展示
-- **现有实现**: [GroupController.java](backstage-system/src/main/java/com/backstage/system/controller/group/GroupController.java:43)
-
-### 2. 请求参数
-
-**Header:**
-
-| Header | 类型   | 必填 | 说明       |
-| ------ | ------ | ---- | ---------- |
-| appid  | String | 否   | 网校 appid |
-| token  | String | 否   | 用户令牌    |
-
-**Query Parameters:**
-
-| 参数名  | 类型 | 必填 | 说明                              |
-| ------- | ---- | ---- | --------------------------------- |
-| id      | Long | 是   | 专栏 ID（osh_column.id）           |
-| groupId | Long | 是   | 拼团活动 ID（osh_group_activity.id） |
-
-### 3. 响应示例
-
-**成功响应:**
-```json
-{
-  "code": 200,
-  "msg": "操作成功",
-  "data": {
-    "id": 201,
-    "title": "前端工程师进阶专栏",
-    "cover": "/uploads/column/frontend.jpg",
-    "description": "系统学习前端高级技术",
-    "price": 199.00,
-    "total_section": 30,
-    "group": {
-      "id": 2,
-      "type": "column",
-      "goods_id": 201,
-      "price": "69.00",
-      "p_num": 5,
-      "start_time": "2026-04-01T00:00:00",
-      "end_time": "2026-05-01T00:00:00"
-    }
-  }
-}
-```
-
-### 4. 响应字段说明
-
-**顶层字段**（继承自 `ColumnDetailVo`）:
-
-| 字段名        | 类型       | 说明         |
-| ------------- | ---------- | ------------ |
-| id            | Long       | 专栏 ID       |
-| title         | String     | 专栏标题      |
-| cover         | String     | 封面 URL      |
-| description   | String     | 专栏描述      |
-| price         | BigDecimal | 专栏原价      |
-| total_section | Integer    | 总章节数      |
-
-**group 子对象**（`GroupActivity`）:
-
-| 字段名     | 类型          | 说明                  |
-| ---------- | ------------- | --------------------- |
-| id         | Long          | 拼团活动 ID            |
-| type       | String        | 商品类型：column       |
-| goods_id   | Long          | 关联商品 ID            |
-| price      | String        | 拼团价格               |
-| p_num      | Integer       | 成团人数               |
-| start_time | LocalDateTime | 活动开始时间            |
-| end_time   | LocalDateTime | 活动结束时间            |
+| 字段名              | 类型               | 说明                                          |
+| ------------------- | ------------------ | --------------------------------------------- |
+| group_work_id       | Long               | 组团 ID                                        |
+| group_activity_id   | Long               | 拼团活动 ID                                    |
+| activity_title      | String             | 拼团活动标题                                   |
+| cpu                 | String             | 服务器CPU配置                                  |
+| memory              | String             | 服务器内存配置                                 |
+| storage             | String             | 服务器存储配置                                 |
+| base_price          | BigDecimal         | 基础拼团价格（完整周期）                       |
+| current_price       | BigDecimal         | 当前参团价格（按剩余月数计算）                 |
+| total_duration      | Integer            | 服务器总使用时长（月）                         |
+| remaining_months    | BigDecimal         | 剩余可使用月数（成团后有值，未成团null）       |
+| current_num         | Integer            | 已参团人数                                     |
+| group_min_num       | Integer            | 拼团最低所需人数（达到此人数才成团）           |
+| group_max_num       | Integer            | 拼团人数上限                                   |
+| remain_num          | Integer            | 还差几人达到上限（group_max_num - current_num）|
+| group_status        | Integer            | 组团状态：0-进行中 1-已成团 2-已取消/过期      |
+| group_status_text   | String             | 组团状态文字描述                               |
+| start_time          | String             | 拼团活动开始时间                               |
+| server_start_time   | String             | 服务器开始使用时间（成团后有值，未成团null）   |
+| server_expire_time  | String             | 服务器使用到期时间（成团后有值，未成团null）   |
+| created_time        | String             | 组团创建时间                                   |
+| users               | List               | 参团用户列表（含 join_time）                   |
+| current_user_joined | Boolean            | 当前登录用户是否已加入该团（未登录时为 false） |
+| can_join            | Boolean            | 当前是否可以加入（综合状态、人数、时间判断）   |
+| server_tutorial_url | String             | 服务器配置操作教程链接                         |
+| wechat_phone        | String             | 服务器负责人微信号                             |
+| server_detail       | Object             | 服务器详细信息（仅成团后返回，见下方说明）     ||
 
 ### 5. 业务逻辑
 
 ```
-现有实现（GroupServiceImpl.column()）：
-1. 通过 groupMapper.getGroupActivityById(groupId) 获取拼团活动
-2. 通过 columnMapper.getColumnDetail(id) 获取专栏详情
-3. 使用 BeanUtils.copyProperties 将专栏属性拷贝到 GroupColumnVo
-4. 将 GroupActivity 设置到 vo.group 字段
-5. 返回 GroupColumnVo
-
-建议增强（同课程拼团详情）：
-- 校验 activity.type == "column" 且 activity.goods_id == id
-- 校验活动状态及有效期
+1. 参数校验：查询 osh_group_work（groupWorkId），校验存在性
+2. 关联查询拼团活动信息：
+   LEFT JOIN osh_group_activity ga ON gw.group_activity_id = ga.id
+3. 拼团成功判定：current_num >= group_min_num 时，group_status = 1（已成团）
+4. 服务器时间字段逻辑：
+   - 未成团时（group_status = 0）：
+     * server_start_time = null
+     * server_expire_time = null
+     * remaining_months = null
+   - 已成团时（group_status = 1）：
+     * server_start_time = 成团时间（达到最低人数的时间）
+     * server_expire_time = server_start_time + total_duration 月
+     * remaining_months = (server_expire_time - NOW()) / 30
+5. 查询参团用户列表：
+   SELECT u.username, u.nickname, u.avatar, gu.join_time 
+   FROM osh_group_user gu
+   LEFT JOIN osh_user u ON gu.user_id = u.id
+   WHERE gu.group_work_id = #{groupWorkId}
+   ORDER BY gu.join_time ASC
+6. 计算当前价格：current_price = base_price × (remaining_months / total_duration)
+   - 未成团时：按预计服务器使用时长计算（预售阶段，使用total_duration）
+   - 已成团时：按server_expire_time计算剩余时间
+7. 判断是否可以加入：
+   - can_join = (status = 1 或 status = 2)
+   - 即：只要拼团活动状态是「进行中」或「拼团成功」，就可以参团
+   - 当 status = 3（已结束）时，can_join = false
+   - 当前用户未加入该团（需 token）
+8. 如果 group_status = 1（已成团），返回 server_detail 信息
+9. 密码字段需要脱敏处理
+10. 返回组团详情
 ```
 
-### 6. 错误码
 
-| code | msg          | 场景                        |
-| ---- | ------------ | --------------------------- |
-| 200  | 操作成功      | 正常返回                     |
-| 500  | 专栏不存在    | id 对应的专栏不存在           |
-| 500  | 活动不存在    | groupId 对应的活动不存在      |
-| 500  | 活动已结束    | 活动不在有效期内              |
+
+
+
 
 ---
+
+## 附录F：服务器拼团特殊业务规则（重要）
+
+### F.1 动态价格计算公式
+
+```
+剩余月数 = (服务器结束时间 - 当前时间) / 30天
+实际参团费用 = 基础拼团价 × (剩余月数 / 总使用月数)
+
+示例：
+- 基础拼团价：199元/月
+- 总使用时长：12个月  
+- 剩余时间：10个月
+- 实际费用 = 199 × (10 / 12) = 165.83元
+```
+
+**接口应用：**
+- 接口一（拼团列表）：返回 `base_price` 和 `current_price` 两个价格字段
+- 接口三（拼团详情）：根据剩余时间动态计算 `current_price`
+
+**重要说明：**
+- 未成团时（current_num < group_min_num）：
+  * `remaining_months` = null
+  * `server_start_time` = null
+  * `server_end_time` = null
+  * 此时价格按total_duration计算（预售阶段）
+- 已成团时（current_num >= group_min_num）：
+  * `server_start_time` = 达到最低人数的时间
+  * `server_end_time` = server_start_time + total_duration 月
+  * `remaining_months` = (server_end_time - NOW()) / 30
+
+**拼团活动特点：**
+- 拼团活动**没有截止时间**，只有状态变化
+- 状态流转：进行中(1) → 拼团成功(2) → 已结束(3)
+- 拼团成功后仍可继续加入，直到人数达到上限或服务器到期
+
+### F.2 定时任务规则
+
+**任务1：自动续团检测**
+- **执行频率**：每天凌晨2点执行
+- **触发条件**（满足任一即创建新团）：
+  1. 人数达到上限：`current_num >= group_max_num`
+  2. 临近结束：`距离服务器结束时间 <= 1个月（30天）`
+- **操作逻辑**：
+  ```
+  1. 查询所有 status IN (1, 2) 的拼团活动
+  2. 遍历检查触发条件
+  3. 满足条件则：
+     - 复制当前拼团配置（CPU、内存、存储、价格等）
+     - 创建新的拼团活动记录
+     - 新活动的 start_time = 当前时间
+     - 新活动的 end_time = 当前时间 + total_duration 月
+     - 新活动的 current_num = 0
+     - 新活动的 status = 1（进行中）
+  ```
+
+**任务2：过期拼团清理**
+- **执行频率**：每小时执行
+- **处理逻辑**：
+  - 标记已过期的拼团状态为"已结束"（status = 3）
+  - 发送到期提醒通知给参团用户
+
+### F.3 参团资格校验规则
+
+用户参团前**必须同时满足**以下条件：
+
+| 校验项 | 条件 | 说明 |
+| ------ | ---- | ---- |
+| 活动状态 | `status = 1` | 拼团活动必须为"进行中"状态 |
+| 人数限制 | `current_num < group_max_num` | 当前人数未达上限 |
+| 时间限制 | `remaining_months > 1` | 剩余使用时长大于1个月 |
+| 重复购买 | 用户未参加过该拼团 | 防止同一用户重复参团 |
+| 账户状态 | 用户账户正常 | 账户未被冻结或禁用 |
+
+**参团资格校验规则：**
+
+用户参团前**必须同时满足**以下条件：
+
+| 校验项 | 条件 | 说明 |
+| ------ | ---- | ---- |
+| 活动状态 | `status IN (1, 2)` | 拼团活动必须为「进行中」或「拼团成功」状态 |
+| 重复购买 | 用户未参加过该拼团 | 防止同一用户重复参团 |
+| 账户状态 | 用户账户正常 | 账户未被冻结或禁用 |
+
+**说明：**
+- `can_join` 直接由 `status` 字段决定
+- 当 `status = 3`（已结束）时，`can_join = false`
+- 人数上限判断和时间判断由系统自动更新 `status` 字段，无需前端重复判断
+
+**校验失败提示：**
+- 拼团已结束："该拼团已结束，请关注新一期拼团活动"
+- 重复购买："您已参与该拼团活动"
+
+### F.4 服务器资源管理
+
+**资源配置原则：**
+- **固定配置**：CPU、内存、存储由系统预设，用户不可选择
+- **统一标准**：同一拼团活动的所有用户使用相同配置
+- **自动分配**：成团后系统自动分配服务器资源
+
+**服务器信息返回规则：**
+- **未成团**（group_status = 0）：不返回服务器连接信息
+- **已成团**（group_status = 1）：返回完整服务器信息
+  - 服务器IP、端口
+  - 登录账号、密码（脱敏显示）
+  - 控制面板URL
+  - 操作系统类型
+  - 开通日期、到期日期
+
+**安全要求：**
+- 密码字段必须脱敏，显示为 `******`
+- 提供"查看密码"功能（需二次验证）
+- 记录服务器信息访问日志
+
+### F.5 拼团活动状态流转
+
+```
+草稿(0) → 上架 → 进行中(1) → 达到最低人数 → 拼团成功(2)
+                                              ↓
+                                    满足以下任一条件：
+                                    - 人数达到上限（用户参团时触发）
+                                    - 服务器剩余时间 ≤ 1个月（定时任务触发）
+                                              ↓
+                                        已结束(3)
+```
+
+**状态说明：**
+- **草稿(0)**：项目负责人创建，未对外展示
+- **进行中(1)**：用户可参团，未达到最低人数
+- **拼团成功(2)**：已达到最低人数（current_num >= group_min_num），继续接受参团
+- **已结束(3)**：不可参团（人数达到上限 或 服务器剩余时间 ≤ 1个月）
+
+**拼团成功判定：**
+- **未成团**：current_num < group_min_num
+  * 服务器时间字段全部为 null
+  * 不分配服务器资源
+  * 不计费
+- **已成团**：current_num >= group_min_num
+  * 记录 server_start_time（成团时间）
+  * 计算 server_end_time = server_start_time + total_duration
+  * 开始分配服务器资源
+  * 开始计算服务器使用时长
+  * 用户可按剩余月数参团
+
+### F.6 状态更新触发机制（重要）
+
+拼团活动的 `status` 字段更新由以下两个途径触发：
+
+#### 1. 用户参团时更新（人数上限判断）
+
+**触发时机：** 每次用户成功参团后
+
+**判断条件：** 
+```sql
+current_num >= group_max_num
+```
+
+**执行操作：**
+```sql
+UPDATE osh_group_activity 
+SET status = 3 
+WHERE id = #{activityId} 
+  AND current_num >= group_max_num
+```
+
+**说明：**
+- 在用户参团的事务中同步执行
+- 达到人数上限后立即标记为已结束
+- 保证后续用户无法再参团
+
+#### 2. 定时任务更新（服务器时间判断）
+
+**执行频率：** 每天凌晨2点（可配置）
+
+**判断条件：**
+```sql
+status = 2  -- 拼团成功状态
+AND (server_end_time - NOW()) / 30 <= 1  -- 剩余时间不足一个月
+```
+
+**执行操作：**
+```sql
+UPDATE osh_group_activity 
+SET status = 3 
+WHERE status = 2 
+  AND DATEDIFF(server_end_time, NOW()) / 30.0 <= 1
+```
+
+**说明：**
+- 定时扫描所有已成团的拼团活动
+- 检测服务器剩余使用时间
+- 不足一个月时自动标记为已结束
+
+#### 3. 状态更新流程图
+
+```
+用户参团                              定时任务（每天2点）
+  |                                      |
+  v                                      v
+参团成功                           扫描 status=2 的活动
+  |                                      |
+  v                                      v
+检查人数                        计算 remaining_months
+  |                                      |
+  v                                      v
+current_num >= group_max_num?    remaining_months <= 1?
+  |                                      |
+  +----------> 是 -------------> 是 <----+
+  |                                      |
+  v                                      v
+UPDATE status=3                  UPDATE status=3
+  |                                      |
+  v                                      v
+拼团结束，不可参团              拼团结束，不可参团
+```
+
+### F.7 接口优化要点总结
+
+| 接口 | 优化内容 |
+| ---- | -------- |
+| 接口一 | 移除type参数（仅服务器），增加价格计算、can_join判断 |
+| 接口二 | 改为需登录，增加服务器信息、订单状态、密码脱敏 |
+| 接口三 | 简化为纯服务器拼团，增加server_detail、教程链接 |
+| 通用 | 统一时间格式为 `yyyy-MM-dd HH:mm:ss`，移除课程/专栏相关字段 |
 
 ## 五、可参团列表（组团列表）
 
@@ -713,19 +967,21 @@
 8. 整个流程需要 @Transactional 事务保护
 ```
 
-### 6. 错误码
+支付成功后，回调
+用户扫码/确认支付
+↓
+微信/支付宝服务器 → 异步回调 → POST /api/pay/callback/wechat
+↓
+支付回调Service:
+1. 验签(验证回调真实性)
+2. 更新订单状态: PENDING → PAID
+3. 更新拼团订单状态: PENDING → PAID
+4. 更新拼团活动 currentNum + 1
+5. 检查是否成团 (currentNum >= groupMinNum)
+  - 已成团 → 通知所有参团用户
+  - 未成团 → 等待
+6. 返回 success 给微信/支付宝
 
-| code | msg                    | 场景                               |
-| ---- | ---------------------- | ---------------------------------- |
-| 200  | 操作成功                | 正常加入                            |
-| 401  | 请先登录                | 未传 token 或 token 过期             |
-| 500  | 组团不存在              | group_work_id 无对应记录             |
-| 500  | 该团已满员或已结束       | 组团已满/已过期/status != 0          |
-| 500  | 您已参加过该团           | 用户已在该组团中（唯一约束冲突）      |
-| 500  | 您已超过该活动的限购次数  | 用户参团次数 >= per_user_limit       |
-| 500  | 活动已结束              | 关联活动不在有效期内                  |
-
----
 
 ## 八、我的拼团列表
 
@@ -859,140 +1115,9 @@
 
 ---
 
-## 九、组团详情
 
-### 1. 接口信息
 
-- **请求方式**: GET
-- **完整路径**: `/pc/group/work/detail`
-- **认证要求**: 匿名可访问（`@Anonymous`），但已登录用户可获得额外信息
-- **接口说明**: 查询单个组团的详细信息，包含参团用户列表、组团进度、关联活动和商品信息。可用于分享页面展示
 
-### 2. 请求参数
-
-**Header:**
-
-| Header | 类型   | 必填 | 说明                      |
-| ------ | ------ | ---- | ------------------------- |
-| appid  | String | 是   | 网校 appid                 |
-| token  | String | 否   | 用户令牌（已登录则传）      |
-
-**Query Parameters:**
-
-| 参数名      | 类型 | 必填 | 说明                         |
-| ----------- | ---- | ---- | ---------------------------- |
-| groupWorkId | Long | 是   | 组团 ID（osh_group_work.id）  |
-
-### 3. 响应示例
-
-**成功响应:**
-```json
-{
-  "code": 200,
-  "msg": "操作成功",
-  "data": {
-    "id": 1001,
-    "group_activity_id": 1,
-    "activity_title": "Python入门课程 3人团",
-    "goods_type": "course",
-    "goods_id": 101,
-    "goods_snapshot": {
-      "title": "Python从入门到精通",
-      "cover": "/uploads/course/python.jpg"
-    },
-    "original_price": 299.00,
-    "group_price": 99.00,
-    "num": 2,
-    "total": 3,
-    "remain": 1,
-    "status": 0,
-    "status_text": "进行中",
-    "expire": "2026-04-17T18:00:00",
-    "created_time": "2026-04-16T18:00:00",
-    "leader": {
-      "username": "user001",
-      "nickname": "小明",
-      "avatar": "/uploads/avatar/001.jpg"
-    },
-    "users": [
-      {
-        "username": "user001",
-        "nickname": "小明",
-        "avatar": "/uploads/avatar/001.jpg",
-        "is_leader": true,
-        "join_time": "2026-04-16T18:00:00"
-      },
-      {
-        "username": "user002",
-        "nickname": "小红",
-        "avatar": "/uploads/avatar/002.jpg",
-        "is_leader": false,
-        "join_time": "2026-04-16T18:30:00"
-      }
-    ],
-    "current_user_joined": false,
-    "can_join": true,
-    "wechat_group_qr": null
-  }
-}
-```
-
-### 4. 响应字段说明
-
-| 字段名              | 类型              | 说明                                          |
-| ------------------- | ----------------- | --------------------------------------------- |
-| id                  | Long              | 组团 ID                                        |
-| group_activity_id   | Long              | 关联拼团活动 ID                                 |
-| activity_title      | String            | 活动标题                                       |
-| goods_type          | String            | 商品类型                                       |
-| goods_id            | Long              | 商品 ID                                        |
-| goods_snapshot      | Object            | 商品快照                                       |
-| original_price      | BigDecimal        | 商品原价                                       |
-| group_price         | BigDecimal        | 拼团价格                                       |
-| num                 | Integer           | 已参团人数                                      |
-| total               | Integer           | 成团所需总人数                                  |
-| remain              | Integer           | 还差几人成团（total - num）                     |
-| status              | Integer           | 组团状态：0-进行中 1-已成团 2-已取消/过期        |
-| status_text         | String            | 状态文字描述                                    |
-| expire              | String            | 组团过期时间                                    |
-| created_time        | String            | 组团发起时间                                    |
-| leader              | GroupUserVo       | 团长信息                                       |
-| users               | List              | 参团用户列表（含 is_leader 和 join_time）        |
-| current_user_joined | Boolean           | 当前登录用户是否已加入该团（未登录时为 false）    |
-| can_join            | Boolean           | 当前是否可以加入（综合状态、人数、过期时间判断）  |
-| wechat_group_qr     | String            | 微信群二维码 URL（仅已成团时返回）                |
-
-### 5. 业务逻辑
-
-```
-1. 查询 osh_group_work（groupWorkId），校验存在性
-2. 关联查询 osh_group_activity 获取活动信息和商品快照
-3. 查询 osh_group_user + osh_user 获取参团用户列表（含 is_leader、join_time）
-4. 提取 is_leader = 1 的用户作为 leader
-5. 计算 remain = total - num
-6. 判断 can_join：
-   a. status == 0（进行中）
-   b. num < total（未满员）
-   c. expire > NOW()（未过期）
-   d. 关联活动 status == 1 且在有效期内
-   e. 当前用户未加入该团（current_user_joined == false）
-   f. 当前用户未超过 per_user_limit
-7. 若传入 token 且有效：
-   a. 获取 userId
-   b. 查询 osh_group_user 中是否有 (group_work_id, userId) 的记录
-   c. 设置 current_user_joined
-8. wechat_group_qr 仅在 status == 1（已成团）时返回
-9. 状态文字映射：0→"进行中" 1→"已成团" 2→"已取消"
-```
-
-### 6. 错误码
-
-| code | msg        | 场景                         |
-| ---- | ---------- | ---------------------------- |
-| 200  | 操作成功    | 正常返回                      |
-| 500  | 组团不存在  | groupWorkId 无对应记录         |
-
----
 
 ## 附录
 
@@ -1088,3 +1213,5 @@
 > - 接口三/四：未校验活动状态和有效期
 > - 接口五：查询未过滤已过期/已满员的组团；存在 N+1 查询性能问题
 > - `OshGroupOrderController.add()`：使用 `@Anonymous` 无鉴权、hardcoded userId=1L、status 拼写为 "pendding"
+
+
