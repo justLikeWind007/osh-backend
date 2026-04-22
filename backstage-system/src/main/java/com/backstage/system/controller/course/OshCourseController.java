@@ -273,6 +273,21 @@ public class OshCourseController extends BaseController {
         }
     }
 
+    @ApiOperation("审核课程")
+    @PostMapping("/audit")
+    @PreAuthorize("hasAuthority('course:update')")
+    public R<Long> audit(@Validated @RequestBody CourseAuditRequest request) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        if (currentOshUser == null) {
+            return R.fail("请先登录");
+        }
+        try {
+            return R.ok(oshCourseService.auditCourse(request.getCourseId(), currentOshUser));
+        } catch (IllegalArgumentException ex) {
+            return R.fail(ex.getMessage());
+        }
+    }
+
     @ApiOperation("章节新增/修改")
     @PostMapping("/section/chapter/save")
     @PreAuthorize("hasAuthority('course:chapter:save')")

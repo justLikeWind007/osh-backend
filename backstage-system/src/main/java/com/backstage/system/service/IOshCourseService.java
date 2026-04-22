@@ -54,6 +54,8 @@ public interface IOshCourseService {
 
     Long updateCourse(CourseUpdateRequest request, OshUser operator);
 
+    Long auditCourse(Long courseId, OshUser operator);
+
     Long createCourseChapter(CourseChapterCreateRequest request, OshUser operator);
 
     Long createCourseTextSection(CourseTextSectionCreateRequest request, OshUser operator);

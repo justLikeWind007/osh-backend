@@ -366,6 +366,22 @@ public class OshCourseControllerSectionApiTest {
         assertTrue(detail.getCollectionCount() == null || detail.getCollectionCount() >= 0);
     }
 
+    @Test
+    public void shouldApprovePendingCourseByAuditApi() throws Exception {
+        Long courseId = createPendingAuditCourse();
+
+        performAsUser(buildCurrentUser(), post("/pc/course/audit")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"courseId\":" + courseId + "}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data").value(courseId));
+
+        OshCourse approvedCourse = oshCourseMapper.selectCourseById(courseId);
+        assertNotNull(approvedCourse);
+        assertEquals(Integer.valueOf(2), approvedCourse.getStatus());
+    }
+
     private Long extractDataId(MvcResult mvcResult) throws Exception {
         JsonNode jsonNode = objectMapper.readTree(mvcResult.getResponse().getContentAsString());
         return jsonNode.get("data").asLong();
@@ -399,6 +415,23 @@ public class OshCourseControllerSectionApiTest {
         course.setTPrice(new BigDecimal("19.90"));
         course.setType("media");
         course.setStatus(2);
+        course.setCreateBy("integration_test_user");
+        course.setUpdateBy("integration_test_user");
+        oshCourseMapper.insertCourse(course);
+        return course.getId();
+    }
+
+    private Long createPendingAuditCourse() {
+        String suffix = String.valueOf(System.currentTimeMillis());
+        OshCourse course = new OshCourse();
+        course.setTitle("待审核课程-" + suffix);
+        course.setCover("https://oss.example.com/course-audit-cover.png");
+        course.setIntro("待审核课程简介");
+        course.setServiceContent("待审核课程服务内容");
+        course.setPrice(new BigDecimal("19.90"));
+        course.setTPrice(new BigDecimal("29.90"));
+        course.setType("media");
+        course.setStatus(1);
         course.setCreateBy("integration_test_user");
         course.setUpdateBy("integration_test_user");
         oshCourseMapper.insertCourse(course);

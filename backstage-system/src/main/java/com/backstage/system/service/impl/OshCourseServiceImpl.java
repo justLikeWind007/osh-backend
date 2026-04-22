@@ -302,6 +302,25 @@ public class OshCourseServiceImpl implements IOshCourseService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long auditCourse(Long courseId, OshUser operator) {
+        OshCourse existingCourse = ensureCourseExists(courseId);
+        if (!Objects.equals(existingCourse.getStatus(), CourseConstants.STATUS_PENDING_AUDIT)) {
+            throw new IllegalArgumentException("只有待审核课程才可以审核通过");
+        }
+
+        OshCourse course = new OshCourse();
+        course.setId(courseId);
+        course.setStatus(CourseConstants.STATUS_PUBLISHED);
+        course.setUpdateBy(operator == null ? null : StringUtils.trimToNull(operator.getUsername()));
+        int rows = oshCourseMapper.updateCourse(course);
+        if (rows <= 0) {
+            throw new IllegalArgumentException("审核课程失败");
+        }
+        return courseId;
+    }
+
+    @Override
     public void updateCourseChapter(CourseChapterCreateRequest request, OshUser operator) {
         OshCourseSection section = new OshCourseSection();
         Date now = new Date();
