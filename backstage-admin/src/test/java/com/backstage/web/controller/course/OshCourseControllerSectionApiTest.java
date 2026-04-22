@@ -10,12 +10,15 @@ import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.course.OshCourseQuestionMapper;
 import com.backstage.system.request.CourseChapterCreateRequest;
+import com.backstage.system.request.CourseCreateRequest;
 import com.backstage.system.request.CourseQuestionAnswerRequest;
 import com.backstage.system.request.CourseSearchRequest;
 import com.backstage.system.request.CourseSectionQuestionRequest;
+import com.backstage.system.request.CourseUpdateRequest;
 import com.backstage.system.request.CourseVideoSectionCreateRequest;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -382,6 +385,38 @@ public class OshCourseControllerSectionApiTest {
         assertEquals(Integer.valueOf(2), approvedCourse.getStatus());
     }
 
+    @Test
+    public void shouldBlockUpdateAfterSaveForSameUserWithinOneMinute() throws Exception {
+        OshUser currentUser = buildLockTestUser();
+        Long courseId = createOwnedCourse(currentUser, 1);
+
+        CourseCreateRequest saveRequest = new CourseCreateRequest();
+        saveRequest.setTitle("锁测试新增课程-" + System.currentTimeMillis());
+        saveRequest.setCover("https://oss.example.com/lock-save-cover.png");
+        saveRequest.setIntro("锁测试新增课程简介");
+        saveRequest.setServiceContent("锁测试新增课程服务内容");
+        saveRequest.setPrice(new BigDecimal("9.90"));
+        saveRequest.setTPrice(new BigDecimal("19.90"));
+        saveRequest.setType("media");
+
+        performAsUser(currentUser, post("/pc/course/save")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(saveRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        CourseUpdateRequest updateRequest = new CourseUpdateRequest();
+        updateRequest.setId(courseId);
+        updateRequest.setTitle("锁测试修改课程标题");
+
+        performAsUser(currentUser, post("/pc/course/update")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(500))
+                .andExpect(jsonPath("$.msg").value(Matchers.containsString("acquire lock failed")));
+    }
+
     private Long extractDataId(MvcResult mvcResult) throws Exception {
         JsonNode jsonNode = objectMapper.readTree(mvcResult.getResponse().getContentAsString());
         return jsonNode.get("data").asLong();
@@ -438,6 +473,23 @@ public class OshCourseControllerSectionApiTest {
         return course.getId();
     }
 
+    private Long createOwnedCourse(OshUser user, Integer status) {
+        String suffix = String.valueOf(System.currentTimeMillis());
+        OshCourse course = new OshCourse();
+        course.setTitle("锁测试课程-" + suffix);
+        course.setCover("https://oss.example.com/lock-course-cover.png");
+        course.setIntro("锁测试课程简介");
+        course.setServiceContent("锁测试课程服务内容");
+        course.setPrice(new BigDecimal("19.90"));
+        course.setTPrice(new BigDecimal("29.90"));
+        course.setType("media");
+        course.setStatus(status);
+        course.setCreateBy(user.getUsername());
+        course.setUpdateBy(user.getUsername());
+        oshCourseMapper.insertCourse(course);
+        return course.getId();
+    }
+
     private Long createParentChapter(Long courseId) {
         OshCourseSection section = new OshCourseSection();
         section.setCourseId(courseId);
@@ -464,6 +516,14 @@ public class OshCourseControllerSectionApiTest {
         OshUser oshUser = new OshUser();
         oshUser.setId(1L);
         oshUser.setUsername("user_1_test");
+        return oshUser;
+    }
+
+    private OshUser buildLockTestUser() {
+        long userId = System.currentTimeMillis();
+        OshUser oshUser = new OshUser();
+        oshUser.setId(userId);
+        oshUser.setUsername("lock_test_user_" + userId);
         return oshUser;
     }
 
