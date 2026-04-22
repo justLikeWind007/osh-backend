@@ -19,6 +19,7 @@ public class OshCourseQuestion {
     private Integer solveStatus;
     private Long acceptedAnswerId;
     private Integer replyCount;
+    private Integer likeCount;
     private Date lastReplyTime;
     private Integer status;
     private Integer deleteFlag;
@@ -121,6 +122,14 @@ public class OshCourseQuestion {
 
     public void setReplyCount(Integer replyCount) {
         this.replyCount = replyCount;
+    }
+
+    public Integer getLikeCount() {
+        return likeCount;
+    }
+
+    public void setLikeCount(Integer likeCount) {
+        this.likeCount = likeCount;
     }
 
     public Date getLastReplyTime() {

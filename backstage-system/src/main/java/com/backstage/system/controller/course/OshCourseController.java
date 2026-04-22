@@ -351,17 +351,12 @@ public class OshCourseController extends BaseController {
 
 
     @ApiOperation("获取章节提问列表")
-    @GetMapping("/section/questions/{courseId}/{sectionId}")
+    @PostMapping("/section/questions/list")
     @Anonymous
-    public R<PageResponse<CourseQuestionListItemVo>> getSectionQuestions(@NotNull @PathVariable Long courseId, @NotNull @PathVariable Long sectionId, @RequestParam(required = false) Integer pageNum, @RequestParam(required = false) Integer pageSize) {
-        CourseQuestionPageRequest request = new CourseQuestionPageRequest();
-        request.setCourseId(courseId);
-        request.setSectionId(sectionId);
-        request.setPageNum(pageNum == null ? 1 : pageNum);
-        request.setPageSize(pageSize == null ? 10 : pageSize);
-        List<CourseQuestionListItemVo> list = oshCourseQuestionService.listSectionQuestions(request);
-        PageInfo<CourseQuestionListItemVo> pageInfo = new PageInfo<>(list);
-        return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
+    public R<List<CourseQuestionListItemVo>> getSectionQuestions(@Validated @RequestBody CourseSectionQuestionListRequest request) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long userId = currentOshUser == null ? null : currentOshUser.getId();
+        return R.ok(oshCourseQuestionService.listSectionQuestions(userId, request), "ok");
     }
 
     // TODO 需要校验用户是否有权限对整个课程
@@ -420,5 +415,7 @@ public class OshCourseController extends BaseController {
         oshCourseService.deleteCoursesByIds(request.getIds(), currentOshUser);
         return R.ok("删除成功");
     }
+
+
 
 }

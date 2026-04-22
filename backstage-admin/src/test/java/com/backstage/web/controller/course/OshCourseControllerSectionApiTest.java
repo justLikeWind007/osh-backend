@@ -12,6 +12,7 @@ import com.backstage.system.mapper.course.OshCourseQuestionMapper;
 import com.backstage.system.request.CourseChapterCreateRequest;
 import com.backstage.system.request.CourseCreateRequest;
 import com.backstage.system.request.CourseQuestionAnswerRequest;
+import com.backstage.system.request.CourseSectionQuestionListRequest;
 import com.backstage.system.request.CourseSearchRequest;
 import com.backstage.system.request.CourseSectionQuestionRequest;
 import com.backstage.system.request.CourseUpdateRequest;
@@ -223,45 +224,50 @@ public class OshCourseControllerSectionApiTest {
     }
 
     @Test
-    public void shouldPageSectionQuestionsOrderedByCreateTimeDesc() throws Exception {
+    public void shouldSortSectionQuestionsByLikeCountAndCreateTimeWhenAnonymous() throws Exception {
         String suffix = String.valueOf(System.currentTimeMillis());
+        Long courseId = createTestCourse();
+        Long sectionId = createParentChapter(courseId);
+        insertQuestionRecord(courseId, sectionId, 11L, "匿名排序低赞新问题-" + suffix, "内容1", 3, new java.util.Date(System.currentTimeMillis()));
+        insertQuestionRecord(courseId, sectionId, 12L, "匿名排序高赞旧问题-" + suffix, "内容2", 9, new java.util.Date(System.currentTimeMillis() - 10000L));
+        insertQuestionRecord(courseId, sectionId, 13L, "匿名排序高赞新问题-" + suffix, "内容3", 9, new java.util.Date(System.currentTimeMillis()));
 
-        CourseSectionQuestionRequest firstRequest = new CourseSectionQuestionRequest();
-        firstRequest.setCourseId(935L);
-        firstRequest.setSectionId(2L);
-        firstRequest.setTitle("较早提问-" + suffix);
-        firstRequest.setContent("较早提问内容-" + suffix);
+        CourseSectionQuestionListRequest request = new CourseSectionQuestionListRequest();
+        request.setCourseId(courseId);
+        request.setSectionId(sectionId);
 
-        CourseSectionQuestionRequest secondRequest = new CourseSectionQuestionRequest();
-        secondRequest.setCourseId(935L);
-        secondRequest.setSectionId(2L);
-        secondRequest.setTitle("较晚提问-" + suffix);
-        secondRequest.setContent("较晚提问内容-" + suffix);
-
-        performAsUser(buildUserOne(), post("/pc/course/section/submit")
+        mockMvc.perform(post("/pc/course/section/questions/list")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(firstRequest)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
-
-        Thread.sleep(5L);
-
-        performAsUser(buildUserOne(), post("/pc/course/section/submit")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(secondRequest)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
-
-        mockMvc.perform(get("/pc/course/section/questions/935/2")
-                        .param("pageNum", "1")
-                        .param("pageSize", "2"))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data.total").exists())
-                .andExpect(jsonPath("$.data.pageNum").value(1))
-                .andExpect(jsonPath("$.data.pageSize").value(2))
-                .andExpect(jsonPath("$.data.rows[0].title").value("较晚提问-" + suffix))
-                .andExpect(jsonPath("$.data.rows[1].title").value("较早提问-" + suffix));
+                .andExpect(jsonPath("$.data[0].title").value("匿名排序高赞新问题-" + suffix))
+                .andExpect(jsonPath("$.data[1].title").value("匿名排序高赞旧问题-" + suffix))
+                .andExpect(jsonPath("$.data[2].title").value("匿名排序低赞新问题-" + suffix));
+    }
+
+    @Test
+    public void shouldSortSectionQuestionsByOwnerThenLikeCountAndCreateTimeWhenLoggedIn() throws Exception {
+        String suffix = String.valueOf(System.currentTimeMillis());
+        OshUser currentUser = buildUserOne();
+        Long courseId = createOwnedCourse(currentUser, 1);
+        Long sectionId = createParentChapter(courseId);
+        insertQuestionRecord(courseId, sectionId, currentUser.getId(), "我的低赞问题-" + suffix, "内容1", 1, new java.util.Date(System.currentTimeMillis() - 20000L));
+        insertQuestionRecord(courseId, sectionId, 22L, "别人的高赞问题-" + suffix, "内容2", 99, new java.util.Date(System.currentTimeMillis()));
+        insertQuestionRecord(courseId, sectionId, currentUser.getId(), "我的高赞问题-" + suffix, "内容3", 8, new java.util.Date(System.currentTimeMillis()));
+
+        CourseSectionQuestionListRequest request = new CourseSectionQuestionListRequest();
+        request.setCourseId(courseId);
+        request.setSectionId(sectionId);
+
+        performAsUser(currentUser, post("/pc/course/section/questions/list")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data[0].title").value("我的高赞问题-" + suffix))
+                .andExpect(jsonPath("$.data[1].title").value("我的低赞问题-" + suffix))
+                .andExpect(jsonPath("$.data[2].title").value("别人的高赞问题-" + suffix));
     }
 
     @Test
@@ -488,6 +494,30 @@ public class OshCourseControllerSectionApiTest {
         course.setUpdateBy(user.getUsername());
         oshCourseMapper.insertCourse(course);
         return course.getId();
+    }
+
+    private Long insertQuestionRecord(Long courseId, Long sectionId, Long userId, String title, String content, Integer likeCount, java.util.Date createTime) {
+        OshCourseQuestion question = new OshCourseQuestion();
+        question.setCourseId(courseId);
+        question.setSectionId(sectionId);
+        question.setUserId(userId);
+        question.setQuestionId(0L);
+        question.setParentId(0L);
+        question.setRecordType(1);
+        question.setTitle(title);
+        question.setContent(content);
+        question.setSolveStatus(0);
+        question.setAcceptedAnswerId(0L);
+        question.setReplyCount(0);
+        question.setLikeCount(likeCount);
+        question.setStatus(1);
+        question.setDeleteFlag(0);
+        question.setCreateBy("question_test_user_" + userId);
+        question.setCreateTime(createTime);
+        question.setUpdateBy("question_test_user_" + userId);
+        question.setUpdateTime(createTime);
+        oshCourseQuestionMapper.insertCourseQuestion(question);
+        return question.getId();
     }
 
     private Long createParentChapter(Long courseId) {
