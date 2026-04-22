@@ -199,7 +199,7 @@ public class OshCourseController extends BaseController {
     @ApiOperation("新增/修改课程")
     @PostMapping("/save")
     @PreAuthorize("hasAuthority('course:create')")
-    @DistributeLock(scene = "resource", key = "operation", expireTime = 60000, waitTime = 0)
+    @DistributeLock(scene = "resource", key = "operation", expireTime = 60000, waitTime = 0, releaseImmediately = false)
     public R<Long> save(@RequestBody CourseCreateRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         if (currentOshUser == null) return R.fail("请先登录");
@@ -259,7 +259,7 @@ public class OshCourseController extends BaseController {
     @ApiOperation("修改课程")
     @PostMapping("/update")
     @PreAuthorize("hasAuthority('course:update')")
-    @DistributeLock(scene = "resource", key = "operation", expireTime = 60000, waitTime = 0)
+    @DistributeLock(scene = "resource", key = "operation", expireTime = 60000, waitTime = 0, releaseImmediately = false)
     public R<Long> update(@Validated @RequestBody CourseUpdateRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         if (currentOshUser == null) {
@@ -276,6 +276,7 @@ public class OshCourseController extends BaseController {
     @ApiOperation("审核课程")
     @PostMapping("/audit")
     @PreAuthorize("hasAuthority('course:update')")
+    @DistributeLock(scene = "course:audit", key = "api", expireTime = 60000, waitTime = 0, releaseImmediately = false)
     public R<Long> audit(@Validated @RequestBody CourseAuditRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         if (currentOshUser == null) {

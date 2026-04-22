@@ -84,40 +84,46 @@ public class DistributeLockAspect {
 
         int expireTime = distributeLock.expireTime();
         int waitTime = distributeLock.waitTime();
+        boolean releaseImmediately = distributeLock.releaseImmediately();
+        if (!releaseImmediately && expireTime == DistributeLockConstant.DEFAULT_EXPIRE_TIME) {
+            throw new DistributeLockException("expireTime must be configured when releaseImmediately is false");
+        }
         RLock rLock = redissonClient.getLock(lockKey);
         boolean lockResult = false;
         if (waitTime == DistributeLockConstant.DEFAULT_WAIT_TIME) {
             if (expireTime == DistributeLockConstant.DEFAULT_EXPIRE_TIME) {
-                LOG.info(String.format("lock for key : %s", lockKey));
+                LOG.info("lock for key : {}", lockKey);
                 rLock.lock();
             } else {
-                LOG.info(String.format("lock for key : %s , expire : %s", lockKey, expireTime));
+                LOG.info("lock for key : {}, expire : {}", lockKey, expireTime);
                 rLock.lock(expireTime, TimeUnit.MILLISECONDS);
             }
             lockResult = true;
         } else {
             if (expireTime == DistributeLockConstant.DEFAULT_EXPIRE_TIME) {
-                LOG.info(String.format("try lock for key : %s , wait : %s", lockKey, waitTime));
+                LOG.info("try lock for key : {}, wait : {}", lockKey, waitTime);
                 lockResult = rLock.tryLock(waitTime, TimeUnit.MILLISECONDS);
             } else {
-                LOG.info(String.format("try lock for key : %s , expire : %s , wait : %s", lockKey, expireTime, waitTime));
+                LOG.info("try lock for key : {} , expire : {} , wait : {}", lockKey, expireTime, waitTime);
                 lockResult = rLock.tryLock(waitTime, expireTime, TimeUnit.MILLISECONDS);
             }
         }
 
         if (!lockResult) {
-            LOG.warn(String.format("lock failed for key : %s , expire : %s", lockKey, expireTime));
+            LOG.warn("lock failed for key : {} , expire : {}", lockKey, expireTime);
             throw new DistributeLockException("acquire lock failed... key : " + lockKey);
         }
 
         try {
-            LOG.info(String.format("lock success for key : %s , expire : %s", lockKey, expireTime));
+            LOG.info("lock success for key : {} , expire : {}", lockKey, expireTime);
             response = pjp.proceed();
         } catch (Throwable e) {
             throw new Exception(e);
         } finally {
-            rLock.unlock();
-            LOG.info(String.format("unlock for key : %s , expire : %s", lockKey, expireTime));
+            if (releaseImmediately && rLock.isHeldByCurrentThread()) {
+                rLock.unlock();
+                LOG.info("unlock for key : {} , expire : {}", lockKey, expireTime);
+            }
         }
         return response;
     }
