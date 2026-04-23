@@ -1,6 +1,7 @@
 package com.backstage.system.controller.website;
 
 import com.backstage.common.annotation.Anonymous;
+import com.backstage.common.annotation.OshUserActionLog;
 import com.backstage.common.core.controller.BaseController;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.core.page.TableDataInfo;
@@ -17,6 +18,7 @@ import com.backstage.system.service.website.OshWebsiteUserRatingService;
 import com.github.pagehelper.PageInfo;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -39,17 +41,17 @@ public class OshPracticalWebsiteController extends BaseController {
     @Autowired
     private OshUserFavoriteWebsiteService oshUserFavoriteWebsiteService;
 
-   @Resource
-   private OshWebsiteUserRatingService oshWebsiteUserRatingService;
+    @Resource
+    private OshWebsiteUserRatingService oshWebsiteUserRatingService;
 
     /**
-     * 查询实用网站列表（支持按名称和标签筛选）
+     * 查询实用网站列表（公开，游客可访问）
      */
     @Anonymous
     @ApiOperation("查询实用网站列表")
     @PostMapping("/list")
     public R<Map<String, Object>> list(@RequestBody WebsiteQueryDTO queryDTO) {
-         List<OshPracticalWebsiteVO> list = oshPracticalWebsiteService.selectWebsitePage(queryDTO);
+        List<OshPracticalWebsiteVO> list = oshPracticalWebsiteService.selectWebsitePage(queryDTO);
         PageInfo<OshPracticalWebsiteVO> oshPracticalWebsiteVoPageInfo = new PageInfo<>(list);
         Map<String, Object> data = new LinkedHashMap<>(4);
         data.put("rows", list);
@@ -60,7 +62,7 @@ public class OshPracticalWebsiteController extends BaseController {
     }
 
     /**
-     * 增加网站点击次数
+     * 增加网站点击次数（公开）
      */
     @Anonymous
     @ApiOperation("增加网站点击次数")
@@ -71,68 +73,60 @@ public class OshPracticalWebsiteController extends BaseController {
     }
 
     /**
-     * 用户提交网站
+     * 用户提交网站（公开）
      */
     @Anonymous
     @ApiOperation("用户提交网站")
     @PostMapping("/submit")
     public R submit(@RequestBody WebsiteSubmitDTO submitDto) {
         try {
-            // 调用 Service 层保存网站信息
             int result = oshPracticalWebsiteService.submitWebsite(submitDto);
-            // 判断是否保存成功
             if (result > 0) {
                 return R.ok();
             } else {
                 return R.fail("提交失败，请稍后重试");
             }
         } catch (IllegalArgumentException e) {
-            // 捕获参数校验异常
             return R.fail(e.getMessage());
         } catch (Exception e) {
-            // 捕获其他异常
             e.printStackTrace();
             return R.fail("网络开小差");
         }
     }
+
     /**
-     * 用户收藏网站
+     * 用户收藏网站（需登录）
      */
     @ApiOperation("用户收藏网站")
-    @Anonymous
     @PostMapping("/favorite")
-    public R<Void> favorite(Long websiteId, @RequestParam (value = "remark", required = false) String remark) {
+    @OshUserActionLog(module = "实用网站", actionType = "收藏", description = "收藏网站")
+    @PreAuthorize("hasAuthority('website:favorite')")
+    public R<Void> favorite(Long websiteId, @RequestParam(value = "remark", required = false) String remark) {
         try {
-            // 调用 Service 层进行收藏
             int result = oshUserFavoriteWebsiteService.favoriteWebsite(websiteId);
-            // 判断是否收藏成功
             if (result > 0) {
                 return R.ok();
             } else {
                 return R.fail("收藏失败，请勿重复收藏");
             }
         } catch (IllegalArgumentException e) {
-            // 捕获参数校验异常（如重复收藏）
             return R.fail(e.getMessage());
         } catch (Exception e) {
-            // 捕获其他异常
             e.printStackTrace();
             return R.fail("网络开小差");
         }
     }
+
     /**
-     * 用户取消收藏网站
+     * 用户取消收藏网站（需登录）
      */
     @ApiOperation("用户取消收藏网站")
-    @Anonymous
     @GetMapping("/del")
+    @OshUserActionLog(module = "实用网站", actionType = "取消收藏", description = "取消收藏网站")
+    @PreAuthorize("hasAuthority('website:favorite:cancel')")
     public R<Void> cancelFavorite(@RequestParam("websiteId") Long websiteId) {
         try {
-
-            // 调用 Service 层取消收藏
             int result = oshUserFavoriteWebsiteService.cancelFavoriteWebsite(websiteId);
-
-            // 判断是否取消成功
             if (result > 0) {
                 return R.ok();
             } else {
@@ -147,18 +141,16 @@ public class OshPracticalWebsiteController extends BaseController {
     }
 
     /**
-     * 查询用户的收藏网站列表（分页）
+     * 查询用户的收藏网站列表（需登录）
      */
     @ApiOperation("查询用户的收藏网站列表")
-    @Anonymous
     @GetMapping("/Favorites")
+    @PreAuthorize("hasAuthority('website:favorite:list')")
     public R<TableDataInfo> getMyFavoriteList(
             @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
             @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
         try {
-            // 调用 Service 层查询收藏列表
-            TableDataInfo result =
-                    oshUserFavoriteWebsiteService.selectUserFavoriteList(pageNum, pageSize);
+            TableDataInfo result = oshUserFavoriteWebsiteService.selectUserFavoriteList(pageNum, pageSize);
             return R.ok(result);
         } catch (Exception e) {
             e.printStackTrace();
@@ -167,23 +159,22 @@ public class OshPracticalWebsiteController extends BaseController {
     }
 
     /**
-     * 管理员审核网站
+     * 管理员审核网站（需权限）
      */
     @ApiOperation("管理员审核网站")
-    @Anonymous
     @PostMapping("/audit")
+    @OshUserActionLog(module = "实用网站", actionType = "审核", description = "审核网站")
+    @PreAuthorize("hasAuthority('website:audit')")
     public R<String> audit(@RequestBody WebsiteAuditDTO auditDto) {
         try {
-            //从拦截器获取当前登录的管理员 ID
-             //Long adminId = ThreadLocalUtil.get("admin",Long.class);
-            //TODO 验证是否是管理员登录
-            // 调用 Service 层审核
             boolean auditResult = oshPracticalWebsiteService.auditWebsite(auditDto);
             if (auditResult) {
-                return R.ok("审核成功");
+                // 通过和拒绝都算操作成功
+                Integer status = auditDto.getStatus();
+                String msg = (status == 1) ? "审核通过" : "已拒绝";
+                return R.ok(msg);
             } else {
-
-                return R.fail( "审核失败: "+ auditDto.getRejectReason());
+                return R.fail("审核操作失败，请稍后重试");
             }
         } catch (IllegalArgumentException e) {
             return R.fail(e.getMessage());
@@ -194,15 +185,14 @@ public class OshPracticalWebsiteController extends BaseController {
     }
 
     /**
-     * 查询待审核的网站列表
+     * 查询待审核的网站列表（需权限）
      */
     @ApiOperation("查询待审核网站列表")
-    @Anonymous
     @GetMapping("/audit/list")
+    @PreAuthorize("hasAuthority('website:audit:list')")
     public R<TableDataInfo> getAuditByList(
             @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
-            @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize
-            ) {
+            @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
         try {
             TableDataInfo result = oshPracticalWebsiteService.selectAuditList(pageNum, pageSize);
             return R.ok(result);
@@ -211,27 +201,22 @@ public class OshPracticalWebsiteController extends BaseController {
             return R.fail("查询失败");
         }
     }
+
     /**
-     * 根据 ID 查询待审核网站的详情
-     *
-     * @param websiteId 网站ID
-     * @return 网站详细信息
+     * 根据 ID 查询待审核网站详情（需权限）
      */
     @ApiOperation("查询待审核网站详情")
-    @Anonymous
     @GetMapping("/audit/detail/{websiteId}")
+    @PreAuthorize("hasAuthority('website:audit:detail')")
     public R<OshPracticalWebsiteVO> getAuditDetail(@PathVariable Long websiteId) {
         try {
             if (websiteId == null) {
                 return R.fail("网站ID不能为空");
             }
-
             OshPracticalWebsiteVO website = oshPracticalWebsiteService.getAuditDetail(websiteId);
-
             if (website == null) {
                 return R.fail("网站不存在或已审核");
             }
-
             return R.ok(website);
         } catch (Exception e) {
             e.printStackTrace();
@@ -240,19 +225,15 @@ public class OshPracticalWebsiteController extends BaseController {
     }
 
     /**
-     * 管理员批量删除网站
+     * 管理员批量删除网站（需权限）
      */
     @ApiOperation("批量删除网站")
-    @Anonymous
     @GetMapping("/batch")
+    @OshUserActionLog(module = "实用网站", actionType = "删除", description = "批量删除网站")
+    @PreAuthorize("hasAuthority('website:delete:batch')")
     public R<String> batchDelete(@RequestParam List<Integer> websiteIds) {
         try {
-            //从拦截器获取当前登录的管理员 ID
-            Long adminId = ThreadLocalUtil.get("admin",Long.class);
-
-            // 调用 Service 层批量删除
             int result = oshPracticalWebsiteService.batchDeleteWebsite(websiteIds);
-
             return R.ok("成功删除 " + result + " 个网站");
         } catch (ServiceException e) {
             return R.fail(e.getMessage());
@@ -263,28 +244,19 @@ public class OshPracticalWebsiteController extends BaseController {
     }
 
     /**
-     * 用户提交网站评价(好评/中评/差评)
+     * 用户提交网站评价（需登录）
      */
     @ApiOperation("提交网站评价")
     @PostMapping("/rating/submit")
-    @Anonymous
+    @OshUserActionLog(module = "实用网站", actionType = "评价", description = "提交网站评价")
+    @PreAuthorize("hasAuthority('website:rating:submit')")
     public R<Void> submitRating(@RequestBody WebsiteRatingDTO ratingDTO) {
         try {
-            // 从登录信息中获取当前用户ID
-             Long userId = getCurrentUser().getId();
-            //Long userId = 1l;
-
+            Long userId = getCurrentUser().getId();
             if (userId == null) {
                 return R.fail("请先登录");
             }
-
-            // 调用 Service 层提交评价
-            oshWebsiteUserRatingService.submitRating(
-                    userId,
-                    ratingDTO.getWebsiteId(),
-                    ratingDTO.getRatingType()
-            );
-
+            oshWebsiteUserRatingService.submitRating(userId, ratingDTO.getWebsiteId(), ratingDTO.getRatingType());
             return R.ok();
         } catch (IllegalArgumentException e) {
             return R.fail(e.getMessage());

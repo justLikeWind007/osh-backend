@@ -2,10 +2,16 @@ package com.backstage.system.controller.book;
 
 import com.backstage.common.annotation.OshUserEvent;
 import com.backstage.common.core.domain.R;
+import com.backstage.system.config.properties.SearchEsProperties;
 import com.backstage.system.domain.vo.book.*;
+import com.backstage.system.service.book.IBookEsService;
 import com.backstage.system.service.book.IBookService;
+import com.backstage.system.utils.UserContextUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.annotations.ApiOperation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,8 +29,16 @@ import java.util.List;
 @RequestMapping("/pc/book")
 public class BookController {
 
+    private static final Logger log = LoggerFactory.getLogger(BookController.class);
+
     @Resource
     private IBookService bookService;
+
+    @Autowired
+    private IBookEsService bookEsService;
+
+    @Autowired
+    private SearchEsProperties searchEsProperties;
 
     /**
      * 电子书列表
@@ -34,6 +48,15 @@ public class BookController {
     @PreAuthorize("hasAuthority('book:list')")
     @PostMapping("/page")
     public R<Page<BookListVO>> list(@RequestBody BookListReqVO reqVO) {
+        reqVO.setUserLevel(UserContextUtil.getCurrentLevel());
+        if (searchEsProperties.isEnabled()) {
+            try {
+                log.info("使用es查询电子书");
+                return R.ok(bookEsService.searchBooks(reqVO));
+            } catch (Exception ex) {
+                log.warn("book search fallback to mysql after es failure, reqVO={}", reqVO, ex);
+            }
+        }
         Page<BookListVO> pageResult = bookService.getBookPageList(reqVO);
         return R.ok(pageResult);
     }
@@ -172,6 +195,11 @@ public class BookController {
         return R.ok(bookList);
     }
 
-
+    @ApiOperation(value = "全量同步电子书到ES")
+    @PostMapping("/esSync/all")
+    @Anonymous
+    public R<Integer> syncAllBooksToEs() {
+        return R.ok(bookEsService.syncAllBooksToEs(), "ok");
+    }
 
 }
