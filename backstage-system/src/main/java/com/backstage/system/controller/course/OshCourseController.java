@@ -66,6 +66,7 @@ public class OshCourseController extends BaseController {
     @PostMapping("/search")
     @Anonymous
     public R<PageResponse<CourseSearchLoginVo>> courseSearch(@RequestBody CourseSearchRequest request) {
+        normalizeCollectionFilter(request);
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         Long userId = currentOshUser == null ? null : currentOshUser.getId();
         // 当用户请求查看"收藏"类型的课程（collectionFlag=1）但用户未登录时，直接返回一个空的分页结果，而不是继续执行搜索。
@@ -83,6 +84,15 @@ public class OshCourseController extends BaseController {
         List<CourseSearchLoginVo> list = oshCourseService.pageQuerySearchCourse(userId, request);
         PageInfo<CourseSearchLoginVo> pageInfo = new PageInfo<>(list);
         return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
+    }
+
+    private void normalizeCollectionFilter(CourseSearchRequest request) {
+        if (request == null) {
+            return;
+        }
+        if (request.getCollectionFlag() == null && Boolean.TRUE.equals(request.getIsFollowing())) {
+            request.setCollectionFlag(1);
+        }
     }
 
     @ApiOperation("ES课程搜索")

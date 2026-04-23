@@ -16,6 +16,7 @@ public class CourseSearchRequest extends PageRequest {
     private List<String> tags;
     private String keyword;
     private String resourceType;
+    private Boolean isFollowing;
     private Integer collectionFlag;
 
     public CourseSearchRequest() {
@@ -48,6 +49,14 @@ public class CourseSearchRequest extends PageRequest {
 
     public void setResourceType(String resourceType) {
         this.resourceType = StringUtils.trimToNull(resourceType);
+    }
+
+    public Boolean getIsFollowing() {
+        return isFollowing;
+    }
+
+    public void setIsFollowing(Boolean isFollowing) {
+        this.isFollowing = isFollowing;
     }
 
     public Integer getCollectionFlag() {

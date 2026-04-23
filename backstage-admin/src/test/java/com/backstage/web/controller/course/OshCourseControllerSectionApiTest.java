@@ -4,9 +4,11 @@ import com.backstage.RuoYiApplication;
 import com.backstage.common.constant.OshUserConstants;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.system.domain.course.OshCourse;
+import com.backstage.system.domain.course.OshCourseCollection;
 import com.backstage.system.domain.course.OshCourseQuestion;
 import com.backstage.system.domain.course.OshCourseSection;
 import com.backstage.system.domain.user.OshUser;
+import com.backstage.system.mapper.course.OshCourseCollectionMapper;
 import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.course.OshCourseQuestionMapper;
 import com.backstage.system.request.CourseChapterCreateRequest;
@@ -51,6 +53,9 @@ public class OshCourseControllerSectionApiTest {
 
     @Autowired
     private OshCourseMapper oshCourseMapper;
+
+    @Autowired
+    private OshCourseCollectionMapper oshCourseCollectionMapper;
 
     @Autowired
     private OshCourseQuestionMapper oshCourseQuestionMapper;
@@ -356,6 +361,29 @@ public class OshCourseControllerSectionApiTest {
     }
 
     @Test
+    public void shouldTreatIsFollowingAsCollectionFilterForCourseSearch() throws Exception {
+        Long courseId = createPublishedTestCourse();
+        ensureUserCollectedCourse(1L, courseId);
+
+        String requestBody = "{"
+                + "\"keyword\":\"\","
+                + "\"tags\":[],"
+                + "\"pageNum\":1,"
+                + "\"pageSize\":10,"
+                + "\"isFollowing\":true,"
+                + "\"collectionFlag\":null"
+                + "}";
+
+        performAsUser(buildUserOne(), post("/pc/course/search")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.rows[0].id").value(courseId))
+                .andExpect(jsonPath("$.data.rows[0].collectionFlag").value(1));
+    }
+
+    @Test
     public void shouldMapCollectionCountInCourseDetail() {
         Long courseId = createPublishedTestCourse();
 
@@ -403,6 +431,22 @@ public class OshCourseControllerSectionApiTest {
         course.setUpdateBy("integration_test_user");
         oshCourseMapper.insertCourse(course);
         return course.getId();
+    }
+
+    private void ensureUserCollectedCourse(Long userId, Long courseId) {
+        OshCourseCollection existing = oshCourseCollectionMapper.selectByUserIdAndCourseId(userId, courseId);
+        if (existing != null) {
+            if (!Integer.valueOf(0).equals(existing.getDeleteFlag())) {
+                oshCourseCollectionMapper.updateCollectionDeleteFlag(existing.getId(), 0, "integration_test_user");
+            }
+            return;
+        }
+        OshCourseCollection collection = new OshCourseCollection();
+        collection.setUserId(userId);
+        collection.setCourseId(courseId);
+        collection.setCreateBy("integration_test_user");
+        collection.setUpdateBy("integration_test_user");
+        oshCourseCollectionMapper.insertCourseCollection(collection);
     }
 
     private Long createParentChapter(Long courseId) {
