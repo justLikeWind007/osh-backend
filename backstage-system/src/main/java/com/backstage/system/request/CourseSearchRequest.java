@@ -16,6 +16,7 @@ public class CourseSearchRequest extends PageRequest {
     private List<String> tags;
     private String keyword;
     private String resourceType;
+    private Integer collectionFlag;
 
     public CourseSearchRequest() {
     }
@@ -47,5 +48,13 @@ public class CourseSearchRequest extends PageRequest {
 
     public void setResourceType(String resourceType) {
         this.resourceType = StringUtils.trimToNull(resourceType);
+    }
+
+    public Integer getCollectionFlag() {
+        return collectionFlag;
+    }
+
+    public void setCollectionFlag(Integer collectionFlag) {
+        this.collectionFlag = collectionFlag;
     }
 }
