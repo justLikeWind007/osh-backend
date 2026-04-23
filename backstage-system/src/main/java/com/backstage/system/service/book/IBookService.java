@@ -109,4 +109,35 @@ public interface IBookService extends IService<BookDO> {
      * @return 标签名称列表
      */
     List<String> getTagList();
+
+    /**
+     * 收藏/取消收藏电子书
+     *
+     * @param bookId 电子书ID
+     * @param status 0-取消收藏，1-收藏
+     */
+    void favoriteBook(Long bookId, Integer status);
+
+    /**
+     * 关注/取消关注电子书
+     *
+     * @param bookId 电子书ID
+     * @param status 0-取消关注，1-关注
+     */
+    void followBook(Long bookId, Integer status);
+
+    /**
+     * 购买电子书
+     *
+     * @param bookId 电子书ID
+     */
+    void purchaseBook(Long bookId);
+
+    /**
+     * 查询用户与某本电子书的关联状态
+     *
+     * @param bookId 电子书ID
+     * @return 关联状态
+     */
+    BookRelationStatusVO getBookRelationStatus(Long bookId);
 }

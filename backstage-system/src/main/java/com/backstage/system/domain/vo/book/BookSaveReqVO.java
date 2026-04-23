@@ -39,6 +39,9 @@ public class BookSaveReqVO implements Serializable
     @JsonProperty("t_price")
     private BigDecimal tPrice;
 
+    /** 权限等级 */
+    private Integer level;
+
     /** 标签列表 */
     private List<String> tags;
 
@@ -135,5 +138,13 @@ public class BookSaveReqVO implements Serializable
 
     public void setChapters(List<BookChapterSaveUpdateVO> chapters) {
         this.chapters = chapters;
+    }
+
+    public Integer getLevel() {
+        return level;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
     }
 }

@@ -2,6 +2,7 @@ package com.backstage.system.service.impl;
 
 import cn.hutool.core.util.StrUtil;
 import com.backstage.common.exception.ServiceException;
+import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.system.controller.book.BookListReqVO;
 import com.backstage.system.domain.book.BookDO;
@@ -9,14 +10,17 @@ import com.backstage.system.domain.BookChapter;
 import com.backstage.system.domain.UserBookRelation;
 import com.backstage.system.domain.book.BookTagDO;
 import com.backstage.system.domain.vo.book.*;
+import com.backstage.system.constants.CourseQuestionConstants;
+import com.backstage.system.domain.fava.OshFava;
 import com.backstage.system.mapper.book.BookChapterMapper;
 import com.backstage.system.mapper.book.BookMapper;
-import com.backstage.system.mapper.UserBookMapper;
+import com.backstage.system.mapper.book.UserBookRelationMapper;
 import com.backstage.system.mapper.book.BookTagDOMapper;
+import com.backstage.system.mapper.fava.OshFavaMapper;
 import com.backstage.system.service.book.BookChapterService;
 import com.backstage.system.service.book.IBookService;
+import com.backstage.system.utils.UserContextUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.BeanUtils;
@@ -25,12 +29,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.time.LocalDateTime;
 
 /**
  * 电子书 服务层实现
@@ -50,13 +53,22 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
     private BookChapterService bookChapterService;
 
     @Resource
-    private UserBookMapper userBookMapper;
+    private UserBookRelationMapper userBookRelationMapper;
 
     @Resource
     private BookTagDOMapper bookTagDOMapper;
 
+    @Resource
+    private OshFavaMapper favaMapper;
+
     @Autowired
     private com.backstage.system.service.common.OssService ossService;
+
+    @Resource
+    private UserContextUtil userContextUtil;
+
+    @Autowired
+    private com.backstage.system.service.book.IBookEsService bookEsService;
 
     /**
      * 查询电子书列表
@@ -139,6 +151,7 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
         vo.setPrice(Optional.ofNullable(bookDO.getPrice()).map(Object::toString).orElse("0"));
         vo.setTPrice(Optional.ofNullable(bookDO.getOriginalPrice()).map(Object::toString).orElse("0"));
         vo.setSubCount(Optional.ofNullable(bookDO.getSubCount()).orElse(0));
+        vo.setLevel(bookDO.getLevel());
 
         // 处理封面URL - 如果是编辑模式，返回原始相对路径；否则生成临时访问链接
         if (StringUtils.isNotEmpty(bookDO.getCover())) {
@@ -222,7 +235,7 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
     @Override
     public List<BookDO> selectUserBookList(Long userId)
     {
-        return userBookMapper.selectUserBookList(userId);
+        return userBookRelationMapper.selectUserBookList(userId);
     }
 
     /**
@@ -234,7 +247,7 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
      */
     @Override
     public Page<BookDO> selectUserBookListPage(Long userId, Page<BookDO> page) {
-        return userBookMapper.selectUserBookListPage(userId, page);
+        return userBookRelationMapper.selectUserBookListPage(userId, page);
     }
 
     @Override
@@ -322,6 +335,8 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
         bookTagDOMapper.insert(bookTagDOS);
         // 批量新增章节
         batchInsertChapters(bookDO.getId(), reqVO.getChapters());
+        // 同步ES
+        bookEsService.syncBookToEs(bookDO.getId());
     }
 
     /**
@@ -412,6 +427,8 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
         // 再删除新的标签
         List<BookTagDO> bookTagDOS = packageBookTagInsertDOList(reqVO.getId(), reqVO);
         bookTagDOMapper.insert(bookTagDOS);
+        // 同步ES
+        bookEsService.syncBookToEs(reqVO.getId());
     }
 
     /**
@@ -437,6 +454,8 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
                 .eq(BookChapter::getBookId, id)
                 .eq(BookChapter::getDelFlag, 0));
 
+        // 从ES删除
+        bookEsService.deleteBookFromEs(id);
     }
 
     /**
@@ -464,8 +483,8 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
         if (StringUtils.isNull(userId)) {
             return false;
         }
-        UserBookRelation userBookRelation = userBookMapper.selectUserBookByUserIdAndBookId(userId, bookId);
-        return StringUtils.isNotNull(userBookRelation);
+        UserBookRelation relation = userBookRelationMapper.selectByUserIdAndBookId(userId, bookId);
+        return relation != null && Integer.valueOf(1).equals(relation.getPurchased());
     }
 
     /**
@@ -476,12 +495,101 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
      */
     private void checkUserHasBoughtOrThrow(Long userId, Long bookId)
     {
-        if (StringUtils.isNull(userId)) {
+        if (!checkUserHasBought(userId, bookId)) {
             throw new ServiceException("请先购买该电子书");
         }
-        UserBookRelation userBookRelation = userBookMapper.selectUserBookByUserIdAndBookId(userId, bookId);
-        if (StringUtils.isNull(userBookRelation)) {
-            throw new ServiceException("请先购买该电子书");
+    }
+
+    /**
+     * 获取或创建用户电子书关联记录
+     */
+    private UserBookRelation getOrCreateRelation(Long userId, Long bookId) {
+        UserBookRelation relation = userBookRelationMapper.selectByUserIdAndBookId(userId, bookId);
+        if (relation == null) {
+            relation = new UserBookRelation();
+            relation.setUserId(userId);
+            relation.setBookId(bookId);
+            relation.setFavorited(0);
+            relation.setFollowed(0);
+            relation.setPurchased(0);
+            userBookRelationMapper.insert(relation);
         }
+        return relation;
+    }
+
+    @Override
+    @Transactional
+    public void favoriteBook(Long bookId, Integer status) {
+        Long userId = UserContextUtil.getCurrentUserId();
+        BookDO bookDO = getById(bookId);
+        checkEntityNotNull(bookDO, "电子书不存在");
+
+        if (status == 1) {
+            int count = favaMapper.countFava(userId, bookId, CourseQuestionConstants.FAVORITE_TYPE_BOOK);
+            if (count == 0) {
+                OshFava fava = new OshFava();
+                fava.setUserId(userId);
+                fava.setGoodsId(bookId);
+                fava.setType(CourseQuestionConstants.FAVORITE_TYPE_BOOK);
+                favaMapper.insertFava(fava);
+            }
+        } else {
+            OshFava fava = new OshFava();
+            fava.setUserId(userId);
+            fava.setGoodsId(bookId);
+            fava.setType(CourseQuestionConstants.FAVORITE_TYPE_BOOK);
+            favaMapper.deleteFava(fava);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void followBook(Long bookId, Integer status) {
+        Long userId = ThreadLocalUtil.getCurrentUserId();
+        BookDO bookDO = getById(bookId);
+        checkEntityNotNull(bookDO, "电子书不存在");
+
+        UserBookRelation relation = getOrCreateRelation(userId, bookId);
+        relation.setFollowed(status);
+        relation.setFollowTime(status == 1 ? LocalDateTime.now() : null);
+        userBookRelationMapper.updateById(relation);
+    }
+
+    @Override
+    @Transactional
+    public void purchaseBook(Long bookId) {
+        Long userId = ThreadLocalUtil.getCurrentUserId();
+        BookDO bookDO = getById(bookId);
+        checkEntityNotNull(bookDO, "电子书不存在");
+
+        UserBookRelation relation = getOrCreateRelation(userId, bookId);
+        if (Integer.valueOf(1).equals(relation.getPurchased())) {
+            throw new ServiceException("您已购买该电子书");
+        }
+        relation.setPurchased(1);
+        relation.setPurchasePrice(bookDO.getPrice());
+        relation.setPayTime(LocalDateTime.now());
+        userBookRelationMapper.updateById(relation);
+    }
+
+    @Override
+    public BookRelationStatusVO getBookRelationStatus(Long bookId) {
+        Long userId = ThreadLocalUtil.getCurrentUserId();
+        BookRelationStatusVO vo = new BookRelationStatusVO();
+
+        // 收藏状态从 osh_fava 表查询
+        boolean favorited = favaMapper.countFava(userId, bookId, CourseQuestionConstants.FAVORITE_TYPE_BOOK) > 0;
+        vo.setFavorited(favorited ? 1 : 0);
+
+        // 关注和购买状态仍从 osh_user_book_relation 查询
+        UserBookRelation relation = userBookRelationMapper.selectByUserIdAndBookId(userId, bookId);
+        if (relation == null) {
+            vo.setFollowed(0);
+            vo.setPurchased(0);
+        } else {
+            vo.setFollowed(Optional.ofNullable(relation.getFollowed()).orElse(0));
+            vo.setPurchased(Optional.ofNullable(relation.getPurchased()).orElse(0));
+        }
+        return vo;
     }
 }
