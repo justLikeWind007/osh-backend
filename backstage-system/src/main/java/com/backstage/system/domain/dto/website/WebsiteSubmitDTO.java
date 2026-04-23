@@ -1,6 +1,7 @@
 package com.backstage.system.domain.dto.website;
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * 实用网站提交 DTO
@@ -20,8 +21,8 @@ public class WebsiteSubmitDTO implements Serializable {
     /** 网站 Logo 地址（可选） */
     private String logoUrl;
 
-    /** 标签名称,多个标签用英文逗号分隔（可选） */
-    private String tagNames;
+    /** 标签名称列表（可选） */
+    private List<String> tagNames;
 
     // Getter 和 Setter 方法
 
@@ -57,11 +58,11 @@ public class WebsiteSubmitDTO implements Serializable {
         this.logoUrl = logoUrl;
     }
 
-    public String getTagNames() {
+    public List<String> getTagNames() {
         return tagNames;
     }
 
-    public void setTagNames(String tagNames) {
+    public void setTagNames(List<String> tagNames) {
         this.tagNames = tagNames;
     }
 
