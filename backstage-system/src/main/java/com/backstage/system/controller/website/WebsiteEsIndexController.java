@@ -2,80 +2,72 @@ package com.backstage.system.controller.website;
 
 import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.R;
+import com.backstage.system.service.website.impl.WebsiteEsService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import org.apache.http.util.EntityUtils;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.RestHighLevelClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 /**
- * Website ES 索引管理
- * 负责创建 website 相关的 ES 索引，只需执行一次
+ * 实用网站 ES 索引管理 Controller
+ *
+ * 提供两个运维接口：
+ *   1. 重建索引：删除旧索引，按 mapping 文件重新创建
+ *   2. 全量同步：把 MySQL 中所有已审核通过的网站同步到 ES
+ *
+ * 这两个接口通常只在以下场景手动调用：
+ *   - 首次上线，ES 索引为空
+ *   - 索引 mapping 变更，需要重建
+ *   - ES 数据异常，需要从 MySQL 重新同步
  */
-@Api("Website ES 索引管理")
+@Api(tags = "实用网站 ES 索引管理")
 @RestController
-@RequestMapping("/pc/website")
+@RequestMapping("/pc/website/es")
 public class WebsiteEsIndexController {
 
     @Autowired
-    private RestHighLevelClient client;
+    private WebsiteEsService websiteEsService;
 
     /**
-     * 创建 website ES 索引
-     * 只需调用一次，索引已存在时会提示，不会重复创建
+     * 重建网站 ES 索引
+     * 读取 classpath 下的 mapping 定义文件，删除旧索引后重新创建
      */
-    @ApiOperation("创建 website ES 索引")
+    @ApiOperation("重建网站 ES 索引")
     @Anonymous
-    @PostMapping("/es/createIndex")
-    public R createWebsiteIndex() throws IOException {
-        String indexName = "osh_practical_website";
-
-        // 1. 先检查索引是否已存在
-        Request checkRequest = new Request("HEAD", "/" + indexName);
+    @PostMapping("/recreateIndex")
+    public R<String> recreateIndex() {
         try {
-            Response checkResponse = client.getLowLevelClient().performRequest(checkRequest);
-            if (checkResponse.getStatusLine().getStatusCode() == 200) {
-                return R.fail("索引已存在，无需重复创建");
-            }
+            // 读取 resources/es/osh_practical_website_index.json
+            ClassPathResource resource = new ClassPathResource("es/osh_practical_website_index.json");
+            String indexDefinitionJson = StreamUtils.copyToString(
+                resource.getInputStream(), StandardCharsets.UTF_8
+            );
+            websiteEsService.recreateIndex(indexDefinitionJson);
+            return R.ok("网站 ES 索引重建成功");
         } catch (Exception e) {
-            // 返回 404 说明索引不存在，继续往下创建
+            return R.fail("索引重建失败：" + e.getMessage());
         }
+    }
 
-        // 2. 定义 Mapping，告诉 ES 每个字段的类型
-        String mapping = "{\n" +
-                "  \"mappings\": {\n" +
-                "    \"properties\": {\n" +
-                "      \"id\":              { \"type\": \"long\" },\n" +
-                "      \"name\":            { \"type\": \"text\", \"analyzer\": \"ik_max_word\", \"search_analyzer\": \"ik_smart\" },\n" +
-                "      \"url\":             { \"type\": \"keyword\" },\n" +
-                "      \"description\":     { \"type\": \"text\", \"analyzer\": \"ik_max_word\", \"search_analyzer\": \"ik_smart\" },\n" +
-                "      \"logoUrl\":         { \"type\": \"keyword\" },\n" +
-                "      \"tags\":            { \"type\": \"keyword\" },\n" +
-                "      \"clickCount\":      { \"type\": \"integer\" },\n" +
-                "      \"goodCount\":       { \"type\": \"integer\" },\n" +
-                "      \"midCount\":        { \"type\": \"integer\" },\n" +
-                "      \"badCount\":        { \"type\": \"integer\" },\n" +
-                "      \"collectionCount\": { \"type\": \"integer\" },\n" +
-                "      \"ratingScore\":     { \"type\": \"double\" },\n" +
-                "      \"auditTime\":       { \"type\": \"date\", \"format\": \"yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis\" }\n" +
-                "    }\n" +
-                "  }\n" +
-                "}";
-
-        // 3. 发送 PUT 请求到 ES 创建索引
-        Request request = new Request("PUT", "/" + indexName);
-        request.setJsonEntity(mapping);
-        Response response = client.getLowLevelClient().performRequest(request);
-
-        // 4. 返回 ES 的响应结果
-        String result = EntityUtils.toString(response.getEntity(), "UTF-8");
-        return R.ok(result);
+    /**
+     * 全量同步网站到 ES
+     * 从 MySQL 查出所有已审核通过的网站，清空 ES 后批量写入
+     */
+    @ApiOperation("全量同步网站到 ES")
+    @Anonymous
+    @PostMapping("/syncAll")
+    public R<Integer> syncAll() {
+        try {
+            int count = websiteEsService.syncAllToEs();
+            return R.ok(count, "全量同步完成，共同步 " + count + " 条网站");
+        } catch (Exception e) {
+            return R.fail("全量同步失败：" + e.getMessage());
+        }
     }
 }

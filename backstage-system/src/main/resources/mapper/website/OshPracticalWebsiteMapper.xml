@@ -84,6 +84,33 @@
         WHERE id = #{websiteId}
     </update>
 
+    <!-- 查询所有已审核通过的网站（含标签），用于全量同步到 ES -->
+    <select id="selectAllPublishedWebsites" resultMap="WebsiteVoResultMap">
+        SELECT
+            w.id,
+            w.name,
+            w.url,
+            w.description,
+            w.logo_url,
+            w.click_count,
+            w.audit_time,
+            w.good_count,
+            w.mid_count,
+            w.bad_count,
+            w.collection_count,
+            w.rating_score,
+            GROUP_CONCAT(t.tag_name ORDER BY t.tag_name SEPARATOR ',') AS tags
+        FROM osh_practical_website w
+        LEFT JOIN osh_website_tag_rel wt ON w.id = wt.website_id AND wt.delete_flag = 0
+        LEFT JOIN osh_website_tag t ON wt.tag_id = t.id AND t.delete_flag = 0
+        WHERE w.delete_flag = 0
+          AND w.status = 1
+        GROUP BY w.id, w.name, w.url, w.description, w.logo_url,
+                 w.click_count, w.audit_time, w.good_count, w.mid_count,
+                 w.bad_count, w.collection_count, w.rating_score
+        ORDER BY w.rating_score DESC
+    </select>
+
     <update id="updateCount">
         UPDATE osh_practical_website
         SET
