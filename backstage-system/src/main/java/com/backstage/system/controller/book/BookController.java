@@ -1,7 +1,9 @@
 package com.backstage.system.controller.book;
 
 import com.backstage.common.annotation.OshUserEvent;
+import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.R;
+import com.backstage.common.response.PageResponse;
 import com.backstage.system.config.properties.SearchEsProperties;
 import com.backstage.system.domain.vo.book.*;
 import com.backstage.system.service.book.IBookEsService;
@@ -61,12 +63,22 @@ public class BookController {
         return R.ok(pageResult);
     }
 
+    @ApiOperation(value = "电子书搜索")
+    @PostMapping("/search")
+    @Anonymous
+    public R<PageResponse<BookListVO>> search(@RequestBody BookListReqVO reqVO) {
+        Page<BookListVO> pageResult = bookService.getBookPageList(reqVO);
+        int pageNum = reqVO.getPageNum() == null ? 1 : reqVO.getPageNum().intValue();
+        int pageSize = reqVO.getPageSize() == null ? 12 : reqVO.getPageSize().intValue();
+        return R.ok(PageResponse.of(pageResult.getRecords(), pageResult.getTotal(), pageNum, pageSize), "ok");
+    }
+
     /**
      * 查看电子书详情
      */
     @ApiOperation(value = "电子书详情")
     @OshUserEvent(module = "电子书模块", actionType = "查询", description = "查询电子书详情")
-    @PreAuthorize("hasAuthority('book:detail')")
+    @Anonymous
     @GetMapping("/getById")
     public R<BookDetailVO> getById(@RequestParam Long id, @RequestParam(required = false, defaultValue = "false") Boolean forEdit) {
         BookDetailVO detail = bookService.selectBookDetail(id, forEdit);
@@ -90,7 +102,7 @@ public class BookController {
      */
     @ApiOperation(value = "章节菜单")
     @OshUserEvent(module = "电子书模块", actionType = "查询", description = "查询章节菜单")
-    @PreAuthorize("hasAuthority('book:chapter:menus')")
+    @Anonymous
     @GetMapping("/menus")
     public R<BookMenuVO> menus(@RequestParam Long id) {
         BookMenuVO menu = bookService.selectBookMenu(id);
@@ -105,9 +117,8 @@ public class BookController {
     @OshUserEvent(module = "电子书模块", actionType = "新增", description = "创建电子书")
     @PreAuthorize("hasAuthority('book:create')")
     @PostMapping("/create")
-    public R<String> create(@RequestBody BookSaveReqVO reqVO) {
-        bookService.createBook(reqVO);
-        return R.ok( "创建成功");
+    public R<Long> create(@Valid @RequestBody BookSaveReqVO reqVO) {
+        return R.ok(bookService.createBook(reqVO), "创建成功");
     }
 
     /**
@@ -144,7 +155,7 @@ public class BookController {
      */
     @ApiOperation(value = "标签列表")
     @OshUserEvent(module = "电子书模块", actionType = "查询", description = "查询标签列表")
-    @PreAuthorize("hasAuthority('book:tag:list')")
+    @Anonymous
     @GetMapping("/getTagList")
     public R<List<String>> getTagList() {
         return R.ok(bookService.getTagList());

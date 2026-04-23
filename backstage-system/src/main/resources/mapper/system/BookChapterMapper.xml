@@ -10,6 +10,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="chapterNo" column="chapter_no" />
         <result property="sortOrder" column="sort_order" />
         <result property="isFree" column="isfree" />
+        <result property="content" column="content" />
     </resultMap>
 
     <sql id="selectBookChapterVo">
@@ -24,7 +25,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <select id="selectBookChapterListByBookId" parameterType="Long" resultMap="BookChapterVOResult">
-        select id, title, chapter_no, sort_order, is_free
+        select id, title, content, chapter_no, sort_order, is_free as isfree
         from osh_book_chapter
         where book_id = #{bookId} and del_flag = '0'
         order by sort_order asc, chapter_no asc

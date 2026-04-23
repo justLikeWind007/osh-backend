@@ -12,7 +12,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Date;
 
 /**
  * 电子书对象 book
@@ -53,6 +52,9 @@ public class BookDO implements Serializable {
     @JsonProperty("sub_count")
     private Integer subCount;
 
+    /** 权限等级 */
+    private Integer level;
+
     /** 状态（0正常 1下架） */
     private String status;
 
@@ -75,9 +77,6 @@ public class BookDO implements Serializable {
 
     /** 更新者 */
     private String updateBy;
-
-    /** 权限等级 */
-    private Integer level;
 
     /** 备注 */
     private String remark;
@@ -154,6 +153,14 @@ public class BookDO implements Serializable {
         this.status = status;
     }
 
+    public Integer getLevel() {
+        return level;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
+    }
+
     public String getDelFlag() {
         return delFlag;
     }
@@ -192,14 +199,6 @@ public class BookDO implements Serializable {
 
     public void setUpdateTime(LocalDateTime updateTime) {
         this.updateTime = updateTime;
-    }
-
-    public Integer getLevel() {
-        return level;
-    }
-
-    public void setLevel(Integer level) {
-        this.level = level;
     }
 
     public String getRemark() {

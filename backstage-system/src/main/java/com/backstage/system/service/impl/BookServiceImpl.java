@@ -31,9 +31,11 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.time.LocalDateTime;
+import java.util.stream.Collectors;
 
 /**
  * 电子书 服务层实现
@@ -217,6 +219,9 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
         // 设置电子书基本信息
         BookSimpleVO simpleVO = new BookSimpleVO();
         BeanUtils.copyProperties(bookDO, simpleVO);
+        if (StringUtils.isNotEmpty(simpleVO.getCover())) {
+            simpleVO.setCover(ossService.getLimitedUrl(simpleVO.getCover(), 30));
+        }
         vo.setDetail(simpleVO);
 
         // 查询章节列表
@@ -323,20 +328,27 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
      */
     @Override
     @Transactional
-    public void createBook(BookSaveReqVO reqVO) {
+    public Long createBook(BookSaveReqVO reqVO) {
 
         BookDO bookDO = new BookDO();
         BeanUtils.copyProperties(reqVO, bookDO);
+        bookDO.setOriginalPrice(reqVO.getTPrice());
         bookDO.setStatus("0");
+        if (bookDO.getLevel() == null) {
+            bookDO.setLevel(1);
+        }
         // 新增电子书
         bookMapper.insert(bookDO);
         // 新增电子书标签表记录
         List<BookTagDO> bookTagDOS = packageBookTagInsertDOList(bookDO.getId(), reqVO);
-        bookTagDOMapper.insert(bookTagDOS);
+        if (!bookTagDOS.isEmpty()) {
+            bookTagDOMapper.insert(bookTagDOS);
+        }
         // 批量新增章节
         batchInsertChapters(bookDO.getId(), reqVO.getChapters());
         // 同步ES
         bookEsService.syncBookToEs(bookDO.getId());
+        return bookDO.getId();
     }
 
     /**
@@ -346,10 +358,11 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
      */
     private List<BookTagDO> packageBookTagInsertDOList(Long id, BookSaveReqVO reqVO) {
         List<BookTagDO> insertList = new ArrayList<>();
-        for (int i = 0; i < reqVO.getTags().size(); i++) {
+        List<String> tags = reqVO.getTags() == null ? Collections.emptyList() : reqVO.getTags();
+        for (int i = 0; i < tags.size(); i++) {
             BookTagDO bookTagInsertDO = new BookTagDO();
             bookTagInsertDO.setBookId(id);
-            bookTagInsertDO.setTagName(reqVO.getTags().get(i));
+            bookTagInsertDO.setTagName(tags.get(i));
             bookTagInsertDO.setSortOrder(i + 1);
             insertList.add(bookTagInsertDO);
         }
@@ -413,9 +426,12 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
     {
         BookDO book = getById(reqVO.getId());
         checkEntityNotNull(book, "电子书不存在");
-        // 新增
         BookDO bookDO = new BookDO();
         BeanUtils.copyProperties(reqVO, bookDO);
+        bookDO.setOriginalPrice(reqVO.getTPrice());
+        if (bookDO.getLevel() == null) {
+            bookDO.setLevel(1);
+        }
         bookMapper.updateById(bookDO);
 
         // 更新电子书标签
@@ -424,11 +440,56 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
                 new LambdaQueryWrapper<BookTagDO>()
                         .eq(BookTagDO::getBookId, reqVO.getId())
         );
-        // 再删除新的标签
+        // 再新增新的标签
         List<BookTagDO> bookTagDOS = packageBookTagInsertDOList(reqVO.getId(), reqVO);
-        bookTagDOMapper.insert(bookTagDOS);
+        if (!bookTagDOS.isEmpty()) {
+            bookTagDOMapper.insert(bookTagDOS);
+        }
+
+        syncBookChapters(reqVO.getId(), reqVO.getChapters());
+
         // 同步ES
         bookEsService.syncBookToEs(reqVO.getId());
+    }
+
+    private void syncBookChapters(Long bookId, List<BookChapterSaveUpdateVO> chapters) {
+        List<BookChapterVO> existingChapters = bookChapterMapper.selectBookChapterListByBookId(bookId);
+        List<Long> incomingIds = new ArrayList<>();
+
+        if (chapters != null) {
+            for (int i = 0; i < chapters.size(); i++) {
+                BookChapterSaveUpdateVO chapterVO = chapters.get(i);
+                chapterVO.setBookId(bookId);
+                if (chapterVO.getChapterNo() == null || chapterVO.getChapterNo() < 1) {
+                    chapterVO.setChapterNo(i + 1);
+                }
+                if (chapterVO.getSortOrder() == null || chapterVO.getSortOrder() < 1) {
+                    chapterVO.setSortOrder(i + 1);
+                }
+                if (chapterVO.getIsFree() == null) {
+                    chapterVO.setIsFree(0);
+                }
+
+                if (chapterVO.getId() == null) {
+                    createBookChapter(chapterVO);
+                    continue;
+                }
+
+                incomingIds.add(chapterVO.getId());
+                updateBookChapter(chapterVO);
+            }
+        }
+
+        List<Long> toDeleteIds = existingChapters.stream()
+                .map(BookChapterVO::getId)
+                .filter(id -> !incomingIds.contains(id))
+                .collect(Collectors.toList());
+
+        if (!toDeleteIds.isEmpty()) {
+            bookChapterMapper.delete(new LambdaQueryWrapper<BookChapter>()
+                    .eq(BookChapter::getBookId, bookId)
+                    .in(BookChapter::getId, toDeleteIds));
+        }
     }
 
     /**

@@ -1,0 +1,20 @@
+
+没有建表语句
+插入数据
+INSERT INTO `osh_question`
+(`id`, `exam_id`, `title`, `remark`, `type`, `score`, `options`, `create_by`, `create_time`, `is_delete`)
+VALUES
+-- 1. 简答题
+(73, 12, '说说你的看法', '问题解析', 'answer', 25, NULL, 'admin', NOW(), 0),
+
+-- 2. 填空题
+(72, 12, '请问我年龄多大', '问题解析', 'completion', 25, NULL, 'admin', NOW(), 0),
+
+-- 3. 判断题 (options 存 JSON 字符串)
+(71, 12, '请问我是男生还是女生', '问题解析', 'trueOrfalse', 0, '["正确","错误"]', 'admin', NOW(), 0),
+
+-- 4. 多选题 1
+(70, 12, '你的名字叫什么', '问题解析', 'checkbox', 25, '["张三","李四","王五","王五哈"]', 'admin', NOW(), 0),
+
+-- 5. 多选题 2
+(65, 12, '你的名字叫什么', '问题解析', 'checkbox', 25, '["张三","李四","王五","王五哈"]', 'admin', NOW(), 0);

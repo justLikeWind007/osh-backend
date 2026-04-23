@@ -1,0 +1,2 @@
+ALTER TABLE backstage.osh_book
+ADD COLUMN level INT NOT NULL DEFAULT 1 COMMENT '权限等级';
