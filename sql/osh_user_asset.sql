@@ -40,13 +40,11 @@ CREATE TABLE `osh_user_asset` (
   `user_id` bigint NOT NULL AUTO_INCREMENT COMMENT '用户ID',
   `gold_coin` bigint NOT NULL DEFAULT '0' COMMENT '金币数量',
   `points` bigint NOT NULL DEFAULT '0' COMMENT '积分数量',
-  `violation_count` int NOT NULL DEFAULT '0' COMMENT '违规次数',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `create_by` bigint NOT NULL COMMENT '创建人',
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `update_by` bigint NOT NULL COMMENT '更新人',
   `delete_flag` tinyint NOT NULL DEFAULT '0' COMMENT '逻辑删除：0-未删除，1-已删除',
   PRIMARY KEY (`user_id`),
-  KEY `idx_violation_count` (`violation_count`) COMMENT '违规次数索引',
   KEY `idx_create_time` (`create_time`) COMMENT '创建时间索引'
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_as_cs COMMENT='用户资产表';

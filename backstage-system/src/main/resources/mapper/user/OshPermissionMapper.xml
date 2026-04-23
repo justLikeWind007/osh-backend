@@ -7,11 +7,5 @@
     <select id="selectPermissionIdsByRoleId" resultType="java.lang.Integer">
         select permission_id from osh_role_permission where role_id = #{roleId}
     </select>
-    <select id="selectPermissionCodeByIds" resultType="java.lang.String">
-        select permission_code from osh_permission where id in
-        <foreach item="item" index="index" collection="permissionIds" open="(" separator="," close=")">
-            #{item}
-        </foreach>
-    </select>
 
 </mapper>

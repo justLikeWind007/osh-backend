@@ -3,10 +3,9 @@ package com.backstage.system.controller.user;
 import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.controller.BaseController;
 import com.backstage.common.core.domain.R;
-import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.domain.user.dto.*;
-import com.backstage.system.domain.user.vo.OshUserLoginVo;
+import com.backstage.system.domain.user.vo.OshUserLoginVO;
 import com.backstage.system.request.UserListRequest;
 import com.backstage.system.service.user.IOshUserService;
 import com.backstage.system.utils.UserContextUtil;
@@ -40,7 +39,7 @@ OshUserController extends BaseController {
     @Anonymous
     @ApiOperation("账号登录")
     @PostMapping("/login")
-    public R<OshUserLoginVo> login(
+    public R<OshUserLoginVO> login(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserLoginDTO userLoginDTO) {
         return userService.login(userLoginDTO.getUsername(),userLoginDTO.getPassword());
