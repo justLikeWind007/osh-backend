@@ -134,8 +134,11 @@ public class TestDataProducer {
         message.setTagNames(Arrays.asList("Java", "后端", "Flink"));
         message.setTagNamesText("Java,后端,Flink");
         message.setSearchText(message.getTitle() + " " + message.getIntro());
-        message.setCreateTime(new Date());
-        message.setUpdateTime(new Date());
+        
+        // 使用时间戳而不是格式化的日期字符串，避免 ES 日期解析错误
+        Date now = new Date();
+        message.setCreateTime(now);
+        message.setUpdateTime(now);
         message.setOperator("system");
         
         return message;
