@@ -32,6 +32,7 @@ public class OshUserConstants {
     public static final String LOGIN_USER = "LoginUser:";
     public static final String TOKEN = "token";
     public static final String USER_INFO = "userInfo";
+    public static final String ASSET = "asset";
     public static final String ROLE = "role";
     public static final String PERMISSION = "permission";
     public static final String LEVEL = "level";

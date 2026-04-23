@@ -47,6 +47,9 @@ public final class CourseQuestionConstants {
     // 收藏类型：课程
     public static final String FAVORITE_TYPE_COURSE = "course";
 
+    // 收藏类型：电子书
+    public static final String FAVORITE_TYPE_BOOK = "book";
+
     /**
      * 内部使用的字段名常量（用于 Map 操作）
      */

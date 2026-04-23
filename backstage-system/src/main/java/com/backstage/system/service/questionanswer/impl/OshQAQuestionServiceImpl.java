@@ -223,7 +223,6 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
 
     @Override
     public R<String> solve(Long userId, Long questionId, Long answerId) {
-        Boolean isLegal = UserContextUtil.hasPermission(4);
         LambdaQueryWrapper<Answer> answerWrapper = new LambdaQueryWrapper<Answer>()
                 .select(Answer::getQuestionId, Answer::getIsSolution)
                 .eq(Answer::getId, answerId);
@@ -244,11 +243,14 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
         if (answer.getIsSolution() == 1 || question.getStatus() == 2) {
             return R.fail(ResultCode.FAILED_USER_ANSWER_ALREADY_MARKED.getMsg());
         }
-        answer.setIsSolution((byte)1);
-        oshQaAnswerMapper.update(answer, answerWrapper);
-        question.setStatus((byte)2);
-        oshQaQuestionMapper.update(question, questionWrapper);
-        return R.ok(ResultCode.SUCCESS.getMsg());
+        if (question.getUserId().equals(userId) || UserContextUtil.hasPermission(4)) {
+            answer.setIsSolution((byte)1);
+            oshQaAnswerMapper.update(answer, answerWrapper);
+            question.setStatus((byte)2);
+            oshQaQuestionMapper.update(question, questionWrapper);
+            return R.ok(ResultCode.SUCCESS.getMsg());
+        }
+        return R.fail(ResultCode.FAILED_USER_PERMISSION_DENIED.getMsg());
     }
 
     @Override

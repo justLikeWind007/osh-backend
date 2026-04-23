@@ -8,6 +8,7 @@ CREATE TABLE `osh_user` (
   `weixin_unionid` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs DEFAULT NULL COMMENT '微信unionid',
   `sex` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs DEFAULT '未知' COMMENT '性别：未知、男、女',
   `introduction` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs DEFAULT '' COMMENT '个人简介/描述',
+  `violation_count` int not null default 0 comment '用户违规次数',
   `status` tinyint NOT NULL DEFAULT '0' COMMENT '状态：0-正常，1-禁用',
   `create_time` datetime DEFAULT NULL,
   `create_by` bigint NOT NULL COMMENT '创建人',

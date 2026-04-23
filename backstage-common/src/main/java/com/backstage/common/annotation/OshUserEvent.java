@@ -14,7 +14,7 @@ import java.lang.annotation.*;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-public @interface OshUserActionLog {
+public @interface OshUserEvent {
     //todo: 枚举
     /**
      * 业务模块

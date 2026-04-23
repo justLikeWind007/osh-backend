@@ -9,24 +9,21 @@ import com.backstage.common.utils.email.EmailUtil;
 import com.backstage.common.utils.generate.GenerateUtil;
 import com.backstage.common.utils.jwt.JwtUtil;
 import com.backstage.common.utils.StringUtils;
-import com.backstage.system.domain.user.OshUser;
-import com.backstage.system.domain.user.OshUserAsset;
-import com.backstage.system.domain.user.OshUserViolation;
-import com.backstage.system.domain.user.vo.OshRoleVO;
-import com.backstage.system.domain.user.vo.OshUserLoginVo;
+import com.backstage.system.domain.user.*;
+import com.backstage.system.domain.user.vo.OshUserLoginVO;
 import com.backstage.system.mapper.user.*;
 import com.backstage.system.request.UserListRequest;
 import com.backstage.system.service.user.IOshUserService;
 import com.backstage.system.utils.UserContextUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.mail.MessagingException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Created with IntelliJ IDEA.
@@ -54,7 +51,7 @@ public class OshUserServiceImpl implements IOshUserService {
     private OshUserAssetMapper oshUserAssetMapper;
 
     @Override
-    public R<OshUserLoginVo> login(String username, String password) {
+    public R<OshUserLoginVO> login(String username, String password) {
         if (StringUtils.isEmpty(username) || StringUtils.isEmpty(password)) {
             return R.fail(ResultCode.FAILED_USER_NAME_OR_PASSWORD_EMPTY.getMsg());
         }
@@ -80,20 +77,23 @@ public class OshUserServiceImpl implements IOshUserService {
             }
         }
         String token = createToken(oshUser);
-        OshUserLoginVo userLoginVo = new OshUserLoginVo();
-        BeanUtils.copyProperties(oshUser, userLoginVo);
+        OshUserLoginVO userLoginVo = new OshUserLoginVO();
         userLoginVo.setToken(token);
         Integer roleId = oshRoleMapper.getRoleIdByUserId(oshUser.getId());
-        List<String> role = getRole(roleId);
-        List<String> permissionList = getPermission(roleId);
-        userLoginVo.setRole(role);
+        Map<String, String> asset = getAsset(oshUser.getId());
+        Map<String, String> role = getRole(roleId);
+        Map<String, List<String>> permissionList = getPermission(roleId);
+        userLoginVo.setAsset(asset);
+        userLoginVo.setRole(getRole(roleId));
         userLoginVo.setPermissionList(permissionList);
         Map<String, Object> map = new HashMap<>();
+        map.put(OshUserConstants.ASSET, asset);
         map.put(OshUserConstants.ROLE, role);
         map.put(OshUserConstants.PERMISSION, permissionList);
         redisCache.setCacheObject(OshUserConstants.LOGIN_USER + oshUser.getId(), map, 500, TimeUnit.MINUTES);
         return R.ok(userLoginVo);
     }
+
 
     @Override
     public R<String> registerSubmit(String username, String password, String repassword, String email) throws MessagingException {
@@ -145,6 +145,7 @@ public class OshUserServiceImpl implements IOshUserService {
         oshUserMapper.addUniqueId(oshUser.getId(), uniqueId);
         oshUserMapper.addRole(oshUser.getId());
         OshUserAsset oshUserAsset = new OshUserAsset();
+        oshUserAsset.setPoints(188L);
         oshUserAsset.setUserId(oshUser.getId());
         oshUserAssetMapper.insert(oshUserAsset);
         redisCache.deleteObject(OshUserConstants.UNIQUE_ID + uniqueId);
@@ -305,11 +306,11 @@ public class OshUserServiceImpl implements IOshUserService {
         record.setReason(reason);
         if (operatorId != null) record.setOperatorId(operatorId);
         oshUserViolationMapper.insert(record);
-        LambdaQueryWrapper<OshUserAsset> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(OshUserAsset::getUserId, userId);
-        OshUserAsset oshUserAsset = oshUserAssetMapper.selectOne(wrapper);
-        oshUserAsset.setViolationCount(oshUserAsset.getViolationCount() + 1);
-        oshUserAssetMapper.update(oshUserAsset, wrapper);
+        LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(OshUser::getId, userId);
+        OshUser oshUser = oshUserMapper.selectOne(wrapper);
+        oshUser.setViolationCount(oshUser.getViolationCount() + 1);
+        oshUserMapper.update(oshUser, wrapper);
         return R.ok(ResultCode.SUCCESS.getMsg());
     }
 
@@ -323,6 +324,11 @@ public class OshUserServiceImpl implements IOshUserService {
         }
         record.setDeleteFlag((byte) 1);
         oshUserViolationMapper.update(record, wrapper);
+        LambdaQueryWrapper<OshUser> userWrapper = new LambdaQueryWrapper<>();
+        userWrapper.eq(OshUser::getId, userId);
+        OshUser oshUser = oshUserMapper.selectOne(userWrapper);
+        oshUser.setViolationCount(oshUser.getViolationCount() - 1);
+        oshUserMapper.update(oshUser, userWrapper);
         return R.ok(ResultCode.SUCCESS.getMsg());
     }
 
@@ -338,18 +344,55 @@ public class OshUserServiceImpl implements IOshUserService {
         return JwtUtil.createToken(claims);
     }
 
-    public List<String> getRole(Integer roleId) {
-        OshRoleVO oshRoleVO = oshRoleMapper.getRoleInfoByRoleId(roleId);
-        List<String> role = new ArrayList<>();
-        role.add(oshRoleVO.getRoleName());
-        role.add(oshRoleVO.getRoleCode());
-        role.add(oshRoleVO.getLevel().toString());
-        return role;
+    private Map<String, String> getAsset(Long id) {
+        OshUserAsset asset = oshUserAssetMapper.selectOne(new LambdaQueryWrapper<OshUserAsset>()
+                .select(OshUserAsset::getGoldCoin, OshUserAsset::getPoints)
+                .eq(OshUserAsset::getUserId, id));
+        HashMap<String, String> result = new HashMap<>();
+        result.put("goldCoin", asset.getGoldCoin().toString());
+        result.put("points", asset.getPoints().toString());
+        return result;
     }
 
-    public List<String> getPermission(Integer roleId) {
+    public Map<String,String> getRole(Integer roleId) {
+        LambdaQueryWrapper<OshRole> roleWrapper = new LambdaQueryWrapper<>();
+        roleWrapper.eq(OshRole::getId, roleId).eq(OshRole::getDeleteFlag, 0)
+                .select(OshRole::getRoleName, OshRole::getRoleCode, OshRole::getLevel);
+        OshRole oshRole = oshRoleMapper.selectOne(roleWrapper);
+        Map<String, String> roleMap = new HashMap<>();
+        roleMap.put("roleName", oshRole.getRoleName());
+        roleMap.put("roleCode", oshRole.getRoleCode());
+        roleMap.put("level", oshRole.getLevel().toString());
+        return roleMap;
+    }
+
+    public Map<String,List<String>> getPermission(Integer roleId) {
         List<Integer> ids = oshPermissionMapper.selectPermissionIdsByRoleId(roleId);
-        return oshPermissionMapper.selectPermissionCodeByIds(ids);
+        LambdaQueryWrapper<OshPermission> permissionWrapper = new LambdaQueryWrapper<>();
+        permissionWrapper.in(OshPermission::getId, ids).eq(OshPermission::getDeleteFlag, 0);
+        List<OshPermission> oshPermissions = oshPermissionMapper.selectList(permissionWrapper);
+        Map<Integer, OshPermission> permissionMap = oshPermissions.stream()
+                .collect(Collectors.toMap(OshPermission::getId, p -> p));
+        Map<String, List<String>> result = new HashMap<>();
+        for (OshPermission permission : oshPermissions) {
+            Integer parentId = permission.getParentId();
+            String currentCode = permission.getPermissionCode();
+            if (currentCode == null || currentCode.isEmpty()) {
+                continue;
+            }
+            OshPermission parent = permissionMap.get(parentId);
+            if (parent != null) {
+                String parentCode = parent.getPermissionCode();
+                if (parentCode != null && !parentCode.isEmpty()) {
+                    result.computeIfAbsent(parentCode, k -> new ArrayList<>()).add(currentCode);
+                }
+            } else if (parentId == null || parentId == 0) {
+                result.computeIfAbsent(currentCode, k -> new ArrayList<>());
+            }
+        }
+        result.values().forEach(Collections::sort);
+
+        return result;
     }
 
 

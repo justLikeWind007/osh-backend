@@ -19,6 +19,7 @@ public class OshRole extends OSHBaseEntity {
     private Integer id;
     private String roleName;
     private String roleCode;
+    private Integer level;
     private String description;
     private Integer status;
 
@@ -46,6 +47,14 @@ public class OshRole extends OSHBaseEntity {
         this.roleCode = roleCode;
     }
 
+    public Integer getLevel() {
+        return level;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
+    }
+
     public String getDescription() {
         return description;
     }
@@ -68,6 +77,7 @@ public class OshRole extends OSHBaseEntity {
                 "id=" + id +
                 ", roleName='" + roleName + '\'' +
                 ", roleCode='" + roleCode + '\'' +
+                ", level=" + level +
                 ", description='" + description + '\'' +
                 ", status=" + status +
                 '}';
