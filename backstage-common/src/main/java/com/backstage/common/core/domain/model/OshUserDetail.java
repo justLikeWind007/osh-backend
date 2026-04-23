@@ -5,6 +5,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,10 +33,29 @@ public class OshUserDetail implements UserDetails {
         if (userInfoMap == null) {
             return new ArrayList<>();
         }
-        List<String> permission = (List<String>) userInfoMap.get(OshUserConstants.PERMISSION);
+        Map<String, List<String>> permission = (Map<String, List<String>>) userInfoMap.get(OshUserConstants.PERMISSION);
         List<SimpleGrantedAuthority> authorities = new ArrayList<>();
         if (permission != null) {
-            authorities.addAll(permission.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList()));
+            for (Map.Entry<String, List<String>> entry : permission.entrySet()) {
+                // 1. 添加父权限
+                String parentCode = entry.getKey();
+                if ("@type".equals(parentCode)) {
+                    continue;
+                }
+                if (StringUtils.hasText(parentCode)) {
+                    authorities.add(new SimpleGrantedAuthority(parentCode));
+                }
+
+                // 2. 添加子权限
+                List<String> childCodes = entry.getValue();
+                if (childCodes != null && !childCodes.isEmpty()) {
+                    for (String childCode : childCodes) {
+                        if (StringUtils.hasText(childCode)) {
+                            authorities.add(new SimpleGrantedAuthority(childCode));
+                        }
+                    }
+                }
+            }
         }
         return authorities;
     }

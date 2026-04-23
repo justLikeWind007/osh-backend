@@ -1,6 +1,6 @@
 package com.backstage.common.aspect;
 
-import com.backstage.common.annotation.OshUserActionLog;
+import com.backstage.common.annotation.OshUserEvent;
 import com.backstage.common.constant.OshUserConstants;
 import com.backstage.common.core.domain.OshUserActionEvent;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
@@ -10,6 +10,7 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -27,21 +28,22 @@ import java.util.stream.Collectors;
  */
 @Aspect
 @Component
-public class OshUserActionLogAspect {
-    private static final Logger logger = LoggerFactory.getLogger(OshUserActionLogAspect.class);
+@Order(1)
+public class OshUserEventAspect {
+    private static final Logger logger = LoggerFactory.getLogger(OshUserEventAspect.class);
 
-    @Around("@annotation(oshUserActionLog)")
-    public Object logUserAction(ProceedingJoinPoint joinPoint, OshUserActionLog oshUserActionLog) throws Throwable {
-        String module = oshUserActionLog.module();
+    @Around("@annotation(oshUserEvent)")
+    public Object userAction(ProceedingJoinPoint joinPoint, OshUserEvent oshUserEvent) throws Throwable {
+        String module = oshUserEvent.module();
         String methodName = joinPoint.getSignature().getName();
         Map<String, Object> methodArgs = null;
-        if (oshUserActionLog.recordArgs()) {
+        if (oshUserEvent.recordArgs()) {
             Object[] args = joinPoint.getArgs();
             methodArgs = Arrays.stream(args)
                     .collect(Collectors.toMap(Object::toString, Object::toString));
         }
-        String actionType = oshUserActionLog.actionType();
-        String description = oshUserActionLog.description();
+        String actionType = oshUserEvent.actionType();
+        String description = oshUserEvent.description();
         OshUserActionEvent event = new OshUserActionEvent(ThreadLocalUtil.get(OshUserConstants.USER_ID,Long.class),module,methodName,
                 methodArgs,actionType,description, null,null,null,
                 LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
@@ -56,7 +58,7 @@ public class OshUserActionLogAspect {
             throw e;
         } finally {
             logger.info("用户行为日志: {}", event);
-            KafkaMessageUtil.sendMessage(oshUserActionLog.topic(), String.valueOf(event));
+            KafkaMessageUtil.sendMessage(oshUserEvent.topic(), String.valueOf(event));
         }
     }
 }

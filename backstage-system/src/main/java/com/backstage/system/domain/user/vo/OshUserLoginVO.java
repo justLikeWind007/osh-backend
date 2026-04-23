@@ -1,8 +1,7 @@
 package com.backstage.system.domain.user.vo;
 
-import com.backstage.system.domain.user.OshUser;
-
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created with IntelliJ IDEA.
@@ -11,12 +10,14 @@ import java.util.List;
  * Date: 2026/3/12
  * Time: 20:16
  */
-public class OshUserLoginVo extends OshUser {
+public class OshUserLoginVO {
     private String token;
 
-    private List<String> role;
+    private Map<String, String> asset;
 
-    private List<String> permissionList;
+    private Map<String, String> role;
+
+    private Map<String,List<String>> permissionList;
 
     public String getToken() {
         return token;
@@ -26,26 +27,35 @@ public class OshUserLoginVo extends OshUser {
         this.token = token;
     }
 
-    public List<String> getRole() {
+    public Map<String, String> getAsset() {
+        return asset;
+    }
+
+    public void setAsset(Map<String, String> asset) {
+        this.asset = asset;
+    }
+
+    public Map<String, String> getRole() {
         return role;
     }
 
-    public void setRole(List<String> role) {
+    public void setRole(Map<String, String> role) {
         this.role = role;
     }
 
-    public List<String> getPermissionList() {
+    public Map<String, List<String>> getPermissionList() {
         return permissionList;
     }
 
-    public void setPermissionList(List<String> permissionList) {
+    public void setPermissionList(Map<String, List<String>> permissionList) {
         this.permissionList = permissionList;
     }
 
     @Override
     public String toString() {
-        return "OshUserLoginVo{" +
+        return "OshUserLoginVO{" +
                 "token='" + token + '\'' +
+                ", asset=" + asset +
                 ", role=" + role +
                 ", permissionList=" + permissionList +
                 '}';

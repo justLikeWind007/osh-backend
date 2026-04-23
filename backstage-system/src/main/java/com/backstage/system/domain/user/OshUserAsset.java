@@ -1,6 +1,8 @@
 package com.backstage.system.domain.user;
 
 import com.backstage.common.core.domain.entity.OSHBaseEntity;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
 /**
@@ -12,10 +14,10 @@ import com.baomidou.mybatisplus.annotation.TableName;
  */
 @TableName("osh_user_asset")
 public class OshUserAsset extends OSHBaseEntity {
+    @TableId(type = IdType.ASSIGN_ID)
     private Long userId;
     private Long goldCoin;
     private Long points;
-    private Long violationCount;
 
     public Long getUserId() {
         return userId;
@@ -41,21 +43,12 @@ public class OshUserAsset extends OSHBaseEntity {
         this.points = points;
     }
 
-    public Long getViolationCount() {
-        return violationCount;
-    }
-
-    public void setViolationCount(Long violationCount) {
-        this.violationCount = violationCount;
-    }
-
     @Override
     public String toString() {
         return "OshUserAsset{" +
                 "userId=" + userId +
                 ", goldCoin=" + goldCoin +
                 ", points=" + points +
-                ", violationCount=" + violationCount +
                 '}';
     }
 }

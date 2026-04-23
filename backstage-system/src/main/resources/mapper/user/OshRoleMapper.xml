@@ -10,16 +10,6 @@
         select role_id from osh_user_role where user_id = #{userId}
     </select>
 
-    <resultMap id="OshRoleVO" type="com.backstage.system.domain.user.vo.OshRoleVO">
-        <id property="roleName" column="role_name"/>
-        <result property="roleCode" column="role_code"/>
-        <result property="level" column="level"/>
-    </resultMap>
-
-    <select id="getRoleInfoByRoleId" resultMap="OshRoleVO">
-        select role_name,role_code,level from osh_role where id = #{roleId}
-    </select>
-
     <update id="deleteUserRole">
         update osh_user_role set delete_flag = 1 where user_id = #{userId}
     </update>

@@ -53,6 +53,9 @@ public class BookDetailVO implements Serializable
     /** 是否已购买 */
     private Boolean isbuy;
 
+    /** 权限等级 */
+    private Integer level;
+
     public Long getId()
     {
         return id;
@@ -167,5 +170,13 @@ public class BookDetailVO implements Serializable
 
     public void setTags(List<String> tags) {
         this.tags = tags;
+    }
+
+    public Integer getLevel() {
+        return level;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
     }
 }
