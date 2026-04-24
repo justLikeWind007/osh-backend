@@ -6,6 +6,7 @@ import com.backstage.system.domain.course.es.OshCourseEsDocument;
 import com.backstage.system.domain.course.vo.CourseSearchLoginVo;
 import com.backstage.system.enums.CourseResourceEnum;
 import com.backstage.system.mapper.course.OshCourseEsMapper;
+import com.backstage.system.mapper.course.OshCourseCollectionMapper;
 import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.course.OshCourseTagMapper;
 import com.backstage.system.request.CourseSearchRequest;
@@ -19,8 +20,11 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,6 +39,9 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
     private OshCourseMapper oshCourseMapper;
 
     @Autowired
+    private OshCourseCollectionMapper oshCourseCollectionMapper;
+
+    @Autowired
     private OshCourseTagMapper oshCourseTagMapper;
 
     @Autowired
@@ -44,7 +51,11 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
     public PageResponse<CourseSearchLoginVo> searchCourses(CourseSearchRequest request, Long userId) {
         PageResponse<CourseSearchLoginVo> pageResponse;
         try {
-            pageResponse = oshCourseEsMapper.searchCourses(request);
+            if (Integer.valueOf(1).equals(request.getCollectionFlag())) {
+                pageResponse = searchCollectedCourses(request, userId);
+            } else {
+                pageResponse = oshCourseEsMapper.searchCourses(request);
+            }
         } catch (Exception ex) {
             log.error("search courses from es failed, request={}, userId={}", request, userId, ex);
             throw new IllegalStateException("search courses from es failed", ex);
@@ -55,10 +66,27 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
             return pageResponse;
         }
 
+        fillCollectionFlag(rows, userId);
         fillBuyFlag(rows, userId);
         fillResourceTypeDesc(rows, userId);
         convertToExpiryUrls(rows);
         return pageResponse;
+    }
+
+    private PageResponse<CourseSearchLoginVo> searchCollectedCourses(CourseSearchRequest request, Long userId) throws Exception {
+        if (userId == null) {
+            return PageResponse.of(Collections.emptyList(), 0L, request.getPageNum(), request.getPageSize());
+        }
+
+        List<Long> collectedCourseIds = oshCourseCollectionMapper.selectActiveCourseIdsByUserId(userId);
+        if (StringUtils.isEmpty(collectedCourseIds)) {
+            return PageResponse.of(Collections.emptyList(), 0L, request.getPageNum(), request.getPageSize());
+        }
+
+        CourseSearchRequest collectionSearchRequest = buildCollectionSearchRequest(request, collectedCourseIds.size());
+        PageResponse<CourseSearchLoginVo> searchResponse = oshCourseEsMapper.searchCourses(collectionSearchRequest, collectedCourseIds);
+        List<CourseSearchLoginVo> orderedRows = sortRowsByCollectedOrder(searchResponse.getRows(), collectedCourseIds);
+        return buildPagedResponse(orderedRows, request.getPageNum(), request.getPageSize());
     }
 
     @Override
@@ -119,11 +147,35 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
         if (StringUtils.isEmpty(boughtCourseIds)) {
             return;
         }
-        java.util.Set<Long> boughtCourseIdSet = new java.util.HashSet<>(boughtCourseIds);
+        Set<Long> boughtCourseIdSet = new HashSet<>(boughtCourseIds);
 
         for (CourseSearchLoginVo row : rows) {
             if (boughtCourseIdSet.contains(row.getId())) {
                 row.setBuyFlag(1);
+            }
+        }
+    }
+
+    private void fillCollectionFlag(List<CourseSearchLoginVo> rows, Long userId) {
+        if (userId == null || StringUtils.isEmpty(rows)) {
+            return;
+        }
+        List<Long> courseIds = rows.stream()
+                .map(CourseSearchLoginVo::getId)
+                .collect(Collectors.toList());
+        if (StringUtils.isEmpty(courseIds)) {
+            return;
+        }
+
+        List<Long> collectedCourseIds = oshCourseCollectionMapper.selectActiveCourseIdsByUserIdAndCourseIds(userId, courseIds);
+        if (StringUtils.isEmpty(collectedCourseIds)) {
+            return;
+        }
+        Set<Long> collectedCourseIdSet = new HashSet<>(collectedCourseIds);
+
+        for (CourseSearchLoginVo row : rows) {
+            if (collectedCourseIdSet.contains(row.getId())) {
+                row.setCollectionFlag(1);
             }
         }
     }
@@ -159,6 +211,59 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
             CourseResourceEnum resourceEnum = CourseResourceEnum.fromCode(row.getResourceType());
             row.setResourceTypeDesc(resourceEnum == null ? row.getResourceType() : resourceEnum.getDesc());
         }
+    }
+
+    private CourseSearchRequest buildCollectionSearchRequest(CourseSearchRequest request, int courseCount) {
+        CourseSearchRequest collectionSearchRequest = new CourseSearchRequest();
+        collectionSearchRequest.setTags(request.getTags());
+        collectionSearchRequest.setKeyword(request.getKeyword());
+        collectionSearchRequest.setResourceType(request.getResourceType());
+        collectionSearchRequest.setCollectionFlag(request.getCollectionFlag());
+        collectionSearchRequest.setPageNum(1);
+        collectionSearchRequest.setPageSize(courseCount);
+        return collectionSearchRequest;
+    }
+
+    private List<CourseSearchLoginVo> sortRowsByCollectedOrder(List<CourseSearchLoginVo> rows, List<Long> collectedCourseIds) {
+        if (StringUtils.isEmpty(rows) || StringUtils.isEmpty(collectedCourseIds)) {
+            return rows;
+        }
+
+        Map<Long, Integer> orderMap = new HashMap<>(collectedCourseIds.size());
+        for (int i = 0; i < collectedCourseIds.size(); i++) {
+            orderMap.put(collectedCourseIds.get(i), i);
+        }
+
+        rows.sort((left, right) -> {
+            Integer leftOrder = orderMap.get(left.getId());
+            Integer rightOrder = orderMap.get(right.getId());
+            if (leftOrder == null && rightOrder == null) {
+                return 0;
+            }
+            if (leftOrder == null) {
+                return 1;
+            }
+            if (rightOrder == null) {
+                return -1;
+            }
+            return Integer.compare(leftOrder, rightOrder);
+        });
+        return rows;
+    }
+
+    private PageResponse<CourseSearchLoginVo> buildPagedResponse(List<CourseSearchLoginVo> rows, int pageNum, int pageSize) {
+        if (StringUtils.isEmpty(rows)) {
+            return PageResponse.of(Collections.emptyList(), 0L, pageNum, pageSize);
+        }
+
+        int fromIndex = Math.max((pageNum - 1) * pageSize, 0);
+        if (fromIndex >= rows.size()) {
+            return PageResponse.of(Collections.emptyList(), rows.size(), pageNum, pageSize);
+        }
+
+        int toIndex = Math.min(fromIndex + pageSize, rows.size());
+        List<CourseSearchLoginVo> pageRows = new ArrayList<>(rows.subList(fromIndex, toIndex));
+        return PageResponse.of(pageRows, rows.size(), pageNum, pageSize);
     }
 
     private OshCourseEsDocument buildEsDocument(CourseSearchLoginVo row) {

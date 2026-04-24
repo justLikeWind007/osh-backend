@@ -1,10 +1,12 @@
 package com.backstage.system.domain.course;
 
 import com.backstage.common.core.domain.BaseEntity;
+import com.baomidou.mybatisplus.annotation.TableName;
 
 /**
  * 课程收藏对象 osh_course_collection
  */
+@TableName("osh_course_collection")
 public class OshCourseCollection extends BaseEntity {
 
     private Long id;

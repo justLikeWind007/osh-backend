@@ -388,17 +388,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <select id="pageQueryUserCollectionCourse" resultMap="OshCouresResult">
-        select distinct
+        select
         <include refid="searchCourseColumns"/>
         from osh_course c
         inner join osh_course_collection occ on occ.course_id = c.id
             and occ.user_id = #{userId}
             and occ.delete_flag = 0
-        left join osh_course_tag_rel ctr on ctr.course_id = c.id
-            and ctr.delete_flag = 0
-        left join osh_course_tag ct on ct.id = ctr.tag_id
-            and ct.delete_flag = 0
-            and ct.status = 1
         <where>
             c.delete_flag = 0
             and c.status = 2
@@ -406,10 +401,56 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                 and c.title like concat('%', #{request.keyword}, '%')
             </if>
             <if test="request.tags != null and request.tags.size() > 0">
-                and ct.name in
-                <foreach collection="request.tags" item="tag" open="(" separator="," close=")">
-                    #{tag}
-                </foreach>
+                and exists (
+                select 1
+                from osh_course_tag_rel ctr
+                inner join osh_course_tag ct on ct.id = ctr.tag_id
+                    and ct.delete_flag = 0
+                    and ct.status = 1
+                where ctr.course_id = c.id
+                    and ctr.delete_flag = 0
+                    and ct.name in
+                    <foreach collection="request.tags" item="tag" open="(" separator="," close=")">
+                        #{tag}
+                    </foreach>
+                )
+            </if>
+            <if test="request.resourceType != null and request.resourceType != ''">
+                and c.resource_type = #{request.resourceType}
+            </if>
+        </where>
+        order by occ.create_time desc, c.id desc
+    </select>
+
+    <select id="pageQueryUserCollectionSearchCourse" resultMap="CourseSearchLoginResult">
+        select
+        <include refid="searchCourseColumns"/>,
+        1 as collection_flag,
+        0 as buy_flag
+        from osh_course c
+        inner join osh_course_collection occ on occ.course_id = c.id
+            and occ.user_id = #{userId}
+            and occ.delete_flag = 0
+        <where>
+            c.delete_flag = 0
+            and c.status = 2
+            <if test="request.keyword != null and request.keyword != ''">
+                and c.title like concat('%', #{request.keyword}, '%')
+            </if>
+            <if test="request.tags != null and request.tags.size() > 0">
+                and exists (
+                select 1
+                from osh_course_tag_rel ctr
+                inner join osh_course_tag ct on ct.id = ctr.tag_id
+                    and ct.delete_flag = 0
+                    and ct.status = 1
+                where ctr.course_id = c.id
+                    and ctr.delete_flag = 0
+                    and ct.name in
+                    <foreach collection="request.tags" item="tag" open="(" separator="," close=")">
+                        #{tag}
+                    </foreach>
+                )
             </if>
             <if test="request.resourceType != null and request.resourceType != ''">
                 and c.resource_type = #{request.resourceType}
