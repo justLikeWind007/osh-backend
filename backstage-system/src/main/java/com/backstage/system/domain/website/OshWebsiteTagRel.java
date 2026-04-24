@@ -8,25 +8,50 @@ import java.util.Date;
 
 /**
  * 网站与标签关联表
+ * @TableName osh_website_tag_rel
  */
-@TableName("osh_website_tag_rel")
+@TableName(value = "osh_website_tag_rel")
 public class OshWebsiteTagRel {
 
+    /**
+     * 主键 ID
+     */
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    /**
+     * 网站 ID
+     */
     private Long websiteId;
 
+    /**
+     * 标签 ID
+     */
     private Long tagId;
 
+    /**
+     * 创建者
+     */
     private String createBy;
 
+    /**
+     * 创建时间
+     */
     private Date createTime;
 
+    /**
+     * 更新者
+     */
     private String updateBy;
 
+    /**
+     * 更新时间
+     */
     private Date updateTime;
 
+    /**
+     * 删除标志：0-正常，1-删除
+     */
     private Integer deleteFlag;
 
     public Long getId() {
@@ -91,5 +116,15 @@ public class OshWebsiteTagRel {
 
     public void setDeleteFlag(Integer deleteFlag) {
         this.deleteFlag = deleteFlag;
+    }
+
+    @Override
+    public String toString() {
+        return "OshWebsiteTagRel{" +
+                "id=" + id +
+                ", websiteId=" + websiteId +
+                ", tagId=" + tagId +
+                ", deleteFlag=" + deleteFlag +
+                '}';
     }
 }

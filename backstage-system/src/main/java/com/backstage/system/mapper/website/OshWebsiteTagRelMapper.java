@@ -1,38 +1,27 @@
 package com.backstage.system.mapper.website;
 
-import com.backstage.system.domain.website.OshWebsiteTagRel;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import org.apache.ibatis.annotations.Insert;
+import com.backstage.system.domain.website.OshWebsiteTagRel;
 import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 
 /**
- * 网站标签关联 Mapper
+ * @description 针对表【osh_website_tag_rel(网站与标签关联表)】的数据库操作Mapper
  */
 public interface OshWebsiteTagRelMapper extends BaseMapper<OshWebsiteTagRel> {
 
-    @Insert({
-            "<script>",
-            "INSERT INTO osh_website_tag_rel (website_id, tag_id, delete_flag) VALUES ",
-            "<foreach collection='list' item='item' separator=','>",
-            "(#{item.websiteId}, #{item.tagId}, #{item.deleteFlag})",
-            "</foreach>",
-            "</script>"
-    })
+    /**
+     * 批量插入网站标签关联关系
+     * @param list 关联关系列表
+     * @return 插入的行数
+     */
     int batchInsertRel(@Param("list") List<OshWebsiteTagRel> list);
 
-    @Update({
-            "<script>",
-            "UPDATE osh_website_tag_rel",
-            "SET delete_flag = 1",
-            "WHERE delete_flag = 0",
-            "AND website_id IN",
-            "<foreach collection='websiteIds' item='websiteId' open='(' separator=',' close=')'>",
-            "#{websiteId}",
-            "</foreach>",
-            "</script>"
-    })
+    /**
+     * 根据网站ID批量软删除关联关系
+     * @param websiteIds 网站ID列表
+     * @return 删除的行数
+     */
     int deleteByWebsiteIds(@Param("websiteIds") List<Integer> websiteIds);
 }

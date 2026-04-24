@@ -53,15 +53,23 @@ public class OshCourseEsMapper {
     private SearchEsProperties searchEsProperties;
 
     public PageResponse<CourseSearchLoginVo> searchCourses(CourseSearchRequest request) throws Exception {
+        return searchCourses(request, null);
+    }
+
+    public PageResponse<CourseSearchLoginVo> searchCourses(CourseSearchRequest request, List<Long> courseIds) throws Exception {
         int pageNum = request.getPageNum();
         int pageSize = request.getPageSize();
+
+        if (courseIds != null && courseIds.isEmpty()) {
+            return PageResponse.of(new ArrayList<>(), 0L, pageNum, pageSize);
+        }
 
         if (!restHighLevelClient.indices().exists(new GetIndexRequest(COURSE_SEARCH_INDEX), RequestOptions.DEFAULT)) {
             return PageResponse.of(new ArrayList<>(), 0L, pageNum, pageSize);
         }
 
         SearchRequest searchRequest = new SearchRequest(COURSE_SEARCH_INDEX);
-        searchRequest.source(buildSearchSource(request, pageNum, pageSize));
+        searchRequest.source(buildSearchSource(request, pageNum, pageSize, courseIds));
         SearchResponse searchResponse;
         try {
             searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
@@ -132,7 +140,7 @@ public class OshCourseEsMapper {
         restHighLevelClient.indices().create(createIndexRequest, RequestOptions.DEFAULT);
     }
 
-    private SearchSourceBuilder buildSearchSource(CourseSearchRequest request, int pageNum, int pageSize) {
+    private SearchSourceBuilder buildSearchSource(CourseSearchRequest request, int pageNum, int pageSize, List<Long> courseIds) {
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
                 .from((pageNum - 1) * pageSize)
                 .size(pageSize)
@@ -140,6 +148,10 @@ public class OshCourseEsMapper {
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
                 .filter(QueryBuilders.termQuery("status", 2))
                 .filter(QueryBuilders.termQuery("deleteFlag", 0));
+
+        if (courseIds != null && !courseIds.isEmpty()) {
+            boolQuery.filter(QueryBuilders.termsQuery("id", courseIds));
+        }
 
         if (request != null && StringUtils.isNotEmpty(request.getKeyword())) {
             boolQuery.must(buildKeywordQuery(request.getKeyword()));
