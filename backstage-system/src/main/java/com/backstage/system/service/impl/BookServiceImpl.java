@@ -2,6 +2,8 @@ package com.backstage.system.service.impl;
 
 import cn.hutool.core.util.StrUtil;
 import com.backstage.common.exception.ServiceException;
+import com.backstage.common.async.AsyncExecutorNames;
+import com.backstage.common.async.AsyncTaskSupport;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.system.controller.book.BookListReqVO;
@@ -35,6 +37,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.time.LocalDateTime;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 /**
@@ -71,6 +75,12 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
 
     @Autowired
     private com.backstage.system.service.book.IBookEsService bookEsService;
+
+    @Autowired
+    private AsyncTaskSupport asyncTaskSupport;
+
+    @Resource(name = AsyncExecutorNames.AGGREGATION)
+    private Executor aggregationTaskExecutor;
 
     /**
      * 查询电子书列表
@@ -143,39 +153,8 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
      */
     @Override
     public BookDetailVO selectBookDetail(Long id, Boolean forEdit) {
-        BookDO bookDO = getById(id);
-        checkEntityNotNull(bookDO, "该记录不存在");
-
-        BookDetailVO vo = new BookDetailVO();
-        BeanUtils.copyProperties(bookDO, vo);
-        vo.setDesc(bookDO.getDescription());
-        vo.setTryContent(bookDO.getTryContent());
-        vo.setPrice(Optional.ofNullable(bookDO.getPrice()).map(Object::toString).orElse("0"));
-        vo.setTPrice(Optional.ofNullable(bookDO.getOriginalPrice()).map(Object::toString).orElse("0"));
-        vo.setSubCount(Optional.ofNullable(bookDO.getSubCount()).orElse(0));
-        vo.setLevel(bookDO.getLevel());
-
-        // 处理封面URL - 如果是编辑模式，返回原始相对路径；否则生成临时访问链接
-        if (StringUtils.isNotEmpty(bookDO.getCover())) {
-            if (forEdit != null && forEdit) {
-                // 编辑模式：返回原始相对路径
-                vo.setCover(bookDO.getCover());
-            } else {
-                // 查看模式：生成临时访问链接（30分钟有效期）
-                vo.setCover(ossService.getLimitedUrl(bookDO.getCover(), 30));
-            }
-        }
-
-        // 查询章节列表
-        List<BookChapterVO> chapters = bookChapterMapper.selectBookChapterListByBookId(id);
-        vo.setBookDetails(chapters);
-
-        // 检查用户是否购买
-//        vo.setIsbuy(checkUserHasBought(userId, id));
-        // 获取标签列表
-        vo.setTags(bookTagDOMapper.selectBookTagListByBookId(id));
-
-        return vo;
+        BookDetailAggregate aggregate = loadBookDetailAggregate(id, UserContextUtil.getCurrentUserId());
+        return buildBookDetailVO(aggregate, forEdit);
     }
 
     /**
@@ -211,8 +190,16 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
      */
     @Override
     public BookMenuVO selectBookMenu(Long id) {
-        BookDO bookDO = getById(id);
-        checkEntityNotNull(bookDO, "该记录不存在");
+        CompletableFuture<BookDO> bookFuture = asyncTaskSupport.supplyAsync(() -> {
+            return requireBook(id);
+        }, aggregationTaskExecutor);
+        CompletableFuture<List<BookChapterVO>> chapterFuture = asyncTaskSupport.supplyAsync(
+                () -> bookChapterMapper.selectBookChapterListByBookId(id), aggregationTaskExecutor);
+
+        asyncTaskSupport.awaitAll(bookFuture, chapterFuture);
+
+        BookDO bookDO = asyncTaskSupport.join(bookFuture);
+        List<BookChapterVO> chapters = asyncTaskSupport.join(chapterFuture);
 
         BookMenuVO vo = new BookMenuVO();
 
@@ -224,8 +211,6 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
         }
         vo.setDetail(simpleVO);
 
-        // 查询章节列表
-        List<BookChapterVO> chapters = bookChapterMapper.selectBookChapterListByBookId(id);
         vo.setMenus(chapters);
 
         return vo;
@@ -636,21 +621,136 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
     @Override
     public BookRelationStatusVO getBookRelationStatus(Long bookId) {
         Long userId = ThreadLocalUtil.getCurrentUserId();
-        BookRelationStatusVO vo = new BookRelationStatusVO();
+        return buildBookRelationStatus(userId, bookId);
+    }
 
-        // 收藏状态从 osh_fava 表查询
+    private BookRelationStatusVO buildBookRelationStatus(Long userId, Long bookId)
+    {
+        if (userId == null)
+        {
+            return buildAnonymousRelationStatus();
+        }
+
+        BookRelationStatusVO vo = new BookRelationStatusVO();
         boolean favorited = favaMapper.countFava(userId, bookId, CourseQuestionConstants.FAVORITE_TYPE_BOOK) > 0;
         vo.setFavorited(favorited ? 1 : 0);
 
-        // 关注和购买状态仍从 osh_user_book_relation 查询
         UserBookRelation relation = userBookRelationMapper.selectByUserIdAndBookId(userId, bookId);
-        if (relation == null) {
+        if (relation == null)
+        {
             vo.setFollowed(0);
             vo.setPurchased(0);
-        } else {
-            vo.setFollowed(Optional.ofNullable(relation.getFollowed()).orElse(0));
-            vo.setPurchased(Optional.ofNullable(relation.getPurchased()).orElse(0));
+            return vo;
         }
+
+        vo.setFollowed(Optional.ofNullable(relation.getFollowed()).orElse(0));
+        vo.setPurchased(Optional.ofNullable(relation.getPurchased()).orElse(0));
         return vo;
+    }
+
+    private BookDetailAggregate loadBookDetailAggregate(Long bookId, Long userId)
+    {
+        CompletableFuture<BookDO> bookFuture = asyncTaskSupport.supplyAsync(() -> requireBook(bookId), aggregationTaskExecutor);
+        CompletableFuture<List<BookChapterVO>> chapterFuture = asyncTaskSupport.supplyAsync(
+                () -> bookChapterMapper.selectBookChapterListByBookId(bookId), aggregationTaskExecutor);
+        CompletableFuture<List<String>> tagFuture = asyncTaskSupport.supplyAsync(
+                () -> bookTagDOMapper.selectBookTagListByBookId(bookId), aggregationTaskExecutor);
+        CompletableFuture<BookRelationStatusVO> relationFuture = userId == null
+                ? asyncTaskSupport.completedFuture(buildAnonymousRelationStatus())
+                : asyncTaskSupport.supplyAsync(() -> buildBookRelationStatus(userId, bookId), aggregationTaskExecutor);
+
+        asyncTaskSupport.awaitAll(bookFuture, chapterFuture, tagFuture, relationFuture);
+        return new BookDetailAggregate(
+                asyncTaskSupport.join(bookFuture),
+                asyncTaskSupport.join(chapterFuture),
+                asyncTaskSupport.join(tagFuture),
+                asyncTaskSupport.join(relationFuture)
+        );
+    }
+
+    private BookDetailVO buildBookDetailVO(BookDetailAggregate aggregate, Boolean forEdit)
+    {
+        BookDO bookDO = aggregate.getBook();
+        BookDetailVO vo = new BookDetailVO();
+        BeanUtils.copyProperties(bookDO, vo);
+        vo.setDesc(bookDO.getDescription());
+        vo.setTryContent(bookDO.getTryContent());
+        vo.setPrice(Optional.ofNullable(bookDO.getPrice()).map(Object::toString).orElse("0"));
+        vo.setTPrice(Optional.ofNullable(bookDO.getOriginalPrice()).map(Object::toString).orElse("0"));
+        vo.setSubCount(Optional.ofNullable(bookDO.getSubCount()).orElse(0));
+        vo.setLevel(bookDO.getLevel());
+        vo.setCover(resolveBookCover(bookDO.getCover(), forEdit));
+        vo.setBookDetails(aggregate.getChapters());
+        vo.setTags(aggregate.getTags());
+        vo.setIsbuy(aggregate.getRelationStatus().getPurchased() == 1);
+        return vo;
+    }
+
+    private BookDO requireBook(Long bookId)
+    {
+        BookDO bookDO = getById(bookId);
+        checkEntityNotNull(bookDO, "该记录不存在");
+        return bookDO;
+    }
+
+    private String resolveBookCover(String cover, Boolean forEdit)
+    {
+        if (StringUtils.isEmpty(cover))
+        {
+            return cover;
+        }
+        if (Boolean.TRUE.equals(forEdit))
+        {
+            return cover;
+        }
+        return ossService.getLimitedUrl(cover, 30);
+    }
+
+    private BookRelationStatusVO buildAnonymousRelationStatus()
+    {
+        BookRelationStatusVO vo = new BookRelationStatusVO();
+        vo.setFavorited(0);
+        vo.setFollowed(0);
+        vo.setPurchased(0);
+        return vo;
+    }
+
+    private static class BookDetailAggregate
+    {
+        private final BookDO book;
+
+        private final List<BookChapterVO> chapters;
+
+        private final List<String> tags;
+
+        private final BookRelationStatusVO relationStatus;
+
+        private BookDetailAggregate(BookDO book, List<BookChapterVO> chapters, List<String> tags, BookRelationStatusVO relationStatus)
+        {
+            this.book = book;
+            this.chapters = chapters;
+            this.tags = tags;
+            this.relationStatus = relationStatus;
+        }
+
+        public BookDO getBook()
+        {
+            return book;
+        }
+
+        public List<BookChapterVO> getChapters()
+        {
+            return chapters;
+        }
+
+        public List<String> getTags()
+        {
+            return tags;
+        }
+
+        public BookRelationStatusVO getRelationStatus()
+        {
+            return relationStatus;
+        }
     }
 }

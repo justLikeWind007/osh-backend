@@ -18,6 +18,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -25,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -78,9 +80,18 @@ public class BookControllerApiTest {
     @MockBean
     private ISysDictTypeService sysDictTypeService;
 
+    @MockBean
+    private KafkaTemplate<String, String> kafkaTemplate;
+
     @BeforeEach
     void setUp() {
         Mockito.when(sysConfigService.selectCaptchaEnabled()).thenReturn(false);
+    }
+
+    @AfterEach
+    void tearDown() {
+        ThreadLocalUtil.remove();
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -205,6 +216,22 @@ public class BookControllerApiTest {
                 .andExpect(jsonPath("$.rows[0].resourceType").value("电子书"))
                 .andExpect(jsonPath("$.rows[0].resourceNo").value(bookId))
                 .andExpect(jsonPath("$.rows[0].content").value(questionContent));
+    }
+
+    @Test
+    public void shouldReturnAnonymousBookDetailWithIsbuyFlag() throws Exception {
+        Long bookId = createStandaloneBook();
+
+        ThreadLocalUtil.remove();
+        SecurityContextHolder.clearContext();
+
+        mockMvc.perform(get("/pc/book/getById")
+                        .param("id", String.valueOf(bookId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.id").value(bookId))
+                .andExpect(jsonPath("$.data.isbuy").value(false))
+                .andExpect(jsonPath("$.data.level").value(3));
     }
 
     private Long createStandaloneBook() {
