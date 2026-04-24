@@ -30,6 +30,9 @@ public class BookChapterVO implements Serializable
     /** 是否免费（0收费 1免费） */
     private Integer isFree;
 
+    /** 章节内容 */
+    private String content;
+
     public Long getId()
     {
         return id;
@@ -78,5 +81,15 @@ public class BookChapterVO implements Serializable
     public void setIsFree(Integer isFree)
     {
         this.isFree = isFree;
+    }
+
+    public String getContent()
+    {
+        return content;
+    }
+
+    public void setContent(String content)
+    {
+        this.content = content;
     }
 }

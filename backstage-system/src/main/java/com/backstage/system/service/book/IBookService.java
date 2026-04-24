@@ -64,7 +64,7 @@ public interface IBookService extends IService<BookDO> {
      * @param reqVO 电子书请求VO
      * @return 电子书响应VO
      */
-     void createBook(BookSaveReqVO reqVO);
+    Long createBook(BookSaveReqVO reqVO);
 
     /**
      * 修改电子书

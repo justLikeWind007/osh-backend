@@ -1,6 +1,7 @@
 package com.backstage.system.service.site.impl;
 
 import com.alibaba.fastjson2.JSON;
+import com.backstage.common.async.AsyncExecutorNames;
 import com.backstage.system.domain.site.OshSiteInfo;
 import com.backstage.system.domain.site.OshSiteMaintainer;
 import com.backstage.system.domain.site.OshSiteUsage;
@@ -21,12 +22,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import javax.annotation.Resource;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 import java.io.IOException;
@@ -34,6 +35,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -62,8 +64,8 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
     @Value("${email.from}")
     private String from;
 
-    @Autowired
-    ThreadPoolTaskExecutor taskExecutor;
+    @Resource(name = AsyncExecutorNames.NOTIFICATION)
+    private Executor notificationTaskExecutor;
 
     @Autowired
     private JavaMailSender javaMailSender;
@@ -196,7 +198,7 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
                 } catch (MessagingException e) {
                     LOG.info("发送网站异常通知邮件成功: {}", user.getEmail());
                 }
-            }, taskExecutor).whenComplete((v, t) -> LOG.info("发送网站异常通知邮件成功 {}", user.getEmail()));
+            }, notificationTaskExecutor).whenComplete((v, t) -> LOG.info("发送网站异常通知邮件成功 {}", user.getEmail()));
         }
     }
 

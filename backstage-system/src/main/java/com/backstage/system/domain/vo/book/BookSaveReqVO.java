@@ -124,6 +124,14 @@ public class BookSaveReqVO implements Serializable
         this.tPrice = tPrice;
     }
 
+    public Integer getLevel() {
+        return level;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
+    }
+
     public List<String> getTags() {
         return tags;
     }
@@ -138,13 +146,5 @@ public class BookSaveReqVO implements Serializable
 
     public void setChapters(List<BookChapterSaveUpdateVO> chapters) {
         this.chapters = chapters;
-    }
-
-    public Integer getLevel() {
-        return level;
-    }
-
-    public void setLevel(Integer level) {
-        this.level = level;
     }
 }

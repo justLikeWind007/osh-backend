@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.mail.MessagingException;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -292,8 +293,10 @@ public class OshUserServiceImpl implements IOshUserService {
         oshUserMapper.deleteUniqueId(userId);
         oshRoleMapper.deleteUserRole(userId);
         OshUserAsset oshUserAsset = oshUserAssetMapper.selectOne(new LambdaQueryWrapper<OshUserAsset>().eq(OshUserAsset::getUserId, userId));
-        oshUserAsset.setDeleteFlag((byte) 1);
-        oshUserAssetMapper.update(oshUserAsset, new LambdaQueryWrapper<OshUserAsset>().eq(OshUserAsset::getUserId, userId));
+        if (oshUserAsset != null) {
+            oshUserAsset.setDeleteFlag((byte) 1);
+            oshUserAssetMapper.update(oshUserAsset, new LambdaQueryWrapper<OshUserAsset>().eq(OshUserAsset::getUserId, userId));
+        }
         return R.ok(ResultCode.SUCCESS.getMsg());
     }
 
@@ -345,13 +348,38 @@ public class OshUserServiceImpl implements IOshUserService {
     }
 
     private Map<String, String> getAsset(Long id) {
-        OshUserAsset asset = oshUserAssetMapper.selectOne(new LambdaQueryWrapper<OshUserAsset>()
-                .select(OshUserAsset::getGoldCoin, OshUserAsset::getPoints)
-                .eq(OshUserAsset::getUserId, id));
+        OshUserAsset asset = ensureUserAsset(id);
         HashMap<String, String> result = new HashMap<>();
-        result.put("goldCoin", asset.getGoldCoin().toString());
-        result.put("points", asset.getPoints().toString());
+        result.put("goldCoin", String.valueOf(Optional.ofNullable(asset.getGoldCoin()).orElse(0L)));
+        result.put("points", String.valueOf(Optional.ofNullable(asset.getPoints()).orElse(0L)));
         return result;
+    }
+
+    private OshUserAsset ensureUserAsset(Long userId) {
+        OshUserAsset asset = oshUserAssetMapper.selectOne(new LambdaQueryWrapper<OshUserAsset>()
+                .eq(OshUserAsset::getUserId, userId));
+        if (asset != null) {
+            if (asset.getGoldCoin() == null) {
+                asset.setGoldCoin(0L);
+            }
+            if (asset.getPoints() == null) {
+                asset.setPoints(0L);
+            }
+            return asset;
+        }
+
+        OshUserAsset created = new OshUserAsset();
+        LocalDateTime now = LocalDateTime.now();
+        created.setUserId(userId);
+        created.setGoldCoin(0L);
+        created.setPoints(0L);
+        created.setCreateBy(userId);
+        created.setUpdateBy(userId);
+        created.setCreateTime(now);
+        created.setUpdateTime(now);
+        created.setDeleteFlag((byte) 0);
+        oshUserAssetMapper.insert(created);
+        return created;
     }
 
     public Map<String,String> getRole(Integer roleId) {
