@@ -111,6 +111,12 @@ public interface OshPracticalWebsiteMapper  {
 
     @Update("UPDATE osh_practical_website SET collection_count = collection_count - 1 WHERE id = #{websiteId} AND delete_flag = 0 AND status = 1")
     void reduceCollectionCount(Long websiteId);
+
+    /**
+     * 查询所有已审核通过的网站（含标签），用于全量同步到 ES
+     * @return 已审核通过的网站 VO 列表
+     */
+    List<OshPracticalWebsiteVO> selectAllPublishedWebsites();
 }
 
 
