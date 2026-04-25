@@ -14,6 +14,7 @@ import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.enums.CourseResourceEnum;
 import com.backstage.system.enums.OshCourseStatusEnum;
 import com.backstage.system.mapper.course.OshCourseMapper;
+import com.backstage.system.mapper.course.OshCourseCollectionMapper;
 import com.backstage.system.mapper.course.OshCourseMaterialMapper;
 import com.backstage.system.mapper.course.OshCourseSectionMapper;
 import com.backstage.system.mapper.course.OshCourseTagMapper;
@@ -54,6 +55,9 @@ public class OshCourseServiceImpl implements IOshCourseService {
     private OshCourseMapper oshCourseMapper;
 
     @Autowired
+    private OshCourseCollectionMapper oshCourseCollectionMapper;
+
+    @Autowired
     private OshCourseTagMapper oshCourseTagMapper;
 
     @Autowired
@@ -80,7 +84,13 @@ public class OshCourseServiceImpl implements IOshCourseService {
     @Override
     public List<CourseSearchLoginVo> pageQuerySearchCourse(Long userId, CourseSearchRequest request) {
         PageHelper.startPage(request.getPageNum(), request.getPageSize());
-        List<CourseSearchLoginVo> list = oshCourseMapper.pageQuerySearchCourse(request);
+        List<CourseSearchLoginVo> list;
+        if (Integer.valueOf(1).equals(request.getCollectionFlag()) && userId != null) {
+            list = oshCourseMapper.pageQueryUserCollectionSearchCourse(userId, request);
+        } else {
+            list = oshCourseMapper.pageQuerySearchCourse(request);
+            fillCollectionFlag(list, userId);
+        }
         fillBuyFlag(list, userId);
         fillResourceTypeDesc(list, userId);
         return convertToExpiryUrls(list);
@@ -667,6 +677,26 @@ public class OshCourseServiceImpl implements IOshCourseService {
         for (CourseSearchLoginVo item : list) {
             if (boughtCourseIdSet.contains(item.getId())) {
                 item.setBuyFlag(1);
+            }
+        }
+    }
+
+    private void fillCollectionFlag(List<CourseSearchLoginVo> list, Long userId) {
+        if (userId == null || list == null || list.isEmpty()) {
+            return;
+        }
+        List<Long> courseIds = list.stream().map(CourseSearchLoginVo::getId).collect(Collectors.toList());
+        if (courseIds.isEmpty()) {
+            return;
+        }
+        List<Long> collectedCourseIds = oshCourseCollectionMapper.selectActiveCourseIdsByUserIdAndCourseIds(userId, courseIds);
+        if (collectedCourseIds == null || collectedCourseIds.isEmpty()) {
+            return;
+        }
+        Set<Long> collectedCourseIdSet = new HashSet<>(collectedCourseIds);
+        for (CourseSearchLoginVo item : list) {
+            if (collectedCourseIdSet.contains(item.getId())) {
+                item.setCollectionFlag(1);
             }
         }
     }

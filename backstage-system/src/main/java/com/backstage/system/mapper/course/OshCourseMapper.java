@@ -26,6 +26,8 @@ public interface OshCourseMapper
 
     List<Long> selectUserBoughtCourseIds(@Param("userId") Long userId, @Param("courseIds") List<Long> courseIds);
 
+    List<CourseSearchLoginVo> pageQueryUserCollectionSearchCourse(@Param("userId") Long userId, @Param("request") CourseSearchRequest request);
+
     List<OshCourse> pageQueryUserCollectionCourse(@Param("userId") Long userId, @Param("request") CourseSearchRequest request);
     /**
      * 查询课程信息

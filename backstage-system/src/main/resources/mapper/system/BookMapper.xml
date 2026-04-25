@@ -12,6 +12,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="price" column="price" />
         <result property="tPrice" column="original_price" />
         <result property="subCount" column="sub_count" />
+        <result property="level" column="level" />
     </resultMap>
 
     <select id="getBookPageList" parameterType="BookDO" resultType="com.backstage.system.domain.vo.book.BookListVO">
@@ -39,15 +40,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="reqVO.title != null and reqVO.title != ''">
                 and book.title like concat('%', #{reqVO.title}, '%')
             </if>
-            <choose>
-                <when test="reqVO.level != null">
-                    and book.level = #{reqVO.level}
-                    and #{reqVO.userLevel} &gt;= #{reqVO.level}
-                </when>
-                <otherwise>
-                    and (book.level &lt;= #{reqVO.userLevel} or book.level is null)
-                </otherwise>
-            </choose>
+            <if test="reqVO.level != null">
+                and book.level = #{reqVO.level}
+            </if>
+            <if test="reqVO.userLevel != null">
+                and (book.level &lt;= #{reqVO.userLevel} or book.level is null)
+            </if>
         </where>
         GROUP BY book.id
         ORDER BY purchaseCount DESC, book.sub_count DESC, book.create_time DESC
@@ -62,6 +60,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         b.price,
         b.original_price AS tPrice,
         b.sub_count AS subCount,
+        b.level AS level,
         GROUP_CONCAT(bt.tag_name) AS tagNames
         FROM osh_book b
 

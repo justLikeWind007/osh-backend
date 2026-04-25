@@ -27,6 +27,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 
@@ -60,7 +64,7 @@ public class OssCloudFlareController {
     @RateLimiter(limitType = LimitType.IP, time = 60, count = 10)
     @ApiParam(value = "上传文件", required = true)
     @ApiOperation("上传接口")
-    @PreAuthorize("hasAuthority('upload:file')")
+    @PreAuthorize("hasAnyAuthority('upload:file','book:create','book:update')")
     @PostMapping("/upload")
     public R<Object> upload(
             @RequestParam("file") MultipartFile file,
@@ -127,6 +131,45 @@ public class OssCloudFlareController {
 
         return R.ok(signedUrl);
 
+    }
+
+    @ApiOperation("批量获取文件预览URL")
+    @PreAuthorize("hasAnyAuthority('upload:file','book:create','book:update')")
+    @PostMapping("/upload/preview-urls")
+    public R<Map<String, String>> previewUrls(@RequestBody PreviewUrlsReq req) {
+        if (req == null || req.getPaths() == null || req.getPaths().isEmpty()) {
+            return R.ok(Collections.emptyMap());
+        }
+        Integer minute = req.getMinute() == null ? 30 : req.getMinute();
+        Map<String, String> result = new HashMap<>();
+        for (String path : req.getPaths()) {
+            if (path == null || path.trim().isEmpty()) {
+                continue;
+            }
+            result.put(path, ossService.getLimitedUrl(path, minute));
+        }
+        return R.ok(result);
+    }
+
+    public static class PreviewUrlsReq {
+        private List<String> paths;
+        private Integer minute;
+
+        public List<String> getPaths() {
+            return paths;
+        }
+
+        public void setPaths(List<String> paths) {
+            this.paths = paths;
+        }
+
+        public Integer getMinute() {
+            return minute;
+        }
+
+        public void setMinute(Integer minute) {
+            this.minute = minute;
+        }
     }
 
 
