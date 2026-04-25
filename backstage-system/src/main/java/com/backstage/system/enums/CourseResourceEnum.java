@@ -3,7 +3,7 @@ package com.backstage.system.enums;
 /**
  * 课程资源访问类型
  *
- * @author ruoyi
+ * @author Whiskey_Lau
  * @date 2026-01-XX
  */
 public enum CourseResourceEnum {
