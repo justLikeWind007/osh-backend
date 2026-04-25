@@ -12,7 +12,7 @@ public enum CourseResourceEnum {
     CASH_ONLY("CASH_ONLY", "仅现金"),
     CASH_POINT("CASH_POINT", "现金&积分"),
     VIP("VIP", "VIP免费"),
-    SAMLL_CLASS("SAMLL_CLASS", "小班免费"),
+    SMALL_CLASS("SMALL_CLASS", "小班免费"),
     INTERNAL("INTERNAL", "内部免费");
 
     private final String code;

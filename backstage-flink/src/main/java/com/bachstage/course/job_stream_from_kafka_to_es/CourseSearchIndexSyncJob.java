@@ -11,6 +11,8 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 
@@ -19,6 +21,8 @@ import java.util.Properties;
  */
 public class CourseSearchIndexSyncJob
 {
+    private static final Logger log = LoggerFactory.getLogger(CourseSearchIndexSyncJob.class);
+
     public static void main(String[] args) throws Exception
     {
         System.out.println("========================================");
@@ -54,7 +58,9 @@ public class CourseSearchIndexSyncJob
                 .name("course-index-create-parse")
                 .filter(message -> {
                     Integer status = message.getInteger("status");
-                    boolean pass = status != null && status == 1;
+                    log.info("【创建流】过滤检查 - 课程ID: " + message.getLong("id")
+                            + ", 状态: " + status);
+                    boolean pass = status != null && status == 2;
                     System.out.println("【创建流】过滤检查 - 课程ID: " + message.getLong("id")
                             + ", 状态: " + status + ", 是否通过: " + pass);
                     return pass;

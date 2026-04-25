@@ -64,6 +64,7 @@ public class OshCourseController extends BaseController {
     // 免费,
     @ApiOperation("课程搜索")
     @PostMapping("/search")
+    @PreAuthorize("hasAuthority('course:list')")
     @Anonymous
     public R<PageResponse<CourseSearchLoginVo>> courseSearch(@RequestBody CourseSearchRequest request) {
         normalizeCollectionFilter(request);
@@ -272,7 +273,7 @@ public class OshCourseController extends BaseController {
     // TODO 暂时只管控创建人可修改
     @ApiOperation("修改课程")
     @PostMapping("/update")
-    @PreAuthorize("hasAuthority('course:update')")
+//    @PreAuthorize("hasAuthority('course:update')")
     @DistributeLock(scene = "resource", key = "operation", expireTime = 60000, waitTime = 0, releaseImmediately = false)
     public R<Long> update(@Validated @RequestBody CourseUpdateRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();

@@ -405,11 +405,17 @@ public class OshCourseControllerSectionApiTest {
         saveRequest.setTPrice(new BigDecimal("19.90"));
         saveRequest.setType("media");
 
-        performAsUser(currentUser, post("/pc/course/save")
+        MvcResult saveResult = performAsUser(currentUser, post("/pc/course/save")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(saveRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(200))
+                .andReturn();
+
+        Long savedCourseId = extractDataId(saveResult);
+        OshCourse savedCourse = oshCourseMapper.selectCourseById(savedCourseId);
+        assertNotNull(savedCourse);
+        assertEquals(Integer.valueOf(2), savedCourse.getStatus());
 
         CourseUpdateRequest updateRequest = new CourseUpdateRequest();
         updateRequest.setId(courseId);
@@ -421,6 +427,27 @@ public class OshCourseControllerSectionApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(500))
                 .andExpect(jsonPath("$.msg").value(Matchers.containsString("acquire lock failed")));
+    }
+
+    @Test
+    public void shouldPublishCourseAfterUpdate() throws Exception {
+        OshUser currentUser = buildCurrentUser();
+        Long courseId = createOwnedCourse(currentUser, 1);
+
+        System.out.println(courseId);
+        CourseUpdateRequest updateRequest = new CourseUpdateRequest();
+        updateRequest.setId(courseId);
+        updateRequest.setTitle("更新后直接发布课程");
+
+        performAsUser(currentUser, post("/pc/course/update")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        OshCourse updatedCourse = oshCourseMapper.selectCourseById(courseId);
+        assertNotNull(updatedCourse);
+        assertEquals(Integer.valueOf(2), updatedCourse.getStatus());
     }
 
     private Long extractDataId(MvcResult mvcResult) throws Exception {

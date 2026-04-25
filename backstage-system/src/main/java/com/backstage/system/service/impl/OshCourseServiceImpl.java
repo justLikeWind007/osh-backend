@@ -26,6 +26,7 @@ import com.backstage.system.request.CourseTextSectionCreateRequest;
 import com.backstage.system.request.CourseUpdateRequest;
 import com.backstage.system.request.CourseVideoSectionCreateRequest;
 import com.backstage.system.service.IOshCourseService;
+import com.backstage.system.service.OutboxEventService;
 import com.backstage.system.service.common.OssService;
 import com.backstage.system.service.course.CourseIndexKafkaProducer;
 import com.backstage.system.service.course.CourseIndexMessageMapper;
@@ -71,6 +72,9 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
     @Autowired
     private CourseIndexMessageMapper courseIndexMessageMapper;
+
+    @Autowired
+    private OutboxEventService outboxEventService;
 
     @Autowired
     private OshCourseSectionMapper oshCourseSectionMapper;
@@ -291,7 +295,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         bindCourseMaterial(course.getId(), request.getMaterial(), operator);
         bindCourseTags(course.getId(), request.getTags(), operator);
         OshCourse latestCourse = ensureCourseExists(course.getId());
-        courseIndexKafkaProducer.sendCourseIndexCreate(buildCourseIndexUpsertMessage(latestCourse, request, operator));
+        outboxEventService.saveCourseIndexCreateEvent(course.getId(), buildCourseIndexUpsertMessage(latestCourse, request.getTags(), operator), operator);
         return course.getId();
     }
 
@@ -305,10 +309,14 @@ public class OshCourseServiceImpl implements IOshCourseService {
         if (rows <= 0) {
             return null;
         }
-        rebuildCourseMaterial(course.getId(), request.getMaterial(), operator);
-        rebuildCourseTags(course.getId(), request.getTags(), operator);
+        if (request.getMaterial() != null) {
+            rebuildCourseMaterial(course.getId(), request.getMaterial(), operator);
+        }
+        if (request.getTags() != null) {
+            rebuildCourseTags(course.getId(), request.getTags(), operator);
+        }
         OshCourse latestCourse = ensureCourseExists(course.getId());
-        courseIndexKafkaProducer.sendCourseIndexUpdate(buildCourseIndexUpsertMessage(latestCourse, request, operator));
+        courseIndexKafkaProducer.sendCourseIndexUpdate(buildCourseIndexUpsertMessage(latestCourse, request.getTags(), operator));
         return course.getId();
     }
 
@@ -570,7 +578,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         course.setLikeCount(CourseConstants.DEFAULT_COUNT);
         course.setCommentCount(CourseConstants.DEFAULT_COUNT);
         course.setRatingScore(CourseConstants.DEFAULT_RATING_SCORE);
-        course.setStatus(OshCourseStatusEnum.DRAFT.getCode());
+        course.setStatus(OshCourseStatusEnum.PUBLISHED.getCode());
 
         String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
         course.setCreateBy(operatorName);
@@ -598,6 +606,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         course.setRemark(StringUtils.trimToNull(request.getRemark()));
         course.setResourceType(request.getResourceType());
         course.setLevel(request.getLevel());
+        course.setStatus(OshCourseStatusEnum.PUBLISHED.getCode());
         String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
         course.setUpdateBy(operatorName);
         return course;
@@ -878,7 +887,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         return freeFlag == null ? CourseSectionConstants.DEFAULT_FREE_FLAG : freeFlag;
     }
 
-    private CourseIndexUpsertMessage buildCourseIndexUpsertMessage(OshCourse course, CourseCreateRequest request, OshUser operator) {
+    private CourseIndexUpsertMessage buildCourseIndexUpsertMessage(OshCourse course, List<String> tags, OshUser operator) {
         Date now = new Date();
         String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
         CourseIndexUpsertMessage message = courseIndexMessageMapper.toMessage(course, operatorName);
@@ -892,7 +901,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         }
         message.setUpdateTime(now);
 
-        List<String> tagNames = extractTagNames(request == null ? null : request.getTags());
+        List<String> tagNames = extractTagNames(tags);
         message.setTagNames(tagNames);
         String tagNamesText = String.join(" ", tagNames);
         message.setTagNamesText(tagNamesText);

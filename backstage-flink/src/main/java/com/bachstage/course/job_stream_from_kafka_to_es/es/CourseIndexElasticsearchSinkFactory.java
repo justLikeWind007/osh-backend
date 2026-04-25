@@ -47,9 +47,24 @@ public class CourseIndexElasticsearchSinkFactory
                         indexer.add(request);
                     }
                 });
+        builder.setFailureHandler((action, failure, restStatusCode, indexer) -> {
+            System.err.println("【ES写入失败】status=" + restStatusCode
+                    + ", action=" + action
+                    + ", error=" + failure.getMessage());
+            failure.printStackTrace();
+        });
+
 
         builder.setBulkFlushMaxActions(ApplicationPropertiesConfig.readInt(
                 "elasticsearch.bulk-flush-max-actions", "ES_BULK_FLUSH_MAX_ACTIONS", 200));
+        builder.setBulkFlushInterval(1000);
+        builder.setFailureHandler((action, failure, restStatusCode, indexer) -> {
+            System.err.println("【ES写入失败】status=" + restStatusCode
+                    + ", action=" + action
+                    + ", error=" + failure.getMessage());
+            failure.printStackTrace();
+            throw failure;
+        });
 
         String auth = ElasticsearchAuthConfig.fromProperties().buildBasicAuth();
         String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());

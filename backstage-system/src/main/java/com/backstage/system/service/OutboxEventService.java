@@ -1,0 +1,9 @@
+package com.backstage.system.service;
+
+import com.backstage.system.domain.user.OshUser;
+import com.backstage.system.service.course.CourseIndexUpsertMessage;
+
+public interface OutboxEventService {
+
+    void saveCourseIndexCreateEvent(Long courseId, CourseIndexUpsertMessage message, OshUser operator);
+}
