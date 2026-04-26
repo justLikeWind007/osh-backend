@@ -28,7 +28,7 @@ import com.backstage.system.request.CourseVideoSectionCreateRequest;
 import com.backstage.system.service.IOshCourseService;
 import com.backstage.system.service.OutboxEventService;
 import com.backstage.system.service.common.OssService;
-import com.backstage.system.service.course.CourseIndexKafkaProducer;
+import com.backstage.system.service.course.CourseIndexDeleteMessage;
 import com.backstage.system.service.course.CourseIndexMessageMapper;
 import com.backstage.system.service.course.CourseIndexUpsertMessage;
 import com.backstage.system.service.course.ICourseManageService;
@@ -66,9 +66,6 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
     @Autowired
     private ICourseManageService courseManageService;
-
-    @Autowired
-    private CourseIndexKafkaProducer courseIndexKafkaProducer;
 
     @Autowired
     private CourseIndexMessageMapper courseIndexMessageMapper;
@@ -316,7 +313,8 @@ public class OshCourseServiceImpl implements IOshCourseService {
             rebuildCourseTags(course.getId(), request.getTags(), operator);
         }
         OshCourse latestCourse = ensureCourseExists(course.getId());
-        courseIndexKafkaProducer.sendCourseIndexUpdate(buildCourseIndexUpsertMessage(latestCourse, request.getTags(), operator));
+        outboxEventService.saveCourseIndexUpdateEvent(course.getId(),
+                buildCourseIndexUpsertMessage(latestCourse, request.getTags(), operator), operator);
         return course.getId();
     }
 
@@ -358,6 +356,8 @@ public class OshCourseServiceImpl implements IOshCourseService {
         String operatorName = operator == null ? null : operator.getUsername();
 
         for (Long courseId : ids) {
+            ensureCourseExists(courseId);
+
             // 1. 软删除课程主表
             oshCourseMapper.deleteCourseById(courseId);
 
@@ -369,6 +369,9 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
             // 4. 删除资料
             oshCourseMaterialMapper.deleteMaterialsByCourseId(courseId);
+
+            // 5. 记录删除 outbox 事件，交给定时任务异步投递到 Kafka，再由 Flink 删除 ES 文档
+            outboxEventService.saveCourseIndexDeleteEvent(courseId, new CourseIndexDeleteMessage(courseId), operator);
         }
     }
 

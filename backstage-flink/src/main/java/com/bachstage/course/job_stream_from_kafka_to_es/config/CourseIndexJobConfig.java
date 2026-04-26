@@ -8,15 +8,19 @@ public class CourseIndexJobConfig
     private final String kafkaBootstrapServers;
     private final String kafkaGroupId;
     private final String createTopic;
+    private final String updateTopic;
+    private final String deleteTopic;
     private final String esHosts;
     private final String esIndex;
 
     private CourseIndexJobConfig(String kafkaBootstrapServers, String kafkaGroupId, String createTopic,
-                                 String esHosts, String esIndex)
+                                 String updateTopic, String deleteTopic, String esHosts, String esIndex)
     {
         this.kafkaBootstrapServers = kafkaBootstrapServers;
         this.kafkaGroupId = kafkaGroupId;
         this.createTopic = createTopic;
+        this.updateTopic = updateTopic;
+        this.deleteTopic = deleteTopic;
         this.esHosts = esHosts;
         this.esIndex = esIndex;
     }
@@ -27,6 +31,8 @@ public class CourseIndexJobConfig
                 ApplicationPropertiesConfig.read("kafka.bootstrap-servers", "KAFKA_BOOTSTRAP_SERVERS", "43.242.200.25:9092"),
                 ApplicationPropertiesConfig.read("kafka.group-id", "KAFKA_GROUP_ID", "backstage-course-index-flink"),
                 ApplicationPropertiesConfig.read("course.index.create-topic", "COURSE_INDEX_CREATE_TOPIC", "osh.course.index.create"),
+                ApplicationPropertiesConfig.read("course.index.update-topic", "COURSE_INDEX_UPDATE_TOPIC", "osh.course.index.update"),
+                ApplicationPropertiesConfig.read("course.index.delete-topic", "COURSE_INDEX_DELETE_TOPIC", "osh.course.index.delete"),
                 ApplicationPropertiesConfig.read("elasticsearch.hosts", "ES_HOSTS", "http://43.242.200.25:9200"),
                 ApplicationPropertiesConfig.read("elasticsearch.index", "ES_INDEX", "osh_course_search_read"));
     }
@@ -44,6 +50,16 @@ public class CourseIndexJobConfig
     public String getCreateTopic()
     {
         return createTopic;
+    }
+
+    public String getUpdateTopic()
+    {
+        return updateTopic;
+    }
+
+    public String getDeleteTopic()
+    {
+        return deleteTopic;
     }
 
     public String getEsHosts()

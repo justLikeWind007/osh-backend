@@ -16,6 +16,7 @@ import java.time.format.DateTimeParseException;
 public class FlexibleLocalDateTimeDeserializer extends JsonDeserializer<LocalDateTime> {
 
     private static final DateTimeFormatter DEFAULT_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final DateTimeFormatter MILLIS_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
 
     @Override
     public LocalDateTime deserialize(JsonParser parser, DeserializationContext context) throws IOException {
@@ -48,6 +49,11 @@ public class FlexibleLocalDateTimeDeserializer extends JsonDeserializer<LocalDat
 
         try {
             return LocalDateTime.parse(text, DEFAULT_FORMATTER);
+        } catch (DateTimeParseException ignored) {
+        }
+
+        try {
+            return LocalDateTime.parse(text, MILLIS_FORMATTER);
         } catch (DateTimeParseException ex) {
             throw new IOException("Cannot parse LocalDateTime value: " + text, ex);
         }

@@ -19,12 +19,11 @@ import java.util.Properties;
 /**
  * 课程搜索索引同步任务
  */
-public class CourseSearchIndexSyncJob
-{
+public class CourseSearchIndexSyncJob {
     private static final Logger log = LoggerFactory.getLogger(CourseSearchIndexSyncJob.class);
+    private static final Integer PUBLISHED_STATUS = 2;
 
-    public static void main(String[] args) throws Exception
-    {
+    public static void main(String[] args) throws Exception {
         System.out.println("========================================");
         System.out.println("CourseSearchIndexSyncJob 启动中...");
         System.out.println("========================================");
@@ -35,6 +34,8 @@ public class CourseSearchIndexSyncJob
         System.out.println("  Kafka: " + config.getKafkaBootstrapServers());
         System.out.println("  消费者组: " + config.getKafkaGroupId());
         System.out.println("  创建 Topic: " + config.getCreateTopic());
+        System.out.println("  更新 Topic: " + config.getUpdateTopic());
+        System.out.println("  删除 Topic: " + config.getDeleteTopic());
         System.out.println("  ES: " + config.getEsHosts());
         System.out.println("  ES 索引: " + config.getEsIndex());
         System.out.println("========================================\n");
@@ -44,33 +45,85 @@ public class CourseSearchIndexSyncJob
         env.enableCheckpointing(60000, CheckpointingMode.AT_LEAST_ONCE);
 
         Properties kafkaProps = KafkaPropertiesFactory.create(config);
-        FlinkKafkaConsumer<String> createConsumer = new FlinkKafkaConsumer<>(
-                config.getCreateTopic(), new SimpleStringSchema(), kafkaProps);
-        createConsumer.setCommitOffsetsOnCheckpoints(true);
+        DataStream<JSONObject> createStream = buildCourseEventStream(
+                env, kafkaProps, config.getCreateTopic(), "create", "创建流");
+        DataStream<JSONObject> updateStream = buildCourseEventStream(
+                env, kafkaProps, config.getUpdateTopic(), "update", "更新流");
+        DataStream<JSONObject> deleteStream = buildDeleteEventStream(
+                env, kafkaProps, config.getDeleteTopic(), "delete", "删除流");
 
-        DataStream<JSONObject> createStream = env
-                .addSource(createConsumer)
-                .name("course-index-create-source")
+        createStream.addSink(CourseIndexElasticsearchSinkFactory.buildUpsertSink(config))
+                .name("course-index-create-es-upsert-sink");
+        updateStream.addSink(CourseIndexElasticsearchSinkFactory.buildUpsertSink(config))
+                .name("course-index-update-es-upsert-sink");
+        deleteStream.addSink(CourseIndexElasticsearchSinkFactory.buildDeleteSink(config))
+                .name("course-index-delete-es-delete-sink");
+
+        System.out.println("Flink 任务已启动，正在同时监听课程创建、更新与删除消息...\n");
+        env.execute("course-search-index-sync-job");
+    }
+
+    /**
+     * 每种事件类型都保持一条独立链路，便于后续单独插入补数、转换、监控或失败处理逻辑。
+     * 当前 create/update 的过滤规则一致，所以复用同一个构建方法，只通过 streamCode/streamLabel 区分日志与节点名。
+     */
+    private static DataStream<JSONObject> buildCourseEventStream(
+            StreamExecutionEnvironment env,
+            Properties kafkaProps,
+            String topic,
+            String streamCode,
+            String streamLabel) {
+        FlinkKafkaConsumer<String> consumer = new FlinkKafkaConsumer<>(
+                topic, new SimpleStringSchema(), kafkaProps);
+        consumer.setCommitOffsetsOnCheckpoints(true);
+
+        return env
+                .addSource(consumer)
+                .name("course-index-" + streamCode + "-source")
                 .map((MapFunction<String, JSONObject>) value -> {
-                    System.out.println("【创建流】收到消息: " + value);
+                    System.out.println("【" + streamLabel + "】收到消息: " + value);
                     return JSON.parseObject(value);
                 })
-                .name("course-index-create-parse")
+                .name("course-index-" + streamCode + "-parse")
                 .filter(message -> {
                     Integer status = message.getInteger("status");
-                    log.info("【创建流】过滤检查 - 课程ID: " + message.getLong("id")
-                            + ", 状态: " + status);
-                    boolean pass = status != null && status == 2;
-                    System.out.println("【创建流】过滤检查 - 课程ID: " + message.getLong("id")
-                            + ", 状态: " + status + ", 是否通过: " + pass);
+                    boolean pass = status != null && PUBLISHED_STATUS.equals(status);
+                    log.info("【{}】过滤检查 - 课程ID: {}, 状态: {}, 是否通过: {}",
+                            streamLabel, message.getLong("id"), status, pass);
                     return pass;
                 })
-                .name("course-index-create-filter");
+                .name("course-index-" + streamCode + "-filter");
+    }
 
-        createStream.addSink(CourseIndexElasticsearchSinkFactory.buildCreateSink(config))
-                .name("course-index-create-es-sink");
+    /**
+     * 删除流只负责把“删除哪门课程”这件事传递到 ES。
+     * 这里不再关心课程状态，只要求消息里必须包含课程 ID；具体删除语义由业务端发送 delete topic 来表达。
+     */
+    private static DataStream<JSONObject> buildDeleteEventStream(StreamExecutionEnvironment env,
+                                                                 Properties kafkaProps,
+                                                                 String topic,
+                                                                 String streamCode,
+                                                                 String streamLabel)
+    {
+        FlinkKafkaConsumer<String> consumer = new FlinkKafkaConsumer<>(
+                topic, new SimpleStringSchema(), kafkaProps);
+        consumer.setCommitOffsetsOnCheckpoints(true);
 
-        System.out.println("Flink 任务已启动，仅监听新增课程消息...\n");
-        env.execute("course-search-index-sync-job");
+        return env
+                .addSource(consumer)
+                .name("course-index-" + streamCode + "-source")
+                .map((MapFunction<String, JSONObject>) value -> {
+                    System.out.println("【" + streamLabel + "】收到消息: " + value);
+                    return JSON.parseObject(value);
+                })
+                .name("course-index-" + streamCode + "-parse")
+                .filter(message -> {
+                    Long courseId = message.getLong("id");
+                    boolean pass = courseId != null;
+                    log.info("【{}】过滤检查 - 课程ID: {}, 是否通过: {}",
+                            streamLabel, courseId, pass);
+                    return pass;
+                })
+                .name("course-index-" + streamCode + "-filter");
     }
 }
