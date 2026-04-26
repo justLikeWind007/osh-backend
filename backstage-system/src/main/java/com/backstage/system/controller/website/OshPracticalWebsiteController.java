@@ -73,11 +73,12 @@ public class OshPracticalWebsiteController extends BaseController {
     }
 
     /**
-     * 用户提交网站（公开）
+     * 用户提交网站（需登录）
      */
-    @Anonymous
     @ApiOperation("用户提交网站")
     @PostMapping("/submit")
+    @OshUserActionLog(module = "实用网站", actionType = "提交", description = "提交网站")
+    @PreAuthorize("hasAuthority('website:submit')")
     public R submit(@RequestBody WebsiteSubmitDTO submitDto) {
         try {
             int result = oshPracticalWebsiteService.submitWebsite(submitDto);
