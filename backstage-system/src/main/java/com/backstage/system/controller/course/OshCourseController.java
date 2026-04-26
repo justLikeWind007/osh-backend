@@ -410,6 +410,7 @@ public class OshCourseController extends BaseController {
 
     @ApiOperation("删除章节/小节")
     @PostMapping("/sectionDelete")
+    @PreAuthorize("hasAuthority('course:delete')")
     @Anonymous // 建议根据实际权限调整
     public R<String> deleteSection(@Validated @RequestBody CourseSectionDeleteRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
