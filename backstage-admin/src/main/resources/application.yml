@@ -180,14 +180,14 @@
 #  urlPatterns: /system/*,/monitor/*,/tool/*
 #
 #
-# es 配置
-elasticsearch:
-  host: 43.242.200.25
-  port: 9200
-  username: elastic
-  password: osh88888888
-  connect-timeout: 10000
-  socket-timeout: 10000
+## es 配置
+#elasticsearch:
+#  host: 43.242.200.25
+#  port: 9200
+#  username: elastic
+#  password: osh88888888
+#  connect-timeout: 10000
+#  socket-timeout: 10000
 #
 ## cloude flare OSS
 #x-file-storage:
