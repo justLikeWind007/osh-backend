@@ -8,14 +8,14 @@ import com.backstage.system.domain.course.vo.CourseQuestionListItemVo;
 import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.course.OshCourseQuestionMapper;
 import com.backstage.system.request.CourseQuestionAnswerRequest;
-import com.backstage.system.request.CourseQuestionPageRequest;
+import com.backstage.system.request.CourseSectionQuestionListRequest;
 import com.backstage.system.request.CourseSectionQuestionRequest;
 import com.backstage.system.service.IOshCourseQuestionService;
-import com.github.pagehelper.PageHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 
@@ -58,6 +58,7 @@ public class OshCourseQuestionServiceImpl implements IOshCourseQuestionService {
         question.setSolveStatus(0);
         question.setAcceptedAnswerId(0L);
         question.setReplyCount(0);
+        question.setLikeCount(0);
         question.setStatus(1);
         question.setDeleteFlag(0);
         question.setCreateBy(operator);
@@ -92,6 +93,7 @@ public class OshCourseQuestionServiceImpl implements IOshCourseQuestionService {
         answer.setSolveStatus(0);
         answer.setAcceptedAnswerId(0L);
         answer.setReplyCount(0);
+        answer.setLikeCount(0);
         answer.setStatus(1);
         answer.setDeleteFlag(0);
         answer.setCreateBy(operator);
@@ -107,9 +109,10 @@ public class OshCourseQuestionServiceImpl implements IOshCourseQuestionService {
     }
 
     @Override
-    public List<CourseQuestionListItemVo> listSectionQuestions(CourseQuestionPageRequest request) {
-        PageHelper.startPage(request.getPageNum(), request.getPageSize());
-        return oshCourseQuestionMapper.selectSectionQuestionPage(request);
+    public List<CourseQuestionListItemVo> listSectionQuestions(Long userId, CourseSectionQuestionListRequest request) {
+        List<CourseQuestionListItemVo> questions = oshCourseQuestionMapper.selectSectionQuestions(request.getCourseId(), request.getSectionId());
+        questions.sort(buildQuestionComparator(userId));
+        return questions;
     }
 
     @Override
@@ -123,6 +126,34 @@ public class OshCourseQuestionServiceImpl implements IOshCourseQuestionService {
 
     private boolean isQuestionRecord(Integer recordType) {
         return recordType != null && recordType == RECORD_TYPE_QUESTION;
+    }
+
+    // 创建问题列表排序
+    private Comparator<CourseQuestionListItemVo> buildQuestionComparator(Long userId) {
+        return (left, right) -> {
+            if (userId != null) {
+                boolean leftOwned = userId.equals(left.getUserId());
+                boolean rightOwned = userId.equals(right.getUserId());
+                if (leftOwned != rightOwned) {
+                    return leftOwned ? -1 : 1;
+                }
+            }
+
+            int likeCompare = Integer.compare(defaultInt(right.getLikeCount()), defaultInt(left.getLikeCount()));
+            if (likeCompare != 0) {
+                return likeCompare;
+            }
+
+            return defaultDate(right.getCreateTime()).compareTo(defaultDate(left.getCreateTime()));
+        };
+    }
+
+    private int defaultInt(Integer value) {
+        return value == null ? 0 : value;
+    }
+
+    private Date defaultDate(Date value) {
+        return value == null ? new Date(0L) : value;
     }
 
     private void validateQuestionContent(String content, String fieldName) {

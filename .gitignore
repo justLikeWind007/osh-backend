@@ -109,6 +109,9 @@ yarn.lock
 *.backup
 
 AGENTS.md
+.qoder
+.mybatis
+docs/superpowers
 
 
 

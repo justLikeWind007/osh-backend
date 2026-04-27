@@ -106,7 +106,7 @@ public class StreamingJob
 
         System.out.println("正在连接 Kafka 和 ES...");
         
-        // 创建流：从 Kafka 读取 -> 解析 JSON -> 过滤（只保留 status=1 的课程）-> 写入 ES
+        // 创建流：从 Kafka 读取 -> 解析 JSON -> 过滤（只保留 status=2 的课程）-> 写入 ES
         DataStream<CourseIndexMessage> createStream = env
                 .addSource(new FlinkKafkaConsumer<>(config.getCreateTopic(), new SimpleStringSchema(), kafkaProps))
                 .name("course-index-create-source")
@@ -116,15 +116,15 @@ public class StreamingJob
                 })
                 .name("course-index-create-parse")
                 .filter(message -> {
-                    // 过滤逻辑：只保留状态为 1（已发布）的课程
-                    boolean pass = message.getStatus() != null && message.getStatus() == 1;
+                    // 过滤逻辑：只保留状态为 2（已发布）的课程
+                    boolean pass = message.getStatus() != null && message.getStatus() == 2;
                     System.out.println("【创建流】过滤检查 - 课程ID: " + message.getCourseId() + 
                         ", 状态: " + message.getStatus() + ", 是否通过: " + pass);
                     return pass;
                 })
                 .name("course-index-create-filter");
 
-        // 更新流：从 Kafka 读取 -> 解析 JSON -> 过滤（只保留 status=1 的课程）-> 写入 ES
+        // 更新流：从 Kafka 读取 -> 解析 JSON -> 过滤（只保留 status=2 的课程）-> 写入 ES
         DataStream<CourseIndexMessage> updateStream = env
                 .addSource(new FlinkKafkaConsumer<>(config.getUpdateTopic(), new SimpleStringSchema(), kafkaProps))
                 .name("course-index-update-source")
@@ -134,8 +134,8 @@ public class StreamingJob
                 })
                 .name("course-index-update-parse")
                 .filter(message -> {
-                    // 过滤逻辑：只保留状态为 1（已发布）的课程
-                    boolean pass = message.getStatus() != null && message.getStatus() == 1;
+                    // 过滤逻辑：只保留状态为 2（已发布）的课程
+                    boolean pass = message.getStatus() != null && message.getStatus() == 2;
                     System.out.println("【更新流】过滤检查 - 课程ID: " + message.getCourseId() + 
                         ", 状态: " + message.getStatus() + ", 是否通过: " + pass);
                     return pass;
