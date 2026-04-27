@@ -58,8 +58,16 @@ public @interface DistributeLock {
 
     /**
      * 加锁等待时长，毫秒
-     * 默认情况下不设置等待时长，不做等待
+     * 默认值情况下,阻塞等待
      * @return
      */
     public int waitTime() default DistributeLockConstant.DEFAULT_WAIT_TIME;
+
+    /**
+     * 是否在方法执行结束后立即释放锁。
+     * 为 false 时，要求显式配置 expireTime，锁将保留到过期时间结束。
+     *
+     * @return
+     */
+    public boolean releaseImmediately() default true;
 }

@@ -17,6 +17,7 @@
         <result property="solveStatus" column="solve_status"/>
         <result property="acceptedAnswerId" column="accepted_answer_id"/>
         <result property="replyCount" column="reply_count"/>
+        <result property="likeCount" column="like_count"/>
         <result property="lastReplyTime" column="last_reply_time"/>
         <result property="status" column="status"/>
         <result property="deleteFlag" column="delete_flag"/>
@@ -35,6 +36,7 @@
         <result property="content" column="content"/>
         <result property="solveStatus" column="solve_status"/>
         <result property="replyCount" column="reply_count"/>
+        <result property="likeCount" column="like_count"/>
         <result property="lastReplyTime" column="last_reply_time"/>
         <result property="createTime" column="create_time"/>
     </resultMap>
@@ -61,6 +63,7 @@
             solve_status,
             accepted_answer_id,
             reply_count,
+            like_count,
             last_reply_time,
             status,
             delete_flag,
@@ -80,6 +83,7 @@
             #{solveStatus},
             #{acceptedAnswerId},
             #{replyCount},
+            #{likeCount},
             #{lastReplyTime},
             #{status},
             #{deleteFlag},
@@ -103,6 +107,7 @@
                solve_status,
                accepted_answer_id,
                reply_count,
+               like_count,
                last_reply_time,
                status,
                delete_flag,
@@ -115,7 +120,7 @@
           and delete_flag = 0
     </select>
 
-    <select id="selectSectionQuestionPage" resultMap="CourseQuestionListItemResult">
+    <select id="selectSectionQuestions" resultMap="CourseQuestionListItemResult">
         select id,
                course_id,
                section_id,
@@ -124,6 +129,7 @@
                content,
                solve_status,
                reply_count,
+               like_count,
                last_reply_time,
                create_time
         from osh_course_question
@@ -209,6 +215,7 @@
                content,
                solve_status,
                status,
+               like_count,
                create_time
         from osh_course_question
         where course_id = #{courseId}

@@ -15,6 +15,7 @@ public class CourseQuestionListItemVo {
     private String content;
     private Integer solveStatus;
     private Integer replyCount;
+    private Integer likeCount;
     private Date lastReplyTime;
     private Date createTime;
 
@@ -80,6 +81,14 @@ public class CourseQuestionListItemVo {
 
     public void setReplyCount(Integer replyCount) {
         this.replyCount = replyCount;
+    }
+
+    public Integer getLikeCount() {
+        return likeCount;
+    }
+
+    public void setLikeCount(Integer likeCount) {
+        this.likeCount = likeCount;
     }
 
     public Date getLastReplyTime() {

@@ -64,6 +64,7 @@ public class OshCourseController extends BaseController {
     // 免费,
     @ApiOperation("课程搜索")
     @PostMapping("/search")
+    @PreAuthorize("hasAuthority('course:list')")
     @Anonymous
     public R<PageResponse<CourseSearchLoginVo>> courseSearch(@RequestBody CourseSearchRequest request) {
         normalizeCollectionFilter(request);
@@ -213,7 +214,7 @@ public class OshCourseController extends BaseController {
     @ApiOperation("新增/修改课程")
     @PostMapping("/save")
     @PreAuthorize("hasAuthority('course:create')")
-    @DistributeLock(scene = "resource", key = "operation", expireTime = 60000, waitTime = 0)
+    @DistributeLock(scene = "resource", key = "operation", expireTime = 60000, waitTime = 0, releaseImmediately = false)
     public R<Long> save(@RequestBody CourseCreateRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         if (currentOshUser == null) return R.fail("请先登录");
@@ -273,7 +274,7 @@ public class OshCourseController extends BaseController {
     @ApiOperation("修改课程")
     @PostMapping("/update")
     @PreAuthorize("hasAuthority('course:update')")
-    @DistributeLock(scene = "resource", key = "operation", expireTime = 60000, waitTime = 0)
+    @DistributeLock(scene = "resource", key = "operation", expireTime = 60000, waitTime = 0, releaseImmediately = false)
     public R<Long> update(@Validated @RequestBody CourseUpdateRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         if (currentOshUser == null) {
@@ -282,6 +283,22 @@ public class OshCourseController extends BaseController {
         try {
             Long courseId = oshCourseService.updateCourse(request, currentOshUser);
             return R.ok(courseId);
+        } catch (IllegalArgumentException ex) {
+            return R.fail(ex.getMessage());
+        }
+    }
+
+    @ApiOperation("审核课程")
+    @PostMapping("/audit")
+    @PreAuthorize("hasAuthority('course:update')")
+    @DistributeLock(scene = "course:audit", key = "api", expireTime = 60000, waitTime = 0, releaseImmediately = false)
+    public R<Long> audit(@Validated @RequestBody CourseAuditRequest request) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        if (currentOshUser == null) {
+            return R.fail("请先登录");
+        }
+        try {
+            return R.ok(oshCourseService.auditCourse(request.getCourseId(), currentOshUser));
         } catch (IllegalArgumentException ex) {
             return R.fail(ex.getMessage());
         }
@@ -349,17 +366,12 @@ public class OshCourseController extends BaseController {
 
 
     @ApiOperation("获取章节提问列表")
-    @GetMapping("/section/questions/{courseId}/{sectionId}")
+    @PostMapping("/section/questions/list")
     @Anonymous
-    public R<PageResponse<CourseQuestionListItemVo>> getSectionQuestions(@NotNull @PathVariable Long courseId, @NotNull @PathVariable Long sectionId, @RequestParam(required = false) Integer pageNum, @RequestParam(required = false) Integer pageSize) {
-        CourseQuestionPageRequest request = new CourseQuestionPageRequest();
-        request.setCourseId(courseId);
-        request.setSectionId(sectionId);
-        request.setPageNum(pageNum == null ? 1 : pageNum);
-        request.setPageSize(pageSize == null ? 10 : pageSize);
-        List<CourseQuestionListItemVo> list = oshCourseQuestionService.listSectionQuestions(request);
-        PageInfo<CourseQuestionListItemVo> pageInfo = new PageInfo<>(list);
-        return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
+    public R<List<CourseQuestionListItemVo>> getSectionQuestions(@Validated @RequestBody CourseSectionQuestionListRequest request) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long userId = currentOshUser == null ? null : currentOshUser.getId();
+        return R.ok(oshCourseQuestionService.listSectionQuestions(userId, request), "ok");
     }
 
     // TODO 需要校验用户是否有权限对整个课程
@@ -398,6 +410,7 @@ public class OshCourseController extends BaseController {
 
     @ApiOperation("删除章节/小节")
     @PostMapping("/sectionDelete")
+    @PreAuthorize("hasAuthority('course:delete')")
     @Anonymous // 建议根据实际权限调整
     public R<String> deleteSection(@Validated @RequestBody CourseSectionDeleteRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
@@ -418,5 +431,7 @@ public class OshCourseController extends BaseController {
         oshCourseService.deleteCoursesByIds(request.getIds(), currentOshUser);
         return R.ok("删除成功");
     }
+
+
 
 }

@@ -40,7 +40,9 @@ public class CourseIndexUpsertMessage {
     private List<String> tagNames;
     private String tagNamesText;
     private String searchText;
+    @JSONField(format = "yyyy-MM-dd HH:mm:ss.SSS")
     private Date createTime;
+    @JSONField(format = "yyyy-MM-dd HH:mm:ss.SSS")
     private Date updateTime;
     @JSONField(serialize = false)
     private String operator;

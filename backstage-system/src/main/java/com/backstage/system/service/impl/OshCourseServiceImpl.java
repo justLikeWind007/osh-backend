@@ -12,6 +12,7 @@ import com.backstage.system.domain.course.vo.OshCourseDetailVo;
 import com.backstage.system.domain.course.vo.OshCourseSectionVo;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.enums.CourseResourceEnum;
+import com.backstage.system.enums.OshCourseStatusEnum;
 import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.course.OshCourseCollectionMapper;
 import com.backstage.system.mapper.course.OshCourseMaterialMapper;
@@ -25,8 +26,9 @@ import com.backstage.system.request.CourseTextSectionCreateRequest;
 import com.backstage.system.request.CourseUpdateRequest;
 import com.backstage.system.request.CourseVideoSectionCreateRequest;
 import com.backstage.system.service.IOshCourseService;
+import com.backstage.system.service.OutboxEventService;
 import com.backstage.system.service.common.OssService;
-import com.backstage.system.service.course.CourseIndexKafkaProducer;
+import com.backstage.system.service.course.CourseIndexDeleteMessage;
 import com.backstage.system.service.course.CourseIndexMessageMapper;
 import com.backstage.system.service.course.CourseIndexUpsertMessage;
 import com.backstage.system.service.course.ICourseManageService;
@@ -66,10 +68,10 @@ public class OshCourseServiceImpl implements IOshCourseService {
     private ICourseManageService courseManageService;
 
     @Autowired
-    private CourseIndexKafkaProducer courseIndexKafkaProducer;
+    private CourseIndexMessageMapper courseIndexMessageMapper;
 
     @Autowired
-    private CourseIndexMessageMapper courseIndexMessageMapper;
+    private OutboxEventService outboxEventService;
 
     @Autowired
     private OshCourseSectionMapper oshCourseSectionMapper;
@@ -290,7 +292,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         bindCourseMaterial(course.getId(), request.getMaterial(), operator);
         bindCourseTags(course.getId(), request.getTags(), operator);
         OshCourse latestCourse = ensureCourseExists(course.getId());
-        courseIndexKafkaProducer.sendCourseIndexCreate(buildCourseIndexUpsertMessage(latestCourse, request, operator));
+        outboxEventService.saveCourseIndexCreateEvent(course.getId(), buildCourseIndexUpsertMessage(latestCourse, request.getTags(), operator), operator);
         return course.getId();
     }
 
@@ -304,11 +306,35 @@ public class OshCourseServiceImpl implements IOshCourseService {
         if (rows <= 0) {
             return null;
         }
-        rebuildCourseMaterial(course.getId(), request.getMaterial(), operator);
-        rebuildCourseTags(course.getId(), request.getTags(), operator);
+        if (request.getMaterial() != null) {
+            rebuildCourseMaterial(course.getId(), request.getMaterial(), operator);
+        }
+        if (request.getTags() != null) {
+            rebuildCourseTags(course.getId(), request.getTags(), operator);
+        }
         OshCourse latestCourse = ensureCourseExists(course.getId());
-        courseIndexKafkaProducer.sendCourseIndexUpdate(buildCourseIndexUpsertMessage(latestCourse, request, operator));
+        outboxEventService.saveCourseIndexUpdateEvent(course.getId(),
+                buildCourseIndexUpsertMessage(latestCourse, request.getTags(), operator), operator);
         return course.getId();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long auditCourse(Long courseId, OshUser operator) {
+        OshCourse existingCourse = ensureCourseExists(courseId);
+        if (!Objects.equals(existingCourse.getStatus(), OshCourseStatusEnum.PENDING_AUDIT.getCode())) {
+            throw new IllegalArgumentException("只有待审核课程才可以审核通过");
+        }
+
+        OshCourse course = new OshCourse();
+        course.setId(courseId);
+        course.setStatus(OshCourseStatusEnum.PUBLISHED.getCode());
+        course.setUpdateBy(operator == null ? null : StringUtils.trimToNull(operator.getUsername()));
+        int rows = oshCourseMapper.updateCourse(course);
+        if (rows <= 0) {
+            throw new IllegalArgumentException("审核课程失败");
+        }
+        return courseId;
     }
 
     @Override
@@ -330,6 +356,8 @@ public class OshCourseServiceImpl implements IOshCourseService {
         String operatorName = operator == null ? null : operator.getUsername();
 
         for (Long courseId : ids) {
+            ensureCourseExists(courseId);
+
             // 1. 软删除课程主表
             oshCourseMapper.deleteCourseById(courseId);
 
@@ -341,6 +369,9 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
             // 4. 删除资料
             oshCourseMaterialMapper.deleteMaterialsByCourseId(courseId);
+
+            // 5. 记录删除 outbox 事件，交给定时任务异步投递到 Kafka，再由 Flink 删除 ES 文档
+            outboxEventService.saveCourseIndexDeleteEvent(courseId, new CourseIndexDeleteMessage(courseId), operator);
         }
     }
 
@@ -550,7 +581,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         course.setLikeCount(CourseConstants.DEFAULT_COUNT);
         course.setCommentCount(CourseConstants.DEFAULT_COUNT);
         course.setRatingScore(CourseConstants.DEFAULT_RATING_SCORE);
-        course.setStatus(CourseConstants.STATUS_DRAFT);
+        course.setStatus(OshCourseStatusEnum.PUBLISHED.getCode());
 
         String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
         course.setCreateBy(operatorName);
@@ -578,6 +609,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         course.setRemark(StringUtils.trimToNull(request.getRemark()));
         course.setResourceType(request.getResourceType());
         course.setLevel(request.getLevel());
+        course.setStatus(OshCourseStatusEnum.PUBLISHED.getCode());
         String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
         course.setUpdateBy(operatorName);
         return course;
@@ -858,7 +890,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         return freeFlag == null ? CourseSectionConstants.DEFAULT_FREE_FLAG : freeFlag;
     }
 
-    private CourseIndexUpsertMessage buildCourseIndexUpsertMessage(OshCourse course, CourseCreateRequest request, OshUser operator) {
+    private CourseIndexUpsertMessage buildCourseIndexUpsertMessage(OshCourse course, List<String> tags, OshUser operator) {
         Date now = new Date();
         String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
         CourseIndexUpsertMessage message = courseIndexMessageMapper.toMessage(course, operatorName);
@@ -872,7 +904,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         }
         message.setUpdateTime(now);
 
-        List<String> tagNames = extractTagNames(request == null ? null : request.getTags());
+        List<String> tagNames = extractTagNames(tags);
         message.setTagNames(tagNames);
         String tagNamesText = String.join(" ", tagNames);
         message.setTagNamesText(tagNamesText);

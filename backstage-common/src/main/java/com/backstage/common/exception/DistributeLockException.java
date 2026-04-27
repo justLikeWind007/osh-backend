@@ -3,7 +3,7 @@ package com.backstage.common.exception;
 /**
  * 分布式锁异常
  *
- * @author hollis
+ * @author Hope_Lau
  */
 public class DistributeLockException extends RuntimeException {
 
