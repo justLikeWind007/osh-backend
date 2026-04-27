@@ -208,7 +208,6 @@ public class BookController {
 
     @ApiOperation(value = "全量同步电子书到ES")
     @PostMapping("/esSync/all")
-    @Anonymous
     public R<Integer> syncAllBooksToEs() {
         return R.ok(bookEsService.syncAllBooksToEs(), "ok");
     }

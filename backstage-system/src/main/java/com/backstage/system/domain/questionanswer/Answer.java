@@ -35,6 +35,11 @@ public class Answer extends OSHBaseEntity implements Serializable {
     private Long userId;
 
     /**
+     * 权限等级
+     */
+    private Integer level;
+
+    /**
      * 回答内容
      */
     private String content;
@@ -78,6 +83,14 @@ public class Answer extends OSHBaseEntity implements Serializable {
         this.userId = userId;
     }
 
+    public Integer getLevel() {
+        return level;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
+    }
+
     public String getContent() {
         return content;
     }
@@ -116,6 +129,7 @@ public class Answer extends OSHBaseEntity implements Serializable {
                 "id=" + id +
                 ", questionId=" + questionId +
                 ", userId=" + userId +
+                ", level=" + level +
                 ", content='" + content + '\'' +
                 ", voteCount=" + voteCount +
                 ", isSolution=" + isSolution +

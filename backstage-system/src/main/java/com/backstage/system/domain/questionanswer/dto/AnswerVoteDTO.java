@@ -1,5 +1,6 @@
 package com.backstage.system.domain.questionanswer.dto;
 
+import com.backstage.common.annotation.OshResourceId;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
@@ -16,6 +17,7 @@ public class AnswerVoteDTO {
             value = "回答的id",
             required = true
     )
+    @OshResourceId
     private Long answerId;
 
     public Long getAnswerId() {

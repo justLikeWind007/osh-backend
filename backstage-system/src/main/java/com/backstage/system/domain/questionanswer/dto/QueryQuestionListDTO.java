@@ -1,5 +1,6 @@
 package com.backstage.system.domain.questionanswer.dto;
 
+import com.backstage.common.annotation.OshResourceId;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
@@ -15,6 +16,7 @@ public class QueryQuestionListDTO {
     @ApiModelProperty(
             value = "资源编号"
     )
+    @OshResourceId
     private Long resourceNo;
     @ApiModelProperty(
             value = "资源类型"

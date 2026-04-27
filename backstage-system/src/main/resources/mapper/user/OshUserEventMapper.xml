@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.backstage.system.mapper.user.OshUserEventMapper">
+
+    <insert id="insertEvent">
+        INSERT INTO osh_user_action_event (
+            user_id,
+            username,
+            role,
+            module,
+            method_name,
+            method_args,
+            action_type,
+            description,
+            method_result,
+            status,
+            exception,
+            current_coin,
+            current_point,
+            happen_time
+        ) VALUES (
+                     #{event.userId},
+                     #{event.username},
+                     #{event.role},
+                     #{event.module},
+                     #{event.methodName},
+                     #{event.methodArgs, typeHandler=com.backstage.common.utils.json.JsonTypeHandler},
+                     #{event.actionType},
+                     #{event.description},
+                     #{event.methodResult, typeHandler=com.backstage.common.utils.json.JsonTypeHandler},
+                     #{event.status},
+                     #{event.exception},
+                     #{event.currentCoin},
+                     #{event.currentPoint},
+                     #{event.happenTime}
+                 )
+    </insert>
+
+</mapper>
