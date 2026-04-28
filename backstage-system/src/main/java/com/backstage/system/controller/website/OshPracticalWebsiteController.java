@@ -19,7 +19,6 @@ import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
 import javax.annotation.Resource;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -76,7 +75,7 @@ public class OshPracticalWebsiteController extends BaseController {
      */
     @ApiOperation("用户提交网站")
     @PostMapping("/submit")
-    @OshUserActionLog(module = "实用网站", actionType = "提交", description = "提交网站")
+    @OshUserEvent(module = "实用网站", actionType = "提交", description = "提交网站")
     @PreAuthorize("hasAuthority('website:submit')")
     public R submit(@RequestBody WebsiteSubmitDTO submitDto) {
         try {
