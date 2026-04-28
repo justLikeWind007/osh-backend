@@ -14,27 +14,27 @@ CREATE TABLE `osh_user_violation` (
   KEY `idx_delete_flag` (`delete_flag`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_as_cs COMMENT='违规记录表'
 
--- CREATE TABLE `osh_user_score` (
---   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键id',
---   `user_id` bigint NOT NULL COMMENT '用户id',
---   `score_type` tinyint NOT NULL COMMENT '积分类型：1=增加，2=扣除',
---   `score_source_type` tinyint NOT NULL COMMENT '积分来源类型：1=回答问题，2=回答被采纳，3=每日签到，4=完善资料，5=违规扣分，6=管理员调整，7=其他',
---   `score_amount` int NOT NULL COMMENT '积分数量（正数表示增加，负数表示扣除，或配合score_type使用）',
---   `reason` varchar(500) COLLATE utf8mb4_0900_as_cs DEFAULT NULL COMMENT '得分/扣分原因',
---   `business_id` varchar(100) COLLATE utf8mb4_0900_as_cs DEFAULT NULL COMMENT '业务关联id（如回答id、签到记录id等，建议）',
---   `operator_id` bigint DEFAULT NULL COMMENT '操作人id（系统自动则为null，管理员手动调整时有值）',
---   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
---   `create_by` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL DEFAULT '' COMMENT '创建人',
---   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
---   `update_by` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL DEFAULT '' COMMENT '更新人',
---   `delete_flag` tinyint NOT NULL DEFAULT '0' COMMENT '逻辑删除：0=未删除，1=已删除',
---   PRIMARY KEY (`id`),
---   KEY `idx_user_id` (`user_id`),
---   KEY `idx_score_type` (`score_type`),
---   KEY `idx_score_source_type` (`score_source_type`),
---   KEY `idx_business_id` (`business_id`),
---   KEY `idx_delete_flag` (`delete_flag`)
--- ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_as_cs COMMENT='用户积分记录表'
+CREATE TABLE `osh_user_asset_record` (
+    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '记录ID',
+    `user_id` bigint NOT NULL COMMENT '用户ID',
+    `change_type` tinyint NOT NULL COMMENT '变动类型：0-收入，1-支出',
+    `change_source` tinyint NOT NULL COMMENT '变动来源：0-签到，1-观看视频，2-分享，3-购买商品，4-提现，5-管理员调整等',
+    `asset_type` tinyint NOT NULL COMMENT '资产类型：0-金币，1-积分',
+    `change_amount` bigint NOT NULL COMMENT '变动数量（正数）',
+    `before_balance` bigint NOT NULL COMMENT '变动前余额',
+    `after_balance` bigint NOT NULL COMMENT '变动后余额',
+    `remark` varchar(255) DEFAULT NULL COMMENT '备注说明',
+    `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `create_by` bigint NOT NULL COMMENT '创建人',
+    `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `update_by` bigint NOT NULL COMMENT '更新人',
+    `delete_flag` tinyint NOT NULL DEFAULT '0' COMMENT '逻辑删除：0-未删除，1-已删除',
+    PRIMARY KEY (`id`),
+    KEY `idx_user_id` (`user_id`) COMMENT '用户ID索引',
+    KEY `idx_user_asset` (`user_id`, `asset_type`) COMMENT '用户资产查询索引',
+    KEY `idx_business_id` (`business_id`) COMMENT '业务ID索引',
+    KEY `idx_create_time` (`create_time`) COMMENT '创建时间索引'
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_as_cs COMMENT='用户资产变动记录表';
 
 CREATE TABLE `osh_user_asset` (
   `user_id` bigint NOT NULL AUTO_INCREMENT COMMENT '用户ID',

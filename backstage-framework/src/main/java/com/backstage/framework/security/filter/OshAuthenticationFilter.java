@@ -74,10 +74,12 @@ public class OshAuthenticationFilter extends OncePerRequestFilter {
                 ThreadLocalUtil.set(OshUserConstants.USER_ID, userId);
                 Map<String, String> role = (Map<String, String>) userInfoMap.get(OshUserConstants.ROLE);
                 ThreadLocalUtil.set(OshUserConstants.LEVEL, role.get(OshUserConstants.LEVEL));
+                ThreadLocalUtil.set(OshUserConstants.ROLE_CODE, role.get(OshUserConstants.ROLE_CODE));
                 LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
                 wrapper.eq(OshUser::getId, userId);
                 OshUser oshUser = oshUserMapper.selectOne(wrapper);
                 ThreadLocalUtil.set(OshUserConstants.USER_INFO, oshUser);
+                ThreadLocalUtil.set(OshUserConstants.USERNAME, oshUser.getUsername());
                 OshUserDetail oshUserDetail = new OshUserDetail();
                 oshUserDetail.setUserInfoMap(userInfoMap);
 
