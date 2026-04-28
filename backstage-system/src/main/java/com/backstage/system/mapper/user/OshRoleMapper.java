@@ -15,5 +15,10 @@ public interface OshRoleMapper extends BaseMapper<OshRole> {
 
     Integer getRoleIdByUserId(@Param("userId") Long userId);
 
+    /**
+     * 通过 userId 直接查询角色 code（跳过中间表，一步到位）
+     */
+    String getRoleCodeByUserId(@Param("userId") Long userId);
+
     int deleteUserRole(Long userId);
 }

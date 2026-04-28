@@ -22,7 +22,10 @@ import java.util.Map;
 @Mapper
 public interface OshCourseMapper
 {
-    List<CourseSearchLoginVo> pageQuerySearchCourse(@Param("request") CourseSearchRequest request);
+    List<CourseSearchLoginVo> pageQuerySearchCourse(
+            @Param("request") CourseSearchRequest request,
+            @Param("userId") Long userId
+    );
 
     List<Long> selectUserBoughtCourseIds(@Param("userId") Long userId, @Param("courseIds") List<Long> courseIds);
 
