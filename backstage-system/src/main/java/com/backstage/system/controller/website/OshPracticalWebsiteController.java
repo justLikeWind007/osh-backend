@@ -1,12 +1,11 @@
 package com.backstage.system.controller.website;
 
 import com.backstage.common.annotation.Anonymous;
-import com.backstage.common.annotation.OshUserActionLog;
+import com.backstage.common.annotation.OshUserEvent;
 import com.backstage.common.core.controller.BaseController;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.exception.ServiceException;
-import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.system.domain.dto.website.WebsiteAuditDTO;
 import com.backstage.system.domain.dto.website.WebsiteQueryDTO;
 import com.backstage.system.domain.dto.website.WebsiteRatingDTO;
@@ -20,7 +19,6 @@ import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
 import javax.annotation.Resource;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -77,7 +75,7 @@ public class OshPracticalWebsiteController extends BaseController {
      */
     @ApiOperation("用户提交网站")
     @PostMapping("/submit")
-    @OshUserActionLog(module = "实用网站", actionType = "提交", description = "提交网站")
+    @OshUserEvent(module = "实用网站", actionType = "提交", description = "提交网站")
     @PreAuthorize("hasAuthority('website:submit')")
     public R submit(@RequestBody WebsiteSubmitDTO submitDto) {
         try {
@@ -100,7 +98,7 @@ public class OshPracticalWebsiteController extends BaseController {
      */
     @ApiOperation("用户收藏网站")
     @PostMapping("/favorite")
-    @OshUserActionLog(module = "实用网站", actionType = "收藏", description = "收藏网站")
+    @OshUserEvent(module = "实用网站", actionType = "收藏", description = "收藏网站")
     @PreAuthorize("hasAuthority('website:favorite')")
     public R<Void> favorite(Long websiteId, @RequestParam(value = "remark", required = false) String remark) {
         try {
@@ -123,7 +121,7 @@ public class OshPracticalWebsiteController extends BaseController {
      */
     @ApiOperation("用户取消收藏网站")
     @GetMapping("/del")
-    @OshUserActionLog(module = "实用网站", actionType = "取消收藏", description = "取消收藏网站")
+    @OshUserEvent(module = "实用网站", actionType = "取消收藏", description = "取消收藏网站")
     @PreAuthorize("hasAuthority('website:favorite:cancel')")
     public R<Void> cancelFavorite(@RequestParam("websiteId") Long websiteId) {
         try {
@@ -164,7 +162,7 @@ public class OshPracticalWebsiteController extends BaseController {
      */
     @ApiOperation("管理员审核网站")
     @PostMapping("/audit")
-    @OshUserActionLog(module = "实用网站", actionType = "审核", description = "审核网站")
+    @OshUserEvent(module = "实用网站", actionType = "审核", description = "审核网站")
     @PreAuthorize("hasAuthority('website:audit')")
     public R<String> audit(@RequestBody WebsiteAuditDTO auditDto) {
         try {
@@ -230,7 +228,7 @@ public class OshPracticalWebsiteController extends BaseController {
      */
     @ApiOperation("批量删除网站")
     @GetMapping("/batch")
-    @OshUserActionLog(module = "实用网站", actionType = "删除", description = "批量删除网站")
+    @OshUserEvent(module = "实用网站", actionType = "删除", description = "批量删除网站")
     @PreAuthorize("hasAuthority('website:delete:batch')")
     public R<String> batchDelete(@RequestParam List<Integer> websiteIds) {
         try {
@@ -249,7 +247,7 @@ public class OshPracticalWebsiteController extends BaseController {
      */
     @ApiOperation("提交网站评价")
     @PostMapping("/rating/submit")
-    @OshUserActionLog(module = "实用网站", actionType = "评价", description = "提交网站评价")
+    @OshUserEvent(module = "实用网站", actionType = "评价", description = "提交网站评价")
     @PreAuthorize("hasAuthority('website:rating:submit')")
     public R<Void> submitRating(@RequestBody WebsiteRatingDTO ratingDTO) {
         try {
