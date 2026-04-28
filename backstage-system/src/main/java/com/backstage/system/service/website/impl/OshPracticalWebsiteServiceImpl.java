@@ -73,8 +73,8 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
         EsPageResult<OshPracticalWebsiteVO> esResult = websiteEsService.searchFromEs(queryDTO);
         // 第二步：判断 ES 结果
         // esResult == null  → ES 服务异常，降级走 MySQL
-        // esResult.isEmpty() → ES 正常但没有结果，降级走 MySQL
-        if (esResult != null) {
+        // esResult.getTotal() == 0 → ES 正常但没有结果，降级走 MySQL
+        if (esResult != null && esResult.getTotal() != 0) {
             int pageNum = queryDTO.getPageNum() == null ? 1 : queryDTO.getPageNum();
             int pageSize = queryDTO.getPageSize() == null ? 10 : queryDTO.getPageSize();
 

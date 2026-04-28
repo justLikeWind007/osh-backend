@@ -46,6 +46,7 @@ public class WebsiteEsService {
     public EsPageResult<OshPracticalWebsiteVO> searchFromEs(WebsiteQueryDTO queryDTO) {
         try {
             PageResponse<OshPracticalWebsiteVO> pageResponse = oshWebsiteEsMapper.searchWebsites(queryDTO);
+            log.info("ES 查询结果: total={}, rows={}", pageResponse.getTotal(), pageResponse.getRows().size());
             return new EsPageResult<>(pageResponse.getRows(), pageResponse.getTotal());
         } catch (Exception e) {
             log.error("ES 搜索网站失败，将降级走 MySQL 查询", e);
@@ -135,9 +136,14 @@ public class WebsiteEsService {
         doc.setCollectionCount(vo.getCollectionCount());
         doc.setRatingScore(vo.getRatingScore());
         doc.setAuditTime(vo.getAuditTime());
-        // tags：逗号分隔字符串 → List<String>
+        // tags：逗号分隔字符串 → List<String>，trim 掉空格防止精确匹配失败
         if (vo.getTags() != null && !vo.getTags().isEmpty()) {
-            doc.setTags(Arrays.asList(vo.getTags().split(",")));
+            doc.setTags(
+                Arrays.stream(vo.getTags().split(","))
+                      .map(String::trim)
+                      .filter(s -> !s.isEmpty())
+                      .collect(java.util.stream.Collectors.toList())
+            );
         }
         return doc;
     }

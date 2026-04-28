@@ -51,6 +51,8 @@ import java.util.List;
 @Component
 public class OshWebsiteEsMapper {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(OshWebsiteEsMapper.class);
+
     private static final String WEBSITE_SEARCH_INDEX = "osh_practical_website";
 
     @Autowired
