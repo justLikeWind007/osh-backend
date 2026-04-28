@@ -21,13 +21,6 @@ public class UserContextUtil {
         return ThreadLocalUtil.get(OshUserConstants.USER_INFO, OshUser.class);
     }
 
-    public static CurrentUser getCurrentUserInfo() {
-        OshUser oshUser = getCurrentUser();
-        CurrentUser currentUser = new CurrentUser();
-        BeanUtils.copyProperties(oshUser,currentUser);
-        return currentUser;
-    }
-
     public static Long getCurrentUserId() {
         return ThreadLocalUtil.get(OshUserConstants.USER_ID,Long.class);
     }
@@ -36,7 +29,8 @@ public class UserContextUtil {
         return Integer.parseInt(ThreadLocalUtil.get(OshUserConstants.LEVEL,String.class));
     }
 
-    public static Boolean hasPermission(Integer level) {
-        return getCurrentLevel() >= level;
+    public static Boolean hasPermission(String resourceType, Long resourceId) {
+        Integer resourceLevel = ResourcePermissionUtil.getResourceLevel(resourceType, resourceId);
+        return getCurrentLevel() >= resourceLevel;
     }
 }

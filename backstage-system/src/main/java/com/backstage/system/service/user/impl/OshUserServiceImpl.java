@@ -50,6 +50,8 @@ public class OshUserServiceImpl implements IOshUserService {
     private OshUserViolationMapper oshUserViolationMapper;
     @Autowired
     private OshUserAssetMapper oshUserAssetMapper;
+    @Autowired
+    private OshUserAssetRecordMapper oshUserAssetRecordMapper;
 
     @Override
     public R<OshUserLoginVO> login(String username, String password) {
@@ -85,7 +87,7 @@ public class OshUserServiceImpl implements IOshUserService {
         Map<String, String> role = getRole(roleId);
         Map<String, List<String>> permissionList = getPermission(roleId);
         userLoginVo.setAsset(asset);
-        userLoginVo.setRole(getRole(roleId));
+        userLoginVo.setRole(role);
         userLoginVo.setPermissionList(permissionList);
         Map<String, Object> map = new HashMap<>();
         map.put(OshUserConstants.ASSET, asset);
@@ -335,9 +337,54 @@ public class OshUserServiceImpl implements IOshUserService {
         return R.ok(ResultCode.SUCCESS.getMsg());
     }
 
-
-
-
+    @Override
+    public R<String> updateAsset(Integer changeType, Integer changeSource, Integer assetType, Long changeAmount, String remark) {
+        LambdaQueryWrapper<OshUserAsset> wrapper = new LambdaQueryWrapper<>();
+        Long userId = UserContextUtil.getCurrentUserId();
+        wrapper.eq(OshUserAsset::getUserId, userId).select(OshUserAsset::getGoldCoin, OshUserAsset::getPoints);
+        OshUserAssetRecord oshUserAssetRecord = new OshUserAssetRecord();
+        oshUserAssetRecord.setUserId(userId);
+        oshUserAssetRecord.setChangeType(changeType);
+        oshUserAssetRecord.setChangeSource(changeSource);
+        oshUserAssetRecord.setAssetType(assetType);
+        oshUserAssetRecord.setChangeAmount(changeAmount);
+        oshUserAssetRecord.setRemark(remark);
+        Map<String,Object> userMap = redisCache.getCacheObject(OshUserConstants.LOGIN_USER + userId);
+        if (userMap == null) {
+            return R.fail(ResultCode.FAILED_NOT_LOGIN.getMsg());
+        }
+        Map<String,String> asset = (Map<String,String>)userMap.get(OshUserConstants.ASSET);
+        Long goldCoin = Long.valueOf(asset.get(OshUserConstants.GOLD_COIN));
+        Long points = Long.valueOf(asset.get(OshUserConstants.POINTS));
+        if (assetType == 0) {
+            oshUserAssetRecord.setBeforeBalance(goldCoin);
+            if (changeType == 0) {
+                goldCoin += changeAmount;
+            } else {
+                goldCoin -= changeAmount;
+            }
+            oshUserAssetRecord.setAfterBalance(goldCoin);
+        } else {
+            oshUserAssetRecord.setBeforeBalance(points);
+            if (changeType == 0) {
+                points += changeAmount;
+            } else {
+                points -= changeAmount;
+            }
+            oshUserAssetRecord.setAfterBalance(points);
+        }
+        OshUserAsset oshUserAsset = new OshUserAsset();
+        oshUserAsset.setGoldCoin(goldCoin);
+        oshUserAsset.setPoints(points);
+        oshUserAssetMapper.update(oshUserAsset, wrapper);
+        oshUserAssetRecordMapper.insert(oshUserAssetRecord);
+        // 更新redis
+        asset.put(OshUserConstants.GOLD_COIN, String.valueOf(goldCoin));
+        asset.put(OshUserConstants.POINTS, String.valueOf(points));
+        userMap.put(OshUserConstants.ASSET, asset);
+        redisCache.setCacheObject(OshUserConstants.LOGIN_USER + userId, userMap);
+        return R.ok(ResultCode.SUCCESS.getMsg());
+    }
 
 
     public String createToken(OshUser oshUser) {
@@ -350,8 +397,8 @@ public class OshUserServiceImpl implements IOshUserService {
     private Map<String, String> getAsset(Long id) {
         OshUserAsset asset = ensureUserAsset(id);
         HashMap<String, String> result = new HashMap<>();
-        result.put("goldCoin", String.valueOf(Optional.ofNullable(asset.getGoldCoin()).orElse(0L)));
-        result.put("points", String.valueOf(Optional.ofNullable(asset.getPoints()).orElse(0L)));
+        result.put(OshUserConstants.GOLD_COIN, String.valueOf(Optional.ofNullable(asset.getGoldCoin()).orElse(0L)));
+        result.put(OshUserConstants.POINTS, String.valueOf(Optional.ofNullable(asset.getPoints()).orElse(0L)));
         return result;
     }
 

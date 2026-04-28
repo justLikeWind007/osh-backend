@@ -21,17 +21,16 @@ public @interface OshUserEvent {
      */
     String module() default "";
     /**
-     * 是否记录参数
-     */
-    boolean recordArgs() default true;
-    /**
      * 操作类型
      */
     String actionType() default "";
+
+    String resourceType() default "";
     /**
      * 操作描述
      */
     String description() default "";
+
     /**
      * Kafka topic
      */

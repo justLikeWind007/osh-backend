@@ -26,3 +26,8 @@ spring:
             refresh: true
           - data-id: osh-backend-elasticsearch-dev.yaml
             refresh: true
+
+jasypt:
+  encryptor:
+    algorithm: PBEWithMD5AndDES
+    iv-generator-classname: org.jasypt.iv.NoIvGenerator

@@ -30,7 +30,7 @@
         <poi.version>4.1.2</poi.version>
         <velocity.version>2.3</velocity.version>
         <jwt.version>0.9.1</jwt.version>
-        <Redisson.version>3.23.4</Redisson.version>
+        <Redisson.version>3.17.7</Redisson.version>
         <!-- override dependency version -->
         <tomcat.version>9.0.106</tomcat.version>
         <logback.version>1.2.13</logback.version>

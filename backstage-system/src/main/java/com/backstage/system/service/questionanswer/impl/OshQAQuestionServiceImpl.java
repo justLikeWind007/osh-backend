@@ -4,6 +4,7 @@ import com.backstage.common.core.domain.R;
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.enums.QAQuestionSearchType;
 import com.backstage.common.enums.ResultCode;
+import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.system.domain.questionanswer.Answer;
 import com.backstage.system.domain.questionanswer.Question;
@@ -14,6 +15,7 @@ import com.backstage.system.mapper.questionanswer.OshQAAnswerMapper;
 import com.backstage.system.mapper.questionanswer.OshQAQuestionMapper;
 import com.backstage.system.mapper.questionanswer.OshQATagMapper;
 import com.backstage.system.service.questionanswer.IOshQAQuestionService;
+import com.backstage.system.utils.ResourcePermissionUtil;
 import com.backstage.system.utils.UserContextUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
@@ -51,6 +53,9 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
 
     @Override
     public R<String> addQuestion(Long userId, Long resourceNo, String resourceType, String content, Byte isPaidOnly, List<Long> tags) {
+        if(!UserContextUtil.hasPermission(resourceType,resourceNo)) {
+            return R.fail(ResultCode.FAILED_USER_PERMISSION_DENIED.getMsg());
+        }
         Question question = new Question();
         question.setUserId(userId);
         question.setResourceNo(resourceNo);
@@ -243,7 +248,7 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
         if (answer.getIsSolution() == 1 || question.getStatus() == 2) {
             return R.fail(ResultCode.FAILED_USER_ANSWER_ALREADY_MARKED.getMsg());
         }
-        if (question.getUserId().equals(userId) || UserContextUtil.hasPermission(4)) {
+        if (question.getUserId().equals(userId) || UserContextUtil.getCurrentLevel() > 4) {
             answer.setIsSolution((byte)1);
             oshQaAnswerMapper.update(answer, answerWrapper);
             question.setStatus((byte)2);

@@ -73,6 +73,12 @@ public class OshCourseDetailVo {
 
     private String level; // 或者 Integer level，根据你数据库类型来
 
+    /**
+     * 课程访问级别：FULL=全部章节可看，TRIAL=仅试看免费章节
+     * 由后端根据用户角色+购买记录动态计算，前端直接使用
+     */
+    private String accessLevel;
+
     // 章节列表字段（用于存放课程的大纲、视频路径等）
     private List<OshCourseSectionVo> sections;
 
@@ -95,6 +101,14 @@ public class OshCourseDetailVo {
         return level;
     }
 
+
+    public String getAccessLevel() {
+        return accessLevel;
+    }
+
+    public void setAccessLevel(String accessLevel) {
+        this.accessLevel = accessLevel;
+    }
 
     // 如果类上没有 @Data 注解，务必手动加上 Setter
     public void setResourceType(String resourceType) {

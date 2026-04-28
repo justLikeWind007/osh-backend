@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import javax.sql.DataSource;
 
+import com.backstage.framework.interceptor.GlobalLogicDeleteInterceptor;
 import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.core.config.GlobalConfig;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
@@ -124,6 +125,8 @@ public class MyBatisConfig
         return new MyBatisPlusMetaObjectHandler();
     }
 
+    @Autowired
+    private GlobalLogicDeleteInterceptor globalLogicDeleteInterceptor;
     @Bean
     public SqlSessionFactory sqlSessionFactory(DataSource dataSource,
                                                MybatisPlusInterceptor mybatisPlusInterceptor,
@@ -149,6 +152,7 @@ public class MyBatisConfig
         GlobalConfig globalConfig = new GlobalConfig();
         globalConfig.setMetaObjectHandler(metaObjectHandler);
         sessionFactory.setGlobalConfig(globalConfig);
+        sessionFactory.setPlugins(globalLogicDeleteInterceptor);
 
         return sessionFactory.getObject();
     }
