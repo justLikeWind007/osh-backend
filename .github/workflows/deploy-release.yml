@@ -1,0 +1,92 @@
+name: Deploy Backend Release
+
+on:
+  push:
+    branches:
+      - release/20260328
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-backend-release
+  cancel-in-progress: false
+
+env:
+  JAVA_VERSION: '17'
+  DEPLOY_HOST: ${{ secrets.DEPLOY_HOST || vars.DEPLOY_HOST || '43.242.200.25' }}
+  DEPLOY_USER: ${{ secrets.DEPLOY_USER || vars.DEPLOY_USER || 'root' }}
+  DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || vars.DEPLOY_PORT || '58753' }}
+  BACKEND_DEPLOY_DIR: ${{ vars.BACKEND_DEPLOY_DIR || '/www/ruoyi' }}
+  BACKEND_JAR_NAME: ${{ vars.BACKEND_JAR_NAME || 'backstage-admin.jar' }}
+  DOCKER_COMPOSE_DIR: ${{ vars.DOCKER_COMPOSE_DIR || '/opt/docker-apps' }}
+  BACKEND_SERVICE_NAME: ${{ vars.BACKEND_SERVICE_NAME || 'backstage-admin' }}
+
+jobs:
+  deploy:
+    name: Build and deploy backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+
+      - name: Build backend jar
+        run: mvn clean install -DskipTests -pl '!backstage-flink'
+
+      - name: Validate jar output
+        run: |
+          test -f backstage-admin/target/backstage-admin.jar
+          unzip -t backstage-admin/target/backstage-admin.jar >/tmp/backend-jar-check.log
+          sha256sum backstage-admin/target/backstage-admin.jar | tee /tmp/backend-jar.sha256
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$DEPLOY_PORT" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: Stop backend before replacing jar
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "mkdir -p '$BACKEND_DEPLOY_DIR' && cd '$DOCKER_COMPOSE_DIR' && docker-compose stop '$BACKEND_SERVICE_NAME'"
+
+      - name: Upload backend jar safely
+        run: |
+          rsync -az --inplace --progress \
+            -e "ssh -i ~/.ssh/deploy_key -p $DEPLOY_PORT" \
+            backstage-admin/target/backstage-admin.jar \
+            "$DEPLOY_USER@$DEPLOY_HOST:$BACKEND_DEPLOY_DIR/$BACKEND_JAR_NAME"
+
+      - name: Verify remote jar integrity
+        run: |
+          local_sha="$(sha256sum backstage-admin/target/backstage-admin.jar | cut -d ' ' -f 1)"
+          remote_sha="$(ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "sha256sum '$BACKEND_DEPLOY_DIR/$BACKEND_JAR_NAME' | cut -d ' ' -f 1")"
+          echo "local_sha=$local_sha"
+          echo "remote_sha=$remote_sha"
+          test "$local_sha" = "$remote_sha"
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "unzip -t '$BACKEND_DEPLOY_DIR/$BACKEND_JAR_NAME' 'BOOT-INF/lib/*' >/tmp/backend-jar-check.log && tail -5 /tmp/backend-jar-check.log"
+
+      - name: Restart backend service
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "cd '$DOCKER_COMPOSE_DIR' && docker-compose up -d '$BACKEND_SERVICE_NAME' && sleep 20 && docker-compose ps '$BACKEND_SERVICE_NAME'"
+
+      - name: Show backend logs
+        if: always()
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "docker logs --tail 120 '$BACKEND_SERVICE_NAME' || true"
