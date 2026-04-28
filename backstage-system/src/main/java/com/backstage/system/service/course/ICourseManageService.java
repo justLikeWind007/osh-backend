@@ -7,7 +7,6 @@ import com.backstage.system.domain.dto.*;
 import com.backstage.system.domain.vo.*;
 import com.backstage.system.domain.vo.CourseDetailVO;
 import com.backstage.system.domain.vo.CourseMaterialVO;
-import com.backstage.system.domain.vo.CourseQuestionVO;
 import com.backstage.system.domain.vo.CourseSectionVO;
 import com.backstage.system.domain.vo.SectionAccessVO;
 import com.backstage.system.domain.vo.SectionProgressVO;
@@ -379,9 +378,9 @@ public interface ICourseManageService {
      * 语法逻辑：校验文件→调用上传接口→返回封面信息
      * 实现效果：将封面图片上传到文件服务器，返回封面信息
      *
-     * @param file 封面文件
-     * @param coverName 封面名称
-     * @return 封面信息（名称、URL、大小、类型）
+
+     * @param file     封面文件
+     * @return
      */
     Map<String, Object> uploadCourseCover(MultipartFile file, String coverName);
     

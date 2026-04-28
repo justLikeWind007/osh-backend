@@ -43,6 +43,20 @@
         INNER JOIN osh_column col ON f.goods_id = col.id
         WHERE f.user_id = #{userId} AND f.type = 'column'
 
+        UNION ALL
+
+        SELECT
+        f.id as fava_id,
+        f.type as fava_type,
+        b.id as g_id,
+        b.title as g_title,
+        b.cover as g_cover,
+        'book' as g_type,
+        '' as g_try
+        FROM osh_fava f
+        INNER JOIN osh_book b ON f.goods_id = b.id
+        WHERE f.user_id = #{userId} AND f.type = 'book'
+
         ORDER BY fava_id DESC
     </select>
 

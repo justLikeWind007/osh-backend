@@ -5,6 +5,7 @@ import com.backstage.common.utils.DateUtils;
 import com.backstage.common.utils.ServletUtils;
 import com.backstage.common.utils.ip.IpUtils;
 import com.backstage.system.domain.vo.common.OssOperationLogVo;
+import com.backstage.system.exception.UpLoadException;
 import com.backstage.system.mapper.common.OssMapper;
 import com.backstage.system.service.common.OssService;
 import com.backstage.system.utils.OssUtil;
@@ -14,16 +15,8 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import eu.bitwalker.useragentutils.UserAgent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 
 
 @Service
@@ -37,9 +30,6 @@ public class OssImpl implements OssService {
 
     @Autowired
     private OssService ossService;
-
-    @Autowired
-    private UserContextUtil userContextUtil;
 
 
     // 需要OSS的文件路径，怎么存的就怎么从数据库里面取
@@ -63,11 +53,10 @@ public class OssImpl implements OssService {
      * 上传文件
      * @param file  文件
      * @param pathEnum  枚举路径固定
-     * @param id    自定义目录下的子文件夹
      * @return oss服务的文件路径
      * @throws Exception
      */
-    public String upload(MultipartFile file, UploadPathEnum pathEnum, String id) throws  Exception{
+    public String upload(MultipartFile file, UploadPathEnum pathEnum, String id) throws UpLoadException, Exception {
 
 
         String customPath;
@@ -148,11 +137,12 @@ public class OssImpl implements OssService {
         OssOperationLogVo log = new OssOperationLogVo();
 
         if (!ossService.existsFileKey(file.getOriginalFilename())) {
-            // 获取浏览器 User-Agent
+            // 获取浏览器 OshUser-Agent
             UserAgent userAgent = UserAgent.parseUserAgentString(
-                    ServletUtils.getRequest().getHeader("User-Agent")
+                    ServletUtils.getRequest().getHeader("OshUser-Agent")
             );
             // 获取客户端IP
+            // getRemoteAddr
             String ip = IpUtils.getIpAddr();
             // 原始文件名
             log.setOriginalName(file.getOriginalFilename());
@@ -165,8 +155,8 @@ public class OssImpl implements OssService {
             log.setOperationType("upload");
             log.setOperationCount(1);
             try {
-                if (userContextUtil.getCurrentUser().getUsername()!= null)
-                    log.setUsername(userContextUtil.getCurrentUser().getUsername());
+                if (UserContextUtil.getCurrentUser().getUsername()!= null)
+                    log.setUsername(UserContextUtil.getCurrentUser().getUsername());
             } catch (Exception e) {
                 log.setUsername("");
             }

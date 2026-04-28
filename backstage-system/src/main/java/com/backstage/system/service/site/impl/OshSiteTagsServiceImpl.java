@@ -19,7 +19,6 @@ import java.util.stream.Collectors;
  */
 @Service
 public class OshSiteTagsServiceImpl extends ServiceImpl<OshSiteTagsMapper, OshSiteTag> implements IOshSiteTagsService {
-
   /**
    * 查询网站的标签列表
    *
@@ -54,7 +53,7 @@ public class OshSiteTagsServiceImpl extends ServiceImpl<OshSiteTagsMapper, OshSi
     List<OshSiteTag> allTags = this.list(new LambdaQueryWrapper<OshSiteTag>()
             .select(OshSiteTag::getTagName, OshSiteTag::getId)
             .in(!CollectionUtils.isEmpty(siteIds), OshSiteTag::getSiteId, siteIds)
-            .eq(OshSiteTag::getIsDeleted, 0));
+            .eq(OshSiteTag::getDeleteFlag, 0));
     // 统计每个标签的使用次数
     Set<Long> tagIds = allTags.stream().map(OshSiteTag::getId).collect(Collectors.toSet());
     if (!CollectionUtils.isEmpty(tagIds)) {

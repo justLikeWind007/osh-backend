@@ -1,10 +1,11 @@
 package com.backstage.system.domain.course.vo;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @ApiModel(description = "登录态课程搜索响应")
 public class CourseSearchLoginVo {
@@ -43,13 +44,15 @@ public class CourseSearchLoginVo {
     private String createBy;
 
     @ApiModelProperty("创建时间")
-    private Date createTime;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime createTime;
 
     @ApiModelProperty("修改人")
     private String updateBy;
 
     @ApiModelProperty("更新时间")
-    private Date updateTime;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime updateTime;
 
     @ApiModelProperty("总时长")
     private Integer totalDuration;
@@ -84,6 +87,15 @@ public class CourseSearchLoginVo {
     @ApiModelProperty("售后答疑天数")
     private Integer afterServiceDays;
 
+    @ApiModelProperty("资源类型")
+    private String resourceType;
+
+    @ApiModelProperty("资源等级")
+    private Integer level;
+
+    @ApiModelProperty("资源类型描述")
+    private String resourceTypeDesc;
+
     @ApiModelProperty("状态")
     private Integer status;
 
@@ -95,6 +107,18 @@ public class CourseSearchLoginVo {
 
     @ApiModelProperty("是否已购买：0-否，1-是")
     private Integer buyFlag;
+
+    @ApiModelProperty("收藏数")
+    private Integer collectionCount;
+
+
+    public Integer getCollectionCount() {
+        return collectionCount;
+    }
+
+    public void setCollectionCount(Integer collectionCount) {
+        this.collectionCount = collectionCount;
+    }
 
     public Long getId() {
         return id;
@@ -184,11 +208,11 @@ public class CourseSearchLoginVo {
         this.createBy = createBy;
     }
 
-    public Date getCreateTime() {
+    public LocalDateTime getCreateTime() {
         return createTime;
     }
 
-    public void setCreateTime(Date createTime) {
+    public void setCreateTime(LocalDateTime createTime) {
         this.createTime = createTime;
     }
 
@@ -200,11 +224,11 @@ public class CourseSearchLoginVo {
         this.updateBy = updateBy;
     }
 
-    public Date getUpdateTime() {
+    public LocalDateTime getUpdateTime() {
         return updateTime;
     }
 
-    public void setUpdateTime(Date updateTime) {
+    public void setUpdateTime(LocalDateTime updateTime) {
         this.updateTime = updateTime;
     }
 
@@ -294,6 +318,30 @@ public class CourseSearchLoginVo {
 
     public void setAfterServiceDays(Integer afterServiceDays) {
         this.afterServiceDays = afterServiceDays;
+    }
+
+    public String getResourceType() {
+        return resourceType;
+    }
+
+    public void setResourceType(String resourceType) {
+        this.resourceType = resourceType;
+    }
+
+    public Integer getLevel() {
+        return level;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
+    }
+
+    public String getResourceTypeDesc() {
+        return resourceTypeDesc;
+    }
+
+    public void setResourceTypeDesc(String resourceTypeDesc) {
+        this.resourceTypeDesc = resourceTypeDesc;
     }
 
     public Integer getStatus() {

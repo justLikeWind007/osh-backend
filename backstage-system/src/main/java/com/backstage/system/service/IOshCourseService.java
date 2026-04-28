@@ -1,14 +1,16 @@
 package com.backstage.system.service;
 
-import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.course.OshCourseMaterial;
 import com.backstage.system.domain.course.vo.CourseSearchLoginVo;
 import com.backstage.system.domain.course.vo.OshCourseDetailVo;
 import com.backstage.system.domain.course.vo.OshCourseSectionVo;
-import com.backstage.system.domain.user.User;
+import com.backstage.system.domain.course.OshCourse;
+import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.request.CourseCreateRequest;
 import com.backstage.system.request.CourseChapterCreateRequest;
 import com.backstage.system.request.CourseSearchRequest;
+import com.backstage.system.request.CourseTextSectionCreateRequest;
+import com.backstage.system.request.CourseUpdateRequest;
 import com.backstage.system.request.CourseVideoSectionCreateRequest;
 
 import java.util.List;
@@ -20,9 +22,8 @@ import java.util.List;
  * @date 2026-01-XX
  */
 public interface IOshCourseService {
-    List<OshCourse> pageQuerySearchCourse(CourseSearchRequest request);
 
-    List<CourseSearchLoginVo> pageQueryLoginSearchCourse(Long userId, CourseSearchRequest request);
+    List<CourseSearchLoginVo> pageQuerySearchCourse(Long userId, CourseSearchRequest request);
 
     List<OshCourse> pageQueryUserCollectionCourse(Long userId, CourseSearchRequest request);
 
@@ -49,11 +50,17 @@ public interface IOshCourseService {
      */
     int insertCourse(OshCourse course);
 
-    Long createCourse(CourseCreateRequest request, User operator);
+    Long createCourse(CourseCreateRequest request, OshUser operator);
 
-    Long createCourseChapter(CourseChapterCreateRequest request, User operator);
+    Long updateCourse(CourseUpdateRequest request, OshUser operator);
 
-    Long createCourseVideoSection(CourseVideoSectionCreateRequest request, User operator);
+    Long auditCourse(Long courseId, OshUser operator);
+
+    Long createCourseChapter(CourseChapterCreateRequest request, OshUser operator);
+
+    Long createCourseTextSection(CourseTextSectionCreateRequest request, OshUser operator);
+
+    Long createCourseVideoSection(CourseVideoSectionCreateRequest request, OshUser operator);
 
     /**
      * 修改课程
@@ -92,4 +99,10 @@ public interface IOshCourseService {
     String getCourseSectionContent(Long sectionId, Long userId);
 
     List<OshCourseMaterial> getCourseMaterials(Long courseId);
+
+    boolean safeDeleteSection(Long courseId, Long sectionId, OshUser currentOshUser);
+
+    void updateCourseChapter(CourseChapterCreateRequest request, OshUser currentOshUser);
+
+    void deleteCoursesByIds(List<Long> ids, OshUser currentOshUser);
 }

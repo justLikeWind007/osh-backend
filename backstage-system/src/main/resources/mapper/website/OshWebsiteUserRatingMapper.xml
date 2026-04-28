@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.website.OshWebsiteUserRatingMapper">
+
+    <resultMap id="BaseResultMap" type="com.backstage.system.domain.website.OshWebsiteUserRating">
+            <id property="id" column="id" jdbcType="BIGINT"/>
+            <result property="userId" column="user_id" jdbcType="BIGINT"/>
+            <result property="websiteId" column="website_id" jdbcType="BIGINT"/>
+            <result property="ratingType" column="rating_type" jdbcType="TINYINT"/>
+            <result property="createBy" column="create_by" jdbcType="BIGINT"/>
+            <result property="updateBy" column="update_by" jdbcType="BIGINT"/>
+            <result property="deleteFlag" column="delete_flag" jdbcType="TINYINT"/>
+            <result property="goodCount" column="good_count" jdbcType="INTEGER"/>
+            <result property="midCount" column="mid_count" jdbcType="INTEGER"/>
+            <result property="badCount" column="bad_count" jdbcType="INTEGER"/>
+            <result property="collectionCount" column="collection_count" jdbcType="INTEGER"/>
+            <result property="ratingScore" column="rating_score" jdbcType="DECIMAL"/>
+            <result property="clickCount" column="click_count" jdbcType="INTEGER"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,user_id,website_id,
+        rating_type,create_by,update_by,
+        delete_flag,good_count,mid_count,
+        bad_count,collection_count,rating_score,
+        click_count,create_time,update_time
+    </sql>
+</mapper>

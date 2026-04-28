@@ -37,7 +37,6 @@ public class CourseVideoSectionCreateRequest {
     private Integer duration;
 
     @ApiModelProperty(value = "视频OSS地址", required = true, example = "https://oss.example.com/video.mp4")
-    @NotBlank(message = "视频地址不能为空")
     private String mediaUrl;
 
     @ApiModelProperty(value = "封面图地址", example = "https://oss.example.com/cover.png")
@@ -54,6 +53,16 @@ public class CourseVideoSectionCreateRequest {
     @PositiveOrZero(message = "文件大小不能小于0")
     private Long fileSize;
 
+    @ApiModelProperty(value = "小节ID，有值则更新，无值则新增")
+    private Long id;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
     public Long getCourseId() {
         return courseId;
     }

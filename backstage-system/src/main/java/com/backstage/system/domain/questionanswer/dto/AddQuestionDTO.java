@@ -1,5 +1,6 @@
 package com.backstage.system.domain.questionanswer.dto;
 
+import com.backstage.common.annotation.OshResourceId;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
@@ -8,7 +9,7 @@ import java.util.List;
 /**
  * Created with IntelliJ IDEA.
  * Description:
- * User: 九转苍翎
+ * OshUser: 九转苍翎
  * Date: 2026/3/28
  * Time: 21:12
  */
@@ -22,6 +23,7 @@ public class AddQuestionDTO {
     @ApiModelProperty(
             value = "资源编号"
     )
+    @OshResourceId
     private Long resourceNo;
     @ApiModelProperty(
             value = "问题描述",
@@ -37,10 +39,6 @@ public class AddQuestionDTO {
             value = "标签id集合"
     )
     private List<Long> tags;
-    @ApiModelProperty(
-            value = "状态"
-    )
-    private Byte status;
 
     public String getResourceType() {
         return resourceType;
@@ -82,14 +80,6 @@ public class AddQuestionDTO {
         this.tags = tags;
     }
 
-    public Byte getStatus() {
-        return status;
-    }
-
-    public void setStatus(Byte status) {
-        this.status = status;
-    }
-
     @Override
     public String toString() {
         return "AddQuestionDTO{" +
@@ -98,7 +88,6 @@ public class AddQuestionDTO {
                 ", content='" + content + '\'' +
                 ", isPaidOnly=" + isPaidOnly +
                 ", tags=" + tags +
-                ", status=" + status +
                 '}';
     }
 }

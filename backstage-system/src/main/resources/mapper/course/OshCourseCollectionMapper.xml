@@ -16,46 +16,27 @@
     </resultMap>
 
     <select id="selectByUserIdAndCourseId" resultMap="OshCourseCollectionResult">
-        select id,
-               user_id,
-               course_id,
-               delete_flag,
-               create_by,
-               create_time,
-               update_by,
-               update_time
+        select id, user_id, course_id, delete_flag
         from osh_course_collection
         where user_id = #{userId}
-          and course_id = #{courseId}
+        and course_id = #{courseId}
         limit 1
     </select>
 
     <insert id="insertCourseCollection" parameterType="com.backstage.system.domain.course.OshCourseCollection"
             useGeneratedKeys="true" keyProperty="id">
         insert into osh_course_collection (
-            user_id,
-            course_id,
-            delete_flag,
-            create_by,
-            create_time,
-            update_by,
-            update_time
+        user_id, course_id, delete_flag, create_by, create_time, update_by, update_time
         ) values (
-            #{userId},
-            #{courseId},
-            #{deleteFlag},
-            #{createBy},
-            #{createTime},
-            #{updateBy},
-            #{updateTime}
+        #{userId}, #{courseId}, 0, #{createBy}, now(), #{updateBy}, now()
         )
     </insert>
 
     <update id="updateCollectionDeleteFlag">
         update osh_course_collection
         set delete_flag = #{deleteFlag},
-            update_by = #{operator},
-            update_time = now()
+        update_by = #{operator},
+        update_time = now()
         where id = #{id}
     </update>
 </mapper>

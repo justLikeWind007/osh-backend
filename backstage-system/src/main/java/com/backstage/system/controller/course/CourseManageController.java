@@ -7,8 +7,10 @@ import com.backstage.common.core.domain.R;
 import com.backstage.common.enums.BusinessType;
 import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.dto.*;
+import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.domain.vo.*;
 import com.backstage.system.service.course.ICourseManageService;
+import com.backstage.system.utils.UserContextUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -346,7 +348,9 @@ public class CourseManageController extends BaseController {
     @GetMapping("/{courseId}/materials")
     public R<List<CourseMaterialVO>> getCourseMaterials(
             @ApiParam("课程 ID") @PathVariable Long courseId) {
-        Long userId = getUserId();
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+
+        Long userId = currentOshUser.getId();
         return R.ok(courseManageService.getCourseMaterials(courseId, userId));
     }
 
@@ -358,9 +362,13 @@ public class CourseManageController extends BaseController {
     //@PreAuthorize("@ss.hasPermi('system:course:material:delete')")
     @ApiOperation("删除课程资料")
     @DeleteMapping("/material/{materialId}")
+    @Anonymous
+
     public R<Void> deleteMaterial(
             @ApiParam("资料 ID") @PathVariable Long materialId) {
-        Long userId = getUserId();
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+
+        Long userId = currentOshUser.getId();
         courseManageService.deleteMaterial(materialId, userId);
         return R.ok();
     }
@@ -375,10 +383,13 @@ public class CourseManageController extends BaseController {
     @PreAuthorize("@ss.hasPermi('system:course:section:add')")
     @ApiOperation("添加章节/课时")
     @PostMapping("/{courseId}/section")
+    @Anonymous
     public R<Long> addSection(
             @ApiParam("课程ID") @PathVariable Long courseId,
             @ApiParam("章节DTO") @Valid @RequestBody SectionCreateDTO sectionCreateDTO) {
-        Long userId = getUserId();
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+
+        Long userId = currentOshUser.getId();
         Long sectionId = courseManageService.addSection(courseId, sectionCreateDTO, userId);
         return R.ok(sectionId);
     }
@@ -390,8 +401,11 @@ public class CourseManageController extends BaseController {
     @PreAuthorize("@ss.hasPermi('system:course:edit')")
     @ApiOperation("修改课程")
     @PutMapping
+    @Anonymous
     public R<Void> edit(@RequestBody OshCourse course) {
-        Long userId = getUserId();
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+
+        Long userId = currentOshUser.getId();
         courseManageService.updateCourse(course, userId);
         return R.ok();
     }
@@ -403,8 +417,11 @@ public class CourseManageController extends BaseController {
     @PreAuthorize("@ss.hasPermi('system:course:remove')")
     @ApiOperation("删除课程")
     @DeleteMapping("/{courseId}")
+    @Anonymous
     public R<Void> remove(@ApiParam("课程 ID") @PathVariable Long courseId) {
-        Long userId = getUserId();
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+
+        Long userId = currentOshUser.getId();
         courseManageService.deleteCourse(courseId, userId);
         return R.ok();
     }
@@ -437,7 +454,9 @@ public class CourseManageController extends BaseController {
     @GetMapping("/{courseId}/sections")
     public R<List<CourseSectionVO>> getCourseSections(
             @ApiParam("课程 ID") @PathVariable Long courseId) {
-        Long userId = getUserId();
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+
+        Long userId = currentOshUser.getId();
         return R.ok(courseManageService.getCourseSections(courseId, userId));
     }
     
@@ -450,8 +469,9 @@ public class CourseManageController extends BaseController {
     public R<SectionDTO> learnSection(@RequestBody Map<String, Long> params) {
         Long courseId = params.get("courseId");
         Long sectionId = params.get("sectionId");
-        Long userId = getUserId();
-        
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+
+        Long userId = currentOshUser.getId();
         return R.ok(courseManageService.learnSection(courseId, sectionId, userId));
     }
     
@@ -465,8 +485,9 @@ public class CourseManageController extends BaseController {
         Long courseId = (Long) params.get("courseId");
         Long sectionId = (Long) params.get("sectionId");
         Double progress = (Double) params.get("progress");
-        Long userId = getUserId();
-        
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+
+        Long userId = currentOshUser.getId();
         courseManageService.updateProgress(courseId, sectionId, userId, progress);
         return R.ok();
     }
@@ -483,7 +504,9 @@ public class CourseManageController extends BaseController {
     @GetMapping("/section/{sectionId}/video")
     public R<SectionVideoVO> getSectionVideo(
             @ApiParam("章节ID") @PathVariable Long sectionId) {
-        Long userId = getUserId();
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+
+        Long userId = currentOshUser.getId();
         return R.ok(courseManageService.getSectionVideo(sectionId, userId));
     }
     
@@ -497,7 +520,9 @@ public class CourseManageController extends BaseController {
     public R<Void> updatePlayProgress(
             @ApiParam("章节ID") @PathVariable Long sectionId,
             @RequestBody ProgressDTO progressDTO) {
-        Long userId = getUserId();
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+
+        Long userId = currentOshUser.getId();
         courseManageService.updatePlayProgress(sectionId, progressDTO, userId);
         return R.ok();
     }
@@ -510,7 +535,9 @@ public class CourseManageController extends BaseController {
     @GetMapping("/section/{sectionId}/progress")
     public R<SectionProgressVO> getPlayProgress(
             @ApiParam("章节ID") @PathVariable Long sectionId) {
-        Long userId = getUserId();
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+
+        Long userId = currentOshUser.getId();
         return R.ok(courseManageService.getPlayProgress(sectionId, userId));
     }
     
@@ -523,7 +550,9 @@ public class CourseManageController extends BaseController {
     @PostMapping("/section/{sectionId}/complete")
     public R<Long> markSectionComplete(
             @ApiParam("章节ID") @PathVariable Long sectionId) {
-        Long userId = getUserId();
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+
+        Long userId = currentOshUser.getId();
         Long examId = courseManageService.markSectionComplete(sectionId, userId);
         return R.ok(examId, examId != null ? "章节已完成，请参加考试" : "章节已完成");
     }
@@ -540,7 +569,9 @@ public class CourseManageController extends BaseController {
     @ApiOperation("提问")
     @PostMapping("/question")
     public R<Long> askQuestion(@RequestBody QuestionDTO questionDTO) {
-        Long userId = getUserId();
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+
+        Long userId = currentOshUser.getId();
         Long questionId = courseManageService.askQuestion(questionDTO, userId);
         return R.ok(questionId);
     }
@@ -556,8 +587,10 @@ public class CourseManageController extends BaseController {
             @ApiParam("问题 ID") @PathVariable Long questionId,
             @RequestBody Map<String, String> params) {
         String answerContent = params.get("answerContent");
-        Long userId = getUserId();
-        
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+
+        Long userId = currentOshUser.getId();
+
         courseManageService.answerQuestion(questionId, answerContent, userId);
         return R.ok();
     }
@@ -583,7 +616,9 @@ public class CourseManageController extends BaseController {
     @ApiOperation("提交课程评价")
     @PostMapping("/review")
     public R<Void> submitReview(@RequestBody ReviewDTO reviewDTO) {
-        Long userId = getUserId();
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+
+        Long userId = currentOshUser.getId();
         courseManageService.submitReview(reviewDTO, userId);
         return R.ok();
     }
@@ -613,8 +648,10 @@ public class CourseManageController extends BaseController {
         Long courseId = (Long) params.get("courseId");
         String staffType = (String) params.get("staffType");
         Integer examScore = (Integer) params.get("examScore");
-        Long userId = getUserId();
-        
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+
+        Long userId = currentOshUser.getId();
+
         Long applyId = courseManageService.applyStaff(courseId, staffType, examScore, userId);
         return R.ok(applyId);
     }
@@ -631,8 +668,9 @@ public class CourseManageController extends BaseController {
             @RequestBody Map<String, String> params) {
         String auditStatus = params.get("auditStatus");
         String auditRemark = params.get("auditRemark");
-        Long userId = getUserId();
-        
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+
+        Long userId = currentOshUser.getId();
         courseManageService.auditStaff(applyId, auditStatus, auditRemark, userId);
         return R.ok();
     }
@@ -657,7 +695,9 @@ public class CourseManageController extends BaseController {
     @PostMapping("/{courseId}/favorite")
     public R<Void> addFavorite(
             @ApiParam("课程 ID") @PathVariable Long courseId) {
-        Long userId = getUserId();
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+
+        Long userId = currentOshUser.getId();
         courseManageService.addFavorite(courseId, userId);
         return R.ok();
     }
@@ -669,7 +709,9 @@ public class CourseManageController extends BaseController {
     @DeleteMapping("/{courseId}/favorite")
     public R<Void> removeFavorite(
             @ApiParam("课程 ID") @PathVariable Long courseId) {
-        Long userId = getUserId();
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+
+        Long userId = currentOshUser.getId();
         courseManageService.removeFavorite(courseId, userId);
         return R.ok();
     }
@@ -681,7 +723,9 @@ public class CourseManageController extends BaseController {
     @GetMapping("/{courseId}/favorite")
     public R<Boolean> checkFavorited(
             @ApiParam("课程 ID") @PathVariable Long courseId) {
-        Long userId = getUserId();
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+
+        Long userId = currentOshUser.getId();
         return R.ok(courseManageService.checkFavorited(courseId, userId));
     }
 }

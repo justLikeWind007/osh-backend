@@ -39,8 +39,14 @@ public class BookSaveReqVO implements Serializable
     @JsonProperty("t_price")
     private BigDecimal tPrice;
 
+    /** 权限等级 */
+    private Integer level;
+
     /** 标签列表 */
     private List<String> tags;
+
+    /** 章节列表 */
+    private List<BookChapterSaveUpdateVO> chapters;
 
     public Long getId()
     {
@@ -118,11 +124,27 @@ public class BookSaveReqVO implements Serializable
         this.tPrice = tPrice;
     }
 
+    public Integer getLevel() {
+        return level;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
+    }
+
     public List<String> getTags() {
         return tags;
     }
 
     public void setTags(List<String> tags) {
         this.tags = tags;
+    }
+
+    public List<BookChapterSaveUpdateVO> getChapters() {
+        return chapters;
+    }
+
+    public void setChapters(List<BookChapterSaveUpdateVO> chapters) {
+        this.chapters = chapters;
     }
 }

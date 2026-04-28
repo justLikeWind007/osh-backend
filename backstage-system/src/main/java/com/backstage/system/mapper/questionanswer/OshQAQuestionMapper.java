@@ -9,19 +9,21 @@ import java.util.List;
 /**
  * Created with IntelliJ IDEA.
  * Description:
- * User: 九转苍翎
+ * OshUser: 九转苍翎
  * Date: 2026/3/24
  * Time: 21:51
  */
 public interface OshQAQuestionMapper extends BaseMapper <Question> {
 
-    int addQuestionTags(@Param("questionId") Long questionId,@Param("tagId") Long tagId);
+    int addQuestionTags(@Param("questionId") Long questionId,@Param("tagId") Long tagId,@Param("createBy") Long createBy);
+
+    int deleteQuestionTags(@Param("questionId") Long questionId);
 
     Integer getFollowInfoByUserIdAndQuestionId(@Param("userId")Long userId,@Param("questionId") Long questionId);
 
-    int followQuestion(@Param("userId")Long userId,@Param("questionId") Long questionId,@Param("createBy") String createBy);
+    int followQuestion(@Param("userId")Long userId,@Param("questionId") Long questionId,@Param("createBy") Long createBy);
 
-    int cancelFollowQuestion(@Param("userId")Long userId,@Param("questionId") Long questionId,@Param("updateBy") String updateBy);
+    int cancelFollowQuestion(@Param("userId")Long userId,@Param("questionId") Long questionId,@Param("updateBy") Long updateBy);
 
     List<Long> getFollowQuestionIds(@Param("userId")Long userId);
 }

@@ -80,6 +80,19 @@ public class CourseDetailVO implements Serializable
     @ApiModelProperty("章节列表")
     private List<CourseSectionVO> sections;
 
+    /** 资源类型 */
+    @ApiModelProperty("资源类型")
+    private String resourceType;
+
+    // 如果类上没有 @Data 注解，务必手动加上 Setter
+    public void setResourceType(String resourceType) {
+        this.resourceType = resourceType;
+    }
+
+    public String getResourceType() {
+        return resourceType;
+    }
+
     public Long getId()
     {
         return id;

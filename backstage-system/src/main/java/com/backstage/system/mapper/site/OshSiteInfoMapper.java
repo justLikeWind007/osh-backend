@@ -1,10 +1,14 @@
 package com.backstage.system.mapper.site;
 
 import com.backstage.system.domain.site.OshSiteInfo;
+import com.backstage.system.domain.site.OshSiteMaintainer;
 import com.backstage.system.domain.site.OshSiteUsage;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+
+import java.util.Collection;
+import java.util.List;
 
 /**
  * 内部网站信息 Mapper 接口
@@ -21,4 +25,6 @@ public interface OshSiteInfoMapper extends BaseMapper<OshSiteInfo> {
    * @return 结果
    */
   int insertUsage(@Param("oshSiteUsage") OshSiteUsage oshSiteUsage);
+
+  List<OshSiteMaintainer> selectMaintainersBySiteIds(@Param("siteIds") Collection<Long> siteIds);
 }

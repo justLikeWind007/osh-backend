@@ -18,7 +18,7 @@ public class BookChapterContentVO implements Serializable
     private String content;
 
     /** 是否免费（0收费 1免费） */
-    private Integer isfree;
+    private Integer isFree;
 
     public String getTitle()
     {
@@ -40,13 +40,13 @@ public class BookChapterContentVO implements Serializable
         this.content = content;
     }
 
-    public Integer getIsfree()
+    public Integer getIsFree()
     {
-        return isfree;
+        return isFree;
     }
 
-    public void setIsfree(Integer isfree)
+    public void setIsFree(Integer isFree)
     {
-        this.isfree = isfree;
+        this.isFree = isFree;
     }
 }

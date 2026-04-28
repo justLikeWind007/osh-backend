@@ -9,13 +9,11 @@ import java.util.List;
 /**
  * Created with IntelliJ IDEA.
  * Description:
- * User: 九转苍翎
+ * OshUser: 九转苍翎
  * Date: 2026/4/7
  * Time: 16:02
  */
 public interface OshPermissionMapper extends BaseMapper<OshPermission> {
 
     List<Integer> selectPermissionIdsByRoleId(@Param("roleId") Integer roleId);
-
-    List<String> selectPermissionCodeByIds(@Param("permissionIds") List<Integer> permissionIds);
 }

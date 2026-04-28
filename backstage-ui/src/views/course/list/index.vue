@@ -126,8 +126,8 @@
           </div>
           <!-- 讲师 & 学员 -->
           <div class="card-meta">
-            <span><i class="el-icon-user"></i> {{ course.instructor }}</span>
-            <span><i class="el-icon-user-solid"></i> {{ course.studentCount }}人学习</span>
+            <span><i class="el-icon-oshUser"></i> {{ course.instructor }}</span>
+            <span><i class="el-icon-oshUser-solid"></i> {{ course.studentCount }}人学习</span>
           </div>
           <!-- 评价 & 收藏 -->
           <div class="card-stats">

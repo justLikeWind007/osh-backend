@@ -184,15 +184,15 @@ ADD COLUMN `bad_review_count` int DEFAULT '0' COMMENT '差评数量' AFTER `medi
 ```java
 private boolean checkCreatePermission(Long userId) {
     // 1. 查询用户信息
-    SysUser user = userService.selectUserById(userId);
+    SysUser oshUser = userService.selectUserById(userId);
     
     // 2. 判断是否为内部成员（部门 ID=1）
-    if (user.getDeptId() != null && user.getDeptId().equals(1L)) {
+    if (oshUser.getDeptId() != null && oshUser.getDeptId().equals(1L)) {
         return true;
     }
     
     // 3. 判断是否为年 VIP 用户
-    if ("VIP_YEARLY".equals(user.getUserType())) {
+    if ("VIP_YEARLY".equals(oshUser.getUserType())) {
         return true;
     }
     
@@ -338,7 +338,7 @@ Long userId = getUserId();  // BaseController 提供的方法
 
 **查询用户信息：**
 ```java
-SysUser user = userService.selectUserById(userId);
+SysUser oshUser = userService.selectUserById(userId);
 ```
 
 ### 6.2 文件上传服务集成

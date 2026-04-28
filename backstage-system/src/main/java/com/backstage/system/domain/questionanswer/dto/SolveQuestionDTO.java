@@ -1,12 +1,13 @@
 package com.backstage.system.domain.questionanswer.dto;
 
+import com.backstage.common.annotation.OshResourceId;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
 /**
  * Created with IntelliJ IDEA.
  * Description:
- * User: 九转苍翎
+ * OshUser: 九转苍翎
  * Date: 2026/3/29
  * Time: 18:39
  */
@@ -21,6 +22,7 @@ public class SolveQuestionDTO {
             value = "回答id",
             required = true
     )
+    @OshResourceId
     private Long answerId;
 
     public Long getQuestionId() {

@@ -15,6 +15,7 @@ import com.backstage.system.constants.CourseTagConstants;
 import com.backstage.system.domain.course.*;
 import com.backstage.system.domain.dto.*;
 import com.backstage.system.domain.vo.*;
+import com.backstage.system.enums.CourseResourceEnum;
 import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.course.OshCourseSectionMapper;
 import com.backstage.system.mapper.course.OshCourseMaterialMapper;
@@ -163,7 +164,9 @@ public class CourseManageServiceImpl implements ICourseManageService {
         vo.setPrice(course.getPrice() != null ? course.getPrice().toString() : "0.00");
         vo.setTPrice(course.getTPrice() != null ? course.getTPrice().toString() : "0.00");
         vo.setType(course.getType());
-        
+        CourseResourceEnum resourceEnum = CourseResourceEnum.fromCode(course.getResourceType());
+        vo.setResourceType(resourceEnum == null ? course.getResourceType() : resourceEnum.getDesc());
+
         // 3. 设置服务周期和服务内容（从扩展字段或配置表获取）
         vo.setServiceCycle("永久有效");
         vo.setServiceContent("包含答疑、资料下载等");
@@ -196,12 +199,11 @@ public class CourseManageServiceImpl implements ICourseManageService {
     /**
      * 上传课程封面图片
      * - 支持常见图片格式（bmp/gif/jpg/jpeg/png）
-     * - 返回封面信息（名称、临时访问URL、相对路径、大小、类型）
-     * - 临时URL有效期24小时，过期后需重新获取
+     * - 返回封面信息（名称、URL、大小、类型）
      *
      * @param file 封面文件
      * @param coverName 封面名称
-     * @return 封面信息（名称、临时访问URL、相对路径、大小、类型）
+     * @return 封面信息（名称、URL、大小、类型）
      */
     @Override
     public Map<String, Object> uploadCourseCover(MultipartFile file, String coverName) {
@@ -235,7 +237,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
             
             // 生成临时访问URL（有效期24小时 = 1440分钟）
             coverUrl = ossService.getLimitedUrl(relativePath, 1440);
-            
+
             log.info("课程封面上传 - 相对路径: {}, 临时访问URL: {}", relativePath, coverUrl);
         } catch (ServiceException e) {
             throw e;
@@ -295,10 +297,11 @@ public class CourseManageServiceImpl implements ICourseManageService {
             if (relativePath == null || CourseUploadConstants.isUploadError(relativePath)) {
                 throw new ServiceException(relativePath);
             }
-            
+
+
             // 生成临时访问URL（有效期6小时 = 360分钟）
             videoUrl = ossService.getLimitedUrl(relativePath, 360);
-            
+
             log.info("课时视频上传 - 相对路径: {}, 临时访问URL: {}", relativePath, videoUrl);
         } catch (ServiceException e) {
             throw e;
@@ -354,7 +357,7 @@ public class CourseManageServiceImpl implements ICourseManageService {
             
             // 生成临时访问URL（有效期12小时 = 720分钟）
             String materialUrl = ossService.getLimitedUrl(relativePath, 720);
-            
+
             log.info("课程资料上传 - 相对路径: {}, 临时访问URL: {}", relativePath, materialUrl);
 
             // 构建返回信息
@@ -1920,20 +1923,25 @@ public class CourseManageServiceImpl implements ICourseManageService {
             return false;
         }
 
-        
+        // 1. 检查学习进度
+        Map<String, Object> progress = progressMapper.selectProgressByUserIdAndCourseId(userId, courseId);
+        if (progress != null) {
+            return true;
+        }
+
         // 2. 检查有效订单
         Map<String, Object> order = orderMapper.selectValidOrderByUserIdAndCourseId(userId, courseId);
         return order != null;
     }
-    
-    
+
+
     // ==================== 课程封面临时URL批量获取接口实现 ====================
-    
+
     /**
      * 批量获取课程封面临时访问URL
      * 语法逻辑：根据课程ID列表查询封面相对路径，批量生成临时访问URL
      * 实现效果：返回课程ID到临时URL的映射，支持按需加载和懒加载
-     * 
+     *
      * @param courseIds 课程ID列表（最多支持50个）
      * @param minute 临时URL有效期（分钟）
      * @return 课程ID到临时URL的映射 Map<Long, String>
@@ -1941,21 +1949,21 @@ public class CourseManageServiceImpl implements ICourseManageService {
     @Override
     public Map<Long, String> batchGetCourseCoverUrls(List<Long> courseIds, int minute) {
         Map<Long, String> result = new HashMap<>();
-        
+
         if (courseIds == null || courseIds.isEmpty()) {
             return result;
         }
-        
+
         // 限制最多50个，防止滥用
         int maxSize = Math.min(courseIds.size(), 50);
         List<Long> limitedIds = courseIds.subList(0, maxSize);
-        
+
         // 1. 批量查询课程封面路径
         List<OshCourse> courses = courseMapper.selectCoursesByIds(limitedIds);
         if (courses == null || courses.isEmpty()) {
             return result;
         }
-        
+
         // 2. 批量生成临时URL
         for (OshCourse course : courses) {
             if (course != null && StringUtils.isNotEmpty(course.getCover())) {
@@ -1971,15 +1979,15 @@ public class CourseManageServiceImpl implements ICourseManageService {
                 result.put(course.getId(), "");
             }
         }
-        
+
         return result;
     }
-    
+
     /**
      * 根据相对路径批量获取封面临时URL
      * 语法逻辑：直接根据封面相对路径列表生成临时访问URL
      * 实现效果：返回相对路径到临时URL的映射
-     * 
+     *
      * @param coverPaths 封面相对路径列表
      * @param minute 临时URL有效期（分钟）
      * @return 相对路径到临时URL的映射 Map<String, String>
@@ -1987,11 +1995,11 @@ public class CourseManageServiceImpl implements ICourseManageService {
     @Override
     public Map<String, String> batchGetCoverUrlsByPaths(List<String> coverPaths, int minute) {
         Map<String, String> result = new HashMap<>();
-        
+
         if (coverPaths == null || coverPaths.isEmpty()) {
             return result;
         }
-        
+
         // 限制最多50个，防止滥用
         int maxSize = Math.min(coverPaths.size(), 50);
         for (int i = 0; i < maxSize; i++) {
@@ -2006,18 +2014,18 @@ public class CourseManageServiceImpl implements ICourseManageService {
                 }
             }
         }
-        
+
         return result;
     }
-    
-    
+
+
     // ==================== 章节视频临时URL批量获取接口实现 ====================
-    
+
     /**
      * 批量获取章节视频临时访问URL
      * 语法逻辑：根据章节ID列表查询media_url相对路径，批量生成临时访问URL
      * 实现效果：返回章节ID到临时URL的映射，支持按需加载
-     * 
+     *
      * @param sectionIds 章节ID列表（最多支持50个）
      * @param minute 临时URL有效期（分钟）
      * @return 章节ID到临时URL的映射 Map<Long, String>
@@ -2025,21 +2033,21 @@ public class CourseManageServiceImpl implements ICourseManageService {
     @Override
     public Map<Long, String> batchGetSectionVideoUrls(List<Long> sectionIds, int minute) {
         Map<Long, String> result = new HashMap<>();
-        
+
         if (sectionIds == null || sectionIds.isEmpty()) {
             return result;
         }
-        
+
         // 限制最多50个，防止滥用
         int maxSize = Math.min(sectionIds.size(), 50);
         List<Long> limitedIds = sectionIds.subList(0, maxSize);
-        
+
         // 1. 批量查询章节视频路径
         List<OshCourseSection> sections = sectionMapper.selectSectionsByIds(limitedIds);
         if (sections == null || sections.isEmpty()) {
             return result;
         }
-        
+
         // 2. 批量生成临时URL
         for (OshCourseSection section : sections) {
             if (section != null && StringUtils.isNotEmpty(section.getMediaUrl())) {
@@ -2054,15 +2062,15 @@ public class CourseManageServiceImpl implements ICourseManageService {
                 result.put(section.getId(), "");
             }
         }
-        
+
         return result;
     }
-    
+
     /**
      * 单个获取章节视频临时访问URL
      * 语法逻辑：根据章节ID查询media_url相对路径，生成临时访问URL
      * 实现效果：返回章节的临时访问URL
-     * 
+     *
      * @param sectionId 章节ID
      * @param minute 临时URL有效期（分钟）
      * @return 临时访问URL，未找到返回null
@@ -2072,22 +2080,22 @@ public class CourseManageServiceImpl implements ICourseManageService {
         if (sectionId == null) {
             return null;
         }
-        
+
         // 查询章节信息
         List<Long> ids = Collections.singletonList(sectionId);
         List<OshCourseSection> sections = sectionMapper.selectSectionsByIds(ids);
-        
+
         if (sections == null || sections.isEmpty()) {
             log.warn("章节不存在, sectionId={}", sectionId);
             return null;
         }
-        
+
         OshCourseSection section = sections.get(0);
         if (section == null || StringUtils.isEmpty(section.getMediaUrl())) {
             log.warn("章节视频路径为空, sectionId={}", sectionId);
             return null;
         }
-        
+
         try {
             return ossService.getLimitedUrl(section.getMediaUrl(), minute);
         } catch (Exception e) {
@@ -2095,15 +2103,15 @@ public class CourseManageServiceImpl implements ICourseManageService {
             return null;
         }
     }
-    
-    
+
+
     // ==================== 课程资料临时URL批量获取接口实现 ====================
-    
+
     /**
      * 批量获取课程资料临时访问URL
      * 语法逻辑：根据资料ID列表查询url相对路径，批量生成临时访问URL
      * 实现效果：返回资料ID到临时URL的映射，支持按需加载
-     * 
+     *
      * @param materialIds 资料ID列表（最多支持50个）
      * @param minute 临时URL有效期（分钟）
      * @return 资料ID到临时URL的映射 Map<Long, String>
@@ -2111,21 +2119,21 @@ public class CourseManageServiceImpl implements ICourseManageService {
     @Override
     public Map<Long, String> batchGetMaterialUrls(List<Long> materialIds, int minute) {
         Map<Long, String> result = new HashMap<>();
-        
+
         if (materialIds == null || materialIds.isEmpty()) {
             return result;
         }
-        
+
         // 限制最多50个，防止滥用
         int maxSize = Math.min(materialIds.size(), 50);
         List<Long> limitedIds = materialIds.subList(0, maxSize);
-        
+
         // 1. 批量查询资料路径
         List<OshCourseMaterial> materials = materialMapper.selectMaterialsByIds(limitedIds);
         if (materials == null || materials.isEmpty()) {
             return result;
         }
-        
+
         // 2. 批量生成临时URL
         for (OshCourseMaterial material : materials) {
             if (material != null && StringUtils.isNotEmpty(material.getUrl())) {
@@ -2140,15 +2148,15 @@ public class CourseManageServiceImpl implements ICourseManageService {
                 result.put(material.getId(), "");
             }
         }
-        
+
         return result;
     }
-    
+
     /**
      * 单个获取课程资料临时访问URL
      * 语法逻辑：根据资料ID查询url相对路径，生成临时访问URL
      * 实现效果：返回资料的临时访问URL
-     * 
+     *
      * @param materialId 资料ID
      * @param minute 临时URL有效期（分钟）
      * @return 临时访问URL，未找到返回null
@@ -2158,22 +2166,22 @@ public class CourseManageServiceImpl implements ICourseManageService {
         if (materialId == null) {
             return null;
         }
-        
+
         // 查询资料信息
         List<Long> ids = Collections.singletonList(materialId);
         List<OshCourseMaterial> materials = materialMapper.selectMaterialsByIds(ids);
-        
+
         if (materials == null || materials.isEmpty()) {
             log.warn("资料不存在, materialId={}", materialId);
             return null;
         }
-        
+
         OshCourseMaterial material = materials.get(0);
         if (material == null || StringUtils.isEmpty(material.getUrl())) {
             log.warn("资料URL为空, materialId={}", materialId);
             return null;
         }
-        
+
         try {
             return ossService.getLimitedUrl(material.getUrl(), minute);
         } catch (Exception e) {
@@ -2182,4 +2190,3 @@ public class CourseManageServiceImpl implements ICourseManageService {
         }
     }
 }
-

@@ -23,7 +23,7 @@ public class OSHBaseEntity {
      * 创建人
      */
     @TableField(fill = FieldFill.INSERT)
-    private String createBy;
+    private Long createBy;
 
     /**
      * 更新时间
@@ -35,12 +35,12 @@ public class OSHBaseEntity {
      * 更新人
      */
     @TableField(fill = FieldFill.INSERT_UPDATE)
-    private String updateBy;
+    private Long updateBy;
 
     /**
      * 逻辑删除：0=未删除，1=已删除
      */
-    private Byte delete_flag;
+    private Byte deleteFlag;
 
     public LocalDateTime getCreateTime() {
         return createTime;
@@ -50,11 +50,11 @@ public class OSHBaseEntity {
         this.createTime = createTime;
     }
 
-    public String getCreateBy() {
+    public Long getCreateBy() {
         return createBy;
     }
 
-    public void setCreateBy(String createBy) {
+    public void setCreateBy(Long createBy) {
         this.createBy = createBy;
     }
 
@@ -66,30 +66,34 @@ public class OSHBaseEntity {
         this.updateTime = updateTime;
     }
 
-    public String getUpdateBy() {
+    public Long getUpdateBy() {
         return updateBy;
     }
 
-    public void setUpdateBy(String updateBy) {
+    public void setUpdateBy(Long updateBy) {
         this.updateBy = updateBy;
     }
 
-    public Byte getDelete_flag() {
-        return delete_flag;
+    public Byte getDeleteFlag() {
+        return deleteFlag;
     }
 
-    public void setDelete_flag(Byte delete_flag) {
-        this.delete_flag = delete_flag;
+    public void setDeleteFlag(Byte deleteFlag) {
+        this.deleteFlag = deleteFlag;
+    }
+
+    public final void setDeleted(boolean deleted) {
+        this.deleteFlag = (byte) (deleted ? 1 : 0);
     }
 
     @Override
     public String toString() {
         return "OSHBaseEntity{" +
                 "createTime=" + createTime +
-                ", createBy='" + createBy + '\'' +
+                ", createBy=" + createBy +
                 ", updateTime=" + updateTime +
-                ", updateBy='" + updateBy + '\'' +
-                ", delete_flag=" + delete_flag +
+                ", updateBy=" + updateBy +
+                ", deleteFlag=" + deleteFlag +
                 '}';
     }
 }

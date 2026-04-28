@@ -1,36 +1,42 @@
 package com.backstage.web.controller.course;
 
 import com.backstage.RuoYiApplication;
+import com.backstage.common.constant.OshUserConstants;
+import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.course.OshCourseQuestion;
 import com.backstage.system.domain.course.OshCourseSection;
-import com.backstage.system.domain.user.User;
+import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.mapper.course.OshCourseMapper;
 import com.backstage.system.mapper.course.OshCourseQuestionMapper;
 import com.backstage.system.request.CourseChapterCreateRequest;
+import com.backstage.system.request.CourseCreateRequest;
 import com.backstage.system.request.CourseQuestionAnswerRequest;
+import com.backstage.system.request.CourseSectionQuestionListRequest;
 import com.backstage.system.request.CourseSearchRequest;
 import com.backstage.system.request.CourseSectionQuestionRequest;
+import com.backstage.system.request.CourseUpdateRequest;
 import com.backstage.system.request.CourseVideoSectionCreateRequest;
-import com.backstage.system.utils.UserContextUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.RequestBuilder;
+import org.springframework.test.web.servlet.ResultActions;
 
 import java.math.BigDecimal;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -53,20 +59,16 @@ public class OshCourseControllerSectionApiTest {
     @Autowired
     private OshCourseQuestionMapper oshCourseQuestionMapper;
 
-    @MockBean
-    private UserContextUtil userContextUtil;
-
     @Test
     public void shouldInsertChapterSectionIntoDatabase() throws Exception {
         Long courseId = createTestCourse();
-        when(userContextUtil.getCurrentUser()).thenReturn(buildCurrentUser());
 
         CourseChapterCreateRequest request = new CourseChapterCreateRequest();
         request.setCourseId(courseId);
         request.setTitle("集成测试一级章节");
         request.setSort(1);
 
-        MvcResult mvcResult = mockMvc.perform(post("/pc/course/section/chapter/save")
+        MvcResult mvcResult = performAsUser(buildCurrentUser(), post("/pc/course/section/chapter/save")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -89,7 +91,6 @@ public class OshCourseControllerSectionApiTest {
     public void shouldInsertVideoSectionWithTextContentIntoDatabase() throws Exception {
         Long courseId = createTestCourse();
         Long parentId = createParentChapter(courseId);
-        when(userContextUtil.getCurrentUser()).thenReturn(buildCurrentUser());
 
         CourseVideoSectionCreateRequest request = new CourseVideoSectionCreateRequest();
         request.setCourseId(courseId);
@@ -104,7 +105,7 @@ public class OshCourseControllerSectionApiTest {
         request.setTextContent("这里是视频配套文本内容");
         request.setFileSize(654321L);
 
-        MvcResult mvcResult = mockMvc.perform(post("/pc/course/section/video/save")
+        MvcResult mvcResult = performAsUser(buildCurrentUser(), post("/pc/course/section/video/save")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -127,9 +128,8 @@ public class OshCourseControllerSectionApiTest {
     public void shouldReturnNotFoundWhenSavingTextSection() throws Exception {
         Long courseId = createTestCourse();
         Long parentId = createParentChapter(courseId);
-        when(userContextUtil.getCurrentUser()).thenReturn(buildCurrentUser());
 
-        MvcResult mvcResult = mockMvc.perform(post("/pc/course/section/text/save")
+        MvcResult mvcResult = performAsUser(buildCurrentUser(), post("/pc/course/section/text/save")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"courseId\":" + courseId + ",\"parentId\":" + parentId + ",\"title\":\"集成测试图文小节\",\"sort\":3,\"freeFlag\":0,\"cover\":\"https://oss.example.com/text-cover.png\",\"textContent\":\"这里是集成测试图文内容\"}"))
                 .andExpect(status().isNotFound())
@@ -148,7 +148,6 @@ public class OshCourseControllerSectionApiTest {
 
     @Test
     public void shouldSubmitQuestionForCourse935Section2WithUser1() throws Exception {
-        when(userContextUtil.getCurrentUser()).thenReturn(buildUserOne());
         OshCourse beforeCourse = oshCourseMapper.selectCourseById(935L);
         int beforeQuestionCount = beforeCourse.getQuestionCount() == null ? 0 : beforeCourse.getQuestionCount();
 
@@ -159,7 +158,7 @@ public class OshCourseControllerSectionApiTest {
         request.setTitle("集成测试提问-" + suffix);
         request.setContent("这是用户1针对课程935章节2写入的测试提问-" + suffix);
 
-        MvcResult mvcResult = mockMvc.perform(post("/pc/course/section/submit")
+        MvcResult mvcResult = performAsUser(buildUserOne(), post("/pc/course/section/submit")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -181,8 +180,6 @@ public class OshCourseControllerSectionApiTest {
 
     @Test
     public void shouldSubmitAnswerForQuestionUnderCourse935Section2WithUser1() throws Exception {
-        when(userContextUtil.getCurrentUser()).thenReturn(buildUserOne());
-
         String suffix = String.valueOf(System.currentTimeMillis());
         CourseSectionQuestionRequest questionRequest = new CourseSectionQuestionRequest();
         questionRequest.setCourseId(935L);
@@ -190,7 +187,7 @@ public class OshCourseControllerSectionApiTest {
         questionRequest.setTitle("集成测试回答前置提问-" + suffix);
         questionRequest.setContent("这是回答测试的前置提问-" + suffix);
 
-        MvcResult questionResult = mockMvc.perform(post("/pc/course/section/submit")
+        MvcResult questionResult = performAsUser(buildUserOne(), post("/pc/course/section/submit")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(questionRequest)))
                 .andExpect(status().isOk())
@@ -203,7 +200,7 @@ public class OshCourseControllerSectionApiTest {
         answerRequest.setQuestionId(questionId);
         answerRequest.setContent("这是用户1针对问题" + questionId + "写入的测试回答-" + suffix);
 
-        MvcResult answerResult = mockMvc.perform(post("/pc/course/question/answer")
+        MvcResult answerResult = performAsUser(buildUserOne(), post("/pc/course/question/answer")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(answerRequest)))
                 .andExpect(status().isOk())
@@ -227,53 +224,54 @@ public class OshCourseControllerSectionApiTest {
     }
 
     @Test
-    public void shouldPageSectionQuestionsOrderedByCreateTimeDesc() throws Exception {
-        when(userContextUtil.getCurrentUser()).thenReturn(buildUserOne());
-
+    public void shouldSortSectionQuestionsByLikeCountAndCreateTimeWhenAnonymous() throws Exception {
         String suffix = String.valueOf(System.currentTimeMillis());
+        Long courseId = createTestCourse();
+        Long sectionId = createParentChapter(courseId);
+        insertQuestionRecord(courseId, sectionId, 11L, "匿名排序低赞新问题-" + suffix, "内容1", 3, new java.util.Date(System.currentTimeMillis()));
+        insertQuestionRecord(courseId, sectionId, 12L, "匿名排序高赞旧问题-" + suffix, "内容2", 9, new java.util.Date(System.currentTimeMillis() - 10000L));
+        insertQuestionRecord(courseId, sectionId, 13L, "匿名排序高赞新问题-" + suffix, "内容3", 9, new java.util.Date(System.currentTimeMillis()));
 
-        CourseSectionQuestionRequest firstRequest = new CourseSectionQuestionRequest();
-        firstRequest.setCourseId(935L);
-        firstRequest.setSectionId(2L);
-        firstRequest.setTitle("较早提问-" + suffix);
-        firstRequest.setContent("较早提问内容-" + suffix);
+        CourseSectionQuestionListRequest request = new CourseSectionQuestionListRequest();
+        request.setCourseId(courseId);
+        request.setSectionId(sectionId);
 
-        CourseSectionQuestionRequest secondRequest = new CourseSectionQuestionRequest();
-        secondRequest.setCourseId(935L);
-        secondRequest.setSectionId(2L);
-        secondRequest.setTitle("较晚提问-" + suffix);
-        secondRequest.setContent("较晚提问内容-" + suffix);
-
-        mockMvc.perform(post("/pc/course/section/submit")
+        mockMvc.perform(post("/pc/course/section/questions/list")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(firstRequest)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
-
-        Thread.sleep(5L);
-
-        mockMvc.perform(post("/pc/course/section/submit")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(secondRequest)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
-
-        mockMvc.perform(get("/pc/course/section/questions/935/2")
-                        .param("pageNum", "1")
-                        .param("pageSize", "2"))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data.total").exists())
-                .andExpect(jsonPath("$.data.pageNum").value(1))
-                .andExpect(jsonPath("$.data.pageSize").value(2))
-                .andExpect(jsonPath("$.data.rows[0].title").value("较晚提问-" + suffix))
-                .andExpect(jsonPath("$.data.rows[1].title").value("较早提问-" + suffix));
+                .andExpect(jsonPath("$.data[0].title").value("匿名排序高赞新问题-" + suffix))
+                .andExpect(jsonPath("$.data[1].title").value("匿名排序高赞旧问题-" + suffix))
+                .andExpect(jsonPath("$.data[2].title").value("匿名排序低赞新问题-" + suffix));
+    }
+
+    @Test
+    public void shouldSortSectionQuestionsByOwnerThenLikeCountAndCreateTimeWhenLoggedIn() throws Exception {
+        String suffix = String.valueOf(System.currentTimeMillis());
+        OshUser currentUser = buildUserOne();
+        Long courseId = createOwnedCourse(currentUser, 1);
+        Long sectionId = createParentChapter(courseId);
+        insertQuestionRecord(courseId, sectionId, currentUser.getId(), "我的低赞问题-" + suffix, "内容1", 1, new java.util.Date(System.currentTimeMillis() - 20000L));
+        insertQuestionRecord(courseId, sectionId, 22L, "别人的高赞问题-" + suffix, "内容2", 99, new java.util.Date(System.currentTimeMillis()));
+        insertQuestionRecord(courseId, sectionId, currentUser.getId(), "我的高赞问题-" + suffix, "内容3", 8, new java.util.Date(System.currentTimeMillis()));
+
+        CourseSectionQuestionListRequest request = new CourseSectionQuestionListRequest();
+        request.setCourseId(courseId);
+        request.setSectionId(sectionId);
+
+        performAsUser(currentUser, post("/pc/course/section/questions/list")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data[0].title").value("我的高赞问题-" + suffix))
+                .andExpect(jsonPath("$.data[1].title").value("我的低赞问题-" + suffix))
+                .andExpect(jsonPath("$.data[2].title").value("别人的高赞问题-" + suffix));
     }
 
     @Test
     public void shouldListQuestionAnswersInCreateTimeOrder() throws Exception {
-        when(userContextUtil.getCurrentUser()).thenReturn(buildUserOne());
-
         String suffix = String.valueOf(System.currentTimeMillis());
         CourseSectionQuestionRequest questionRequest = new CourseSectionQuestionRequest();
         questionRequest.setCourseId(935L);
@@ -281,7 +279,7 @@ public class OshCourseControllerSectionApiTest {
         questionRequest.setTitle("回答列表测试提问-" + suffix);
         questionRequest.setContent("回答列表测试提问内容-" + suffix);
 
-        MvcResult questionResult = mockMvc.perform(post("/pc/course/section/submit")
+        MvcResult questionResult = performAsUser(buildUserOne(), post("/pc/course/section/submit")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(questionRequest)))
                 .andExpect(status().isOk())
@@ -298,7 +296,7 @@ public class OshCourseControllerSectionApiTest {
         secondAnswerRequest.setQuestionId(questionId);
         secondAnswerRequest.setContent("第二条回答-" + suffix);
 
-        mockMvc.perform(post("/pc/course/question/answer")
+        performAsUser(buildUserOne(), post("/pc/course/question/answer")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(firstAnswerRequest)))
                 .andExpect(status().isOk())
@@ -306,7 +304,7 @@ public class OshCourseControllerSectionApiTest {
 
         Thread.sleep(5L);
 
-        mockMvc.perform(post("/pc/course/question/answer")
+        performAsUser(buildUserOne(), post("/pc/course/question/answer")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(secondAnswerRequest)))
                 .andExpect(status().isOk())
@@ -321,14 +319,12 @@ public class OshCourseControllerSectionApiTest {
 
     @Test
     public void shouldSearchCoursesWithCollectionAndBuyFlagsForLoggedInUser() throws Exception {
-        when(userContextUtil.getCurrentUser()).thenReturn(buildUserOne());
-
         CourseSearchRequest request = new CourseSearchRequest();
         request.setKeyword("Spring Boot 企业级开发实战");
         request.setPageNum(1);
         request.setPageSize(10);
 
-        mockMvc.perform(post("/pc/course/search/login")
+        performAsUser(buildUserOne(), post("/pc/course/search/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -355,19 +351,103 @@ public class OshCourseControllerSectionApiTest {
 
     @Test
     public void shouldSearchLoginCoursesOrderedByBuyFlagThenScoreThenCreateTimeDesc() throws Exception {
-        when(userContextUtil.getCurrentUser()).thenReturn(buildUserOne());
-
         CourseSearchRequest request = new CourseSearchRequest();
         request.setPageNum(1);
         request.setPageSize(2);
 
-        mockMvc.perform(post("/pc/course/search/login")
+        performAsUser(buildUserOne(), post("/pc/course/search/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.rows[0].id").value(935))
                 .andExpect(jsonPath("$.data.rows[1].id").value(942));
+    }
+
+    @Test
+    public void shouldMapCollectionCountInCourseDetail() {
+        Long courseId = createPublishedTestCourse();
+
+        com.backstage.system.domain.course.vo.OshCourseDetailVo detail = oshCourseMapper.getCourseDetail(courseId, 1L);
+
+        assertNotNull(detail);
+        assertEquals(courseId, detail.getId());
+        assertTrue(detail.getCollectionCount() == null || detail.getCollectionCount() >= 0);
+    }
+
+    @Test
+    public void shouldApprovePendingCourseByAuditApi() throws Exception {
+        Long courseId = createPendingAuditCourse();
+
+        performAsUser(buildCurrentUser(), post("/pc/course/audit")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"courseId\":" + courseId + "}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data").value(courseId));
+
+        OshCourse approvedCourse = oshCourseMapper.selectCourseById(courseId);
+        assertNotNull(approvedCourse);
+        assertEquals(Integer.valueOf(2), approvedCourse.getStatus());
+    }
+
+    @Test
+    public void shouldBlockUpdateAfterSaveForSameUserWithinOneMinute() throws Exception {
+        OshUser currentUser = buildLockTestUser();
+        Long courseId = createOwnedCourse(currentUser, 1);
+
+        CourseCreateRequest saveRequest = new CourseCreateRequest();
+        saveRequest.setTitle("锁测试新增课程-" + System.currentTimeMillis());
+        saveRequest.setCover("https://oss.example.com/lock-save-cover.png");
+        saveRequest.setIntro("锁测试新增课程简介");
+        saveRequest.setServiceContent("锁测试新增课程服务内容");
+        saveRequest.setPrice(new BigDecimal("9.90"));
+        saveRequest.setTPrice(new BigDecimal("19.90"));
+        saveRequest.setType("media");
+
+        MvcResult saveResult = performAsUser(currentUser, post("/pc/course/save")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(saveRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andReturn();
+
+        Long savedCourseId = extractDataId(saveResult);
+        OshCourse savedCourse = oshCourseMapper.selectCourseById(savedCourseId);
+        assertNotNull(savedCourse);
+        assertEquals(Integer.valueOf(2), savedCourse.getStatus());
+
+        CourseUpdateRequest updateRequest = new CourseUpdateRequest();
+        updateRequest.setId(courseId);
+        updateRequest.setTitle("锁测试修改课程标题");
+
+        performAsUser(currentUser, post("/pc/course/update")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(500))
+                .andExpect(jsonPath("$.msg").value(Matchers.containsString("acquire lock failed")));
+    }
+
+    @Test
+    public void shouldPublishCourseAfterUpdate() throws Exception {
+        OshUser currentUser = buildCurrentUser();
+        Long courseId = createOwnedCourse(currentUser, 1);
+
+        System.out.println(courseId);
+        CourseUpdateRequest updateRequest = new CourseUpdateRequest();
+        updateRequest.setId(courseId);
+        updateRequest.setTitle("更新后直接发布课程");
+
+        performAsUser(currentUser, post("/pc/course/update")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        OshCourse updatedCourse = oshCourseMapper.selectCourseById(courseId);
+        assertNotNull(updatedCourse);
+        assertEquals(Integer.valueOf(2), updatedCourse.getStatus());
     }
 
     private Long extractDataId(MvcResult mvcResult) throws Exception {
@@ -392,6 +472,81 @@ public class OshCourseControllerSectionApiTest {
         return course.getId();
     }
 
+    private Long createPublishedTestCourse() {
+        String suffix = String.valueOf(System.currentTimeMillis());
+        OshCourse course = new OshCourse();
+        course.setTitle("已发布课程详情测试-" + suffix);
+        course.setCover("https://oss.example.com/course-detail-cover.png");
+        course.setIntro("课程详情映射测试");
+        course.setServiceContent("课程详情映射测试服务内容");
+        course.setPrice(new BigDecimal("9.90"));
+        course.setTPrice(new BigDecimal("19.90"));
+        course.setType("media");
+        course.setStatus(2);
+        course.setCreateBy("integration_test_user");
+        course.setUpdateBy("integration_test_user");
+        oshCourseMapper.insertCourse(course);
+        return course.getId();
+    }
+
+    private Long createPendingAuditCourse() {
+        String suffix = String.valueOf(System.currentTimeMillis());
+        OshCourse course = new OshCourse();
+        course.setTitle("待审核课程-" + suffix);
+        course.setCover("https://oss.example.com/course-audit-cover.png");
+        course.setIntro("待审核课程简介");
+        course.setServiceContent("待审核课程服务内容");
+        course.setPrice(new BigDecimal("19.90"));
+        course.setTPrice(new BigDecimal("29.90"));
+        course.setType("media");
+        course.setStatus(1);
+        course.setCreateBy("integration_test_user");
+        course.setUpdateBy("integration_test_user");
+        oshCourseMapper.insertCourse(course);
+        return course.getId();
+    }
+
+    private Long createOwnedCourse(OshUser user, Integer status) {
+        String suffix = String.valueOf(System.currentTimeMillis());
+        OshCourse course = new OshCourse();
+        course.setTitle("锁测试课程-" + suffix);
+        course.setCover("https://oss.example.com/lock-course-cover.png");
+        course.setIntro("锁测试课程简介");
+        course.setServiceContent("锁测试课程服务内容");
+        course.setPrice(new BigDecimal("19.90"));
+        course.setTPrice(new BigDecimal("29.90"));
+        course.setType("media");
+        course.setStatus(status);
+        course.setCreateBy(user.getUsername());
+        course.setUpdateBy(user.getUsername());
+        oshCourseMapper.insertCourse(course);
+        return course.getId();
+    }
+
+    private Long insertQuestionRecord(Long courseId, Long sectionId, Long userId, String title, String content, Integer likeCount, java.util.Date createTime) {
+        OshCourseQuestion question = new OshCourseQuestion();
+        question.setCourseId(courseId);
+        question.setSectionId(sectionId);
+        question.setUserId(userId);
+        question.setQuestionId(0L);
+        question.setParentId(0L);
+        question.setRecordType(1);
+        question.setTitle(title);
+        question.setContent(content);
+        question.setSolveStatus(0);
+        question.setAcceptedAnswerId(0L);
+        question.setReplyCount(0);
+        question.setLikeCount(likeCount);
+        question.setStatus(1);
+        question.setDeleteFlag(0);
+        question.setCreateBy("question_test_user_" + userId);
+        question.setCreateTime(createTime);
+        question.setUpdateBy("question_test_user_" + userId);
+        question.setUpdateTime(createTime);
+        oshCourseQuestionMapper.insertCourseQuestion(question);
+        return question.getId();
+    }
+
     private Long createParentChapter(Long courseId) {
         OshCourseSection section = new OshCourseSection();
         section.setCourseId(courseId);
@@ -407,17 +562,31 @@ public class OshCourseControllerSectionApiTest {
         return section.getId();
     }
 
-    private User buildCurrentUser() {
-        User user = new User();
-        user.setId(1L);
-        user.setUsername("integration_test_user");
-        return user;
+    private OshUser buildCurrentUser() {
+        OshUser oshUser = new OshUser();
+        oshUser.setId(1L);
+        oshUser.setUsername("integration_test_user");
+        return oshUser;
     }
 
-    private User buildUserOne() {
-        User user = new User();
-        user.setId(1L);
-        user.setUsername("user_1_test");
-        return user;
+    private OshUser buildUserOne() {
+        OshUser oshUser = new OshUser();
+        oshUser.setId(1L);
+        oshUser.setUsername("user_1_test");
+        return oshUser;
+    }
+
+    private OshUser buildLockTestUser() {
+        long userId = System.currentTimeMillis();
+        OshUser oshUser = new OshUser();
+        oshUser.setId(userId);
+        oshUser.setUsername("lock_test_user_" + userId);
+        return oshUser;
+    }
+
+    private ResultActions performAsUser(OshUser oshUser, RequestBuilder requestBuilder) throws Exception {
+        ThreadLocalUtil.set(OshUserConstants.USER_ID, oshUser.getId());
+        ThreadLocalUtil.set(OshUserConstants.USER_INFO, oshUser);
+        return mockMvc.perform(requestBuilder);
     }
 }

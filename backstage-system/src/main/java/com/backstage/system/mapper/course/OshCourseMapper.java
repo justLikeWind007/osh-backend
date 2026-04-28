@@ -1,11 +1,12 @@
 package com.backstage.system.mapper.course;
 
-import com.backstage.system.domain.course.OshCourse;
+import com.backstage.system.domain.course.OshCourseCollection;
 import com.backstage.system.domain.course.OshCourseSection;
 import com.backstage.system.domain.course.OshCourseMaterial;
 import com.backstage.system.domain.course.vo.CourseSearchLoginVo;
 import com.backstage.system.domain.course.vo.OshCourseDetailVo;
 import com.backstage.system.domain.course.vo.OshCourseSectionVo;
+import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.request.CourseSearchRequest;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -21,11 +22,14 @@ import java.util.Map;
 @Mapper
 public interface OshCourseMapper
 {
+    List<CourseSearchLoginVo> pageQuerySearchCourse(
+            @Param("request") CourseSearchRequest request,
+            @Param("userId") Long userId
+    );
 
+    List<Long> selectUserBoughtCourseIds(@Param("userId") Long userId, @Param("courseIds") List<Long> courseIds);
 
-    List<OshCourse> pageQuerySearchCourse(CourseSearchRequest request);
-
-    List<CourseSearchLoginVo> pageQueryLoginSearchCourse(@Param("userId") Long userId, @Param("request") CourseSearchRequest request);
+    List<CourseSearchLoginVo> pageQueryUserCollectionSearchCourse(@Param("userId") Long userId, @Param("request") CourseSearchRequest request);
 
     List<OshCourse> pageQueryUserCollectionCourse(@Param("userId") Long userId, @Param("request") CourseSearchRequest request);
     /**
@@ -35,6 +39,8 @@ public interface OshCourseMapper
      * @return 课程信息
      */
     OshCourse selectCourseById(Long id);
+
+
 
     /**
      * 查询课程列表
@@ -106,8 +112,20 @@ public interface OshCourseMapper
     OshCourseSection selectCourseSectionById(@Param("id") Long id);
 
     int insertCourseSection(OshCourseSection section);
+    int updateCourseSection(OshCourseSection section);
+
 
     String getCourseSectionContent(@Param("sectionId") Long sectionId);
+
+    /**
+     * 删除小节（根据ID逻辑删除单个小节）
+     */
+    int deleteCourseSectionById(@Param("id") Long id, @Param("updateBy") String updateBy);
+
+    /**
+     * 删除章节下的所有小节（用于删除章时的级联操作）
+     */
+    int deleteCourseSectionsByParentId(@Param("parentId") Long parentId, @Param("updateBy") String updateBy);
 
     List<OshCourseMaterial> getCourseMaterials(Long courseId);
 
@@ -126,4 +144,7 @@ public interface OshCourseMapper
      * @return 课程列表（仅包含id和cover）
      */
     List<OshCourse> selectCoursesByIds(List<Long> ids);
+
+
+    int deleteSectionsByCourseId(@Param("courseId") Long courseId, @Param("updateBy") String updateBy);
 }

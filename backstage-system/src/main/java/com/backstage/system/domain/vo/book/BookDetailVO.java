@@ -41,6 +41,9 @@ public class BookDetailVO implements Serializable
     @JsonProperty("sub_count")
     private Integer subCount;
 
+    /** 权限等级 */
+    private Integer level;
+
     /** 章节列表 */
     @JsonProperty("book_details")
     private List<BookChapterVO> bookDetails;
@@ -133,6 +136,16 @@ public class BookDetailVO implements Serializable
         this.subCount = subCount;
     }
 
+    public Integer getLevel()
+    {
+        return level;
+    }
+
+    public void setLevel(Integer level)
+    {
+        this.level = level;
+    }
+
     public List<BookChapterVO> getBookDetails()
     {
         return bookDetails;
@@ -168,4 +181,5 @@ public class BookDetailVO implements Serializable
     public void setTags(List<String> tags) {
         this.tags = tags;
     }
+
 }

@@ -8,7 +8,7 @@ import java.io.Serializable;
 /**
  * Created with IntelliJ IDEA.
  * Description:
- * User: 九转苍翎
+ * OshUser: 九转苍翎
  * Date: 2026/3/24
  * Time: 21:17
  */
@@ -49,6 +49,11 @@ public class Question extends OSHBaseEntity implements Serializable {
     private Byte isPaidOnly;
 
     /**
+     * 权限等级
+     */
+    private Integer level;
+
+    /**
      * 状态：0=待回答，1=已解决，2=已关闭
      */
     private Byte status;
@@ -62,6 +67,20 @@ public class Question extends OSHBaseEntity implements Serializable {
      * 关注数
      */
     private Integer followCount;
+    /**
+     * 删除标志：0=存在，1=删除
+     */
+    @TableLogic
+    private Byte deleteFlag;
+
+    // 别忘了写 Getter 和 Setter
+    public Byte getDeleteFlag() {
+        return deleteFlag;
+    }
+
+    public void setDeleteFlag(Byte deleteFlag) {
+        this.deleteFlag = deleteFlag;
+    }
 
 
     public Long getId() {
@@ -112,6 +131,14 @@ public class Question extends OSHBaseEntity implements Serializable {
         this.isPaidOnly = isPaidOnly;
     }
 
+    public Integer getLevel() {
+        return level;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
+    }
+
     public Byte getStatus() {
         return status;
     }
@@ -145,6 +172,7 @@ public class Question extends OSHBaseEntity implements Serializable {
                 ", resourceId=" + resourceNo +
                 ", content='" + content + '\'' +
                 ", isPaidOnly=" + isPaidOnly +
+                ", level=" + level +
                 ", status=" + status +
                 ", viewCount=" + viewCount +
                 ", followCount=" + followCount +

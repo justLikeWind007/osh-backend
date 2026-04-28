@@ -1,5 +1,7 @@
 package com.backstage.system.domain.course.vo;
 
+import io.swagger.annotations.ApiModelProperty;
+
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
@@ -42,6 +44,8 @@ public class OshCourseDetailVo {
 
     private Integer commentCount;
 
+    private Integer collectionCount;
+
     private BigDecimal ratingScore;
 
     private Integer freeType;
@@ -64,10 +68,61 @@ public class OshCourseDetailVo {
 
     private Integer buyFlag;
 
+    /** 资源类型 */
+    private String resourceType;
+
+    private String level; // 或者 Integer level，根据你数据库类型来
+
+    /**
+     * 课程访问级别：FULL=全部章节可看，TRIAL=仅试看免费章节
+     * 由后端根据用户角色+购买记录动态计算，前端直接使用
+     */
+    private String accessLevel;
+
+    // 章节列表字段（用于存放课程的大纲、视频路径等）
+    private List<OshCourseSectionVo> sections;
+
+    // Getter 和 Setter
+    public List<OshCourseSectionVo> getSections() {
+        return sections;
+    }
+
+    public void setSections(List<OshCourseSectionVo> sections) {
+        this.sections = sections;
+    }
+    /**
+     * 这里是 MyBatis 报错缺少的 Setter
+     */
+    public void setLevel(String level) {
+        this.level = level;
+    }
+
+    public String getLevel() {
+        return level;
+    }
+
+
+    public String getAccessLevel() {
+        return accessLevel;
+    }
+
+    public void setAccessLevel(String accessLevel) {
+        this.accessLevel = accessLevel;
+    }
+
+    // 如果类上没有 @Data 注解，务必手动加上 Setter
+    public void setResourceType(String resourceType) {
+        this.resourceType = resourceType;
+    }
+
+    public String getResourceType() {
+        return resourceType;
+    }
+
     public OshCourseDetailVo() {
     }
 
-    public OshCourseDetailVo(Long id, String title, String cover, String intro, String serviceContent, BigDecimal price, BigDecimal tPrice, Integer subCount, String remark, Integer totalDuration, Integer videoCount, Integer freeLessonCount, Long viewCount, Integer commentCount, BigDecimal ratingScore, Integer freeType, Integer afterServiceDays, Integer status, Integer examId, String createBy, Date createTime, String updateBy, Date updateTime, List<OshCourseTagSimpleVo> tags, Integer buyFlag) {
+    public OshCourseDetailVo(Long id, String title, String cover, String intro, String serviceContent, BigDecimal price, BigDecimal tPrice, Integer subCount, String remark, Integer totalDuration, Integer videoCount, Integer freeLessonCount, Long viewCount, Integer commentCount, Integer collectionCount, BigDecimal ratingScore, Integer freeType, Integer afterServiceDays, Integer status, Integer examId, String createBy, Date createTime, String updateBy, Date updateTime, List<OshCourseTagSimpleVo> tags, Integer buyFlag) {
         this.id = id;
         this.title = title;
         this.cover = cover;
@@ -82,6 +137,7 @@ public class OshCourseDetailVo {
         this.freeLessonCount = freeLessonCount;
         this.viewCount = viewCount;
         this.commentCount = commentCount;
+        this.collectionCount = collectionCount;
         this.ratingScore = ratingScore;
         this.freeType = freeType;
         this.afterServiceDays = afterServiceDays;
@@ -253,6 +309,14 @@ public class OshCourseDetailVo {
 
     public void setCommentCount(Integer commentCount) {
         this.commentCount = commentCount;
+    }
+
+    public Integer getCollectionCount() {
+        return collectionCount;
+    }
+
+    public void setCollectionCount(Integer collectionCount) {
+        this.collectionCount = collectionCount;
     }
 
     public BigDecimal getRatingScore() {

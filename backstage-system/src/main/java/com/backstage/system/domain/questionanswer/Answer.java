@@ -6,12 +6,10 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
-import java.util.Date;
 /**
  * Created with IntelliJ IDEA.
  * Description:
- * User: 九转苍翎
+ * OshUser: 九转苍翎
  * Date: 2026/3/24
  * Time: 21:20
  */
@@ -35,6 +33,11 @@ public class Answer extends OSHBaseEntity implements Serializable {
      * 回答者id
      */
     private Long userId;
+
+    /**
+     * 权限等级
+     */
+    private Integer level;
 
     /**
      * 回答内容
@@ -80,6 +83,14 @@ public class Answer extends OSHBaseEntity implements Serializable {
         this.userId = userId;
     }
 
+    public Integer getLevel() {
+        return level;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
+    }
+
     public String getContent() {
         return content;
     }
@@ -118,6 +129,7 @@ public class Answer extends OSHBaseEntity implements Serializable {
                 "id=" + id +
                 ", questionId=" + questionId +
                 ", userId=" + userId +
+                ", level=" + level +
                 ", content='" + content + '\'' +
                 ", voteCount=" + voteCount +
                 ", isSolution=" + isSolution +

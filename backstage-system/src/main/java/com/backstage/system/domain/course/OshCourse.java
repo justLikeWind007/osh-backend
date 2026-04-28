@@ -93,6 +93,10 @@ public class OshCourse {
     @ApiModelProperty("提问数")
     private Integer questionCount;
 
+    @Excel(name = "收藏数")
+    @ApiModelProperty("收藏数")
+    private Integer collectionCount;
+
 
     @Excel(name = "平均评分")
     @ApiModelProperty("平均评分")
@@ -109,6 +113,9 @@ public class OshCourse {
     @Excel(name = "状态")
     @ApiModelProperty("状态：0-草稿 1-待审核 2-已发布 3-已下架")
     private Integer status;
+
+    @ApiModelProperty("删除标记")
+    private Integer deleteFlag;
 
     @ApiModelProperty("搜索值")
     private String searchValue;
@@ -132,6 +139,12 @@ public class OshCourse {
     @Excel(name = "考试ID")
     @ApiModelProperty("考试ID")
     private Integer examId;
+
+    @ApiModelProperty("资源类型")
+    private String resourceType;
+
+    @ApiModelProperty("课程等级")
+    private Integer level;
 
     @ApiModelProperty("试看内容/试用内容")
     private String tryContent;
@@ -161,6 +174,22 @@ public class OshCourse {
 
     public void setExamId(Integer examId) {
         this.examId = examId;
+    }
+
+    public String getResourceType() {
+        return resourceType;
+    }
+
+    public void setResourceType(String resourceType) {
+        this.resourceType = resourceType;
+    }
+
+    public Integer getLevel() {
+        return level;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
     }
 
     public Long getId() {
@@ -309,6 +338,14 @@ public class OshCourse {
         this.questionCount = questionCount;
     }
 
+    public Integer getCollectionCount() {
+        return collectionCount;
+    }
+
+    public void setCollectionCount(Integer collectionCount) {
+        this.collectionCount = collectionCount;
+    }
+
     public BigDecimal getRatingScore() {
         return ratingScore;
     }
@@ -339,6 +376,14 @@ public class OshCourse {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public Integer getDeleteFlag() {
+        return deleteFlag;
+    }
+
+    public void setDeleteFlag(Integer deleteFlag) {
+        this.deleteFlag = deleteFlag;
     }
 
     public String getSearchValue() {
@@ -417,10 +462,13 @@ public class OshCourse {
                 ", freeLessonCount=" + freeLessonCount +
                 ", likeCount=" + likeCount +
                 ", commentCount=" + commentCount +
+                ", questionCount=" + questionCount +
+                ", collectionCount=" + collectionCount +
                 ", ratingScore=" + ratingScore +
                 ", freeType=" + freeType +
                 ", afterServiceDays=" + afterServiceDays +
                 ", status=" + status +
+                ", deleteFlag=" + deleteFlag +
                 ", searchValue='" + searchValue + '\'' +
                 ", createBy='" + createBy + '\'' +
                 ", createTime=" + createTime +
