@@ -20,6 +20,9 @@ env:
   DOCKER_COMPOSE_DIR: ${{ vars.DOCKER_COMPOSE_DIR || '/opt/docker-apps' }}
   BACKEND_SERVICE_NAME: ${{ vars.BACKEND_SERVICE_NAME || 'backstage-admin' }}
   NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL || vars.NOTIFY_EMAIL || '1402272093@qq.com' }}
+  MAIL_USERNAME: ${{ secrets.MAIL_USERNAME || vars.MAIL_USERNAME || '1402272093@qq.com' }}
+  MAIL_SERVER: ${{ vars.MAIL_SERVER || 'smtp.qq.com' }}
+  MAIL_PORT: ${{ vars.MAIL_PORT || '465' }}
 
 jobs:
   deploy:
@@ -102,14 +105,14 @@ jobs:
         if: success()
         uses: dawidd6/action-send-mail@v3
         with:
-          server_address: smtp.gmail.com
-          server_port: 465
+          server_address: ${{ env.MAIL_SERVER }}
+          server_port: ${{ env.MAIL_PORT }}
           secure: true
-          username: ${{ secrets.MAIL_USERNAME }}
+          username: ${{ env.MAIL_USERNAME }}
           password: ${{ secrets.MAIL_PASSWORD }}
           subject: "✅ 后端部署成功 - ${{ github.repository }}"
           to: ${{ env.NOTIFY_EMAIL }}
-          from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
+          from: GitHub Actions <${{ env.MAIL_USERNAME }}>
           body: |
             后端部署成功！
 
@@ -126,14 +129,14 @@ jobs:
         if: failure()
         uses: dawidd6/action-send-mail@v3
         with:
-          server_address: smtp.gmail.com
-          server_port: 465
+          server_address: ${{ env.MAIL_SERVER }}
+          server_port: ${{ env.MAIL_PORT }}
           secure: true
-          username: ${{ secrets.MAIL_USERNAME }}
+          username: ${{ env.MAIL_USERNAME }}
           password: ${{ secrets.MAIL_PASSWORD }}
           subject: "❌ 后端部署失败 - ${{ github.repository }}"
           to: ${{ env.NOTIFY_EMAIL }}
-          from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
+          from: GitHub Actions <${{ env.MAIL_USERNAME }}>
           body: |
             后端部署失败！请检查 Actions 日志。
 
