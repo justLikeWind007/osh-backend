@@ -48,45 +48,75 @@ jobs:
       - name: Configure SSH
         run: |
           mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          # 写入私钥，保留原始换行
+          echo "${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p "$DEPLOY_PORT" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          # 扫描服务器 host key，重试 3 次
+          for i in 1 2 3; do
+            ssh-keyscan -p "$DEPLOY_PORT" -T 15 "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null && break
+            echo "ssh-keyscan attempt $i failed, retrying..."
+            sleep 3
+          done
+          # 验证 known_hosts 非空
+          test -s ~/.ssh/known_hosts || { echo "ERROR: known_hosts is empty, ssh-keyscan failed"; exit 1; }
+          # 验证私钥可用
+          ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null || { echo "ERROR: private key is invalid"; exit 1; }
 
       - name: Stop backend before replacing jar
         run: |
-          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" \
+          ssh -i ~/.ssh/deploy_key \
+            -o BatchMode=yes \
+            -o ConnectTimeout=30 \
+            -o StrictHostKeyChecking=no \
+            -p "$DEPLOY_PORT" \
             "$DEPLOY_USER@$DEPLOY_HOST" \
-            "mkdir -p '$BACKEND_DEPLOY_DIR' && cd '$DOCKER_COMPOSE_DIR' && docker-compose stop '$BACKEND_SERVICE_NAME'"
+            "mkdir -p '$BACKEND_DEPLOY_DIR' && cd '$DOCKER_COMPOSE_DIR' && docker-compose stop '$BACKEND_SERVICE_NAME' || true"
 
       - name: Upload backend jar safely
         run: |
           rsync -az --inplace --progress \
-            -e "ssh -i ~/.ssh/deploy_key -p $DEPLOY_PORT" \
+            -e "ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=30 -o StrictHostKeyChecking=no -p $DEPLOY_PORT" \
             backstage-admin/target/backstage-admin.jar \
             "$DEPLOY_USER@$DEPLOY_HOST:$BACKEND_DEPLOY_DIR/$BACKEND_JAR_NAME"
 
       - name: Verify remote jar integrity
         run: |
           local_sha="$(sha256sum backstage-admin/target/backstage-admin.jar | cut -d ' ' -f 1)"
-          remote_sha="$(ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" \
+          remote_sha="$(ssh -i ~/.ssh/deploy_key \
+            -o BatchMode=yes \
+            -o ConnectTimeout=30 \
+            -o StrictHostKeyChecking=no \
+            -p "$DEPLOY_PORT" \
             "$DEPLOY_USER@$DEPLOY_HOST" \
             "sha256sum '$BACKEND_DEPLOY_DIR/$BACKEND_JAR_NAME' | cut -d ' ' -f 1")"
           echo "local_sha=$local_sha"
           echo "remote_sha=$remote_sha"
           test "$local_sha" = "$remote_sha"
-          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" \
+          ssh -i ~/.ssh/deploy_key \
+            -o BatchMode=yes \
+            -o ConnectTimeout=30 \
+            -o StrictHostKeyChecking=no \
+            -p "$DEPLOY_PORT" \
             "$DEPLOY_USER@$DEPLOY_HOST" \
             "unzip -t '$BACKEND_DEPLOY_DIR/$BACKEND_JAR_NAME' 'BOOT-INF/lib/*' >/tmp/backend-jar-check.log && tail -5 /tmp/backend-jar-check.log"
 
       - name: Restart backend service
         run: |
-          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" \
+          ssh -i ~/.ssh/deploy_key \
+            -o BatchMode=yes \
+            -o ConnectTimeout=30 \
+            -o StrictHostKeyChecking=no \
+            -p "$DEPLOY_PORT" \
             "$DEPLOY_USER@$DEPLOY_HOST" \
             "cd '$DOCKER_COMPOSE_DIR' && docker-compose up -d '$BACKEND_SERVICE_NAME' && sleep 20 && docker-compose ps '$BACKEND_SERVICE_NAME'"
 
       - name: Show backend logs
         if: always()
         run: |
-          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" \
+          ssh -i ~/.ssh/deploy_key \
+            -o BatchMode=yes \
+            -o ConnectTimeout=30 \
+            -o StrictHostKeyChecking=no \
+            -p "$DEPLOY_PORT" \
             "$DEPLOY_USER@$DEPLOY_HOST" \
-            "docker logs --tail 120 '$BACKEND_SERVICE_NAME' || true"
+            "docker logs --tail 120 '$BACKEND_SERVICE_NAME' 2>&1 || true"
