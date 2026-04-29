@@ -19,6 +19,7 @@ env:
   BACKEND_JAR_NAME: ${{ vars.BACKEND_JAR_NAME || 'backstage-admin.jar' }}
   DOCKER_COMPOSE_DIR: ${{ vars.DOCKER_COMPOSE_DIR || '/opt/docker-apps' }}
   BACKEND_SERVICE_NAME: ${{ vars.BACKEND_SERVICE_NAME || 'backstage-admin' }}
+  NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL || vars.NOTIFY_EMAIL || '1402272093@qq.com' }}
 
 jobs:
   deploy:
@@ -107,7 +108,7 @@ jobs:
           username: ${{ secrets.MAIL_USERNAME }}
           password: ${{ secrets.MAIL_PASSWORD }}
           subject: "✅ 后端部署成功 - ${{ github.repository }}"
-          to: ${{ secrets.NOTIFY_EMAIL }}
+          to: ${{ env.NOTIFY_EMAIL }}
           from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
           body: |
             后端部署成功！
@@ -131,7 +132,7 @@ jobs:
           username: ${{ secrets.MAIL_USERNAME }}
           password: ${{ secrets.MAIL_PASSWORD }}
           subject: "❌ 后端部署失败 - ${{ github.repository }}"
-          to: ${{ secrets.NOTIFY_EMAIL }}
+          to: ${{ env.NOTIFY_EMAIL }}
           from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
           body: |
             后端部署失败！请检查 Actions 日志。
