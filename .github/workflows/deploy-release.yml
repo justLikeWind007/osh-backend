@@ -45,29 +45,24 @@ jobs:
           unzip -t backstage-admin/target/backstage-admin.jar >/tmp/backend-jar-check.log
           sha256sum backstage-admin/target/backstage-admin.jar | tee /tmp/backend-jar.sha256
 
-      - name: Configure SSH
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+
+      - name: Add server to known_hosts
         run: |
           mkdir -p ~/.ssh
-          # 写入私钥，保留原始换行
-          echo "${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          # 扫描服务器 host key，重试 3 次
           for i in 1 2 3; do
             ssh-keyscan -p "$DEPLOY_PORT" -T 15 "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null && break
             echo "ssh-keyscan attempt $i failed, retrying..."
             sleep 3
           done
-          # 验证 known_hosts 非空
-          test -s ~/.ssh/known_hosts || { echo "ERROR: known_hosts is empty, ssh-keyscan failed"; exit 1; }
-          # 验证私钥可用
-          ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null || { echo "ERROR: private key is invalid"; exit 1; }
+          test -s ~/.ssh/known_hosts || { echo "ERROR: known_hosts is empty"; exit 1; }
 
       - name: Stop backend before replacing jar
         run: |
-          ssh -i ~/.ssh/deploy_key \
-            -o BatchMode=yes \
-            -o ConnectTimeout=30 \
-            -o StrictHostKeyChecking=no \
+          ssh -o ConnectTimeout=30 \
             -p "$DEPLOY_PORT" \
             "$DEPLOY_USER@$DEPLOY_HOST" \
             "mkdir -p '$BACKEND_DEPLOY_DIR' && cd '$DOCKER_COMPOSE_DIR' && docker-compose stop '$BACKEND_SERVICE_NAME' || true"
@@ -75,48 +70,76 @@ jobs:
       - name: Upload backend jar safely
         run: |
           rsync -az --inplace --progress \
-            -e "ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=30 -o StrictHostKeyChecking=no -p $DEPLOY_PORT" \
+            -e "ssh -o ConnectTimeout=30 -p $DEPLOY_PORT" \
             backstage-admin/target/backstage-admin.jar \
             "$DEPLOY_USER@$DEPLOY_HOST:$BACKEND_DEPLOY_DIR/$BACKEND_JAR_NAME"
 
       - name: Verify remote jar integrity
         run: |
           local_sha="$(sha256sum backstage-admin/target/backstage-admin.jar | cut -d ' ' -f 1)"
-          remote_sha="$(ssh -i ~/.ssh/deploy_key \
-            -o BatchMode=yes \
-            -o ConnectTimeout=30 \
-            -o StrictHostKeyChecking=no \
-            -p "$DEPLOY_PORT" \
+          remote_sha="$(ssh -o ConnectTimeout=30 -p "$DEPLOY_PORT" \
             "$DEPLOY_USER@$DEPLOY_HOST" \
             "sha256sum '$BACKEND_DEPLOY_DIR/$BACKEND_JAR_NAME' | cut -d ' ' -f 1")"
           echo "local_sha=$local_sha"
           echo "remote_sha=$remote_sha"
           test "$local_sha" = "$remote_sha"
-          ssh -i ~/.ssh/deploy_key \
-            -o BatchMode=yes \
-            -o ConnectTimeout=30 \
-            -o StrictHostKeyChecking=no \
-            -p "$DEPLOY_PORT" \
-            "$DEPLOY_USER@$DEPLOY_HOST" \
-            "unzip -t '$BACKEND_DEPLOY_DIR/$BACKEND_JAR_NAME' 'BOOT-INF/lib/*' >/tmp/backend-jar-check.log && tail -5 /tmp/backend-jar-check.log"
 
       - name: Restart backend service
         run: |
-          ssh -i ~/.ssh/deploy_key \
-            -o BatchMode=yes \
-            -o ConnectTimeout=30 \
-            -o StrictHostKeyChecking=no \
-            -p "$DEPLOY_PORT" \
+          ssh -o ConnectTimeout=30 -p "$DEPLOY_PORT" \
             "$DEPLOY_USER@$DEPLOY_HOST" \
             "cd '$DOCKER_COMPOSE_DIR' && docker-compose up -d '$BACKEND_SERVICE_NAME' && sleep 20 && docker-compose ps '$BACKEND_SERVICE_NAME'"
 
       - name: Show backend logs
         if: always()
         run: |
-          ssh -i ~/.ssh/deploy_key \
-            -o BatchMode=yes \
-            -o ConnectTimeout=30 \
-            -o StrictHostKeyChecking=no \
-            -p "$DEPLOY_PORT" \
+          ssh -o ConnectTimeout=30 -p "$DEPLOY_PORT" \
             "$DEPLOY_USER@$DEPLOY_HOST" \
-            "docker logs --tail 120 '$BACKEND_SERVICE_NAME' 2>&1 || true"
+            "docker logs --tail 80 '$BACKEND_SERVICE_NAME' 2>&1 || true" || true
+
+      - name: Notify on success
+        if: success()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "✅ 后端部署成功 - ${{ github.repository }}"
+          to: ${{ secrets.NOTIFY_EMAIL }}
+          from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
+          body: |
+            后端部署成功！
+
+            仓库：${{ github.repository }}
+            分支：${{ github.ref_name }}
+            提交：${{ github.sha }}
+            提交信息：${{ github.event.head_commit.message }}
+            触发人：${{ github.actor }}
+            时间：${{ github.event.head_commit.timestamp }}
+
+            访问地址：http://43.242.200.25:8081/
+
+      - name: Notify on failure
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "❌ 后端部署失败 - ${{ github.repository }}"
+          to: ${{ secrets.NOTIFY_EMAIL }}
+          from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
+          body: |
+            后端部署失败！请检查 Actions 日志。
+
+            仓库：${{ github.repository }}
+            分支：${{ github.ref_name }}
+            提交：${{ github.sha }}
+            提交信息：${{ github.event.head_commit.message }}
+            触发人：${{ github.actor }}
+
+            查看详情：https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
