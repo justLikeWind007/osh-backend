@@ -3,8 +3,8 @@ package com.backstage.system.service.questionanswer.impl;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.enums.QAQuestionSearchType;
+import com.backstage.common.enums.ResourceTypeEnum;
 import com.backstage.common.enums.ResultCode;
-import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.system.domain.questionanswer.Answer;
 import com.backstage.system.domain.questionanswer.Question;
@@ -53,7 +53,7 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
 
     @Override
     public R<String> addQuestion(Long userId, Long resourceNo, String resourceType, String content, Byte isPaidOnly, List<Long> tags) {
-        if(!UserContextUtil.hasPermission(resourceType,resourceNo)) {
+        if(!ResourcePermissionUtil.hasPermission(ResourceTypeEnum.fromTypeCode(resourceType),resourceNo)) {
             return R.fail(ResultCode.FAILED_USER_PERMISSION_DENIED.getMsg());
         }
         Question question = new Question();
