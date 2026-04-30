@@ -4,13 +4,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import javax.servlet.http.HttpServletRequest;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import com.backstage.common.constant.CacheConstants;
 import com.backstage.common.constant.Constants;
+import com.backstage.common.constant.OshUserConstants;
 import com.backstage.common.core.domain.model.LoginUser;
 import com.backstage.common.core.redis.RedisCache;
 import com.backstage.common.utils.ServletUtils;
@@ -71,12 +72,16 @@ public class TokenService
                 // 解析对应的权限以及用户信息
                 String uuid = (String) claims.get(Constants.LOGIN_USER_KEY);
                 String userKey = getTokenKey(uuid);
-                LoginUser user = redisCache.getCacheObject(userKey);
-                return user;
+                LoginUser loginUser = redisCache.getCacheObject(userKey);
+                if (StringUtils.isNull(loginUser)) {
+                    return null;
+                }
+                return loginUser;
             }
             catch (Exception e)
             {
                 log.error("获取用户信息异常'{}'", e.getMessage());
+                log.debug("Token解析失败的详细信息", e);
             }
         }
         return null;
@@ -161,7 +166,7 @@ public class TokenService
      */
     public void setUserAgent(LoginUser loginUser)
     {
-        UserAgent userAgent = UserAgent.parseUserAgentString(ServletUtils.getRequest().getHeader("User-Agent"));
+        UserAgent userAgent = UserAgent.parseUserAgentString(               ServletUtils.getRequest().getHeader("OshUser-Agent"));
         String ip = IpUtils.getIpAddr();
         loginUser.setIpaddr(ip);
         loginUser.setLoginLocation(AddressUtils.getRealAddressByIP(ip));
@@ -221,12 +226,17 @@ public class TokenService
         if (StringUtils.isNotEmpty(token) && token.startsWith(Constants.TOKEN_PREFIX))
         {
             token = token.replace(Constants.TOKEN_PREFIX, "");
+            log.debug("Token extracted successfully");
+        }
+        else if (StringUtils.isNotEmpty(token))
+        {
+            log.warn("Token format is invalid, expected Bearer prefix");
         }
         return token;
     }
 
     private String getTokenKey(String uuid)
     {
-        return CacheConstants.LOGIN_TOKEN_KEY + uuid;
+        return OshUserConstants.LOGIN_USER + uuid;
     }
 }

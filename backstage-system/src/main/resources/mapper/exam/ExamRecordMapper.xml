@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.exam.OshUserExamRecordMapper">
+
+    <resultMap id="OshUserExamRecordResult" type="com.backstage.system.domain.exam.OshUserExamRecord">
+        <id property="id" column="id" />
+        <result property="user_id" column="user_id" />
+        <result property="exam_id" column="exam_id" />
+        <result property="score" column="score" />
+        <result property="answer_status" column="answer_status" />
+        <result property="read_status" column="read_status" />
+        <result property="answer_json" column="answer_json" />
+        <result property="create_time" column="create_time" />
+        <result property="is_delete" column="is_delete" />
+    </resultMap>
+
+    <resultMap id="UserExamRecordResult" type="com.backstage.system.domain.vo.exam.UserExamRecordVo">
+        <id property="id" column="id" />
+        <result property="answer_status" column="answer_status" />
+        <result property="read_status" column="read_status" />
+        <result property="score" column="score" />
+        <result property="created_time" column="create_time" />
+        <association property="testpaper" javaType="com.backstage.system.domain.vo.exam.ExampaperInfoVo">
+            <id property="id" column="exam_id" />
+            <result property="title" column="title" />
+            <result property="total_score" column="total_score" />
+            <result property="pass_score" column="pass_score" />
+            <result property="expire" column="expire" />
+            <result property="question_count" column="question_count" />
+        </association>
+    </resultMap>
+
+    <resultMap id="QuestionVoResult" type="com.backstage.system.domain.vo.exam.QuestionVo">
+        <id property="id" column="id" />
+        <result property="question_id" column="id" />
+        <result property="title" column="title" />
+        <result property="score" column="score" />
+        <result property="remark" column="remark" />
+        <result property="type" column="type" />
+        <result property="options" column="options" />
+        <result property="correct_answer" column="correct_answer" />
+    </resultMap>
+
+
+    <insert id="insertOshUserExam" parameterType="com.backstage.system.domain.exam.OshUserExamRecord" useGeneratedKeys="true" keyProperty="id">
+        insert into osh_user_exam_record (
+        <if test="user_id != null">user_id,</if>
+        <if test="exam_id != null">exam_id,</if>
+        <if test="score != null">score,</if>
+        <if test="answer_status != null">answer_status,</if>
+        <if test="read_status != null">read_status,</if>
+        <if test="answer_json != null">answer_json,</if>
+        create_time
+        ) values (
+        <if test="user_id != null">#{user_id},</if>
+        <if test="exam_id != null">#{exam_id},</if>
+        <if test="score != null">#{score},</if>
+        <if test="answer_status != null">#{answer_status},</if>
+        <if test="read_status != null">#{read_status},</if>
+        <if test="answer_json != null">#{answer_json},</if>
+        sysdate()
+        )
+    </insert>
+
+    <select id="selectByUserIdAndExamId" resultMap="OshUserExamRecordResult">
+        SELECT * FROM osh_user_exam_record
+        WHERE user_id = #{userId}
+        AND exam_id = #{examId}
+        AND answer_status = 0
+        AND is_delete = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectUserTestList" resultMap="UserExamRecordResult">
+        SELECT
+        ut.id, ut.answer_status, ut.read_status, ut.score, ut.create_time,
+        e.id as exam_id, e.title, e.total_score, e.pass_score, e.expire, e.question_count
+        FROM osh_user_exam_record ut
+        LEFT JOIN osh_examination e ON ut.exam_id = e.id
+        WHERE ut.user_id = #{userId} AND ut.is_delete = 0
+        ORDER BY ut.create_time DESC
+    </select>
+
+    <select id="selectQuestionsByExamId" resultMap="QuestionVoResult">
+        SELECT
+        q.id, q.title, q.score, q.type, q.remark, q.options, q.correct_answer
+        FROM osh_question q
+        WHERE q.exam_id = #{examId}
+        AND q.is_delete = 0
+        ORDER BY q.id ASC
+    </select>
+
+    <update id="updateOshUserExam" parameterType="com.backstage.system.domain.exam.OshUserExamRecord">
+        update osh_user_exam_record
+        <set>
+            <if test="score != null">score = #{score},</if>
+            <if test="answer_status != null">answer_status = #{answer_status},</if>
+            <if test="read_status != null">read_status = #{read_status},</if>
+            <if test="answer_json != null and answer_json != ''">answer_json = #{answer_json},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+</mapper>

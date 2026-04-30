@@ -1,0 +1,903 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.course.OshCourseMapper">
+
+    <sql id="searchCourseColumns">
+        c.id,
+        c.title,
+        c.cover,
+        c.intro,
+        c.service_content,
+        c.price,
+        c.t_price,
+        c.type,
+        c.sub_count,
+        c.remark,
+        c.create_by,
+        c.create_time,
+        c.update_by,
+        c.update_time,
+        c.total_duration,
+        c.free_lesson_count,
+        c.video_count,
+        c.sales_count,
+        c.view_count,
+        c.like_count,
+        c.comment_count,
+        c.collection_count,
+        c.question_count,
+        c.rating_score,
+        c.free_type,
+        c.after_service_days,
+        c.resource_type,
+        c.level,
+        c.status,
+        c.exam_id
+    </sql>
+
+    <sql id="courseDetailColumns">
+        c.id,
+        c.title,
+        c.cover,
+        c.intro,
+        c.service_content,
+        c.price,
+        c.t_price,
+        c.sub_count,
+        c.buy_count,
+        c.remark,
+        c.total_duration,
+        c.video_count,
+        c.free_lesson_count,
+        c.view_count,
+        c.good_count,
+        c.mid_count,
+        c.bad_count,
+        c.comment_count,
+        c.collection_count,
+        c.rating_score,
+        c.free_type,
+        c.after_service_days,
+        c.resource_type,
+        c.level,
+        c.status,
+        c.exam_id,
+        c.create_by,
+        c.create_time,
+        c.update_by,
+        c.update_time
+    </sql>
+
+    <resultMap type="com.backstage.system.domain.course.OshCourse" id="OshCouresResult">
+        <result property="id"   column="id"    />
+        <result property="title"   column="title"    />
+        <result property="cover"   column="cover"    />
+        <result property="intro"   column="intro"    />
+        <result property="serviceContent"   column="service_content"    />
+        <result property="price"   column="price"    />
+        <result property="tPrice"   column="t_price"    />
+        <result property="type"   column="type"    />
+        <result property="subCount"   column="sub_count"    />
+        <result property="remark"   column="remark"    />
+        <result property="createBy"   column="create_by"    />
+        <result property="createTime"   column="create_time"    />
+        <result property="updateBy"   column="update_by"    />
+        <result property="updateTime"   column="update_time"    />
+        <result property="totalDuration"   column="total_duration"    />
+        <result property="freeLessonCount" column="free_lesson_count" />
+        <result property="videoCount"   column="video_count"    />
+        <result property="salesCount"   column="sales_count"    />
+        <result property="viewCount"   column="view_count"    />
+        <result property="likeCount"   column="like_count"    />
+        <result property="commentCount"   column="comment_count"    />
+        <result property="questionCount"   column="question_count"    />
+        <result property="collectionCount" column="collection_count" />
+        <result property="ratingScore"   column="rating_score"    />
+        <result property="freeType"   column="free_type"    />
+        <result property="afterServiceDays"   column="after_service_days"    />
+        <result property="resourceType" column="resource_type" />
+        <result property="level" column="level" />
+        <result property="status"   column="status"    />
+        <result property="examId" column="exam_id"/>
+        <result property="deleteFlag" column="delete_flag"/>
+    </resultMap>
+
+    <resultMap type="com.backstage.system.domain.course.vo.CourseSearchLoginVo" id="CourseSearchLoginResult">
+        <result property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="cover" column="cover"/>
+        <result property="intro" column="intro"/>
+        <result property="serviceContent" column="service_content"/>
+        <result property="price" column="price"/>
+        <result property="tPrice" column="t_price"/>
+        <result property="type" column="type"/>
+        <result property="subCount" column="sub_count"/>
+        <result property="remark" column="remark"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="totalDuration" column="total_duration"/>
+        <result property="freeLessonCount" column="free_lesson_count"/>
+        <result property="videoCount" column="video_count"/>
+        <result property="salesCount" column="sales_count"/>
+        <result property="viewCount" column="view_count"/>
+        <result property="likeCount" column="like_count"/>
+        <result property="commentCount" column="comment_count"/>
+        <result property="questionCount" column="question_count"/>
+        <result property="ratingScore" column="rating_score"/>
+        <result property="freeType" column="free_type"/>
+        <result property="afterServiceDays" column="after_service_days"/>
+        <result property="resourceType" column="resource_type"/>
+        <result property="level" column="level"/>
+        <result property="status" column="status"/>
+        <result property="examId" column="exam_id"/>
+        <result property="collectionCount" column="collection_count"/>
+        <result property="collectionFlag" column="collection_flag"/>
+        <result property="buyFlag" column="buy_flag"/>
+    </resultMap>
+
+    <resultMap type="com.backstage.system.domain.course.vo.OshCourseDetailVo" id="OshCourseDetailResult">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="cover" column="cover"/>
+        <result property="intro" column="intro"/>
+        <result property="serviceContent" column="service_content"/>
+        <result property="price" column="price"/>
+        <result property="tPrice" column="t_price"/>
+        <result property="subCount" column="sub_count"/>
+        <result property="buyCount" column="buy_count"/>
+        <result property="remark" column="remark"/>
+        <result property="totalDuration" column="total_duration"/>
+        <result property="videoCount" column="video_count"/>
+        <result property="freeLessonCount" column="free_lesson_count"/>
+        <result property="viewCount" column="view_count"/>
+        <result property="goodCount" column="good_count"/>
+        <result property="midCount" column="mid_count"/>
+        <result property="badCount" column="bad_count"/>
+        <result property="commentCount" column="comment_count"/>
+        <result property="collectionCount" column="collection_count"/>
+        <result property="ratingScore" column="rating_score"/>
+        <result property="freeType" column="free_type"/>
+        <result property="afterServiceDays" column="after_service_days"/>
+        <result property="resourceType" column="resource_type"/>
+        <result property="level" column="level"/>
+        <result property="status" column="status"/>
+        <result property="examId" column="exam_id"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="buyFlag" column="buy_flag"/>
+        <collection property="tags" ofType="com.backstage.system.domain.course.vo.OshCourseTagSimpleVo">
+            <id property="id" column="tag_id"/>
+            <result property="name" column="tag_name"/>
+            <result property="sort" column="tag_sort"/>
+        </collection>
+    </resultMap>
+
+    <resultMap type="com.backstage.system.domain.course.vo.OshCourseSectionVo" id="OshCourseSectionResult">
+        <id property="id" column="id"/>
+        <result property="courseId" column="course_id"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="title" column="title"/>
+        <result property="sort" column="sort"/>
+        <result property="freeFlag" column="free_flag"/>
+        <result property="duration" column="duration"/>
+        <result property="mediaUrl" column="media_url"/>
+        <result property="textContent" column="text_content"/>
+        <result property="cover" column="cover"/>
+        <result property="videoCodec" column="video_codec"/>
+        <result property="videoBitrate" column="video_bitrate"/>
+        <result property="videoResolution" column="video_resolution"/>
+        <result property="fileSize" column="file_size"/>
+        <result property="subtitleUrl" column="subtitle_url"/>
+        <result property="type" column="type"/>
+        <result property="status" column="status"/>
+        <result property="examId" column="exam_id"/>
+        <result property="deleteFlag" column="delete_flag"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <resultMap type="com.backstage.system.domain.course.OshCourseSection" id="OshCourseSectionEntityResult">
+        <id property="id" column="id"/>
+        <result property="courseId" column="course_id"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="title" column="title"/>
+        <result property="sort" column="sort"/>
+        <result property="freeFlag" column="free_flag"/>
+        <result property="duration" column="duration"/>
+        <result property="mediaUrl" column="media_url"/>
+        <result property="cover" column="cover"/>
+        <result property="textContent" column="text_content"/>
+        <result property="videoDesc" column="video_desc"/>
+        <result property="videoCodec" column="video_codec"/>
+        <result property="videoBitrate" column="video_bitrate"/>
+        <result property="videoResolution" column="video_resolution"/>
+        <result property="fileSize" column="file_size"/>
+        <result property="subtitleUrl" column="subtitle_url"/>
+        <result property="type" column="type"/>
+        <result property="status" column="status"/>
+        <result property="examId" column="exam_id"/>
+        <result property="deleteFlag" column="delete_flag"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <resultMap id="OshCourseMaterial" type="com.backstage.system.domain.course.OshCourseMaterial">
+        <id property="id" column="id"/>
+        <result property="courseId" column="course_id"/>
+        <result property="name" column="name"/>
+        <result property="url" column="url"/>
+        <result property="fileSize" column="file_size"/>
+        <result property="fileType" column="file_type"/>
+        <result property="downloadCount" column="download_count"/>
+        <result property="payOnly" column="pay_only"/>
+        <result property="sort" column="sort"/>
+        <result property="deleteFlag" column="delete_flag"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="selectCourseVo">
+        select id,
+               title,
+               cover,
+               intro,
+               service_content,
+               price,
+               t_price,
+               type,
+               sub_count,
+               delete_flag,
+               create_by,
+               create_time,
+               update_by,
+               update_time,
+                remark,
+               total_duration,
+               free_lesson_count,
+               video_count,
+               sales_count,
+               view_count,
+               like_count,
+               comment_count,
+               question_count,
+               collection_count,
+               rating_score,
+               free_type,
+               after_service_days,
+               resource_type,
+               level,
+               status,
+               exam_id
+        from osh_course
+    </sql>
+
+    <select id="selectByUserIdAndCourseId" resultType="com.backstage.system.domain.course.OshCourseCollection">
+        select id, user_id, course_id, delete_flag
+        from osh_course_collection
+        where user_id = #{userId}
+        and course_id = #{courseId}
+        limit 1
+    </select>
+
+    <update id="updateCollectionDeleteFlag">
+        update osh_course_collection
+        set delete_flag = #{deleteFlag},
+        update_by = #{updateBy},
+        update_time = now()
+        where id = #{id}
+    </update>
+
+    <!-- 查询课程详情 -->
+    <select id="selectCourseById" parameterType="Long" resultMap="OshCouresResult">
+        <include refid="selectCourseVo"/>
+        where id = #{id}
+    </select>
+
+    <!-- 根据条件查询课程列表 -->
+    <select id="selectCourseList" resultMap="OshCouresResult">
+        <include refid="selectCourseVo"/>
+        order by create_time
+    </select>
+
+    <update id="updateCourseSection" parameterType="com.backstage.system.domain.course.OshCourseSection">
+        update osh_course_section
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="title != null and title != ''">title = #{title},</if>
+            <if test="freeFlag != null">free_flag = #{freeFlag},</if>
+            <if test="duration != null">duration = #{duration},</if>
+            <if test="mediaUrl != null and mediaUrl != ''">media_url = #{mediaUrl},</if>
+            <if test="textContent != null and textContent != ''">text_content = #{textContent},</if>
+            <if test="fileSize != null">file_size = #{fileSize},</if>
+            <if test="sort != null">sort = #{sort},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            update_time = now(),
+        </trim>
+        where id = #{id}
+        and delete_flag = 0
+    </update>
+
+    <update id="deleteSectionsByCourseId">
+        update osh_course_section
+        set delete_flag = 1,
+        update_by = #{updateBy},
+        update_time = now()
+        where course_id = #{courseId}
+        and delete_flag = 0
+    </update>
+
+    <update id="deleteCourseById" parameterType="Long">
+        update osh_course set delete_flag = 1, update_time = now()
+        where id = #{id}
+    </update>
+
+
+
+    <select id="pageQuerySearchCourse" resultMap="CourseSearchLoginResult">
+        select distinct
+        <include refid="searchCourseColumns"/>,
+        CASE WHEN EXISTS (
+        SELECT 1 FROM osh_course_collection occ
+        WHERE occ.course_id = c.id
+        AND occ.user_id = #{userId}
+        AND occ.delete_flag = 0
+        ) THEN 1 ELSE 0 END AS collection_flag,
+        0 as buy_flag,
+        (ifnull(c.sales_count, 0) * 2 + ifnull(c.collection_count, 0)) as sort_score
+        from osh_course c
+        left join osh_course_tag_rel ctr on ctr.course_id = c.id
+            and ctr.delete_flag = 0
+        left join osh_course_tag ct on ct.id = ctr.tag_id
+            and ct.delete_flag = 0
+            and ct.status = 1
+        <where>
+            c.delete_flag = 0
+            and c.status = 2
+            <if test="request.keyword != null and request.keyword != ''">
+                and c.title like concat('%', #{request.keyword}, '%')
+            </if>
+            <if test="request.tags != null and request.tags.size() > 0">
+                and ct.name in
+                <foreach collection="request.tags" item="tag" open="(" separator="," close=")">
+                    #{tag}
+                </foreach>
+            </if>
+            <if test="request.resourceType != null and request.resourceType != ''">
+                and c.resource_type = #{request.resourceType}
+            </if>
+        </where>
+        order by sort_score desc,c.create_time desc
+    </select>
+
+    <select id="selectUserBoughtCourseIds" resultType="java.lang.Long">
+        select distinct course_id
+        from osh_course_buy
+        where user_id = #{userId}
+          and delete_flag = 0
+          and pay_status = 'paid'
+          and course_id in
+        <foreach collection="courseIds" item="courseId" open="(" separator="," close=")">
+            #{courseId}
+        </foreach>
+    </select>
+
+    <select id="pageQueryUserCollectionCourse" resultMap="OshCouresResult">
+        select
+        <include refid="searchCourseColumns"/>
+        from osh_course c
+        inner join osh_course_collection occ on occ.course_id = c.id
+            and occ.user_id = #{userId}
+            and occ.delete_flag = 0
+        <where>
+            c.delete_flag = 0
+            and c.status = 2
+            <if test="request.keyword != null and request.keyword != ''">
+                and c.title like concat('%', #{request.keyword}, '%')
+            </if>
+            <if test="request.tags != null and request.tags.size() > 0">
+                and exists (
+                select 1
+                from osh_course_tag_rel ctr
+                inner join osh_course_tag ct on ct.id = ctr.tag_id
+                    and ct.delete_flag = 0
+                    and ct.status = 1
+                where ctr.course_id = c.id
+                    and ctr.delete_flag = 0
+                    and ct.name in
+                    <foreach collection="request.tags" item="tag" open="(" separator="," close=")">
+                        #{tag}
+                    </foreach>
+                )
+            </if>
+            <if test="request.resourceType != null and request.resourceType != ''">
+                and c.resource_type = #{request.resourceType}
+            </if>
+        </where>
+        order by occ.create_time desc, c.id desc
+    </select>
+
+    <select id="pageQueryUserCollectionSearchCourse" resultMap="CourseSearchLoginResult">
+        select
+        <include refid="searchCourseColumns"/>,
+        1 as collection_flag,
+        0 as buy_flag
+        from osh_course c
+        inner join osh_course_collection occ on occ.course_id = c.id
+            and occ.user_id = #{userId}
+            and occ.delete_flag = 0
+        <where>
+            c.delete_flag = 0
+            and c.status = 2
+            <if test="request.keyword != null and request.keyword != ''">
+                and c.title like concat('%', #{request.keyword}, '%')
+            </if>
+            <if test="request.tags != null and request.tags.size() > 0">
+                and exists (
+                select 1
+                from osh_course_tag_rel ctr
+                inner join osh_course_tag ct on ct.id = ctr.tag_id
+                    and ct.delete_flag = 0
+                    and ct.status = 1
+                where ctr.course_id = c.id
+                    and ctr.delete_flag = 0
+                    and ct.name in
+                    <foreach collection="request.tags" item="tag" open="(" separator="," close=")">
+                        #{tag}
+                    </foreach>
+                )
+            </if>
+            <if test="request.resourceType != null and request.resourceType != ''">
+                and c.resource_type = #{request.resourceType}
+            </if>
+        </where>
+        order by occ.create_time desc, c.id desc
+    </select>
+
+    <select id="getCourseDetail" resultMap="OshCourseDetailResult">
+        select
+        <include refid="courseDetailColumns"/>,
+        ct.id as tag_id,
+        ct.name as tag_name,
+        ct.sort as tag_sort,
+
+        IFNULL(
+        CASE WHEN ocb.pay_status = 'paid' THEN 1 ELSE 0 END,
+        0
+        ) AS buy_flag
+        from osh_course c
+        left join osh_course_tag_rel ctr on ctr.course_id = c.id
+            and ctr.delete_flag = 0
+        left join osh_course_tag ct on ct.id = ctr.tag_id
+            and ct.delete_flag = 0
+            and ct.status = 1
+        left join osh_course_buy ocb
+            on c.id = ocb.course_id
+            and ocb.pay_status= 'paid'
+            and ocb.user_id = #{userId}
+        where c.id = #{id}
+        and c.delete_flag = 0
+        and c.status = 2
+    </select>
+
+    <select id="selectCourseSectionList" parameterType="Long" resultMap="OshCourseSectionResult">
+        select id,
+               course_id,
+               parent_id,
+               title,
+               sort,
+               free_flag,
+               duration,
+               media_url,
+               text_content,
+               cover,
+               video_codec,
+               video_bitrate,
+               video_resolution,
+               file_size,
+               subtitle_url,
+               type,
+               status,
+               exam_id,
+               delete_flag,
+               create_by,
+               create_time,
+               update_by,
+               update_time
+        from osh_course_section
+        where course_id = #{courseId}
+          and delete_flag = 0
+          and status = 1
+        order by sort asc, id asc
+    </select>
+
+    <select id="countCourseSectionInCourse" resultType="java.lang.Integer">
+        select count(1)
+        from osh_course_section
+        where course_id = #{courseId}
+          and id = #{sectionId}
+          and delete_flag = 0
+    </select>
+
+    <update id="deleteCourseSectionById">
+        UPDATE osh_course_section
+        SET delete_flag = 1,
+        update_by = #{updateBy},
+        update_time = NOW()
+        WHERE id = #{id}
+        AND delete_flag = 0
+    </update>
+
+    <update id="deleteCourseSectionsByParentId">
+        UPDATE osh_course_section
+        SET delete_flag = 1,
+        update_by = #{updateBy},
+        update_time = NOW()
+        WHERE parent_id = #{parentId}
+        AND delete_flag = 0
+    </update>
+
+
+    <select id="selectCourseSectionById" resultMap="OshCourseSectionEntityResult">
+        select id,
+               course_id,
+               parent_id,
+               title,
+               sort,
+               free_flag,
+               duration,
+               media_url,
+               cover,
+               text_content,
+               video_desc,
+               video_codec,
+               video_bitrate,
+               video_resolution,
+               file_size,
+               subtitle_url,
+               type,
+               status,
+               exam_id,
+               delete_flag,
+               create_by,
+               create_time,
+               update_by,
+               update_time
+        from osh_course_section
+        where id = #{id}
+    </select>
+
+    <select id="getCourseSectionContent" resultType="java.lang.String">
+        select case
+                   when type = 'text' then text_content
+                   when type = 'video' then media_url
+                   else ''
+                   end as content
+        from osh_course_section
+        where 0 = 0
+          and id = #{sectionId}
+          and status = 0
+          and delete_flag = 0
+    </select>
+
+    <select id="isUserBuyCourseOrFreeCourse" resultType="java.lang.Integer">
+        select COUNT(1) as num
+        from osh_course_buy ocb
+            left join osh_course oc on oc.id = ocb.course_id
+        where course_id = #{courseId}
+          and user_id = #{userId}
+          and pay_status = 'paid'
+          and status = 1
+
+        union
+
+        select count(1) as num
+        from osh_course
+        where 0=0
+        and id = #{courseId}
+        and ( free_type = 0 or free_type = 2 )
+        and delete_flag = 0
+
+        union
+
+        select count(1) as num
+        from osh_course_section
+        where id = #{courseId}
+        and status = 0
+        and delete_flag = 0
+        and free_flag = 1
+    </select>
+
+    <select id="countUserBoughtCourse" resultType="java.lang.Integer">
+        select count(1)
+        from osh_course_buy
+        where course_id = #{courseId}
+          and user_id = #{userId}
+          and pay_status = 'paid'
+          and delete_flag = 0
+    </select>
+
+    <select id="countFreeCourse" resultType="java.lang.Integer">
+        select count(1)
+        from osh_course
+        where id = #{courseId}
+          and delete_flag = 0
+          and status = 2
+          and free_type in (0, 2)
+    </select>
+
+    <select id="countFreeSectionInCourse" resultType="java.lang.Integer">
+        select count(1)
+        from osh_course_section
+        where course_id = #{courseId}
+          and id = #{sectionId}
+          and delete_flag = 0
+          and status = 1
+          and free_flag = 1
+    </select>
+
+    <update id="increaseQuestionCount">
+        update osh_course
+        set question_count = ifnull(question_count, 0) + 1
+        where id = #{courseId}
+          and delete_flag = 0
+    </update>
+
+    <update id="increaseCollectionCount">
+        update osh_course
+        set collection_count = ifnull(collection_count, 0) + 1
+        where id = #{courseId}
+          and delete_flag = 0
+    </update>
+
+    <update id="decreaseCollectionCount">
+        update osh_course
+        set collection_count = if(ifnull(collection_count, 0) > 0, collection_count - 1, 0)
+        where id = #{courseId}
+          and delete_flag = 0
+    </update>
+
+    <!-- 多标签 + 关键字 + 动态排序查询课程列表 -->
+    <select id="selectCourseListByCondition" parameterType="java.util.Map" resultMap="OshCouresResult">
+        SELECT DISTINCT c.id, c.title, c.cover, c.price, c.t_price, c.type, c.status,
+                        c.free_lesson_count, c.sub_count, c.remark, c.create_time, c.update_time
+        FROM osh_course c
+        <if test="tagIds != null and tagIds.size() > 0">
+            INNER JOIN osh_course_tag_rel tr ON c.id = tr.course_id AND tr.delete_flag = 0
+        </if>
+        <where>
+            c.delete_flag = 0
+            AND c.status = 1
+            <if test="tagIds != null and tagIds.size() > 0">
+                AND tr.tag_id IN
+                <foreach collection="tagIds" item="tagId" open="(" separator="," close=")">
+                    #{tagId}
+                </foreach>
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND c.title LIKE #{keyword}
+            </if>
+        </where>
+        <choose>
+            <when test="sortBy == 'price'">
+                ORDER BY c.price ${sortOrder}
+            </when>
+            <when test="sortBy == 'buy_count'">
+                ORDER BY c.buy_count ${sortOrder}
+            </when>
+            <otherwise>
+                ORDER BY c.create_time ${sortOrder}
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 新增课程 -->
+    <insert id="insertCourse" parameterType="com.backstage.system.domain.course.OshCourse" useGeneratedKeys="true" keyProperty="id">
+        insert into osh_course
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="title != null and title != ''">title,</if>
+            <if test="cover != null and cover != ''">cover,</if>
+            <if test="intro != null and intro != ''">intro,</if>
+            <if test="serviceContent != null and serviceContent != ''">service_content,</if>
+            <if test="price != null">price,</if>
+            <if test="tPrice != null">t_price,</if>
+            <if test="type != null and type != ''">type,</if>
+            <if test="subCount != null">sub_count,</if>
+            <if test="remark != null and remark != ''">remark,</if>
+            <if test="totalDuration != null">total_duration,</if>
+            <if test="videoCount != null">video_count,</if>
+            <if test="salesCount != null">sales_count,</if>
+            <if test="viewCount != null">view_count,</if>
+            <if test="freeLessonCount != null">free_lesson_count,</if>
+            <if test="likeCount != null">like_count,</if>
+            <if test="commentCount != null">comment_count,</if>
+            <if test="questionCount != null">question_count,</if>
+            <if test="ratingScore != null">rating_score,</if>
+            <if test="freeType != null">free_type,</if>
+            <if test="afterServiceDays != null">after_service_days,</if>
+            <if test="resourceType != null">resource_type,</if>
+            <if test="level != null">level,</if>
+            status,
+            <if test="examId != null">exam_id,</if>
+            <if test="createBy != null and createBy != ''">create_by,</if>
+            <if test="updateBy != null and updateBy != ''">update_by,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="title != null and title != ''">#{title},</if>
+            <if test="cover != null and cover != ''">#{cover},</if>
+            <if test="intro != null and intro != ''">#{intro},</if>
+            <if test="serviceContent != null and serviceContent != ''">#{serviceContent},</if>
+            <if test="price != null">#{price},</if>
+            <if test="tPrice != null">#{tPrice},</if>
+            <if test="type != null and type != ''">#{type},</if>
+            <if test="subCount != null">#{subCount},</if>
+            <if test="remark != null and remark != ''">#{remark},</if>
+            <if test="totalDuration != null">#{totalDuration},</if>
+            <if test="videoCount != null">#{videoCount},</if>
+            <if test="salesCount != null">#{salesCount},</if>
+            <if test="viewCount != null">#{viewCount},</if>
+            <if test="freeLessonCount != null">#{freeLessonCount},</if>
+            <if test="likeCount != null">#{likeCount},</if>
+            <if test="commentCount != null">#{commentCount},</if>
+            <if test="questionCount != null">#{questionCount},</if>
+            <if test="ratingScore != null">#{ratingScore},</if>
+            <if test="freeType != null">#{freeType},</if>
+            <if test="afterServiceDays != null">#{afterServiceDays},</if>
+            <if test="resourceType != null">#{resourceType},</if>
+            <if test="level != null">#{level},</if>
+            2,
+            <if test="examId != null">#{examId},</if>
+            <if test="createBy != null and createBy != ''">#{createBy},</if>
+            <if test="updateBy != null and updateBy != ''">#{updateBy},</if>
+         </trim>
+    </insert>
+
+    <insert id="insertCourseSection" parameterType="com.backstage.system.domain.course.OshCourseSection" useGeneratedKeys="true" keyProperty="id">
+        insert into osh_course_section
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="courseId != null">course_id,</if>
+            <if test="parentId != null">parent_id,</if>
+            <if test="title != null and title != ''">title,</if>
+            <if test="sort != null">sort,</if>
+            <if test="freeFlag != null">free_flag,</if>
+            <if test="duration != null">duration,</if>
+            <if test="mediaUrl != null and mediaUrl != ''">media_url,</if>
+            <if test="cover != null and cover != ''">cover,</if>
+            <if test="textContent != null and textContent != ''">text_content,</if>
+            <if test="videoDesc != null and videoDesc != ''">video_desc,</if>
+            <if test="videoCodec != null and videoCodec != ''">video_codec,</if>
+            <if test="videoBitrate != null">video_bitrate,</if>
+            <if test="videoResolution != null and videoResolution != ''">video_resolution,</if>
+            <if test="fileSize != null">file_size,</if>
+            <if test="type != null and type != ''">type,</if>
+            <if test="status != null">status,</if>
+            <if test="examId != null">exam_id,</if>
+            <if test="deleteFlag != null">delete_flag,</if>
+            <if test="createBy != null and createBy != ''">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null and updateBy != ''">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="courseId != null">#{courseId},</if>
+            <if test="parentId != null">#{parentId},</if>
+            <if test="title != null and title != ''">#{title},</if>
+            <if test="sort != null">#{sort},</if>
+            <if test="freeFlag != null">#{freeFlag},</if>
+            <if test="duration != null">#{duration},</if>
+            <if test="mediaUrl != null and mediaUrl != ''">#{mediaUrl},</if>
+            <if test="cover != null and cover != ''">#{cover},</if>
+            <if test="textContent != null and textContent != ''">#{textContent},</if>
+            <if test="videoDesc != null and videoDesc != ''">#{videoDesc},</if>
+            <if test="videoCodec != null and videoCodec != ''">#{videoCodec},</if>
+            <if test="videoBitrate != null">#{videoBitrate},</if>
+            <if test="videoResolution != null and videoResolution != ''">#{videoResolution},</if>
+            <if test="fileSize != null">#{fileSize},</if>
+            <if test="type != null and type != ''">#{type},</if>
+            <if test="status != null">#{status},</if>
+            <if test="examId != null">#{examId},</if>
+            <if test="deleteFlag != null">#{deleteFlag},</if>
+            <if test="createBy != null and createBy != ''">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null and updateBy != ''">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+        </trim>
+    </insert>
+
+    <!-- 修改课程 -->
+    <update id="updateCourse" parameterType="com.backstage.system.domain.course.OshCourse">
+        update osh_course
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="title != null and title != ''">title = #{title},</if>
+            <if test="cover != null and cover != ''">cover = #{cover},</if>
+            <if test="intro != null and intro != ''">intro = #{intro},</if>
+            <if test="serviceContent != null and serviceContent != ''">service_content = #{serviceContent},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="tPrice != null">t_price = #{tPrice},</if>
+            <if test="type != null and type != ''">type = #{type},</if>
+            <if test="subCount != null">sub_count = #{subCount},</if>
+            <if test="remark != null and remark != ''">remark = #{remark},</if>
+            <if test="totalDuration != null">total_duration = #{totalDuration},</if>
+            <if test="videoCount != null">video_count = #{videoCount},</if>
+            <if test="salesCount != null">sales_count = #{salesCount},</if>
+            <if test="viewCount != null">view_count = #{viewCount},</if>
+            <if test="freeLessonCount != null">free_lesson_count = #{freeLessonCount},</if>
+            <if test="likeCount != null">like_count = #{likeCount},</if>
+            <if test="commentCount != null">comment_count = #{commentCount},</if>
+            <if test="ratingScore != null">rating_score = #{ratingScore},</if>
+            <if test="freeType != null">free_type = #{freeType},</if>
+            <if test="afterServiceDays != null">after_service_days = #{afterServiceDays},</if>
+            <if test="resourceType != null">resource_type = #{resourceType},</if>
+            <if test="level != null">level = #{level},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="examId != null">exam_id = #{examId},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <!-- 删除课程 -->
+    <delete id="deleteCourseById" parameterType="Long">
+        delete from osh_course where id = #{id}
+    </delete>
+
+    <!-- 批量删除课程 -->
+    <delete id="deleteCourseByIds" parameterType="String">
+        delete from osh_course where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="getCourseMaterials" resultMap="OshCourseMaterial">
+        select id,
+               course_id,
+               name,
+               url,
+               file_size,
+               file_type,
+               download_count,
+               pay_only as pay_only,
+               sort,
+               delete_flag,
+               create_by,
+               create_time,
+               update_by,
+               update_time
+        from osh_course_material
+        where course_id = #{courseId}
+          and delete_flag = 0
+        order by sort asc, id asc
+    </select>
+
+    <update id="updateCourseSubCount" parameterType="java.util.Map">
+        update osh_course
+        <set>
+            <if test="subCount != null">sub_count = #{subCount},</if>
+            <if test="videoCount != null">video_count = #{videoCount},</if>
+            update_time = now()
+        </set>
+        where id = #{courseId}
+    </update>
+
+    <!-- 批量查询课程封面（仅查询id和cover字段） -->
+    <select id="selectCoursesByIds" resultType="com.backstage.system.domain.course.OshCourse">
+        select id, cover
+        from osh_course
+        where delete_flag = 0
+        and id in
+        <foreach collection="list" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+</mapper>

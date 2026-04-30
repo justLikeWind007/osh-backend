@@ -1,10 +1,17 @@
 package com.backstage.framework.config;
 
 import com.backstage.common.utils.Threads;
+import com.backstage.common.async.AsyncExecutorNames;
+import com.backstage.framework.config.properties.AsyncThreadPoolProperties;
+import com.backstage.framework.config.properties.AsyncThreadPoolProperties.ExecutorProperties;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.core.task.TaskDecorator;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -15,40 +22,35 @@ import java.util.concurrent.ThreadPoolExecutor;
  * @author ruoyi
  **/
 @Configuration
+@EnableConfigurationProperties(AsyncThreadPoolProperties.class)
 public class ThreadPoolConfig
 {
-    // 核心线程池大小
-    private int corePoolSize = 50;
-
-    // 最大可创建的线程数
-    private int maxPoolSize = 200;
-
-    // 队列最大长度
-    private int queueCapacity = 1000;
-
-    // 线程池维护线程所允许的空闲时间
-    private int keepAliveSeconds = 300;
-
-    @Bean(name = "threadPoolTaskExecutor")
-    public ThreadPoolTaskExecutor threadPoolTaskExecutor()
+    @Bean(name = AsyncExecutorNames.DEFAULT)
+    @Primary
+    public ThreadPoolTaskExecutor threadPoolTaskExecutor(AsyncThreadPoolProperties properties, TaskDecorator taskDecorator)
     {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setMaxPoolSize(maxPoolSize);
-        executor.setCorePoolSize(corePoolSize);
-        executor.setQueueCapacity(queueCapacity);
-        executor.setKeepAliveSeconds(keepAliveSeconds);
-        // 线程池对拒绝任务(无线程可用)的处理策略
-        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
-        return executor;
+        return buildExecutor(properties.getCommon(), taskDecorator);
+    }
+
+    @Bean(name = AsyncExecutorNames.AGGREGATION)
+    public ThreadPoolTaskExecutor aggregationTaskExecutor(AsyncThreadPoolProperties properties, TaskDecorator taskDecorator)
+    {
+        return buildExecutor(properties.getAggregation(), taskDecorator);
+    }
+
+    @Bean(name = AsyncExecutorNames.NOTIFICATION)
+    public ThreadPoolTaskExecutor notificationTaskExecutor(AsyncThreadPoolProperties properties, TaskDecorator taskDecorator)
+    {
+        return buildExecutor(properties.getNotification(), taskDecorator);
     }
 
     /**
      * 执行周期性或定时任务
      */
     @Bean(name = "scheduledExecutorService")
-    protected ScheduledExecutorService scheduledExecutorService()
+    protected ScheduledExecutorService scheduledExecutorService(AsyncThreadPoolProperties properties)
     {
-        return new ScheduledThreadPoolExecutor(corePoolSize,
+        return new ScheduledThreadPoolExecutor(properties.getScheduledCorePoolSize(),
                 new BasicThreadFactory.Builder().namingPattern("schedule-pool-%d").daemon(true).build(),
                 new ThreadPoolExecutor.CallerRunsPolicy())
         {
@@ -59,5 +61,21 @@ public class ThreadPoolConfig
                 Threads.printException(r, t);
             }
         };
+    }
+
+    private ThreadPoolTaskExecutor buildExecutor(ExecutorProperties properties, TaskDecorator taskDecorator)
+    {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setThreadNamePrefix(properties.getThreadNamePrefix());
+        executor.setCorePoolSize(properties.getCorePoolSize());
+        executor.setMaxPoolSize(properties.getMaxPoolSize());
+        executor.setQueueCapacity(properties.getQueueCapacity());
+        executor.setKeepAliveSeconds(properties.getKeepAliveSeconds());
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(properties.getAwaitTerminationSeconds());
+        executor.setTaskDecorator(taskDecorator);
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        executor.initialize();
+        return executor;
     }
 }

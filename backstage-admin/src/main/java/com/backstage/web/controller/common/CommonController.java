@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import com.backstage.common.annotation.Anonymous;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,6 +73,8 @@ public class CommonController
     /**
      * 通用上传请求（单个）
      */
+    // TODO 测试
+    @Anonymous
     @PostMapping("/upload")
     public AjaxResult uploadFile(MultipartFile file) throws Exception
     {
@@ -86,6 +90,7 @@ public class CommonController
             ajax.put("fileName", fileName);
             ajax.put("newFileName", FileUtils.getName(fileName));
             ajax.put("originalFilename", file.getOriginalFilename());
+            ajax.put("size", file.getSize());
             return ajax;
         }
         catch (Exception e)

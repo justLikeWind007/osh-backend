@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.website.OshPracticalWebsiteMapper">
+
+    <resultMap id="WebsiteVoResultMap" type="com.backstage.system.domain.vo.website.OshPracticalWebsiteVO">
+        <id property="id" column="id" />
+        <result property="name" column="name" />
+        <result property="url" column="url" />
+        <result property="description" column="description" />
+        <result property="logoUrl" column="logo_url" />
+        <result property="tags" column="tags" />
+        <result property="clickCount" column="click_count" />
+        <result property="auditTime" column="audit_time" />
+        <result property="goodCount" column="good_count" />
+        <result property="midCount" column="mid_count" />
+        <result property="badCount" column="bad_count" />
+        <result property="collectionCount" column="collection_count" />
+        <result property="ratingScore" column="rating_score" />
+    </resultMap>
+    <update id="addCount">
+        UPDATE osh_practical_website
+        SET
+        <choose>
+            <when test="ratingType == 1">
+                good_count = good_count + 1
+            </when>
+            <when test="ratingType == 2">
+                mid_count = mid_count + 1
+            </when>
+            <when test="ratingType == 3">
+                bad_count = bad_count + 1
+            </when>
+        </choose>
+        WHERE id = #{websiteId} AND delete_flag = 0 AND status = 1
+    </update>
+    <!--根据网站id批量删除网站信息-->
+    <delete id="batchDeleteWebsite">
+        UPDATE osh_practical_website
+        SET delete_flag = 1
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+    <select id="selectWebsitePage" resultMap="WebsiteVoResultMap">
+        SELECT DISTINCT
+        w.id,
+        w.name,
+        w.url,
+        w.description,
+        w.logo_url,
+        w.click_count,
+        w.audit_time,
+        w.good_count,
+        w.mid_count,
+        w.bad_count,
+        w.collection_count,
+        w.rating_score,
+        GROUP_CONCAT(t.tag_name ORDER BY t.tag_name SEPARATOR ',') as tags
+        FROM osh_practical_website w
+        LEFT JOIN osh_website_tag_rel wt ON w.id = wt.website_id AND wt.delete_flag = 0
+        LEFT JOIN osh_website_tag t ON wt.tag_id = t.id AND t.delete_flag = 0
+        WHERE w.delete_flag = 0
+        AND w.status = 1
+        <if test="queryDTO.websiteName != null and queryDTO.websiteName != ''">
+            AND w.name LIKE CONCAT('%', #{queryDTO.websiteName}, '%')
+        </if>
+        <if test="queryDTO.tagNames != null and queryDTO.tagNames.size() > 0">
+            AND t.tag_name IN
+            <foreach item="tagName" collection="queryDTO.tagNames" open="(" separator="," close=")">
+                #{tagName}
+            </foreach>
+        </if>
+        GROUP BY w.id, w.name, w.url, w.description, w.logo_url, w.click_count, w.audit_time, w.good_count, w.mid_count, w.bad_count, w.collection_count, w.rating_score
+        ORDER BY w.rating_score DESC
+    </select>
+
+
+    <update id="incrementClickCount">
+        UPDATE osh_practical_website
+        SET click_count = click_count + 1
+        WHERE id = #{websiteId}
+    </update>
+
+    <!-- 查询所有已审核通过的网站（含标签），用于全量同步到 ES -->
+    <select id="selectAllPublishedWebsites" resultMap="WebsiteVoResultMap">
+        SELECT
+            w.id,
+            w.name,
+            w.url,
+            w.description,
+            w.logo_url,
+            w.click_count,
+            w.audit_time,
+            w.good_count,
+            w.mid_count,
+            w.bad_count,
+            w.collection_count,
+            w.rating_score,
+            GROUP_CONCAT(t.tag_name ORDER BY t.tag_name SEPARATOR ',') AS tags
+        FROM osh_practical_website w
+        LEFT JOIN osh_website_tag_rel wt ON w.id = wt.website_id AND wt.delete_flag = 0
+        LEFT JOIN osh_website_tag t ON wt.tag_id = t.id AND t.delete_flag = 0
+        WHERE w.delete_flag = 0
+          AND w.status = 1
+        GROUP BY w.id, w.name, w.url, w.description, w.logo_url,
+                 w.click_count, w.audit_time, w.good_count, w.mid_count,
+                 w.bad_count, w.collection_count, w.rating_score
+        ORDER BY w.rating_score DESC
+    </select>
+
+    <update id="updateCount">
+        UPDATE osh_practical_website
+        SET
+            good_count = good_count + (
+                CASE
+                    WHEN #{oldRatingType} = 1 THEN -1
+                    WHEN #{ratingType} = 1 THEN 1
+                    ELSE 0
+                    END
+                ),
+            mid_count = mid_count + (
+                CASE
+                    WHEN #{oldRatingType} = 2 THEN -1
+                    WHEN #{ratingType} = 2 THEN 1
+                    ELSE 0
+                    END
+                ),
+            bad_count = bad_count + (
+                CASE
+                    WHEN #{oldRatingType} = 3 THEN -1
+                    WHEN #{ratingType} = 3 THEN 1
+                    ELSE 0
+                    END
+                )
+        WHERE id = #{websiteId} AND delete_flag = 0 AND status = 1
+    </update>
+
+
+</mapper>

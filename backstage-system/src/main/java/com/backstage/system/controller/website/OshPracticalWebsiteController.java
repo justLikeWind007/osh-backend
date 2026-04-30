@@ -1,0 +1,267 @@
+package com.backstage.system.controller.website;
+
+import com.backstage.common.annotation.Anonymous;
+import com.backstage.common.annotation.OshUserEvent;
+import com.backstage.common.core.controller.BaseController;
+import com.backstage.common.core.domain.R;
+import com.backstage.common.core.page.TableDataInfo;
+import com.backstage.common.exception.ServiceException;
+import com.backstage.system.domain.dto.website.WebsiteAuditDTO;
+import com.backstage.system.domain.dto.website.WebsiteQueryDTO;
+import com.backstage.system.domain.dto.website.WebsiteRatingDTO;
+import com.backstage.system.domain.dto.website.WebsiteSubmitDTO;
+import com.backstage.system.domain.vo.website.OshPracticalWebsiteVO;
+import com.backstage.system.service.website.OshPracticalWebsiteService;
+import com.backstage.system.service.website.OshUserFavoriteWebsiteService;
+import com.backstage.system.service.website.OshWebsiteUserRatingService;
+import com.github.pagehelper.PageInfo;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import javax.annotation.Resource;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import static com.backstage.system.utils.UserContextUtil.getCurrentUser;
+
+/**
+ * 实用网站 Controller
+ */
+@RestController
+@RequestMapping("/pc/website")
+public class OshPracticalWebsiteController extends BaseController {
+
+    @Autowired
+    private OshPracticalWebsiteService oshPracticalWebsiteService;
+
+    @Autowired
+    private OshUserFavoriteWebsiteService oshUserFavoriteWebsiteService;
+
+    @Resource
+    private OshWebsiteUserRatingService oshWebsiteUserRatingService;
+
+    /**
+     * 查询实用网站列表（公开，游客可访问）
+     */
+    @Anonymous
+    @ApiOperation("查询实用网站列表")
+    @PostMapping("/list")
+    public R<Map<String, Object>> list(@RequestBody WebsiteQueryDTO queryDTO) {
+        List<OshPracticalWebsiteVO> list = oshPracticalWebsiteService.selectWebsitePage(queryDTO);
+        PageInfo<OshPracticalWebsiteVO> oshPracticalWebsiteVoPageInfo = new PageInfo<>(list);
+        Map<String, Object> data = new LinkedHashMap<>(4);
+        data.put("rows", list);
+        data.put("total", oshPracticalWebsiteVoPageInfo.getTotal());
+        data.put("pageNum", oshPracticalWebsiteVoPageInfo.getPageNum());
+        data.put("pageSize", oshPracticalWebsiteVoPageInfo.getPageSize());
+        return R.ok(data, "ok");
+    }
+
+    /**
+     * 增加网站点击次数（公开）
+     */
+    @Anonymous
+    @ApiOperation("增加网站点击次数")
+    @PutMapping("/click")
+    public R<Void> incrementClickCount(@RequestParam("id") Long id) {
+        int result = oshPracticalWebsiteService.incrementClickCount(id);
+        return result > 0 ? R.ok() : R.fail("网络开小差");
+    }
+
+    /**
+     * 用户提交网站（需登录）
+     */
+    @ApiOperation("用户提交网站")
+    @PostMapping("/submit")
+    @OshUserEvent(module = "实用网站", actionType = "提交", description = "提交网站")
+    @PreAuthorize("hasAuthority('website:submit')")
+    public R submit(@RequestBody WebsiteSubmitDTO submitDto) {
+        try {
+            int result = oshPracticalWebsiteService.submitWebsite(submitDto);
+            if (result > 0) {
+                return R.ok();
+            } else {
+                return R.fail("提交失败，请稍后重试");
+            }
+        } catch (IllegalArgumentException e) {
+            return R.fail(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("网络开小差");
+        }
+    }
+
+    /**
+     * 用户收藏网站（需登录）
+     */
+    @ApiOperation("用户收藏网站")
+    @PostMapping("/favorite")
+    @OshUserEvent(module = "实用网站", actionType = "收藏", description = "收藏网站")
+    @PreAuthorize("hasAuthority('website:favorite')")
+    public R<Void> favorite(Long websiteId, @RequestParam(value = "remark", required = false) String remark) {
+        try {
+            int result = oshUserFavoriteWebsiteService.favoriteWebsite(websiteId);
+            if (result > 0) {
+                return R.ok();
+            } else {
+                return R.fail("收藏失败，请勿重复收藏");
+            }
+        } catch (IllegalArgumentException e) {
+            return R.fail(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("网络开小差");
+        }
+    }
+
+    /**
+     * 用户取消收藏网站（需登录）
+     */
+    @ApiOperation("用户取消收藏网站")
+    @GetMapping("/del")
+    @OshUserEvent(module = "实用网站", actionType = "取消收藏", description = "取消收藏网站")
+    @PreAuthorize("hasAuthority('website:favorite:cancel')")
+    public R<Void> cancelFavorite(@RequestParam("websiteId") Long websiteId) {
+        try {
+            int result = oshUserFavoriteWebsiteService.cancelFavoriteWebsite(websiteId);
+            if (result > 0) {
+                return R.ok();
+            } else {
+                return R.fail("取消收藏失败，请稍后重试");
+            }
+        } catch (IllegalArgumentException e) {
+            return R.fail(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("网络开小差");
+        }
+    }
+
+    /**
+     * 查询用户的收藏网站列表（需登录）
+     */
+    @ApiOperation("查询用户的收藏网站列表")
+    @GetMapping("/Favorites")
+    @PreAuthorize("hasAuthority('website:favorite:list')")
+    public R<TableDataInfo> getMyFavoriteList(
+            @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
+            @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
+        try {
+            TableDataInfo result = oshUserFavoriteWebsiteService.selectUserFavoriteList(pageNum, pageSize);
+            return R.ok(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("网络开小差");
+        }
+    }
+
+    /**
+     * 管理员审核网站（需权限）
+     */
+    @ApiOperation("管理员审核网站")
+    @PostMapping("/audit")
+    @OshUserEvent(module = "实用网站", actionType = "审核", description = "审核网站")
+    @PreAuthorize("hasAuthority('website:audit')")
+    public R<String> audit(@RequestBody WebsiteAuditDTO auditDto) {
+        try {
+            boolean auditResult = oshPracticalWebsiteService.auditWebsite(auditDto);
+            if (auditResult) {
+                // 通过和拒绝都算操作成功
+                Integer status = auditDto.getStatus();
+                String msg = (status == 1) ? "审核通过" : "已拒绝";
+                return R.ok(msg);
+            } else {
+                return R.fail("审核操作失败，请稍后重试");
+            }
+        } catch (IllegalArgumentException e) {
+            return R.fail(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("审核失败");
+        }
+    }
+
+    /**
+     * 查询待审核的网站列表（需权限）
+     */
+    @ApiOperation("查询待审核网站列表")
+    @GetMapping("/audit/list")
+    @PreAuthorize("hasAuthority('website:audit:list')")
+    public R<TableDataInfo> getAuditByList(
+            @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
+            @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
+        try {
+            TableDataInfo result = oshPracticalWebsiteService.selectAuditList(pageNum, pageSize);
+            return R.ok(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("查询失败");
+        }
+    }
+
+    /**
+     * 根据 ID 查询待审核网站详情（需权限）
+     */
+    @ApiOperation("查询待审核网站详情")
+    @GetMapping("/audit/detail/{websiteId}")
+    @PreAuthorize("hasAuthority('website:audit:detail')")
+    public R<OshPracticalWebsiteVO> getAuditDetail(@PathVariable Long websiteId) {
+        try {
+            if (websiteId == null) {
+                return R.fail("网站ID不能为空");
+            }
+            OshPracticalWebsiteVO website = oshPracticalWebsiteService.getAuditDetail(websiteId);
+            if (website == null) {
+                return R.fail("网站不存在或已审核");
+            }
+            return R.ok(website);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("查询失败");
+        }
+    }
+
+    /**
+     * 管理员批量删除网站（需权限）
+     */
+    @ApiOperation("批量删除网站")
+    @GetMapping("/batch")
+    @OshUserEvent(module = "实用网站", actionType = "删除", description = "批量删除网站")
+    @PreAuthorize("hasAuthority('website:delete:batch')")
+    public R<String> batchDelete(@RequestParam List<Integer> websiteIds) {
+        try {
+            int result = oshPracticalWebsiteService.batchDeleteWebsite(websiteIds);
+            return R.ok("成功删除 " + result + " 个网站");
+        } catch (ServiceException e) {
+            return R.fail(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("删除失败");
+        }
+    }
+
+    /**
+     * 用户提交网站评价（需登录）
+     */
+    @ApiOperation("提交网站评价")
+    @PostMapping("/rating/submit")
+    @OshUserEvent(module = "实用网站", actionType = "评价", description = "提交网站评价")
+    @PreAuthorize("hasAuthority('website:rating:submit')")
+    public R<Void> submitRating(@RequestBody WebsiteRatingDTO ratingDTO) {
+        try {
+            Long userId = getCurrentUser().getId();
+            if (userId == null) {
+                return R.fail("请先登录");
+            }
+            oshWebsiteUserRatingService.submitRating(userId, ratingDTO.getWebsiteId(), ratingDTO.getRatingType());
+            return R.ok();
+        } catch (IllegalArgumentException e) {
+            return R.fail(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("评价失败，请稍后重试");
+        }
+    }
+}

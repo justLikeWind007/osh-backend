@@ -1,3 +1,6 @@
+# 排除整个 backstage-ui 前端目录
+/backstage-ui/
+
 # Compiled class file
 *.class
 
@@ -18,10 +21,13 @@
 *.zip
 *.tar.gz
 *.rar
+target/
+.idea/
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
 
 # IntelliJ IDEA
 .idea/
@@ -69,3 +75,43 @@ build/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Application specific
+logs/
+doc/
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn.lock
+
+# Environment variables
+.env
+*.env.local
+*.env.*.local
+
+# IDE - JetBrains IDEs (specific)
+.idea/tasks.xml
+.idea/workspace.xml
+.idea/dictionaries/
+.idea/shelf/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*.backup
+
+AGENTS.md
+.qoder
+.mybatis
+docs/superpowers
+
+
+

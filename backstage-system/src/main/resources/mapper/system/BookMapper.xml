@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.book.BookMapper">
+
+    <resultMap type="com.backstage.system.domain.vo.book.BookListVO" id="BookListResult">
+        <result property="id" column="id" />
+        <result property="title" column="title" />
+        <result property="cover" column="cover" />
+        <result property="desc" column="description" />
+        <result property="price" column="price" />
+        <result property="tPrice" column="original_price" />
+        <result property="subCount" column="sub_count" />
+        <result property="level" column="level" />
+    </resultMap>
+
+    <select id="getBookPageList" parameterType="BookDO" resultType="com.backstage.system.domain.vo.book.BookListVO">
+        SELECT
+            book.id, book.title, book.cover, book.description, book.price, book.original_price, book.sub_count, book.level,
+            GROUP_CONCAT(DISTINCT tag.tag_name) AS tag_names,
+            IFNULL(ubr.purchase_count, 0) AS purchaseCount
+        FROM
+            osh_book book
+            LEFT JOIN osh_book_tag tag ON book.id = tag.book_id AND tag.del_flag = '0'
+            LEFT JOIN (
+                SELECT book_id, COUNT(*) AS purchase_count
+                FROM osh_user_book_relation
+                WHERE purchased = 1 AND deleted = 0
+                GROUP BY book_id
+            ) ubr ON book.id = ubr.book_id
+        <where>
+            book.del_flag = '0' and book.status = '0'
+            <if test="reqVO.tagNameList != null and reqVO.tagNameList.size() > 0">
+                and tag.tag_name in
+                <foreach item="tagName" collection="reqVO.tagNameList" separator="," open="(" close=")" index="">
+                    #{tagName}
+                </foreach>
+            </if>
+            <if test="reqVO.title != null and reqVO.title != ''">
+                and book.title like concat('%', #{reqVO.title}, '%')
+            </if>
+            <if test="reqVO.level != null">
+                and book.level = #{reqVO.level}
+            </if>
+            <if test="reqVO.userLevel != null">
+                and (book.level &lt;= #{reqVO.userLevel} or book.level is null)
+            </if>
+        </where>
+        GROUP BY book.id
+        ORDER BY purchaseCount DESC, book.sub_count DESC, book.create_time DESC
+    </select>
+
+    <select id="selectFreeBookPage" resultType="com.backstage.system.domain.vo.book.BookListVO">
+        SELECT
+        b.id,
+        b.title,
+        b.cover,
+        b.description AS `desc`,  <!-- 这里加反引号 `desc` 就不报错了 -->
+        b.price,
+        b.original_price AS tPrice,
+        b.sub_count AS subCount,
+        b.level AS level,
+        GROUP_CONCAT(bt.tag_name) AS tagNames
+        FROM osh_book b
+
+        LEFT JOIN osh_book_tag bt
+        ON b.id = bt.book_id
+        AND bt.del_flag = 0
+
+        WHERE b.price = 0
+        AND b.del_flag = 0
+        AND b.status = 0
+
+        GROUP BY b.id
+
+        ORDER BY b.create_time DESC
+    </select>
+</mapper>

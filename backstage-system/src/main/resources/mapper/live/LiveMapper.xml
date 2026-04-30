@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.live.LiveMapper">
+
+    <resultMap type="LiveDetailVo" id="LiveDetailResult">
+        <result property="id"    column="id"    />
+        <result property="title"    column="title"    />
+        <result property="cover"    column="cover"    />
+        <result property="tryIntro"    column="try_intro"    />
+        <result property="price"    column="price"    />
+        <result property="tPrice"    column="t_price"    />
+        <result property="type"    column="type"    />
+        <result property="subCount"    column="sub_count"    />
+        <result property="content"    column="content"    />
+    </resultMap>
+
+    <resultMap type="LiveUserVo" id="LiveUserResult">
+        <result property="isbuy"    column="isbuy"    />
+        <result property="isfava"    column="isfava"    />
+    </resultMap>
+
+    <resultMap type="LiveQueryVo" id="LiveListResult">
+        <result property="id"    column="id"    />
+        <result property="title"    column="title"    />
+        <result property="cover"    column="cover"    />
+        <result property="tryIntro"    column="try_intro"    />
+        <result property="key"    column="key"    />
+        <result property="price"    column="price"    />
+        <result property="tPrice"    column="t_price"    />
+        <result property="schoolId"    column="school_id"    />
+        <result property="subCount"    column="sub_count"    />
+        <result property="startTime"    column="start_time"    />
+        <result property="endTime"    column="end_time"    />
+        <result property="createdTime"    column="created_time"    />
+        <result property="updatedTime"    column="updated_time"    />
+    </resultMap>
+
+    <sql id="selectLiveDetail">
+        select id, title, cover, try_intro, price, t_price, type, sub_count, content from osh_live
+    </sql>
+
+    <sql id="selectLiveUser">
+        select isbuy, isfava from osh_live_user
+    </sql>
+
+    <sql id="selectLiveList">
+        select id, title, cover, try_intro, `key`, price, t_price, school_id, sub_count, start_time, end_time ,created_time , updated_time from osh_live
+    </sql>
+
+
+    <select id="getLiveInfoById" parameterType="java.lang.Long" resultMap="LiveDetailResult">
+        <include refid="selectLiveDetail"/>
+        where id = #{id}
+    </select>
+
+    <select id="getLiveUserById" resultMap="LiveUserResult">
+        <include refid="selectLiveUser"/>
+        where live_id = #{liveId} and user_id = #{userId}
+    </select>
+
+    <select id="getLiveList" resultMap="LiveListResult">
+        <include refid="selectLiveList"/>
+    </select>
+</mapper>

@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.course.OshUserCourseProgressMapper">
+    
+    <!-- 查询用户课程学习进度（课程级别） -->
+    <select id="selectProgressByUserIdAndCourseId" resultType="java.util.Map">
+        SELECT 
+            MAX(id) as id, 
+            user_id, 
+            course_id, 
+            MAX(section_id) as section_id,
+            COUNT(DISTINCT section_id) as learned_section_count,
+            (SELECT COUNT(*) FROM osh_course_section WHERE course_id = #{courseId} AND delete_flag = 0) as total_section_count,
+            AVG(progress) as progress_percent,
+            MAX(update_time) as last_learn_time,
+            MAX(CASE WHEN status = 2 THEN 1 ELSE 0 END) as is_completed,
+            MAX(finish_time) as complete_time
+        FROM osh_user_learn_progress
+        WHERE user_id = #{userId} AND course_id = #{courseId} AND delete_flag = 0
+        GROUP BY user_id, course_id
+    </select>
+    
+    <!-- 查询用户章节学习进度（章节级别） -->
+    <select id="selectSectionProgress" resultType="java.util.Map">
+        SELECT id, user_id, course_id, section_id, status, progress, last_position,
+               learn_time, watch_count, is_completed, complete_time, finish_time,
+               create_time, update_time
+        FROM osh_user_learn_progress
+        WHERE user_id = #{userId} AND section_id = #{sectionId} AND delete_flag = 0
+    </select>
+    
+    <!-- 新增章节学习进度 -->
+    <insert id="insertSectionProgress" parameterType="java.util.Map">
+        INSERT INTO osh_user_learn_progress (
+            user_id, course_id, section_id, status, progress, last_position,
+            learn_time, watch_count, is_completed, create_time
+        ) VALUES (
+            #{userId}, #{courseId}, #{sectionId}, #{status}, #{progress}, #{lastPosition},
+            #{learnTime}, 1, #{isCompleted}, NOW()
+        )
+    </insert>
+    
+    <!-- 更新章节学习进度 -->
+    <update id="updateSectionProgress" parameterType="java.util.Map">
+        UPDATE osh_user_learn_progress
+        <set>
+            <if test="status != null">status = #{status},</if>
+            <if test="progress != null">progress = #{progress},</if>
+            <if test="lastPosition != null">last_position = #{lastPosition},</if>
+            <if test="learnTime != null">learn_time = learn_time + #{learnTime},</if>
+            <if test="isCompleted != null">
+                is_completed = #{isCompleted},
+                <if test="isCompleted == 1 and completeTime == null">
+                    complete_time = NOW(),
+                </if>
+            </if>
+            <if test="isCompleted == 1">
+                finish_time = NOW(),
+            </if>
+            update_time = NOW()
+        </set>
+        WHERE user_id = #{userId} AND section_id = #{sectionId} AND delete_flag = 0
+    </update>
+    
+    <!-- 更新章节学习状态 -->
+    <update id="updateSectionStatus" parameterType="java.util.Map">
+        UPDATE osh_user_learn_progress
+        SET status = #{status},
+            <if test="isCompleted != null">
+                is_completed = #{isCompleted},
+                <if test="isCompleted == 1">
+                    complete_time = NOW(),
+                    finish_time = NOW(),
+                </if>
+            </if>
+            update_time = NOW()
+        WHERE user_id = #{userId} AND section_id = #{sectionId} AND delete_flag = 0
+    </update>
+    
+    <!-- 增加观看次数 -->
+    <update id="incrementWatchCount">
+        UPDATE osh_user_learn_progress
+        SET watch_count = watch_count + 1,
+            update_time = NOW()
+        WHERE user_id = #{userId} AND section_id = #{sectionId} AND delete_flag = 0
+    </update>
+    
+    <!-- 新增学习进度（课程级别） -->
+    <insert id="insertProgress" parameterType="java.util.Map">
+        INSERT INTO osh_user_course_progress (
+            user_id, course_id, section_id, learned_section_count, total_section_count,
+            progress_percent, last_learn_time, is_completed, create_time
+        ) VALUES (
+            #{userId}, #{courseId}, #{sectionId}, #{learnedSectionCount}, #{totalSectionCount},
+            #{progressPercent}, #{lastLearnTime}, #{isCompleted}, NOW()
+        )
+    </insert>
+    
+    <!-- 更新学习进度（课程级别） -->
+    <update id="updateProgress" parameterType="java.util.Map">
+        UPDATE osh_user_course_progress
+        <set>
+            section_id = #{sectionId},
+            learned_section_count = #{learnedSectionCount},
+            progress_percent = #{progressPercent},
+            last_learn_time = #{lastLearnTime},
+            is_completed = #{isCompleted},
+            <if test="completeTime != null">
+                complete_time = #{completeTime},
+            </if>
+            update_time = NOW()
+        </set>
+        WHERE user_id = #{userId} AND course_id = #{courseId} AND delete_flag = 0
+    </update>
+    
+    <!-- 删除学习进度（按课程 ID） -->
+    <delete id="deleteProgressByCourseId" parameterType="Long">
+        UPDATE osh_user_course_progress SET delete_flag = 1 WHERE course_id = #{courseId}
+    </delete>
+
+</mapper>

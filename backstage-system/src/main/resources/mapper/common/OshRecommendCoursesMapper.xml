@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.common.OshRecommendCoursesMapper">
+    
+    <resultMap type="OshRecommendCourses" id="OshRecommendCoursesResult">
+        <result property="id"    column="id"    />
+        <result property="title"    column="title"    />
+        <result property="cover"    column="cover"    />
+        <result property="price"    column="price"    />
+        <result property="tPrice"    column="t_price"    />
+        <result property="type"    column="type"    />
+        <result property="subCount"    column="sub_count"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="isShow"    column="is_show"    />
+        <result property="sort"    column="sort"    />
+        <result property="description"    column="description"    />
+        <result property="originalUrl"    column="original_url"    />
+    </resultMap>
+
+    <sql id="selectOshRecommendCoursesVo">
+        select id, title, cover, price, t_price, type, sub_count, create_time, update_time, is_show, sort, description, original_url from osh_recommend_courses
+    </sql>
+
+    <select id="selectOshRecommendCoursesList" parameterType="OshRecommendCourses" resultMap="OshRecommendCoursesResult">
+        <include refid="selectOshRecommendCoursesVo"/>
+        <where>  
+            <if test="title != null  and title != ''"> and title = #{title}</if>
+            <if test="cover != null  and cover != ''"> and cover = #{cover}</if>
+            <if test="price != null "> and price = #{price}</if>
+            <if test="tPrice != null "> and t_price = #{tPrice}</if>
+            <if test="type != null  and type != ''"> and type = #{type}</if>
+            <if test="subCount != null  and subCount != ''"> and sub_count = #{subCount}</if>
+            <if test="isShow != null "> and is_show = #{isShow}</if>
+            <if test="sort != null  and sort != ''"> and sort = #{sort}</if>
+            <if test="description != null  and description != ''"> and description = #{description}</if>
+            <if test="originalUrl != null  and originalUrl != ''"> and original_url = #{originalUrl}</if>
+        </where>
+    </select>
+    
+    <select id="selectOshRecommendCoursesById" parameterType="String" resultMap="OshRecommendCoursesResult">
+        <include refid="selectOshRecommendCoursesVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertOshRecommendCourses" parameterType="OshRecommendCourses">
+        insert into osh_recommend_courses
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="title != null and title != ''">title,</if>
+            <if test="cover != null and cover != ''">cover,</if>
+            <if test="price != null">price,</if>
+            <if test="tPrice != null">t_price,</if>
+            <if test="type != null and type != ''">type,</if>
+            <if test="subCount != null and subCount != ''">sub_count,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="isShow != null">is_show,</if>
+            <if test="sort != null and sort != ''">sort,</if>
+            <if test="description != null">description,</if>
+            <if test="originalUrl != null">original_url,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id},</if>
+            <if test="title != null and title != ''">#{title},</if>
+            <if test="cover != null and cover != ''">#{cover},</if>
+            <if test="price != null">#{price},</if>
+            <if test="tPrice != null">#{tPrice},</if>
+            <if test="type != null and type != ''">#{type},</if>
+            <if test="subCount != null and subCount != ''">#{subCount},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="isShow != null">#{isShow},</if>
+            <if test="sort != null and sort != ''">#{sort},</if>
+            <if test="description != null">#{description},</if>
+            <if test="originalUrl != null">#{originalUrl},</if>
+         </trim>
+    </insert>
+
+    <update id="updateOshRecommendCourses" parameterType="OshRecommendCourses">
+        update osh_recommend_courses
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="title != null and title != ''">title = #{title},</if>
+            <if test="cover != null and cover != ''">cover = #{cover},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="tPrice != null">t_price = #{tPrice},</if>
+            <if test="type != null and type != ''">type = #{type},</if>
+            <if test="subCount != null and subCount != ''">sub_count = #{subCount},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="isShow != null">is_show = #{isShow},</if>
+            <if test="sort != null and sort != ''">sort = #{sort},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="originalUrl != null">original_url = #{originalUrl},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteOshRecommendCoursesById" parameterType="String">
+        delete from osh_recommend_courses where id = #{id}
+    </delete>
+
+    <delete id="deleteOshRecommendCoursesByIds" parameterType="String">
+        delete from osh_recommend_courses where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>
