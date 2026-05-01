@@ -1,6 +1,6 @@
 package com.backstage.system.controller.user;
 
-import com.backstage.common.annotation.Anonymous;
+import com.backstage.common.annotation.OshUserLevel;
 import com.backstage.common.core.controller.BaseController;
 import com.backstage.common.core.domain.R;
 import com.backstage.system.domain.user.OshUser;
@@ -12,6 +12,7 @@ import com.backstage.system.utils.UserContextUtil;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import javax.mail.MessagingException;
@@ -26,8 +27,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/pc/user")
-public class
-OshUserController extends BaseController {
+public class OshUserController extends BaseController {
 
     private final IOshUserService userService;
 
@@ -36,7 +36,6 @@ OshUserController extends BaseController {
         this.userService = userService;
     }
 
-    @Anonymous
     @ApiOperation("账号登录")
     @PostMapping("/login")
     public R<OshUserLoginVO> login(
@@ -45,7 +44,6 @@ OshUserController extends BaseController {
         return userService.login(userLoginDTO.getUsername(),userLoginDTO.getPassword());
     }
 
-    @Anonymous
     @ApiOperation("注册请求")
     @PostMapping("/register/submit")
     public R<String> registerSubmit(
@@ -54,7 +52,6 @@ OshUserController extends BaseController {
         return userService.registerSubmit(userRegisterDTO.getUsername(),userRegisterDTO.getPassword(),userRegisterDTO.getRepassword(),userRegisterDTO.getEmail());
     }
 
-    @Anonymous
     @ApiOperation("账号注册")
     @PostMapping("/register/verity")
     public R<String> registerVerity(
@@ -63,60 +60,59 @@ OshUserController extends BaseController {
         return userService.registerVerity(verityRequestDTO.getUniqueId());
     }
 
-    @Anonymous
     @ApiOperation("退出登录")
     @PostMapping("/logout")
+    @PreAuthorize("hasAuthority('user:logout')")
     public R<String> logout(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid) {
         return userService.logout();
     }
 
-    @Anonymous
     @ApiOperation("改绑邮箱请求 根据唯一标识改绑邮箱")
     @PostMapping("/changeEmail/submit")
+    @PreAuthorize("hasAuthority('user:email:change:submit')")
     public R<String> changeEmailSubmit(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserChangeEmailDTO userChangeEmailDTO) throws MessagingException {
         return userService.changeEmailSubmit(userChangeEmailDTO.getUniqueId(), userChangeEmailDTO.getNewEmail());
     }
 
-    @Anonymous
     @ApiOperation("改绑邮箱验证")
     @PostMapping("/changeEmail/verity")
+    @PreAuthorize("hasAuthority('user:email:change:verity')")
     public R<String> changeEmailVerity(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @ApiParam("用户的唯一标识") @RequestBody VerityRequestDTO verityRequestDTO) {
         return userService.changeEmailVerity(verityRequestDTO.getUniqueId());
     }
 
-    @Anonymous
     @ApiOperation("找回密码")
     @PostMapping("/forget")
+    @PreAuthorize("hasAuthority('user:password:forget')")
     public R<String> forget(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserForgetDTO userForgetDTO) {
         return userService.forget(userForgetDTO.getUniqueId(), userForgetDTO.getPassword(), userForgetDTO.getRepassword());
     }
 
-    @Anonymous
     @ApiOperation("修改资料")
     @PostMapping("/update_info")
+    @PreAuthorize("hasAuthority('user:info:update')")
     public R<String> updateInfo(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserUpdateInfoDTO userUpdateInfoDTO) {
         return userService.updateInfo(userUpdateInfoDTO.getAvatar(),userUpdateInfoDTO.getNickname(),userUpdateInfoDTO.getSex());
     }
 
-    @Anonymous
     @ApiOperation("修改密码")
     @PostMapping("/update_password")
+    @PreAuthorize("hasAuthority('user:password:update')")
     public R<String> updatePassword(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserPasswordDTO userPasswordDTO) {
         return userService.updatePassword(userPasswordDTO.getOpassword(),userPasswordDTO.getPassword(),userPasswordDTO.getRepassword());
     }
 
-    @Anonymous
     @ApiOperation("获取用户信息")
     @GetMapping("/getinfo")
     public R<OshUser> getUserInfo(
@@ -124,34 +120,44 @@ OshUserController extends BaseController {
         return userService.getUserInfo();
     }
 
-    @Anonymous
     @ApiOperation("注销用户")
     @PostMapping("/deleteUser")
+    @PreAuthorize("hasAuthority('user:delete')")
     public R<String> deleteUser(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid) {
         return userService.deleteUser();
     }
 
-    @Anonymous
     @PostMapping("/violation/record")
+    @PreAuthorize("hasAuthority('user:violation:record')")
     public R<String> record(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserRecordDTO userRecordDTO) {
         return userService.record(userRecordDTO.getUserId(), userRecordDTO.getViolationType(), userRecordDTO.getReason());
     }
 
-    @Anonymous
     @PostMapping("/violation/record/cancel")
+    @PreAuthorize("hasAuthority('user:violation:record:cancel')")
     public R<String> cancelRecord(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserCancelRecordDTO userCancelRecordDTO) {
         return userService.cancelRecord(userCancelRecordDTO.getUserId(), UserContextUtil.getCurrentUser());
     }
 
+    @PostMapping("/asset/update")
+    @PreAuthorize("hasAuthority('user:asset:update')")
+    public R<String> updateAsset(
+            @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
+            @RequestBody UserAssetDTO userAssetDTO) {
+        return userService.updateAsset(userAssetDTO.getChangeType(), userAssetDTO.getChangeSource(), userAssetDTO.getAssetType(), userAssetDTO.getChangeAmount(), userAssetDTO.getRemark());
+    }
+
     /**
      * 查询用户列表
      */
     @GetMapping("/all")
+    @PreAuthorize("hasAuthority('user:list')")
+    @OshUserLevel(value = 5)
     public R<List<OshUser>> list(UserListRequest req) {
         return R.ok(userService.selectUserList(req));
     }

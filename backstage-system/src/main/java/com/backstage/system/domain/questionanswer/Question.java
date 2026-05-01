@@ -49,6 +49,11 @@ public class Question extends OSHBaseEntity implements Serializable {
     private Byte isPaidOnly;
 
     /**
+     * 权限等级
+     */
+    private Integer level;
+
+    /**
      * 状态：0=待回答，1=已解决，2=已关闭
      */
     private Byte status;
@@ -126,6 +131,14 @@ public class Question extends OSHBaseEntity implements Serializable {
         this.isPaidOnly = isPaidOnly;
     }
 
+    public Integer getLevel() {
+        return level;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
+    }
+
     public Byte getStatus() {
         return status;
     }
@@ -159,6 +172,7 @@ public class Question extends OSHBaseEntity implements Serializable {
                 ", resourceId=" + resourceNo +
                 ", content='" + content + '\'' +
                 ", isPaidOnly=" + isPaidOnly +
+                ", level=" + level +
                 ", status=" + status +
                 ", viewCount=" + viewCount +
                 ", followCount=" + followCount +
