@@ -34,6 +34,15 @@ public class OutboxEventPublishTask {
         }
     }
 
+    public void publishEventById(Long eventId) {
+        OshOutboxEvent event = outboxEventMapper.selectEventById(eventId);
+        if (event == null) {
+            log.warn("未找到待立即投递outbox事件, id={}", eventId);
+            return;
+        }
+        publishEvent(event);
+    }
+
     private void recoverTimeoutSendingEvents() {
         LocalDateTime timeoutTime = LocalDateTime.now().minusMinutes(SENDING_TIMEOUT_MINUTES);
         int recovered = outboxEventMapper.recoverTimeoutSendingEvents(timeoutTime);
