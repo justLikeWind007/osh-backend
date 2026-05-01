@@ -143,6 +143,9 @@ public class OshCourse {
     @ApiModelProperty("资源类型")
     private String resourceType;
 
+    @ApiModelProperty("服务周期（月）")
+    private Integer servicePeriod;
+
     @ApiModelProperty("课程等级")
     private Integer level;
 
@@ -182,6 +185,14 @@ public class OshCourse {
 
     public void setResourceType(String resourceType) {
         this.resourceType = resourceType;
+    }
+
+    public Integer getServicePeriod() {
+        return servicePeriod;
+    }
+
+    public void setServicePeriod(Integer servicePeriod) {
+        this.servicePeriod = servicePeriod;
     }
 
     public Integer getLevel() {

@@ -2,10 +2,7 @@ package com.backstage.system.request;
 
 import org.apache.commons.lang3.StringUtils;
 
-import javax.validation.constraints.DecimalMin;
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
 import java.math.BigDecimal;
 
 /**
@@ -13,20 +10,26 @@ import java.math.BigDecimal;
  */
 public class CourseMaterialCreateRequest {
 
+    /** 已有资料的 ID（编辑时保留已有资料，传此字段则跳过重建） */
+    private Long materialId;
+
     @NotBlank(message = "资料文件名称不能为空")
     private String fileName;
 
-    @NotBlank(message = "资料文件地址不能为空")
     private String fileUrl;
 
-    @NotBlank(message = "资料文件类型不能为空")
-    @Pattern(regexp = "(?i)zip|rar|7z", message = "资料文件类型必须是压缩包类型")
     private String fileType;
 
     //  字节转KB
-    @NotNull(message = "资料文件大小不能为空")
-    @DecimalMin(value = "0.00", inclusive = false, message = "资料文件大小必须大于0")
     private BigDecimal fileSize;
+
+    public Long getMaterialId() {
+        return materialId;
+    }
+
+    public void setMaterialId(Long materialId) {
+        this.materialId = materialId;
+    }
 
     public String getFileName() {
         return fileName;
