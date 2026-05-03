@@ -1,0 +1,113 @@
+package com.backstage.system.controller.seckill;
+
+import com.backstage.common.annotation.Anonymous;
+import com.backstage.common.annotation.Log;
+import com.backstage.common.core.controller.BaseController;
+import com.backstage.common.core.domain.R;
+import com.backstage.common.core.page.TableDataInfo;
+import com.backstage.common.enums.BusinessType;
+import com.backstage.common.exception.ServiceException;
+import com.backstage.system.domain.dto.seckill.SeckillGoodsAddDTO;
+import com.backstage.system.domain.dto.seckill.SeckillGoodsStatusDTO;
+import com.backstage.system.domain.dto.seckill.SeckillGoodsUpdateDTO;
+import com.backstage.system.domain.seckill.OshSeckillGoods;
+import com.backstage.system.domain.vo.seckill.SeckillGoodsVO;
+import com.backstage.system.service.seckill.IOshSeckillGoodsService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+/**
+ * 秒杀商品池 Controller
+ *
+ * @author backstage
+ * @date 2026-04-28
+ */
+@RestController
+@RequestMapping("/pc/seckill/goods")
+public class OshSeckillGoodsController extends BaseController {
+
+    @Autowired
+    private IOshSeckillGoodsService seckillGoodsService;
+
+    /**
+     * 查询秒杀商品池列表
+     * 查询条件：goodsName（模糊）、goodsType、status
+     */
+    @Anonymous
+    // @PreAuthorize("@ss.hasPermi('seckill:goods:list')")
+    @GetMapping("/list")
+    public TableDataInfo list(OshSeckillGoods goods) {
+        startPage();
+        List<SeckillGoodsVO> list = seckillGoodsService.selectSeckillGoodsList(goods);
+        return getDataTable(list);
+    }
+
+    /**
+     * 查询秒杀商品详情
+     */
+    @Anonymous
+    // @PreAuthorize("@ss.hasPermi('seckill:goods:query')")
+    @GetMapping("/detail/{id}")
+    public R<SeckillGoodsVO> getInfo(@PathVariable Long id) {
+        SeckillGoodsVO vo = seckillGoodsService.selectSeckillGoodsById(id);
+        return vo != null ? R.ok(vo) : R.fail("秒杀商品不存在");
+    }
+
+    /**
+     * 添加商品到秒杀商品池
+     */
+    @Anonymous
+    // @PreAuthorize("@ss.hasPermi('seckill:goods:add')")
+    @Log(title = "秒杀商品", businessType = BusinessType.INSERT)
+    @PostMapping("/add")
+    public R add(@Validated @RequestBody SeckillGoodsAddDTO dto) {
+        seckillGoodsService.insertSeckillGoods(dto);
+        return R.ok();
+    }
+
+    /**
+     * 批量上架 / 下架秒杀商品
+     */
+    @Anonymous
+    // @PreAuthorize("@ss.hasPermi('seckill:goods:edit')")
+    @Log(title = "秒杀商品", businessType = BusinessType.UPDATE)
+    @PostMapping("/status")
+    public R updateStatus(@Validated @RequestBody SeckillGoodsStatusDTO dto) {
+        seckillGoodsService.updateSeckillGoodsStatus(dto.getIds(), dto.getStatus());
+        return R.ok();
+    }
+
+    /**
+     * 修改秒杀商品信息（名称、封面、价格、排序等）
+     */
+    @Anonymous
+    // @PreAuthorize("@ss.hasPermi('seckill:goods:edit')")
+    @Log(title = "秒杀商品", businessType = BusinessType.UPDATE)
+    @PostMapping("/update")
+    public R edit(@Validated @RequestBody SeckillGoodsUpdateDTO dto) {
+        seckillGoodsService.updateSeckillGoods(dto);
+        return R.ok();
+    }
+
+    /**
+     * 批量逻辑删除秒杀商品
+     * 参数：ids=6&ids=7
+     */
+    @Anonymous
+    // @PreAuthorize("@ss.hasPermi('seckill:goods:remove')")
+    @Log(title = "秒杀商品", businessType = BusinessType.DELETE)
+    @DeleteMapping("/batch")
+    public R<String> batchDelete(@RequestParam List<Long> ids) {
+        try {
+            int result = seckillGoodsService.deleteSeckillGoodsByIds(ids.toArray(new Long[0]));
+            return R.ok("成功删除 " + result + " 个商品");
+        } catch (ServiceException e) {
+            return R.fail(e.getMessage());
+        } catch (Exception e) {
+            return R.fail("删除失败");
+        }
+    }
+}
