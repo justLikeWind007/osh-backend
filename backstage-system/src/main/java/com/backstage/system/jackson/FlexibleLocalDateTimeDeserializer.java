@@ -37,6 +37,14 @@ public class FlexibleLocalDateTimeDeserializer extends JsonDeserializer<LocalDat
     }
 
     private LocalDateTime parse(String text) throws IOException {
+        // 纯数字：毫秒时间戳（ES 的 date 字段在 convertValue 时会被序列化为字符串）
+        if (text.matches("\\d+")) {
+            try {
+                return LocalDateTime.ofInstant(Instant.ofEpochMilli(Long.parseLong(text)), ZoneId.systemDefault());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+
         try {
             return OffsetDateTime.parse(text).toLocalDateTime();
         } catch (DateTimeParseException ignored) {
