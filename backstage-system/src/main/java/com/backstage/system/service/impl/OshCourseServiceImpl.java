@@ -616,6 +616,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         course.setRemark(StringUtils.trimToNull(request.getRemark()));
         course.setResourceType(request.getResourceType());
         course.setLevel(request.getLevel());
+        course.setServicePeriod(request.getServicePeriod());
 
         course.setSubCount(CourseConstants.DEFAULT_COUNT);
         course.setTotalDuration(CourseConstants.DEFAULT_COUNT);
@@ -654,6 +655,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         course.setRemark(StringUtils.trimToNull(request.getRemark()));
         course.setResourceType(request.getResourceType());
         course.setLevel(request.getLevel());
+        if (request.getServicePeriod() != null) course.setServicePeriod(request.getServicePeriod());
         course.setStatus(OshCourseStatusEnum.PUBLISHED.getCode());
         String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
         course.setUpdateBy(operatorName);
@@ -663,6 +665,21 @@ public class OshCourseServiceImpl implements IOshCourseService {
     private void bindCourseMaterial(Long courseId, CourseMaterialCreateRequest materialRequest, OshUser operator) {
         if (materialRequest == null) {
             return;
+        }
+        // 新增资料时校验必填字段
+        if (materialRequest.getMaterialId() == null) {
+            if (org.apache.commons.lang3.StringUtils.isBlank(materialRequest.getFileName())) {
+                throw new com.backstage.common.exception.ServiceException("资料文件名称不能为空");
+            }
+            if (org.apache.commons.lang3.StringUtils.isBlank(materialRequest.getFileUrl())) {
+                throw new com.backstage.common.exception.ServiceException("资料文件地址不能为空");
+            }
+            if (org.apache.commons.lang3.StringUtils.isBlank(materialRequest.getFileType())) {
+                throw new com.backstage.common.exception.ServiceException("资料文件类型不能为空");
+            }
+            if (materialRequest.getFileSize() == null || materialRequest.getFileSize().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                throw new com.backstage.common.exception.ServiceException("资料文件大小不能为空");
+            }
         }
         OshCourseMaterial material = buildCourseMaterialForCreate(courseId, materialRequest, operator);
         oshCourseMaterialMapper.insertMaterialEntity(material);
@@ -689,6 +706,10 @@ public class OshCourseServiceImpl implements IOshCourseService {
     }
 
     private void rebuildCourseMaterial(Long courseId, CourseMaterialCreateRequest materialRequest, OshUser operator) {
+        // 如果传了 materialId，说明是已有资料，直接保留，不删不增
+        if (materialRequest != null && materialRequest.getMaterialId() != null) {
+            return;
+        }
         oshCourseMaterialMapper.deleteMaterialsByCourseId(courseId);
         bindCourseMaterial(courseId, materialRequest, operator);
     }
@@ -764,7 +785,8 @@ public class OshCourseServiceImpl implements IOshCourseService {
         }
         CourseResourceEnum resourceEnum = CourseResourceEnum.fromCode(vo.getResourceType());
         if (resourceEnum != null) {
-            vo.setResourceType(resourceEnum.getDesc());
+            // 只设置描述字段，保留原始 code 供前端回显使用
+            vo.setResourceTypeDesc(resourceEnum.getDesc());
         }
     }
 
