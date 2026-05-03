@@ -3,6 +3,8 @@ package com.backstage.common.utils.JasyptEncrypt;
 import org.jasypt.encryption.pbe.StandardPBEStringEncryptor;
 import org.jasypt.iv.NoIvGenerator;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -53,8 +55,14 @@ public class JasyptEncryptUtil {
         StandardPBEStringEncryptor encryptor = new StandardPBEStringEncryptor();
         encryptor.setAlgorithm(ALGORITHM);
         encryptor.setIvGenerator(new NoIvGenerator());
-        String key = Files.exists(LINUX_KEY) ? Files.readString(LINUX_KEY).trim() : Files.readString(WINDOWS_KEY).trim();
+        String key = Files.exists(LINUX_KEY) ? readFileContent(LINUX_KEY) : readFileContent(WINDOWS_KEY);
         encryptor.setPassword(key);
         return encryptor;
+    }
+
+    /** Java 8 兼容的文件读取，替代 Java 11 的 Files.readString */
+    private static String readFileContent(Path path) throws IOException {
+        byte[] bytes = Files.readAllBytes(path);
+        return new String(bytes, StandardCharsets.UTF_8).trim();
     }
 }
