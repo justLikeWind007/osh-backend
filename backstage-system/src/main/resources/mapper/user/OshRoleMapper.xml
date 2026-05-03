@@ -6,7 +6,7 @@
     <select id="selectPermissionIdsByRoleId" resultType="java.lang.Integer">
         select permission_id from osh_role_permission where role_id = #{roleId}
     </select>
-    <select id="getRoleIdByUserId" resultType="java.lang.Integer">
+    <select id="getRoleIdsByUserId" resultType="java.lang.Integer">
         select role_id from osh_user_role where user_id = #{userId}
     </select>
 
