@@ -55,6 +55,8 @@ public class CourseCreateRequest {
 
     private Integer level;
 
+    private Integer servicePeriod;
+
     /**
      * 课程标签
      */
@@ -205,5 +207,13 @@ public class CourseCreateRequest {
 
     public void setLevel(Integer level) {
         this.level = level;
+    }
+
+    public Integer getServicePeriod() {
+        return servicePeriod;
+    }
+
+    public void setServicePeriod(Integer servicePeriod) {
+        this.servicePeriod = servicePeriod;
     }
 }

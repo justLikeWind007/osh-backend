@@ -10,8 +10,12 @@ import com.backstage.system.service.OutboxEventService;
 import com.backstage.system.service.course.CourseIndexDeleteMessage;
 import com.backstage.system.service.course.CourseIndexUpsertMessage;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -19,6 +23,7 @@ import java.util.UUID;
 @Service
 public class OutboxEventServiceImpl implements OutboxEventService {
 
+    private static final Logger log = LoggerFactory.getLogger(OutboxEventServiceImpl.class);
     private static final String AGGREGATE_TYPE_COURSE = "COURSE";
     private static final String EVENT_TYPE_COURSE_INDEX_CREATE = "COURSE_INDEX_CREATE";
     private static final String EVENT_TYPE_COURSE_INDEX_UPDATE = "COURSE_INDEX_UPDATE";
@@ -29,6 +34,9 @@ public class OutboxEventServiceImpl implements OutboxEventService {
 
     @Autowired
     private OshOutboxEventMapper outboxEventMapper;
+
+    @Autowired
+    private OutboxEventPublishTask outboxEventPublishTask;
 
     @Override
     public void saveCourseIndexCreateEvent(Long courseId, CourseIndexUpsertMessage message, OshUser operator) {
@@ -69,6 +77,35 @@ public class OutboxEventServiceImpl implements OutboxEventService {
         event.setUpdateBy(operatorName);
         event.setUpdateTime(now);
         event.setDeleteFlag(NORMAL_DELETE_FLAG);
-        outboxEventMapper.insertOutboxEvent(event);
+        int rows = outboxEventMapper.insertOutboxEvent(event);
+        if (rows > 0) {
+            publishAfterCommit(event.getId());
+        }
+    }
+
+    private void publishAfterCommit(Long eventId) {
+        if (eventId == null) {
+            log.warn("outbox事件id为空，跳过提交后立即投递");
+            return;
+        }
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    publishSafely(eventId);
+                }
+            });
+            return;
+        }
+        publishSafely(eventId);
+    }
+
+    private void publishSafely(Long eventId) {
+        try {
+            outboxEventPublishTask.publishEventById(eventId);
+            log.info("提交后立即投递outbox事件成功, id={}", eventId);
+        } catch (Exception ex) {
+            log.warn("提交后立即投递outbox事件异常，等待定时任务兜底, id={}, error={}", eventId, ex.getMessage(), ex);
+        }
     }
 }

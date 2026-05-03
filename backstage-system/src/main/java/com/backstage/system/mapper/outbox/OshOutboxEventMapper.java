@@ -12,6 +12,8 @@ public interface OshOutboxEventMapper {
 
     int insertOutboxEvent(OshOutboxEvent event);
 
+    OshOutboxEvent selectEventById(@Param("id") Long id);
+
     List<OshOutboxEvent> selectPendingEvents(@Param("limit") int limit);
 
     int markSending(@Param("id") Long id);
