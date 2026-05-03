@@ -82,10 +82,10 @@ public class OshUserServiceImpl implements IOshUserService {
         String token = createToken(oshUser);
         OshUserLoginVO userLoginVo = new OshUserLoginVO();
         userLoginVo.setToken(token);
-        Integer roleId = oshRoleMapper.getRoleIdByUserId(oshUser.getId());
+        List<Integer> roleIds = oshRoleMapper.getRoleIdsByUserId(oshUser.getId());
         Map<String, String> asset = getAsset(oshUser.getId());
-        Map<String, String> role = getRole(roleId);
-        Map<String, List<String>> permissionList = getPermission(roleId);
+        Map<String, String> role = getRole(roleIds);
+        Map<String, List<String>> permissionList = getPermission(roleIds);
         userLoginVo.setAsset(asset);
         userLoginVo.setRole(role);
         userLoginVo.setPermissionList(permissionList);
@@ -430,11 +430,17 @@ public class OshUserServiceImpl implements IOshUserService {
         return created;
     }
 
-    public Map<String,String> getRole(Integer roleId) {
+    public Map<String,String> getRole(List<Integer> roleId) {
         LambdaQueryWrapper<OshRole> roleWrapper = new LambdaQueryWrapper<>();
-        roleWrapper.eq(OshRole::getId, roleId).eq(OshRole::getDeleteFlag, 0)
+        roleWrapper.in(OshRole::getId, roleId).eq(OshRole::getDeleteFlag, 0)
                 .select(OshRole::getRoleName, OshRole::getRoleCode, OshRole::getLevel);
-        OshRole oshRole = oshRoleMapper.selectOne(roleWrapper);
+        List<OshRole> oshRoleList = oshRoleMapper.selectList(roleWrapper);
+        OshRole oshRole = oshRoleList.get(0);
+        for (OshRole curRole : oshRoleList) {
+            if (curRole.getLevel() > oshRole.getLevel()) {
+                oshRole = curRole;
+            }
+        }
         Map<String, String> roleMap = new HashMap<>();
         roleMap.put("roleName", oshRole.getRoleName());
         roleMap.put("roleCode", oshRole.getRoleCode());
@@ -442,8 +448,8 @@ public class OshUserServiceImpl implements IOshUserService {
         return roleMap;
     }
 
-    public Map<String,List<String>> getPermission(Integer roleId) {
-        List<Integer> ids = oshPermissionMapper.selectPermissionIdsByRoleId(roleId);
+    public Map<String,List<String>> getPermission(List<Integer> roleIds) {
+        List<Integer> ids = oshPermissionMapper.selectPermissionIdsByRoleIds(roleIds);
         LambdaQueryWrapper<OshPermission> permissionWrapper = new LambdaQueryWrapper<>();
         permissionWrapper.in(OshPermission::getId, ids).eq(OshPermission::getDeleteFlag, 0);
         List<OshPermission> oshPermissions = oshPermissionMapper.selectList(permissionWrapper);

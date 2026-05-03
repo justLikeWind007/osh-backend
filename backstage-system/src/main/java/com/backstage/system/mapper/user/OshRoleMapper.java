@@ -4,6 +4,8 @@ import com.backstage.system.domain.user.OshRole;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 /**
  * Created with IntelliJ IDEA.
  * Description:
@@ -13,7 +15,7 @@ import org.apache.ibatis.annotations.Param;
  */
 public interface OshRoleMapper extends BaseMapper<OshRole> {
 
-    Integer getRoleIdByUserId(@Param("userId") Long userId);
+    List<Integer> getRoleIdsByUserId(@Param("userId") Long userId);
 
     /**
      * 通过 userId 直接查询角色 code（跳过中间表，一步到位）
