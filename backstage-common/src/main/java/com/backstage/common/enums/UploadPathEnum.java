@@ -12,6 +12,8 @@ public enum UploadPathEnum {
 
         COURSE_MATERIAL("common/material/course/"),
 
+       TOOL_COVER("common/image/toolCover/"),
+
         AUDIO("common/audio/"),
 
         IMAGE("common/image/"),

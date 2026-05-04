@@ -31,7 +31,58 @@
         <result property="updateBy" column="update_by"/>
         <result property="updateTime" column="update_time"/>
         <result property="deleteFlag" column="delete_flag"/>
+        <result property="collectionFlag" column="collection_flag"/>
     </resultMap>
+
+    <select id="pageQuerySearchTool" resultMap="OshToolResult">
+        select distinct
+               t.id, t.tool_name, t.description, t.logo_url, t.access_type, t.route_path, t.iframe_url, t.github_url,
+               t.price, t.original_price, t.point_cost, t.status, t.good_count, t.neutral_count, t.bad_count,
+               t.view_count, t.total_usage, t.collection_count, t.remark, t.resource_type, t.level, t.create_by,
+               t.create_time, t.update_by, t.update_time, t.delete_flag,
+               case when c.id is null then 0 else 1 end as collection_flag
+        from osh_tool t
+        <if test="request.tags != null and request.tags.size() > 0">
+            inner join osh_tool_tag_rel tr on tr.tool_id = t.id
+                and tr.delete_flag = 0
+                and tr.tag_id in
+            <foreach collection="request.tags" item="tagId" open="(" separator="," close=")">
+                #{tagId}
+            </foreach>
+        </if>
+        <if test="userId != null">
+            left join osh_tool_collection c on c.tool_id = t.id
+                and c.user_id = #{userId}
+                and c.delete_flag = 0
+        </if>
+        <if test="userId == null">
+            left join osh_tool_collection c on 1 = 0
+        </if>
+        where t.delete_flag = 0
+          and t.status = 1
+        <if test="request.keyword != null and request.keyword != ''">
+          and (
+              t.tool_name like concat('%', #{request.keyword}, '%')
+              or t.description like concat('%', #{request.keyword}, '%')
+              or exists (
+                  select 1
+                  from osh_tool_tag_rel r2
+                  inner join osh_tool_tag tg2 on tg2.id = r2.tag_id
+                  where r2.tool_id = t.id
+                    and r2.delete_flag = 0
+                    and tg2.delete_flag = 0
+                    and tg2.name like concat('%', #{request.keyword}, '%')
+              )
+          )
+        </if>
+        <if test="request.resourceType != null and request.resourceType != ''">
+          and t.resource_type = #{request.resourceType}
+        </if>
+        <if test="request.collectionFlag != null and request.collectionFlag == 1">
+          and c.id is not null
+        </if>
+        order by t.total_usage desc, t.collection_count desc, t.id desc
+    </select>
 
     <select id="selectToolById" resultMap="OshToolResult">
         select id, tool_name, description, logo_url, access_type, route_path, iframe_url, github_url,

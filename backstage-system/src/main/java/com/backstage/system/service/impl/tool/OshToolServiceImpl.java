@@ -8,16 +8,23 @@ import com.backstage.system.mapper.tool.OshToolCollectionMapper;
 import com.backstage.system.mapper.tool.OshToolMapper;
 import com.backstage.system.mapper.tool.OshToolTagMapper;
 import com.backstage.system.request.tool.ToolSaveRequest;
+import com.backstage.system.request.tool.ToolSearchRequest;
 import com.backstage.system.service.common.OssService;
 import com.backstage.system.service.tool.IOshToolService;
+import com.github.pagehelper.PageHelper;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 public class OshToolServiceImpl implements IOshToolService {
@@ -38,6 +45,23 @@ public class OshToolServiceImpl implements IOshToolService {
 
     @Autowired
     private OssService ossService;
+
+    @Override
+    public List<OshTool> pageQuerySearchTool(Long userId, ToolSearchRequest request) {
+        normalizeSearchRequest(request);
+        PageHelper.startPage(request.getPageNum(), request.getPageSize());
+        List<OshTool> list = oshToolMapper.pageQuerySearchTool(request, userId);
+        for (OshTool tool : list) {
+            tool.setTags(oshToolTagMapper.selectTagNamesByToolId(tool.getId()));
+        }
+        fillToolLogoUrls(list, LOGO_URL_EXPIRE_MINUTES);
+        return list;
+    }
+
+    @Override
+    public List<OshToolTag> listAvailableTags() {
+        return oshToolTagMapper.selectAvailableTags();
+    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -91,8 +115,60 @@ public class OshToolServiceImpl implements IOshToolService {
         }
         tool.setTags(oshToolTagMapper.selectTagNamesByToolId(toolId));
         tool.setCollectionFlag(resolveCollectionFlag(toolId, userId));
-        tool.setLogoUrl(resolveLogoUrl(tool.getLogoUrl()));
+        tool.setLogoUrl(getToolLogoUrl(tool.getLogoUrl(), LOGO_URL_EXPIRE_MINUTES));
         return tool;
+    }
+
+    @Override
+    public String getToolLogoUrl(String logoPath, int minute) {
+        if (StringUtils.isBlank(logoPath)) {
+            return logoPath;
+        }
+        if (isExternalUrl(logoPath)) {
+            return logoPath;
+        }
+        return ossService.getLimitedUrl(logoPath, minute);
+    }
+
+    @Override
+    public Map<String, String> batchGetToolLogoUrlsByPaths(List<String> logoPaths, int minute) {
+        Map<String, String> result = new HashMap<>();
+        if (logoPaths == null || logoPaths.isEmpty()) {
+            return result;
+        }
+        int maxSize = Math.min(logoPaths.size(), 50);
+        for (int i = 0; i < maxSize; i++) {
+            String path = logoPaths.get(i);
+            if (StringUtils.isBlank(path)) {
+                continue;
+            }
+            try {
+                result.put(path, getToolLogoUrl(path, minute));
+            } catch (Exception ex) {
+                result.put(path, "");
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public void fillToolLogoUrls(List<OshTool> tools, int minute) {
+        if (tools == null || tools.isEmpty()) {
+            return;
+        }
+        Set<String> logoPaths = new LinkedHashSet<>();
+        for (OshTool tool : tools) {
+            if (tool != null && StringUtils.isNotBlank(tool.getLogoUrl())) {
+                logoPaths.add(tool.getLogoUrl());
+            }
+        }
+        Map<String, String> logoUrlMap = batchGetToolLogoUrlsByPaths(new ArrayList<>(logoPaths), minute);
+        for (OshTool tool : tools) {
+            if (tool == null || StringUtils.isBlank(tool.getLogoUrl())) {
+                continue;
+            }
+            tool.setLogoUrl(logoUrlMap.getOrDefault(tool.getLogoUrl(), tool.getLogoUrl()));
+        }
     }
 
     private OshTool buildTool(ToolSaveRequest request, String operator) {
@@ -115,6 +191,18 @@ public class OshToolServiceImpl implements IOshToolService {
         tool.setCreateBy(operator);
         tool.setUpdateBy(operator);
         return tool;
+    }
+
+    private void normalizeSearchRequest(ToolSearchRequest request) {
+        if (request.getPageNum() <= 0) {
+            request.setPageNum(1);
+        }
+        if (request.getPageSize() <= 0) {
+            request.setPageSize(10);
+        }
+        if (request.getCollectionFlag() == null && Boolean.TRUE.equals(request.getIsFollowing())) {
+            request.setCollectionFlag(1);
+        }
     }
 
     private void validateAccessTarget(ToolSaveRequest request) {
@@ -143,6 +231,7 @@ public class OshToolServiceImpl implements IOshToolService {
         for (String tagName : normalizedTags) {
             OshToolTag tag = getOrCreateTag(tagName, operator);
             oshToolTagMapper.insertToolTagRel(toolId, tag.getId(), operator);
+            oshToolTagMapper.increaseUseCount(tag.getId());
         }
     }
 
@@ -172,13 +261,7 @@ public class OshToolServiceImpl implements IOshToolService {
         return ids.contains(toolId) ? 1 : 0;
     }
 
-    private String resolveLogoUrl(String logoUrl) {
-        if (StringUtils.isBlank(logoUrl)) {
-            return logoUrl;
-        }
-        if (StringUtils.startsWithIgnoreCase(logoUrl, "http://") || StringUtils.startsWithIgnoreCase(logoUrl, "https://")) {
-            return logoUrl;
-        }
-        return ossService.getLimitedUrl(logoUrl, LOGO_URL_EXPIRE_MINUTES);
+    private boolean isExternalUrl(String url) {
+        return StringUtils.startsWithIgnoreCase(url, "http://") || StringUtils.startsWithIgnoreCase(url, "https://");
     }
 }

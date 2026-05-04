@@ -15,9 +15,13 @@ public interface OshToolTagMapper {
 
     int activateToolTag(@Param("id") Long id, @Param("operator") String operator);
 
+    List<OshToolTag> selectAvailableTags();
+
     List<String> selectTagNamesByToolId(@Param("toolId") Long toolId);
 
     int softDeleteRelationsByToolId(@Param("toolId") Long toolId, @Param("operator") String operator);
 
     int insertToolTagRel(@Param("toolId") Long toolId, @Param("tagId") Long tagId, @Param("operator") String operator);
+
+    int increaseUseCount(@Param("tagId") Long tagId);
 }

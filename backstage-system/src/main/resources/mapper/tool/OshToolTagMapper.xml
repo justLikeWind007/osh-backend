@@ -43,6 +43,14 @@
         where id = #{id}
     </update>
 
+    <select id="selectAvailableTags" resultMap="OshToolTagResult">
+        select id, name, sort, use_count, status, remark, delete_flag, create_by, create_time, update_by, update_time
+        from osh_tool_tag
+        where delete_flag = 0
+          and status = 1
+        order by use_count desc, sort desc, id asc
+    </select>
+
     <select id="selectTagNamesByToolId" resultType="java.lang.String">
         select t.name
         from osh_tool_tag_rel r
@@ -74,4 +82,12 @@
             update_by = values(update_by),
             update_time = now()
     </insert>
+
+    <update id="increaseUseCount">
+        update osh_tool_tag
+        set use_count = use_count + 1,
+            update_time = now()
+        where id = #{tagId}
+          and delete_flag = 0
+    </update>
 </mapper>

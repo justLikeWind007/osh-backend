@@ -9,6 +9,9 @@ import java.util.List;
 @Mapper
 public interface OshToolMapper {
 
+    List<OshTool> pageQuerySearchTool(@Param("request") com.backstage.system.request.tool.ToolSearchRequest request,
+                                      @Param("userId") Long userId);
+
     OshTool selectToolById(@Param("id") Long id);
 
     int insertTool(OshTool tool);
