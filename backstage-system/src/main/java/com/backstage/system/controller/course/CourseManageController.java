@@ -341,6 +341,30 @@ public class CourseManageController extends BaseController {
     }
 
     /**
+     * 批量获取课程内容图片临时URL
+     * 用于富文本 textContent 中图片的临时 URL 刷新，每次加载页面时调用
+     * 接收相对路径列表，返回 相对路径 -> 临时URL 的映射
+     */
+    @Anonymous
+    @ApiOperation("批量获取课程内容图片临时URL")
+    @PostMapping("/content/image-urls")
+    public R<Map<String, String>> batchGetContentImageUrls(
+            @RequestBody Map<String, Object> body) {
+        @SuppressWarnings("unchecked")
+        List<String> paths = (List<String>) body.get("paths");
+        Integer minute = body.get("minute") instanceof Number ? ((Number) body.get("minute")).intValue() : 1440;
+        if (paths == null || paths.isEmpty()) {
+            return R.ok(new HashMap<>());
+        }
+        // 限制最多50个，有效期最长1440分钟（24小时）
+        if (paths.size() > 50) {
+            paths = paths.subList(0, 50);
+        }
+        int validMinute = Math.min(minute, 1440);
+        return R.ok(courseManageService.batchGetContentImageUrls(paths, validMinute));
+    }
+
+    /**
      * 获取课程资料列表
      */
     @Anonymous

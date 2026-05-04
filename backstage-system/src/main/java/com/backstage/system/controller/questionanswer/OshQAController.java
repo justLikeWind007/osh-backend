@@ -2,9 +2,9 @@ package com.backstage.system.controller.questionanswer;
 
 import com.backstage.common.annotation.OshUserEvent;
 import com.backstage.common.annotation.OshUserLevel;
+import com.backstage.common.constant.ResourceType;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.core.page.TableDataInfo;
-import com.backstage.common.enums.ResourceType;
 import com.backstage.system.domain.questionanswer.dto.*;
 import com.backstage.system.domain.questionanswer.vo.QATagVO;
 import com.backstage.system.domain.questionanswer.vo.QueryQuestionDetailVO;

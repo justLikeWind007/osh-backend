@@ -2,9 +2,7 @@ package com.backstage.system.utils;
 
 import com.backstage.common.constant.OshUserConstants;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
-import com.backstage.system.domain.user.CurrentUser;
 import com.backstage.system.domain.user.OshUser;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Component;
 
 /**
@@ -27,10 +25,5 @@ public class UserContextUtil {
 
     public static Integer getCurrentLevel() {
         return Integer.parseInt(ThreadLocalUtil.get(OshUserConstants.LEVEL,String.class));
-    }
-
-    public static Boolean hasPermission(String resourceType, Long resourceId) {
-        Integer resourceLevel = ResourcePermissionUtil.getResourceLevel(resourceType, resourceId);
-        return getCurrentLevel() >= resourceLevel;
     }
 }
