@@ -17,10 +17,10 @@ import java.util.regex.Pattern;
 })
 public class GlobalLogicDeleteInterceptor implements Interceptor {
 
-    // 匹配 osh_ 开头的表名（含可选别名）
-    // 例如：osh_course、osh_course c、osh_course AS c
+    // 匹配 FROM 或 JOIN 后面的 osh_ 开头表名（含可选别名）
+    // 只匹配真正的表名，不匹配 SELECT 字段里的 osh_ 开头字段名
     private static final Pattern TABLE_PATTERN = Pattern.compile(
-            "\\b(osh_\\w+)(?:\\s+(?:AS\\s+)?(\\w+))?",
+            "(?:FROM|JOIN)\\s+(osh_\\w+)(?:\\s+(?:AS\\s+)?(\\w+))?",
             Pattern.CASE_INSENSITIVE
     );
 
