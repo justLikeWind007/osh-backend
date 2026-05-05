@@ -69,8 +69,8 @@ public class OshCourseControllerSectionApiTest {
         request.setSort(1);
 
         MvcResult mvcResult = performAsUser(buildCurrentUser(), post("/pc/course/section/chapter/save")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(request)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andReturn();
@@ -106,8 +106,8 @@ public class OshCourseControllerSectionApiTest {
         request.setFileSize(654321L);
 
         MvcResult mvcResult = performAsUser(buildCurrentUser(), post("/pc/course/section/video/save")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(request)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andReturn();
@@ -130,8 +130,8 @@ public class OshCourseControllerSectionApiTest {
         Long parentId = createParentChapter(courseId);
 
         MvcResult mvcResult = performAsUser(buildCurrentUser(), post("/pc/course/section/text/save")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"courseId\":" + courseId + ",\"parentId\":" + parentId + ",\"title\":\"集成测试图文小节\",\"sort\":3,\"freeFlag\":0,\"cover\":\"https://oss.example.com/text-cover.png\",\"textContent\":\"这里是集成测试图文内容\"}"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"courseId\":" + courseId + ",\"parentId\":" + parentId + ",\"title\":\"集成测试图文小节\",\"sort\":3,\"freeFlag\":0,\"cover\":\"https://oss.example.com/text-cover.png\",\"textContent\":\"这里是集成测试图文内容\"}"))
                 .andExpect(status().isNotFound())
                 .andReturn();
         assertEquals(404, mvcResult.getResponse().getStatus());
@@ -159,8 +159,8 @@ public class OshCourseControllerSectionApiTest {
         request.setContent("这是用户1针对课程935章节2写入的测试提问-" + suffix);
 
         MvcResult mvcResult = performAsUser(buildUserOne(), post("/pc/course/section/submit")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(request)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andReturn();
@@ -188,8 +188,8 @@ public class OshCourseControllerSectionApiTest {
         questionRequest.setContent("这是回答测试的前置提问-" + suffix);
 
         MvcResult questionResult = performAsUser(buildUserOne(), post("/pc/course/section/submit")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(questionRequest)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(questionRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andReturn();
@@ -201,8 +201,8 @@ public class OshCourseControllerSectionApiTest {
         answerRequest.setContent("这是用户1针对问题" + questionId + "写入的测试回答-" + suffix);
 
         MvcResult answerResult = performAsUser(buildUserOne(), post("/pc/course/question/answer")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(answerRequest)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(answerRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andReturn();
@@ -261,8 +261,8 @@ public class OshCourseControllerSectionApiTest {
         request.setSectionId(sectionId);
 
         performAsUser(currentUser, post("/pc/course/section/questions/list")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(request)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data[0].title").value("我的高赞问题-" + suffix))
@@ -280,8 +280,8 @@ public class OshCourseControllerSectionApiTest {
         questionRequest.setContent("回答列表测试提问内容-" + suffix);
 
         MvcResult questionResult = performAsUser(buildUserOne(), post("/pc/course/section/submit")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(questionRequest)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(questionRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andReturn();
@@ -297,16 +297,16 @@ public class OshCourseControllerSectionApiTest {
         secondAnswerRequest.setContent("第二条回答-" + suffix);
 
         performAsUser(buildUserOne(), post("/pc/course/question/answer")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(firstAnswerRequest)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(firstAnswerRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
 
         Thread.sleep(5L);
 
         performAsUser(buildUserOne(), post("/pc/course/question/answer")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(secondAnswerRequest)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(secondAnswerRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
 
@@ -325,8 +325,8 @@ public class OshCourseControllerSectionApiTest {
         request.setPageSize(10);
 
         performAsUser(buildUserOne(), post("/pc/course/search/login")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(request)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.rows[0].id").value(935))
@@ -356,8 +356,8 @@ public class OshCourseControllerSectionApiTest {
         request.setPageSize(2);
 
         performAsUser(buildUserOne(), post("/pc/course/search/login")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(request)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.rows[0].id").value(935))
@@ -380,8 +380,8 @@ public class OshCourseControllerSectionApiTest {
         Long courseId = createPendingAuditCourse();
 
         performAsUser(buildCurrentUser(), post("/pc/course/audit")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"courseId\":" + courseId + "}"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"courseId\":" + courseId + "}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data").value(courseId));
@@ -406,8 +406,8 @@ public class OshCourseControllerSectionApiTest {
         saveRequest.setType("media");
 
         MvcResult saveResult = performAsUser(currentUser, post("/pc/course/save")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(saveRequest)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(saveRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andReturn();
@@ -422,8 +422,8 @@ public class OshCourseControllerSectionApiTest {
         updateRequest.setTitle("锁测试修改课程标题");
 
         performAsUser(currentUser, post("/pc/course/update")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(updateRequest)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(500))
                 .andExpect(jsonPath("$.msg").value(Matchers.containsString("acquire lock failed")));
@@ -440,8 +440,8 @@ public class OshCourseControllerSectionApiTest {
         updateRequest.setTitle("更新后直接发布课程");
 
         performAsUser(currentUser, post("/pc/course/update")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(updateRequest)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
 
