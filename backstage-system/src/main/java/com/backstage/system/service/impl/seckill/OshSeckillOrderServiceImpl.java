@@ -121,6 +121,14 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
         if (activity.getStatus() != 2) {
             throw new ServiceException("活动未在进行中");
         }
+        // 校验当前时间是否在活动时间窗口内（兜底，防止定时任务未跑时状态不准确）
+        Date now = new Date();
+        if (activity.getStartTime() != null && now.before(activity.getStartTime())) {
+            throw new ServiceException("活动尚未开始");
+        }
+        if (activity.getEndTime() != null && now.after(activity.getEndTime())) {
+            throw new ServiceException("活动已结束");
+        }
 
         // 2. 校验明细（商品）是否属于该活动
         OshSeckillActivityItem item = getItemFromCache(itemId);

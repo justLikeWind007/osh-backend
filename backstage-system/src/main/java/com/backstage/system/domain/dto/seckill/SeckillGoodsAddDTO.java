@@ -22,7 +22,7 @@ public class SeckillGoodsAddDTO {
     private Long goodsId;
 
     @NotNull(message = "商品类型不能为空")
-    @ApiModelProperty(value = "商品类型：1-课程 2-书籍 3-实物商品", required = true)
+    @ApiModelProperty(value = "商品类型：1-课程 2-书籍 3-商品", required = true)
     private Integer goodsType;
 
     @NotBlank(message = "商品名称不能为空")

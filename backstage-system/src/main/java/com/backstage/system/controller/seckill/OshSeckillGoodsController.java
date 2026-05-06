@@ -34,9 +34,7 @@ public class OshSeckillGoodsController extends BaseController {
 
     /**
      * 查询秒杀商品池列表
-     * 查询条件：goodsName（模糊）、goodsType、status
      */
-    @Anonymous
     // @PreAuthorize("@ss.hasPermi('seckill:goods:list')")
     @GetMapping("/list")
     public TableDataInfo list(OshSeckillGoods goods) {
@@ -48,7 +46,6 @@ public class OshSeckillGoodsController extends BaseController {
     /**
      * 查询秒杀商品详情
      */
-    @Anonymous
     // @PreAuthorize("@ss.hasPermi('seckill:goods:query')")
     @GetMapping("/detail/{id}")
     public R<SeckillGoodsVO> getInfo(@PathVariable Long id) {
@@ -59,7 +56,6 @@ public class OshSeckillGoodsController extends BaseController {
     /**
      * 添加商品到秒杀商品池
      */
-    @Anonymous
     // @PreAuthorize("@ss.hasPermi('seckill:goods:add')")
     @Log(title = "秒杀商品", businessType = BusinessType.INSERT)
     @PostMapping("/add")
@@ -71,7 +67,6 @@ public class OshSeckillGoodsController extends BaseController {
     /**
      * 批量上架 / 下架秒杀商品
      */
-    @Anonymous
     // @PreAuthorize("@ss.hasPermi('seckill:goods:edit')")
     @Log(title = "秒杀商品", businessType = BusinessType.UPDATE)
     @PostMapping("/status")
@@ -81,9 +76,8 @@ public class OshSeckillGoodsController extends BaseController {
     }
 
     /**
-     * 修改秒杀商品信息（名称、封面、价格、排序等）
+     * 修改秒杀商品信息
      */
-    @Anonymous
     // @PreAuthorize("@ss.hasPermi('seckill:goods:edit')")
     @Log(title = "秒杀商品", businessType = BusinessType.UPDATE)
     @PostMapping("/update")
@@ -94,9 +88,7 @@ public class OshSeckillGoodsController extends BaseController {
 
     /**
      * 批量逻辑删除秒杀商品
-     * 参数：ids=6&ids=7
      */
-    @Anonymous
     // @PreAuthorize("@ss.hasPermi('seckill:goods:remove')")
     @Log(title = "秒杀商品", businessType = BusinessType.DELETE)
     @DeleteMapping("/batch")

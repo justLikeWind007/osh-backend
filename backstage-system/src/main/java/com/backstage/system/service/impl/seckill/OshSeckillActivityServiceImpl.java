@@ -17,6 +17,7 @@ import com.backstage.system.mapper.seckill.OshSeckillActivityMapper;
 import com.backstage.system.mapper.seckill.OshSeckillGoodsMapper;
 import com.backstage.system.service.seckill.IOshSeckillActivityService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,6 +43,11 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
     @Autowired
     private OshSeckillGoodsMapper goodsMapper;
 
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
+    private static final String SECKILL_STOCK_KEY = "seckill:stock:";
+
     // ==================== 查询 ====================
 
     @Override
@@ -61,12 +67,51 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
     }
 
     @Override
-    public List<SeckillActivityUserVO> selectActiveActivityList() {
-        OshSeckillActivity query = new OshSeckillActivity();
-        query.setStatus(2); // 固定只查进行中
-        List<OshSeckillActivity> activities = activityMapper.selectActivityList(query);
-        return activities.stream()
-                .map(a -> toUserVO(a, itemMapper.selectItemsByActivityId(a.getId())))
+    public List<SeckillActivityUserVO> selectActiveActivityList(String title, Integer goodsType) {
+        List<Long> activityIds;
+        // 有搜索条件时，先从明细表找符合条件的活动ID
+        if ((title != null && !title.isEmpty()) || goodsType != null) {
+            activityIds = itemMapper.selectActiveActivityIdsByCondition(title, goodsType);
+            if (activityIds.isEmpty()) {
+                return java.util.Collections.emptyList();
+            }
+        } else {
+            // 无搜索条件，查所有进行中的活动
+            OshSeckillActivity query = new OshSeckillActivity();
+            query.setStatus(2);
+            activityIds = activityMapper.selectActivityList(query)
+                    .stream()
+                    .map(OshSeckillActivity::getId)
+                    .collect(Collectors.toList());
+            if (activityIds.isEmpty()) {
+                return java.util.Collections.emptyList();
+            }
+        }
+        // 根据活动ID列表查活动详情 + 明细
+        return activityIds.stream()
+                .map(id -> {
+                    OshSeckillActivity activity = activityMapper.selectActivityById(id);
+                    if (activity == null || activity.getStatus() != 2) return null;
+                    List<OshSeckillActivityItem> items = itemMapper.selectItemsByActivityId(id);
+                    // 有搜索条件时，明细只展示匹配的商品
+                    if ((title != null && !title.isEmpty()) || goodsType != null) {
+                        items = items.stream()
+                                .filter(item -> {
+                                    boolean match = true;
+                                    if (title != null && !title.isEmpty()) {
+                                        match = item.getTitle() != null && item.getTitle().contains(title);
+                                    }
+                                    if (match && goodsType != null) {
+                                        match = goodsType.equals(item.getGoodsType());
+                                    }
+                                    return match;
+                                })
+                                .collect(Collectors.toList());
+                    }
+                    if (items.isEmpty()) return null;
+                    return toUserVO(activity, items);
+                })
+                .filter(vo -> vo != null)
                 .collect(Collectors.toList());
     }
 
@@ -294,7 +339,7 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
         return vo;
     }
 
-    /** 明细实体 → 明细 VO */
+    /** 明细实体 → 明细 VO，availableStock 优先从 Redis 实时读取 */
     private SeckillActivityItemVO toItemVO(OshSeckillActivityItem item) {
         SeckillActivityItemVO vo = new SeckillActivityItemVO();
         vo.setId(item.getId());
@@ -307,10 +352,24 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
         vo.setOriginPrice(item.getOriginPrice());
         vo.setSeckillPrice(item.getSeckillPrice());
         vo.setTotalStock(item.getTotalStock());
-        vo.setAvailableStock(item.getAvailableStock());
-        vo.setSoldCount(item.getSoldCount());
         vo.setLimitPerUser(item.getLimitPerUser());
         vo.setSort(item.getSort());
+        vo.setSoldCount(item.getSoldCount());
+
+        // 优先从 Redis 读实时库存，Redis 没有则降级用数据库值
+        String stockKey = SECKILL_STOCK_KEY + item.getActivityId() + ":" + item.getId();
+        String redisStock = stringRedisTemplate.opsForValue().get(stockKey);
+        if (redisStock != null) {
+            try {
+                vo.setAvailableStock(Integer.parseInt(redisStock));
+            } catch (NumberFormatException e) {
+                vo.setAvailableStock(item.getAvailableStock());
+            }
+        } else {
+            // Redis 没有（活动未开始或缓存过期），降级用数据库值
+            vo.setAvailableStock(item.getAvailableStock());
+        }
+
         return vo;
     }
 }

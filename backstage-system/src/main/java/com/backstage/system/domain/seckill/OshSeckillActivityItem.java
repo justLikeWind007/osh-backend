@@ -36,7 +36,7 @@ public class OshSeckillActivityItem {
     private Long goodsId;
 
     @Excel(name = "商品类型")
-    @ApiModelProperty("商品类型：1-课程 2-书籍 3-实物商品")
+    @ApiModelProperty("商品类型：1-课程 2-书籍 3-商品")
     private Integer goodsType;
 
     @Excel(name = "商品标题")

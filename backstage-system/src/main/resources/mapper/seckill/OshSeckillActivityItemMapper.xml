@@ -47,6 +47,22 @@
         order by sort asc, id asc
     </select>
 
+    <!-- 查询符合搜索条件的进行中活动ID列表（关联活动表过滤 status=2） -->
+    <select id="selectActiveActivityIdsByCondition" resultType="java.lang.Long">
+        select distinct i.activity_id
+        from osh_seckill_activity_item i
+        inner join osh_seckill_activity a on i.activity_id = a.id
+        where a.status = 2
+          and (a.delete_flag = 0 or a.delete_flag is null)
+          and (i.delete_flag = 0 or i.delete_flag is null)
+        <if test="title != null and title != ''">
+            and i.title like concat('%', #{title}, '%')
+        </if>
+        <if test="goodsType != null">
+            and i.goods_type = #{goodsType}
+        </if>
+    </select>
+
     <!-- 批量插入 -->
     <insert id="insertItems">
         insert into osh_seckill_activity_item

@@ -25,7 +25,7 @@ public class SeckillGoodsVO implements Serializable {
     @ApiModelProperty("关联商品ID")
     private Long goodsId;
 
-    @ApiModelProperty("商品类型：1-课程 2-书籍 3-实物商品")
+    @ApiModelProperty("商品类型：1-课程 2-书籍 3-商品")
     private Integer goodsType;
 
     @ApiModelProperty("商品名称")

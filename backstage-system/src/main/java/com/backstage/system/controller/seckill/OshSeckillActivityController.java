@@ -42,7 +42,6 @@ public class OshSeckillActivityController extends BaseController {
      * 接口7：查询秒杀订单列表（管理端）
      * 查询条件：activityId、userId、status、seckillNo
      */
-    @Anonymous
     // @PreAuthorize("@ss.hasPermi('seckill:order:list')")
     @GetMapping("/order/list")
     public TableDataInfo orderList(OshSeckillOrder order) {
@@ -55,7 +54,6 @@ public class OshSeckillActivityController extends BaseController {
      * 接口5：查询活动列表
      * 查询条件：title（模糊）、status
      */
-    @Anonymous
     // @PreAuthorize("@ss.hasPermi('seckill:activity:list')")
     @GetMapping("/list")
     public TableDataInfo list(OshSeckillActivity activity) {
@@ -67,7 +65,6 @@ public class OshSeckillActivityController extends BaseController {
     /**
      * 接口6：查询活动详情
      */
-    @Anonymous
     // @PreAuthorize("@ss.hasPermi('seckill:activity:query')")
     @GetMapping("/detail/{id}")
     public R<SeckillActivityVO> getInfo(@PathVariable Long id) {
@@ -78,7 +75,6 @@ public class OshSeckillActivityController extends BaseController {
     /**
      * 接口1：创建秒杀活动
      */
-    @Anonymous
     // @PreAuthorize("@ss.hasPermi('seckill:activity:add')")
     @Log(title = "秒杀活动", businessType = BusinessType.INSERT)
     @PostMapping("/add")
@@ -94,7 +90,6 @@ public class OshSeckillActivityController extends BaseController {
     /**
      * 接口3：修改秒杀活动（仅草稿状态可修改）
      */
-    @Anonymous
     // @PreAuthorize("@ss.hasPermi('seckill:activity:edit')")
     @Log(title = "秒杀活动", businessType = BusinessType.UPDATE)
     @PostMapping("/update")
@@ -110,7 +105,6 @@ public class OshSeckillActivityController extends BaseController {
     /**
      * 接口2：发布 / 下架活动
      */
-    @Anonymous
     // @PreAuthorize("@ss.hasPermi('seckill:activity:edit')")
     @Log(title = "秒杀活动", businessType = BusinessType.UPDATE)
     @PostMapping("/status")
@@ -126,7 +120,6 @@ public class OshSeckillActivityController extends BaseController {
     /**
      * 接口4：批量逻辑删除活动
      */
-    @Anonymous
     // @PreAuthorize("@ss.hasPermi('seckill:activity:remove')")
     @Log(title = "秒杀活动", businessType = BusinessType.DELETE)
     @DeleteMapping("/batch")
