@@ -1,0 +1,96 @@
+package com.backstage.system.service.tool;
+
+import com.backstage.system.domain.tool.OshTool;
+import com.backstage.system.domain.tool.OshToolTag;
+import com.backstage.system.domain.user.OshUser;
+import com.backstage.system.mapper.tool.OshToolCollectionMapper;
+import com.backstage.system.mapper.tool.OshToolMapper;
+import com.backstage.system.mapper.tool.OshToolTagMapper;
+import com.backstage.system.request.tool.ToolSaveRequest;
+import com.backstage.system.service.common.OssService;
+import com.backstage.system.service.impl.tool.OshToolServiceImpl;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+
+import java.util.Arrays;
+import java.util.Collections;
+
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@RunWith(MockitoJUnitRunner.class)
+public class OshToolServiceImplTest {
+
+    @InjectMocks
+    private OshToolServiceImpl toolService;
+
+    @Mock
+    private OshToolMapper oshToolMapper;
+
+    @Mock
+    private OshToolTagMapper oshToolTagMapper;
+
+    @Mock
+    private OshToolCollectionMapper oshToolCollectionMapper;
+
+    @Mock
+    private OssService ossService;
+
+    @Test
+    public void shouldCreateMissingTagsWhenCreatingToolWithNewTagNames() {
+        ToolSaveRequest request = new ToolSaveRequest();
+        request.setToolName("图片转PDF");
+        request.setAccessType(1);
+        request.setRoutePath("/tool/image-to-pdf");
+        request.setTags(Arrays.asList("PDF工具", "图片工具"));
+
+        OshUser operator = new OshUser();
+        operator.setUsername("admin");
+
+        when(oshToolMapper.insertTool(any(OshTool.class))).thenAnswer(invocation -> {
+            OshTool tool = invocation.getArgument(0);
+            tool.setId(10001L);
+            return 1;
+        });
+        when(oshToolTagMapper.selectByName("PDF工具")).thenReturn(null);
+        when(oshToolTagMapper.selectByName("图片工具")).thenReturn(null);
+        when(oshToolTagMapper.insertToolTag(any(OshToolTag.class))).thenAnswer(invocation -> {
+            OshToolTag tag = invocation.getArgument(0);
+            tag.setId("PDF工具".equals(tag.getName()) ? 1L : 2L);
+            return 1;
+        });
+
+        Long toolId = toolService.createTool(request, operator);
+
+        assertEquals(Long.valueOf(10001L), toolId);
+        verify(oshToolTagMapper, times(2)).insertToolTag(any(OshToolTag.class));
+        verify(oshToolTagMapper).insertToolTagRel(eq(10001L), eq(1L), eq("admin"));
+        verify(oshToolTagMapper).insertToolTagRel(eq(10001L), eq(2L), eq("admin"));
+    }
+
+    @Test
+    public void shouldReturnLimitedLogoUrlWhenToolDetailUsesRelativeLogoPath() {
+        OshTool tool = new OshTool();
+        tool.setId(10001L);
+        tool.setLogoUrl("common/image/tool/logo.png");
+
+        when(oshToolMapper.selectToolById(10001L)).thenReturn(tool);
+        when(oshToolTagMapper.selectTagNamesByToolId(10001L)).thenReturn(Collections.singletonList("PDF工具"));
+        when(oshToolCollectionMapper.selectActiveToolIdsByUserIdAndToolIds(9L, Collections.singletonList(10001L)))
+                .thenReturn(Collections.singletonList(10001L));
+        when(ossService.getLimitedUrl("common/image/tool/logo.png", 1440)).thenReturn("https://oss.example.com/signed-logo.png");
+
+        OshTool result = toolService.getToolDetail(10001L, 9L);
+
+        assertEquals("https://oss.example.com/signed-logo.png", result.getLogoUrl());
+        assertEquals(Integer.valueOf(1), result.getCollectionFlag());
+        assertEquals(Collections.singletonList("PDF工具"), result.getTags());
+    }
+}
