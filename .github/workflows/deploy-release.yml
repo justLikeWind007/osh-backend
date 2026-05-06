@@ -1,0 +1,149 @@
+name: Deploy Backend Release
+
+on:
+  push:
+    branches:
+      - release/20260328
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-backend-release
+  cancel-in-progress: false
+
+env:
+  JAVA_VERSION: '17'
+  DEPLOY_HOST: ${{ secrets.DEPLOY_HOST || vars.DEPLOY_HOST || '43.242.200.25' }}
+  DEPLOY_USER: ${{ secrets.DEPLOY_USER || vars.DEPLOY_USER || 'root' }}
+  DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || vars.DEPLOY_PORT || '58753' }}
+  BACKEND_DEPLOY_DIR: ${{ vars.BACKEND_DEPLOY_DIR || '/www/ruoyi' }}
+  BACKEND_JAR_NAME: ${{ vars.BACKEND_JAR_NAME || 'backstage-admin.jar' }}
+  DOCKER_COMPOSE_DIR: ${{ vars.DOCKER_COMPOSE_DIR || '/opt/docker-apps' }}
+  BACKEND_SERVICE_NAME: ${{ vars.BACKEND_SERVICE_NAME || 'backstage-admin' }}
+  NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL || vars.NOTIFY_EMAIL || '1402272093@qq.com' }}
+  MAIL_USERNAME: ${{ secrets.MAIL_USERNAME || vars.MAIL_USERNAME || '1402272093@qq.com' }}
+  MAIL_SERVER: ${{ vars.MAIL_SERVER || 'smtp.qq.com' }}
+  MAIL_PORT: ${{ vars.MAIL_PORT || '465' }}
+
+jobs:
+  deploy:
+    name: Build and deploy backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+
+      - name: Build backend jar
+        run: mvn clean install -DskipTests -pl '!backstage-flink'
+
+      - name: Validate jar output
+        run: |
+          test -f backstage-admin/target/backstage-admin.jar
+          unzip -t backstage-admin/target/backstage-admin.jar >/tmp/backend-jar-check.log
+          sha256sum backstage-admin/target/backstage-admin.jar | tee /tmp/backend-jar.sha256
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          for i in 1 2 3; do
+            ssh-keyscan -p "$DEPLOY_PORT" -T 15 "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null && break
+            echo "ssh-keyscan attempt $i failed, retrying..."
+            sleep 3
+          done
+          test -s ~/.ssh/known_hosts || { echo "ERROR: known_hosts is empty"; exit 1; }
+
+      - name: Stop backend before replacing jar
+        run: |
+          ssh -o ConnectTimeout=30 \
+            -p "$DEPLOY_PORT" \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "mkdir -p '$BACKEND_DEPLOY_DIR' && cd '$DOCKER_COMPOSE_DIR' && docker-compose stop '$BACKEND_SERVICE_NAME' || true"
+
+      - name: Upload backend jar safely
+        run: |
+          rsync -az --inplace --progress \
+            -e "ssh -o ConnectTimeout=30 -p $DEPLOY_PORT" \
+            backstage-admin/target/backstage-admin.jar \
+            "$DEPLOY_USER@$DEPLOY_HOST:$BACKEND_DEPLOY_DIR/$BACKEND_JAR_NAME"
+
+      - name: Verify remote jar integrity
+        run: |
+          local_sha="$(sha256sum backstage-admin/target/backstage-admin.jar | cut -d ' ' -f 1)"
+          remote_sha="$(ssh -o ConnectTimeout=30 -p "$DEPLOY_PORT" \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "sha256sum '$BACKEND_DEPLOY_DIR/$BACKEND_JAR_NAME' | cut -d ' ' -f 1")"
+          echo "local_sha=$local_sha"
+          echo "remote_sha=$remote_sha"
+          test "$local_sha" = "$remote_sha"
+
+      - name: Restart backend service
+        run: |
+          ssh -o ConnectTimeout=30 -p "$DEPLOY_PORT" \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "cd '$DOCKER_COMPOSE_DIR' && docker-compose up -d '$BACKEND_SERVICE_NAME' && sleep 20 && docker-compose ps '$BACKEND_SERVICE_NAME'"
+
+      - name: Show backend logs
+        if: always()
+        run: |
+          ssh -o ConnectTimeout=30 -p "$DEPLOY_PORT" \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "docker logs --tail 80 '$BACKEND_SERVICE_NAME' 2>&1 || true" || true
+
+      - name: Notify on success
+        if: success()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ env.MAIL_SERVER }}
+          server_port: ${{ env.MAIL_PORT }}
+          secure: true
+          username: ${{ env.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "✅ 后端部署成功 - ${{ github.repository }}"
+          to: ${{ env.NOTIFY_EMAIL }}
+          from: GitHub Actions <${{ env.MAIL_USERNAME }}>
+          body: |
+            后端部署成功！
+
+            仓库：${{ github.repository }}
+            分支：${{ github.ref_name }}
+            提交：${{ github.sha }}
+            提交信息：${{ github.event.head_commit.message }}
+            触发人：${{ github.actor }}
+            时间：${{ github.event.head_commit.timestamp }}
+
+            访问地址：http://43.242.200.25:8081/
+
+      - name: Notify on failure
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ env.MAIL_SERVER }}
+          server_port: ${{ env.MAIL_PORT }}
+          secure: true
+          username: ${{ env.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "❌ 后端部署失败 - ${{ github.repository }}"
+          to: ${{ env.NOTIFY_EMAIL }}
+          from: GitHub Actions <${{ env.MAIL_USERNAME }}>
+          body: |
+            后端部署失败！请检查 Actions 日志。
+
+            仓库：${{ github.repository }}
+            分支：${{ github.ref_name }}
+            提交：${{ github.sha }}
+            提交信息：${{ github.event.head_commit.message }}
+            触发人：${{ github.actor }}
+
+            查看详情：https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
