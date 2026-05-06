@@ -181,13 +181,26 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
 
     @Override
     public TableDataInfo list(Long userId, Long resourceNo, String resourceType, String type, String keyword, Integer pageNum, Integer pageSize) {
+        // 兼容旧数据：'course' 和 '课程' 都能查到
+        final String normalizedResourceType;
+        if ("course".equalsIgnoreCase(resourceType)) {
+            normalizedResourceType = null; // 先不用 resourceType 过滤，下面用 IN 查询
+        } else {
+            normalizedResourceType = resourceType;
+        }
+
         LambdaQueryWrapper<Question> wrapper = new LambdaQueryWrapper<Question>()
                 // 1. 必须加：只查未删除的数据
                 .eq(Question::getDeleteFlag, 0)
                 .eq(resourceNo != null, Question::getResourceNo, resourceNo)
-                .eq(StringUtils.isNotEmpty(resourceType), Question::getResourceType, resourceType)
+                .eq(StringUtils.isNotEmpty(normalizedResourceType), Question::getResourceType, normalizedResourceType)
                 .like(StringUtils.isNotEmpty(keyword), Question::getContent, keyword)
                 .orderByDesc(Question::getViewCount);
+
+        // 兼容 course 和 课程 两种历史数据
+        if ("course".equalsIgnoreCase(resourceType)) {
+            wrapper.in(Question::getResourceType, java.util.Arrays.asList("course", "课程"));
+        }
 
         // 2. 这里的 type 判空处理
         if (StringUtils.isNotEmpty(type)) {
