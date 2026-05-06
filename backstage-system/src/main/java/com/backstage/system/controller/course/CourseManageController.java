@@ -79,8 +79,8 @@ public class CourseManageController extends BaseController {
             idList = idList.subList(0, 50);
         }
         
-        // 限制minute不超过120分钟
-        int validMinute = Math.min(minute != null ? minute : 30, 120);
+        // 限制minute不超过1440分钟（24小时）
+        int validMinute = Math.min(minute != null ? minute : 30, 1440);
         
         Map<Long, String> result = courseManageService.batchGetCourseCoverUrls(idList, validMinute);
         return R.ok(result, "ok");
@@ -119,8 +119,8 @@ public class CourseManageController extends BaseController {
             pathList = pathList.subList(0, 50);
         }
         
-        // 限制minute不超过120分钟
-        int validMinute = Math.min(minute != null ? minute : 30, 120);
+        // 限制minute不超过1440分钟（24小时）
+        int validMinute = Math.min(minute != null ? minute : 30, 1440);
         
         Map<String, String> result = courseManageService.batchGetCoverUrlsByPaths(pathList, validMinute);
         return R.ok(result, "ok");
