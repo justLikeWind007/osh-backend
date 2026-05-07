@@ -36,9 +36,9 @@ public class AddQuestionDTO {
     )
     private Byte isPaidOnly;
     @ApiModelProperty(
-            value = "标签id集合"
+            value = "标签名称集合"
     )
-    private List<Long> tags;
+    private List<String> tags;
 
     public String getResourceType() {
         return resourceType;
@@ -72,11 +72,11 @@ public class AddQuestionDTO {
         this.isPaidOnly = isPaidOnly;
     }
 
-    public List<Long> getTags() {
+    public List<String> getTags() {
         return tags;
     }
 
-    public void setTags(List<Long> tags) {
+    public void setTags(List<String> tags) {
         this.tags = tags;
     }
 
