@@ -11,7 +11,7 @@ import java.util.List;
 public interface InfoGapService {
     
     // 分页查询逻辑，包含关联用户信息和排序
-    Page<InfoGapVO> getInfoGapList(Integer pageNum, String type, Long currentUserId);
+    List<InfoGapVO> getInfoGapList(Integer pageNum, Integer pageSize, String type, Long currentUserId);
 
     // 包含风控校验的发布逻辑
     void createInfoGap(InfoGapCreateDTO dto, Long userId);

@@ -13,6 +13,7 @@ import com.backstage.system.service.info_gap.InfoGapService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.github.pagehelper.PageHelper;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
@@ -52,9 +53,14 @@ public class InfoGapServiceImpl implements InfoGapService {
     }
 
     @Override
-    public Page<InfoGapVO> getInfoGapList(Integer pageNum, String type, Long currentUserId) {
-        Page<InfoGapVO> page = new Page<>(pageNum, 10);
-        return infoGapMapper.selectInfoGapPage(page, type, currentUserId);
+    public List<InfoGapVO> getInfoGapList(Integer pageNum, Integer pageSize, String type, Long currentUserId) {
+        if (type != null && type.equals("follow")) {
+            PageHelper.startPage(pageNum, pageSize);
+            return infoGapMapper.selectInfoGapPageForFollow(currentUserId);
+        } else {
+            PageHelper.startPage(pageNum, pageSize);
+            return infoGapMapper.selectInfoGapPage(type, currentUserId);
+        }
     }
 
     @Override

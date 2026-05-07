@@ -2,10 +2,14 @@ package com.backstage.system.controller.info_gap;
 
 import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.R;
+import com.backstage.common.response.PageResponse;
 import com.backstage.system.domain.dto.info_gap.InfoGapCreateDTO;
+import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.domain.vo.info_gap.InfoGapVO;
 import com.backstage.system.service.info_gap.InfoGapService;
+import com.backstage.system.utils.UserContextUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.github.pagehelper.PageInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,11 +24,16 @@ public class InfoGapController {
 
     @GetMapping("/list")
     @Anonymous
-    public R<Page<InfoGapVO>> list(
-            @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum, // 改成 pageNum
-            @RequestParam(defaultValue = "hot") String type) { // 顺便把默认排序改成 hot
-        Long currentUserId = 1L; // 建议用工具类获取
-        return R.ok(infoGapService.getInfoGapList(pageNum, type, currentUserId));
+    public R<PageResponse<InfoGapVO>> list(
+            @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "hot") String type) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
+
+        List<InfoGapVO> infoGapList = infoGapService.getInfoGapList(pageNum, 10, type, currentUserId);
+        PageInfo<InfoGapVO> pageInfo = new PageInfo<>(infoGapList);
+
+        return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()));
     }
 
     /**
@@ -53,7 +62,6 @@ public class InfoGapController {
      */
     @PostMapping("/follow/{authorId}")
     public R<Void> follow(@PathVariable Long authorId) {
-        // 同样模拟当前登录用户
         Long loginUserId = 1L;
         infoGapService.toggleFollow(loginUserId, authorId);
         return R.ok();
