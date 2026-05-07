@@ -143,6 +143,7 @@ public class OshUserServiceImpl implements IOshUserService {
         oshUser.setUsername(userMap.get(OshUserConstants.USERNAME));
         oshUser.setPassword(userMap.get(OshUserConstants.PASSWORD));
         oshUser.setEmail(userMap.get(OshUserConstants.EMAIL));
+        oshUser.setDeleteFlag((byte) 0);  // 明确设置，避免拦截器过滤
         ThreadLocalUtil.set(OshUserConstants.USER_ID, userId);
         oshUserMapper.insert(oshUser);
         oshUserMapper.addUniqueId(oshUser.getId(), uniqueId);
