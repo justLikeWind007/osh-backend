@@ -9,6 +9,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/pc/info_gap")
 public class InfoGapController {
@@ -29,7 +31,6 @@ public class InfoGapController {
      * 发布信息差
      */
     @PostMapping("/save")
-    @Anonymous
     public R<Void> save(@RequestBody InfoGapCreateDTO dto) {
         Long loginUserId = 1L;
         infoGapService.createInfoGap(dto, loginUserId);
@@ -40,7 +41,6 @@ public class InfoGapController {
      * 评价 (点赞/踩/中评)
      */
     @PostMapping("/vote")
-    @Anonymous
     public R<Void> vote(@RequestParam Long id, @RequestParam Integer type) {
         Long loginUserId = 1L;
         infoGapService.vote(loginUserId, id, type);
@@ -52,11 +52,20 @@ public class InfoGapController {
      * @param authorId 被关注的作者ID
      */
     @PostMapping("/follow/{authorId}")
-    @Anonymous
     public R<Void> follow(@PathVariable Long authorId) {
         // 同样模拟当前登录用户
         Long loginUserId = 1L;
         infoGapService.toggleFollow(loginUserId, authorId);
         return R.ok();
+    }
+
+    /**
+     * 精品推荐
+     * @return
+     */
+    @GetMapping("/recommend")
+    @Anonymous
+    public R<List> recommend() {
+        return R.ok(infoGapService.recommend());
     }
 }

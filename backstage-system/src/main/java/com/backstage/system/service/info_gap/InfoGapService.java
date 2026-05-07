@@ -6,6 +6,8 @@ import com.backstage.system.domain.vo.info_gap.InfoGapVO;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import java.util.List;
+
 public interface InfoGapService {
     
     // 分页查询逻辑，包含关联用户信息和排序
@@ -18,4 +20,7 @@ public interface InfoGapService {
     void vote(Long userId, Long infoId, Integer type);
 
    void toggleFollow(Long currentUserId, Long targetUserId);
+
+    // 精品推荐列表
+    List<InfoGapVO> recommend();
 }
