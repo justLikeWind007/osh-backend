@@ -17,6 +17,7 @@ public class OshInfoGap {
     private Integer goodCount;
     private Integer middleCount;
     private Integer badCount;
+    private Integer followCount;
     private Integer status; // 0-正常, 1-审核中, 2-已下架
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
@@ -40,6 +41,12 @@ public class OshInfoGap {
     public void setMiddleCount(Integer middleCount) { this.middleCount = middleCount; }
     public Integer getBadCount() { return badCount; }
     public void setBadCount(Integer badCount) { this.badCount = badCount; }
+    public Integer getFollowCount() {
+        return followCount;
+    }
+    public void setFollowCount(Integer followCount) {
+        this.followCount = followCount;
+    }
     public Integer getStatus() { return status; }
     public void setStatus(Integer status) { this.status = status; }
     public LocalDateTime getCreateTime() { return createTime; }
