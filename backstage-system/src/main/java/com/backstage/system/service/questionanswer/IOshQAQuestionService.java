@@ -16,13 +16,13 @@ import java.util.List;
  */
 public interface IOshQAQuestionService {
 
-    R<String> addQuestion(Long userId, Long resourceNo, String resourceType, String content, Byte isPaidOnly, List<Long> tags);
+    R<String> addQuestion(Long userId, Long resourceNo, String resourceType, String content, Byte isPaidOnly, List<String> tags);
 
     R<String> publishQuestion(Long userId, Long questionId);
 
     R<List<QueryQuestionListVO>> myDraft(Long currentUserId);
 
-    R<String> editQuestion(Long userId, Long questionId, Long resourceNo, String resourceType, String content, Byte isPaidOnly, List<Long> tags);
+    R<String> editQuestion(Long userId, Long questionId, Long resourceNo, String resourceType, String content, Byte isPaidOnly, List<String> tags);
 
     R<String> deleteQuestion(Long userId, Long questionId);
 
