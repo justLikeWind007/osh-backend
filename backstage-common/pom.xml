@@ -127,6 +127,12 @@
             <artifactId>jaxb-api</artifactId>
         </dependency>
 
+        <!-- spring aop 切面编程 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
         <!-- redis 缓存操作 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

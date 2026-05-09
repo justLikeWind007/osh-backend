@@ -10,12 +10,13 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 import javax.servlet.http.HttpServletRequest;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/pay")
+@RequestMapping("/pc/pay")
 public class PayController {
 
     @Autowired
@@ -29,6 +30,28 @@ public class PayController {
             @RequestParam String money,
             HttpServletRequest request
     ) {
+        // 前置校验：金额必须大于0且不超过1000元
+        try {
+            BigDecimal amount = new BigDecimal(money);
+            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                PayResponse errResp = new PayResponse();
+                errResp.setCode(-1);
+                errResp.setMsg("支付金额必须大于0");
+                return errResp;
+            }
+            if (amount.compareTo(new BigDecimal("1000")) > 0) {
+                PayResponse errResp = new PayResponse();
+                errResp.setCode(-1);
+                errResp.setMsg("单笔支付金额不能超过1000元");
+                return errResp;
+            }
+        } catch (NumberFormatException e) {
+            PayResponse errResp = new PayResponse();
+            errResp.setCode(-1);
+            errResp.setMsg("金额格式不合法");
+            return errResp;
+        }
+
         // 自动生成订单号
         String outTradeNo = UUID.randomUUID().toString().replace("-", "");
         // 客户的ip

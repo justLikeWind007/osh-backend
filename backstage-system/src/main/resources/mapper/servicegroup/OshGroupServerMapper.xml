@@ -1,0 +1,435 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.servergroup.OshGroupServerMapper">
+
+    <!-- 结果映射：拼团活动列表VO -->
+    <resultMap type="com.backstage.system.domain.vo.GroupActivityListVO" id="GroupActivityListVOResult">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="cpu" column="cpu"/>
+        <result property="memory" column="memory"/>
+        <result property="storage" column="storage"/>
+        <result property="basePrice" column="base_price"/>
+        <result property="totalDuration" column="total_duration"/>
+        <result property="currentNum" column="current_num"/>
+        <result property="groupMinNum" column="group_min_num"/>
+        <result property="groupMaxNum" column="group_max_num"/>
+        <result property="status" column="status"/>
+        <result property="startTime" column="start_time"/>
+        <result property="serverStartTime" column="server_start_time"/>
+        <result property="serverEndTime" column="server_end_time"/>
+        <result property="serverTutorialUrl" column="server_tutorial_url"/>
+    </resultMap>
+
+    <!-- 结果映射：我的拼团列表VO -->
+    <resultMap type="com.backstage.system.domain.vo.MyGroupListVO" id="MyGroupListVOResult">
+        <id property="groupWorkId" column="group_work_id"/>
+        <result property="activityId" column="activity_id"/>
+        <result property="title" column="title"/>
+        <result property="cpu" column="cpu"/>
+        <result property="memory" column="memory"/>
+        <result property="storage" column="storage"/>
+        <result property="basePrice" column="base_price"/>
+        <result property="actualPrice" column="actual_price"/>
+        <result property="totalDuration" column="total_duration"/>
+        <result property="startTime" column="start_time"/>
+        <result property="serverStartTime" column="server_start_time"/>
+        <result property="serverExpireTime" column="server_expire_time"/>
+        <result property="groupStatus" column="group_status"/>
+        <result property="groupStatusText" column="group_status_text"/>
+        <result property="orderNo" column="order_no"/>
+        <result property="orderStatus" column="order_status"/>
+        <result property="joinTime" column="join_time"/>
+    </resultMap>
+
+    <!-- 结果映射：参团用户VO -->
+    <resultMap type="com.backstage.system.domain.vo.ServerGroupUserVo" id="ServerGroupUserVoResult">
+        <id property="userId" column="user_id"/>
+        <result property="username" column="username"/>
+        <result property="nickname" column="nickname"/>
+        <result property="avatar" column="avatar"/>
+        <result property="joinTime" column="join_time"/>
+    </resultMap>
+
+    <!-- 结果映射：组团记录列表VO（管理端） -->
+    <resultMap type="com.backstage.system.domain.vo.GroupWorkListVO" id="GroupWorkListVOResult">
+        <id     property="groupWorkId"      column="group_work_id"/>
+        <result property="activityId"       column="activity_id"/>
+        <result property="activityTitle"    column="activity_title"/>
+        <result property="userId"           column="user_id"/>
+        <result property="username"         column="username"/>
+        <result property="nickname"         column="nickname"/>
+        <result property="actualPrice"      column="actual_price"/>
+        <result property="remainingMonths"  column="remaining_months"/>
+        <result property="groupStatus"      column="group_status"/>
+        <result property="groupStatusText"  column="group_status_text"/>
+        <result property="joinTime"         column="join_time"/>
+        <result property="serverStartTime"  column="server_start_time"/>
+        <result property="serverExpireTime" column="server_expire_time"/>
+        <result property="orderNo"          column="order_no"/>
+        <result property="orderStatus"      column="order_status"/>
+    </resultMap>
+
+    <!-- 公共片段：osh_group_activity 表全字段列 -->
+    <sql id="groupActivityAllColumns">
+        id, title, type, cpu, memory, storage,
+        base_price, total_duration, group_min_num, group_max_num,
+        current_num, status, start_time, server_start_time, server_end_time,
+        server_tutorial_url, admin_contact, sort_order, create_time, update_time,
+        cover
+    </sql>
+
+
+
+    <!-- 查询拼团活动列表 -->
+    <select id="selectGroupActivityList" parameterType="java.lang.Integer" resultMap="GroupActivityListVOResult">
+        SELECT 
+            ga.id,
+            ga.title,
+            ga.cpu,
+            ga.memory,
+            ga.storage,
+            ga.base_price,
+            ga.total_duration,
+            ga.current_num,
+            ga.group_min_num,
+            ga.group_max_num,
+            ga.status,
+            ga.start_time,
+            ga.server_start_time,
+            ga.server_end_time,
+            ga.server_tutorial_url,
+            IFNULL(ga.cover, '') AS cover
+        FROM osh_group_activity ga
+        <where>
+            ga.type = 'server'
+            <if test="status != null">
+                AND ga.status = #{status}
+            </if>
+            <if test="status == null">
+                AND ga.status IN (1, 2)
+            </if>
+        </where>
+        ORDER BY ga.sort_order DESC, ga.create_time DESC
+    </select>
+
+    <!-- 根据ID查询拼团活动 -->
+    <select id="selectGroupActivityById" parameterType="java.lang.Long" resultType="com.backstage.system.domain.servergroup.OshGroupActivity">
+        SELECT <include refid="groupActivityAllColumns"/>
+        FROM osh_group_activity
+        WHERE id = #{id}
+    </select>
+
+    <!-- 查询我的拼团列表（加入的） -->
+    <select id="selectMyGroupList" resultMap="MyGroupListVOResult">
+        SELECT 
+            'joined' AS source_type,
+            gw.id AS group_work_id,
+            ga.id AS activity_id,
+            ga.title,
+            ga.cpu,
+            ga.memory,
+            ga.storage,
+            ga.base_price,
+            gw.actual_price,
+            ga.total_duration,
+            ga.start_time,
+            gw.server_start_time,
+            gw.server_expire_time,
+            gw.group_status,
+            CASE gw.group_status
+            WHEN 0 THEN '进行中'
+            WHEN 1 THEN '已成团'
+            WHEN 2 THEN '已取消/过期'
+            ELSE '未知'
+            END AS group_status_text,
+            go.order_no,
+            go.status AS order_status,
+            gw.join_time,
+            NULL AS admin_contact
+        FROM osh_group_activity ga
+        LEFT JOIN osh_group_work gw ON ga.id = gw.group_activity_id
+        LEFT JOIN osh_group_order go ON gw.order_id = go.id
+        WHERE gw.user_id = #{userId}
+        <if test="groupStatus != null">
+            AND gw.group_status = #{groupStatus}
+        </if>
+        UNION ALL
+        <!-- 查询我的拼团列表(发起的) -->
+        SELECT 
+            'initiated' AS source_type,
+            gui.id AS group_work_id,
+            gui.activity_id AS activity_id,
+            COALESCE(ga.title, '未知活动') AS title,
+            COALESCE(ga.cpu, '待定') AS cpu,
+            COALESCE(ga.memory, '待定') AS memory,
+            COALESCE(ga.storage, '待定') AS storage,
+            ga.base_price,
+            gui.custom_price AS actual_price,
+            gui.duration AS total_duration,
+            gui.initiate_time AS start_time,
+            gui.server_start_time,
+            gui.server_expire_time,
+            gui.group_status,
+            CASE gui.group_status
+            WHEN 0 THEN '招募中'
+            WHEN 1 THEN '已成团'
+            WHEN 2 THEN '已取消/过期'
+            ELSE '未知'
+            END AS group_status_text,
+            go.order_no,
+            go.status AS order_status,
+            gui.initiate_time AS join_time,
+            ga.admin_contact
+        FROM osh_group_user_initiated gui
+        LEFT JOIN osh_group_activity ga ON gui.activity_id = ga.id
+        LEFT JOIN osh_group_order go ON gui.order_id = go.id
+        WHERE gui.user_id = #{userId} AND gui.delete_flag = 0
+        <if test="groupStatus != null">
+            AND gui.group_status = #{groupStatus}
+        </if>
+        ORDER BY join_time DESC
+    </select>
+
+    <!-- 查询拼团详情 -->
+    <select id="selectGroupDetailById" parameterType="java.lang.Long" resultType="com.backstage.system.domain.servergroup.OshGroupActivity">
+        SELECT <include refid="groupActivityAllColumns"/>
+        FROM osh_group_activity
+        WHERE id = #{id}
+    </select>
+
+    <!-- 查询参团用户列表 -->
+    <select id="selectGroupUsers" parameterType="java.lang.Long" resultMap="ServerGroupUserVoResult">
+        SELECT 
+            u.id AS user_id,
+            u.username,
+            u.nickname,
+            u.avatar,
+            gw.join_time,
+            IF(
+                gw.id = (SELECT MIN(gw2.id) FROM osh_group_work gw2 WHERE gw2.group_activity_id = #{groupActivityId}),
+                TRUE,
+                FALSE
+            ) AS is_leader
+        FROM osh_group_work gw
+        LEFT JOIN osh_user u ON gw.user_id = u.id
+        WHERE gw.group_activity_id = #{groupActivityId}
+        ORDER BY gw.join_time ASC
+    </select>
+
+    <!-- 检查用户是否已参团 -->
+    <select id="checkUserJoined" resultType="int">
+        SELECT COUNT(*)
+        FROM osh_group_work
+        WHERE group_activity_id = #{groupActivityId}
+          AND user_id = #{userId}
+    </select>
+
+    <!-- 插入参团记录 -->
+    <insert id="insertGroupWork" parameterType="com.backstage.system.domain.servergroup.OshGroupWork" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO osh_group_work (
+            group_activity_id,
+            user_id,
+            order_id,
+            actual_price,
+            remaining_months,
+            group_status,
+            join_time,
+            server_start_time,
+            server_expire_time,
+            create_time,
+            update_time
+        ) VALUES (
+            #{groupActivityId},
+            #{userId},
+            #{orderId},
+            #{actualPrice},
+            #{remainingMonths},
+            #{groupStatus},
+            #{joinTime},
+            #{serverStartTime},
+            #{serverExpireTime},
+            NOW(),
+            NOW()
+        )
+    </insert>
+
+    <!-- 更新拼团活动人数（乐观锁）- 成团时使用 -->
+    <update id="updateGroupActivityWithLock">
+        UPDATE osh_group_activity
+        SET current_num = #{currentNum},
+            status = #{status},
+            server_start_time = #{serverStartTime},
+            server_end_time = #{serverEndTime},
+            update_time = #{updateTime}
+        WHERE id = #{id}
+          AND current_num = #{currentNum} - 1
+    </update>
+
+    <!-- 更新拼团活动人数+1 -->
+    <update id="incrementGroupActivityCurrentNum">
+        UPDATE osh_group_activity
+        SET current_num = #{currentNum},
+            status = #{status},
+            update_time = #{updateTime}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 更新拼团活动状态为已结束（达到人数上限） -->
+    <update id="updateGroupActivityStatusEnded">
+        UPDATE osh_group_activity
+        SET status = 3,
+            update_time = #{updateTime}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 插入拼团订单 -->
+    <insert id="insertGroupOrder" parameterType="com.backstage.system.domain.servergroup.OshGroupOrder" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO osh_group_order (
+            user_id,
+            group_activity_id,
+            group_work_id,
+            order_no,
+            price,
+            base_price,
+            remaining_months,
+            status,
+            pay_method,
+            created_time,
+            updated_time
+        ) VALUES (
+            #{userId},
+            #{groupActivityId},
+            #{groupWorkId},
+            #{orderNo},
+            #{price},
+            #{basePrice},
+            #{remainingMonths},
+            #{status},
+            #{payMethod},
+            NOW(),
+            NOW()
+        )
+    </insert>
+
+    <!-- 根据订单号查询订单 -->
+    <select id="selectGroupOrderByOrderNo" parameterType="java.lang.String" resultType="com.backstage.system.domain.servergroup.OshGroupOrder">
+        SELECT 
+            id, user_id, group_activity_id, group_work_id, order_no,
+            price, base_price, remaining_months, status, pay_method,
+            pay_time, created_time, updated_time
+        FROM osh_group_order
+        WHERE order_no = #{orderNo}
+    </select>
+
+    <!-- 计算动态价格（SQL实现） -->
+    <select id="calculateDynamicPrice" resultType="java.math.BigDecimal">
+        SELECT ROUND(#{basePrice} * (#{remainingMonths} / #{totalDuration}), 2)
+    </select>
+
+    <!-- 查询全量组团记录列表（管理端，按状态筛选） -->
+    <select id="selectGroupWorkList" resultMap="GroupWorkListVOResult">
+        <!-- 用户加入系统活动的记录 -->
+        SELECT
+            'joined' AS source_type,
+            gw.id               AS group_work_id,
+            ga.id               AS activity_id,
+            ga.title            AS activity_title,
+            gw.user_id,
+            u.username,
+            u.nickname,
+            gw.actual_price,
+            gw.remaining_months,
+            gw.group_status,
+            CASE gw.group_status
+            WHEN 0 THEN '进行中'
+            WHEN 1 THEN '已成团'
+            WHEN 2 THEN '已取消/过期'
+            ELSE '未知'
+            END AS group_status_text,
+            gw.join_time,
+            gw.server_start_time,
+            gw.server_expire_time,
+            go.order_no,
+            go.status           AS order_status
+        FROM osh_group_work gw
+        LEFT JOIN osh_group_activity ga ON gw.group_activity_id = ga.id
+        LEFT JOIN osh_user u            ON gw.user_id = u.id
+        LEFT JOIN osh_group_order go    ON gw.order_id = go.id
+        <where>
+            <if test="groupStatus != null">
+                gw.group_status = #{groupStatus}
+            </if>
+        </where>
+        UNION ALL
+        <!-- 用户发起的拼团记录 -->
+        SELECT
+            'initiated' AS source_type,
+            gui.id              AS group_work_id,
+            NULL                AS activity_id,
+            '用户发起拼团'      AS activity_title,
+            gui.user_id,
+            u.username,
+            u.nickname,
+            gui.custom_price    AS actual_price,
+            NULL                AS remaining_months,
+            gui.group_status,
+            CASE gui.group_status
+            WHEN 0 THEN '招募中'
+            WHEN 1 THEN '已成团'
+            WHEN 2 THEN '已取消/过期'
+            ELSE '未知'
+            END AS group_status_text,
+            gui.initiate_time   AS join_time,
+            gui.server_start_time,
+            gui.server_expire_time,
+            go.order_no,
+            go.status           AS order_status
+        FROM osh_group_user_initiated gui
+        LEFT JOIN osh_user u            ON gui.user_id = u.id
+        LEFT JOIN osh_group_order go    ON gui.order_id = go.id
+        <where>
+            gui.delete_flag = 0
+            <if test="groupStatus != null">
+                AND gui.group_status = #{groupStatus}
+            </if>
+        </where>
+        ORDER BY join_time DESC
+    </select>
+
+    <!-- 模糊查询用户名列表（用于手动添加参团用户） -->
+    <select id="selectUsernamesByKeyword" resultType="java.util.HashMap">
+        SELECT 
+            id AS userId,
+            username,
+            nickname,
+            avatar,
+            status
+        FROM osh_user
+        <where>
+            delete_flag = 0
+            AND status = 0
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    username LIKE CONCAT('%', #{keyword}, '%')
+                    OR nickname LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+        </where>
+        ORDER BY 
+            CASE 
+                WHEN username = #{keyword} THEN 0
+                WHEN username LIKE CONCAT(#{keyword}, '%') THEN 1
+                WHEN nickname = #{keyword} THEN 2
+                WHEN nickname LIKE CONCAT(#{keyword}, '%') THEN 3
+                ELSE 4
+            END,
+            id ASC
+        <if test="limit != null and limit > 0">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+</mapper>
