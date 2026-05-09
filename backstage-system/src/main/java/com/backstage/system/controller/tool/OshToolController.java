@@ -76,7 +76,7 @@ public class OshToolController extends BaseController {
 
     @ApiOperation("上传工具封面")
     @PostMapping("/cover/upload")
-    @PreAuthorize("hasAuthority('tool:create')")
+    @PreAuthorize("hasAuthority('tool:create') or hasAuthority('tool:update')")
     public R<Map<String, Object>> uploadToolCover(
             @ApiParam("封面文件") @RequestParam("file") MultipartFile file,
             @ApiParam("封面名称") @RequestParam(value = "coverName", required = false) String coverName) {

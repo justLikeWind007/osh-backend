@@ -2,11 +2,14 @@ package com.backstage.system.service.impl.tool;
 
 import com.backstage.common.exception.ServiceException;
 import com.backstage.system.domain.tool.OshTool;
+import com.backstage.system.domain.tool.OshToolPackage;
 import com.backstage.system.domain.tool.OshToolTag;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.mapper.tool.OshToolCollectionMapper;
 import com.backstage.system.mapper.tool.OshToolMapper;
+import com.backstage.system.mapper.tool.OshToolPackageMapper;
 import com.backstage.system.mapper.tool.OshToolTagMapper;
+import com.backstage.system.request.tool.ToolPackageSaveRequest;
 import com.backstage.system.request.tool.ToolSaveRequest;
 import com.backstage.system.request.tool.ToolSearchRequest;
 import com.backstage.system.service.common.OssService;
@@ -41,6 +44,9 @@ public class OshToolServiceImpl implements IOshToolService {
     private OshToolTagMapper oshToolTagMapper;
 
     @Autowired
+    private OshToolPackageMapper oshToolPackageMapper;
+
+    @Autowired
     private OshToolCollectionMapper oshToolCollectionMapper;
 
     @Autowired
@@ -54,6 +60,7 @@ public class OshToolServiceImpl implements IOshToolService {
         for (OshTool tool : list) {
             tool.setTags(oshToolTagMapper.selectTagNamesByToolId(tool.getId()));
         }
+        fillToolPackages(list);
         fillToolLogoUrls(list, LOGO_URL_EXPIRE_MINUTES);
         return list;
     }
@@ -74,6 +81,9 @@ public class OshToolServiceImpl implements IOshToolService {
             throw new ServiceException("新增工具失败");
         }
         syncToolTags(tool.getId(), request.getTags(), operator.getUsername());
+        if (request.getPackages() != null) {
+            syncToolPackages(tool.getId(), request.getPackages(), operator.getUsername());
+        }
         return tool.getId();
     }
 
@@ -91,6 +101,9 @@ public class OshToolServiceImpl implements IOshToolService {
         }
         if (request.getTags() != null) {
             syncToolTags(tool.getId(), request.getTags(), operator.getUsername());
+        }
+        if (request.getPackages() != null) {
+            syncToolPackages(tool.getId(), request.getPackages(), operator.getUsername());
         }
         return tool.getId();
     }
@@ -115,6 +128,8 @@ public class OshToolServiceImpl implements IOshToolService {
         }
         tool.setTags(oshToolTagMapper.selectTagNamesByToolId(toolId));
         tool.setCollectionFlag(resolveCollectionFlag(toolId, userId));
+        tool.setPackages(oshToolPackageMapper.selectPackagesByToolId(toolId));
+        fillUserToolQuota(tool, userId);
         tool.setLogoUrl(getToolLogoUrl(tool.getLogoUrl(), LOGO_URL_EXPIRE_MINUTES));
         return tool;
     }
@@ -251,6 +266,91 @@ public class OshToolServiceImpl implements IOshToolService {
             throw new ServiceException("新增工具标签失败");
         }
         return newTag;
+    }
+
+    private void syncToolPackages(Long toolId, List<ToolPackageSaveRequest> packages, String operator) {
+        if (packages == null) {
+            return;
+        }
+        oshToolPackageMapper.softDeletePackagesByToolId(toolId, operator);
+        if (packages.isEmpty()) {
+            return;
+        }
+        for (ToolPackageSaveRequest request : packages) {
+            if (request == null) {
+                continue;
+            }
+            validateToolPackage(request);
+            OshToolPackage toolPackage = buildToolPackage(toolId, request, operator);
+            if (request.getId() == null) {
+                if (oshToolPackageMapper.insertToolPackage(toolPackage) <= 0) {
+                    throw new ServiceException("新增工具套餐失败");
+                }
+            } else if (oshToolPackageMapper.updateToolPackage(toolPackage) <= 0) {
+                throw new ServiceException("修改工具套餐失败");
+            }
+        }
+    }
+
+    private OshToolPackage buildToolPackage(Long toolId, ToolPackageSaveRequest request, String operator) {
+        OshToolPackage toolPackage = new OshToolPackage();
+        toolPackage.setId(request.getId());
+        toolPackage.setToolId(toolId);
+        toolPackage.setPackageName(request.getPackageName());
+        toolPackage.setUseCount(request.getUseCount());
+        toolPackage.setPrice(request.getPrice() == null ? BigDecimal.ZERO : request.getPrice());
+        toolPackage.setPointCost(request.getPointCost() == null ? 0 : request.getPointCost());
+        toolPackage.setPayType(request.getPayType() == null ? 1 : request.getPayType());
+        toolPackage.setStatus(request.getStatus() == null ? 1 : request.getStatus());
+        toolPackage.setSortOrder(request.getSortOrder() == null ? 0 : request.getSortOrder());
+        toolPackage.setCreateBy(operator);
+        toolPackage.setUpdateBy(operator);
+        return toolPackage;
+    }
+
+    private void validateToolPackage(ToolPackageSaveRequest request) {
+        if (StringUtils.isBlank(request.getPackageName())) {
+            throw new IllegalArgumentException("套餐名称不能为空");
+        }
+        if (request.getUseCount() == null || request.getUseCount() <= 0) {
+            throw new IllegalArgumentException("套餐使用次数必须大于0");
+        }
+        if (request.getPrice() != null && request.getPrice().compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("套餐价格不能小于0");
+        }
+        if (request.getPointCost() != null && request.getPointCost() < 0) {
+            throw new IllegalArgumentException("套餐积分不能小于0");
+        }
+    }
+
+    private void fillToolPackages(List<OshTool> tools) {
+        if (tools == null || tools.isEmpty()) {
+            return;
+        }
+        List<Long> toolIds = new ArrayList<>();
+        for (OshTool tool : tools) {
+            toolIds.add(tool.getId());
+        }
+        List<OshToolPackage> packages = oshToolPackageMapper.selectPackagesByToolIds(toolIds);
+        Map<Long, List<OshToolPackage>> packageMap = new HashMap<>();
+        for (OshToolPackage toolPackage : packages) {
+            packageMap.computeIfAbsent(toolPackage.getToolId(), key -> new ArrayList<>()).add(toolPackage);
+        }
+        for (OshTool tool : tools) {
+            tool.setPackages(packageMap.getOrDefault(tool.getId(), Collections.emptyList()));
+        }
+    }
+
+    private void fillUserToolQuota(OshTool tool, Long userId) {
+        if (userId == null) {
+            tool.setRemainingCount(0);
+            tool.setPurchasedFlag(0);
+            return;
+        }
+        Integer remainingCount = oshToolMapper.selectUserRemainingCount(tool.getId(), userId);
+        int value = remainingCount == null ? 0 : remainingCount;
+        tool.setRemainingCount(value);
+        tool.setPurchasedFlag(value > 0 ? 1 : 0);
     }
 
     private Integer resolveCollectionFlag(Long toolId, Long userId) {

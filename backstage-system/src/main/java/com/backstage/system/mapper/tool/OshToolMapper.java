@@ -14,6 +14,8 @@ public interface OshToolMapper {
 
     OshTool selectToolById(@Param("id") Long id);
 
+    Integer selectUserRemainingCount(@Param("toolId") Long toolId, @Param("userId") Long userId);
+
     int insertTool(OshTool tool);
 
     int updateTool(OshTool tool);
