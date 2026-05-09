@@ -50,6 +50,8 @@ public class CourseUpdateRequest {
 
     private Integer level;
 
+    private Integer servicePeriod;
+
     /**
      * 课程标签
      */
@@ -203,5 +205,13 @@ public class CourseUpdateRequest {
 
     public void settPrice(BigDecimal tPrice) {
         this.tPrice = tPrice;
+    }
+
+    public Integer getServicePeriod() {
+        return servicePeriod;
+    }
+
+    public void setServicePeriod(Integer servicePeriod) {
+        this.servicePeriod = servicePeriod;
     }
 }

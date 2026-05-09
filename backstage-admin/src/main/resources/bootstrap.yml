@@ -1,33 +1,32 @@
-# spring:
-#   application:
-#     name: osh-backend
-#   profiles:
-#     active: dev
-#   cloud:
-#     nacos:
-#       username: nacos
-#       password: g5t52By7
-#       discovery:
-#         namespace: d4208eb8-261f-44a1-adf5-c12406fbd1a2
-#         server-addr: http://43.242.200.25:8848
-#       config:
-#         namespace: d4208eb8-261f-44a1-adf5-c12406fbd1a2
-#         server-addr: http://43.242.200.25:8848
-#         file-extension: yaml
-#         shared-configs:
-#           - data-id: osh-backend-mysql-dev.yaml
-#             group: DEFAULT_GROUP
-#             refresh: true
-#           - data-id: osh-backend-redis-dev.yaml
-#             refresh: true
-#           - data-id: osh-backend-kafka-dev.yaml
-#             refresh: true
-#           - data-id: osh-backend-mail-dev.yaml
-#             refresh: true
-#           - data-id: osh-backend-elasticsearch-dev.yaml
-#             refresh: true
-
-jasypt:
-  encryptor:
-    algorithm: PBEWithMD5AndDES
-    iv-generator-classname: org.jasypt.iv.NoIvGenerator
+spring:
+  application:
+    name: osh-backend
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      username: nacos
+      password: g5t52By7
+      discovery:
+        namespace: d4208eb8-261f-44a1-adf5-c12406fbd1a2
+        # macOS 需要去掉 http:// ---> 43.242.200.25:8848
+        server-addr: http://43.242.200.25:8848
+      config:
+        namespace: d4208eb8-261f-44a1-adf5-c12406fbd1a2
+        # macOS 需要去掉 http:// ---> 43.242.200.25:8848
+        server-addr: http://43.242.200.25:8848
+        file-extension: yaml
+        shared-configs:
+          - data-id: osh-backend-mysql-dev.yaml
+            group: DEFAULT_GROUP
+            refresh: true
+          - data-id: osh-backend-redis-dev.yaml
+            refresh: true
+          - data-id: osh-backend-kafka-dev.yaml
+            refresh: true
+          - data-id: osh-backend-mail-dev.yaml
+            refresh: true
+          - data-id: osh-backend-elasticsearch-dev.yaml
+            refresh: true
+          - data-id: osh-backend-jasypt-dev.yaml
+            refresh: true

@@ -168,9 +168,17 @@ public class OssUtil {
         long expireTime = System.currentTimeMillis() + (long) expireMinutes * 60 * 1000;
         Date expiration = new Date(expireTime);
 
+        // 对 fileKey 做 URL 解码，避免已编码的中文字符被 S3 SDK 二次编码导致签名失败
+        String decodedKey = fileKey;
+        try {
+            decodedKey = java.net.URLDecoder.decode(fileKey, "UTF-8");
+        } catch (Exception ignored) {
+            // 解码失败时使用原始 key
+        }
+
         GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(
                 ossProperties.getBucketName(),
-                fileKey
+                decodedKey
         ).withExpiration(expiration);
 
         return s3.generatePresignedUrl(request).toString();

@@ -1,5 +1,7 @@
 package com.backstage.system.domain.vo.info_gap;
 
+import java.time.LocalDateTime;
+
 /**
  * 列表展示对象 - 包含发布者信息和当前用户是否关注
  */
@@ -13,20 +15,23 @@ public class InfoGapVO {
     private Integer middleCount;
     private Integer badCount;
     private java.time.LocalDateTime createTime;
-    
+    private java.time.LocalDateTime updateTime;
     // 发布者信息 (从 OshUser 表关联)
     private String nickname;
     private String avatar;
-    
     // 扩展功能：当前登录用户是否已关注该作者
     private Boolean isFollowed;
-
     private Integer isVoted;
 
     public Integer getIsVoted() { return isVoted; }
     public void setIsVoted(Integer isVoted) { this.isVoted = isVoted; }
+    public LocalDateTime getUpdateTime() {
+        return updateTime;
+    }
+    public void setUpdateTime(LocalDateTime updateTime) {
+        this.updateTime = updateTime;
+    }
 
-    // Getter and Setter
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Long getUserId() { return userId; }
