@@ -14,7 +14,6 @@ public class QuestionVo implements Serializable {
     private Object user_value; // 用户填写的答案
     private Object correct_answer;
 
-
     // Getters and Setters (此处简写，实际请生成完整版)
 
     public Long getId() { return id; }

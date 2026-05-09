@@ -12,6 +12,7 @@ import com.backstage.system.domain.vo.exam.QuestionVo;
 import com.backstage.system.domain.vo.exam.UserExamRecordVo;
 import com.backstage.system.mapper.exam.OshUserExamRecordMapper;
 import com.backstage.system.service.exam.IOshUserExamRecordService;
+import com.backstage.system.utils.UserContextUtil;
 import com.github.pagehelper.PageHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -27,10 +28,10 @@ public class OshUserExamRecordServiceImpl implements IOshUserExamRecordService {
 
     @Override
     public List<UserExamRecordVo> selectUserTestList(Integer page) {
-        // 实际开发中 userId 应从 SecurityUtils 获取，此处写死为 1 进行演示
-        Long userId = 1L; 
-        
-        // 开启分页（配合 PageHelper）
+        Long userId = UserContextUtil.getCurrentUserId();
+        if (userId == null) {
+            return new ArrayList<>();
+        }
         PageHelper.startPage(page, 10);
         return userTestMapper.selectUserTestList(userId);
     }
