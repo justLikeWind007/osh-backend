@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.exam.OshExamQuestionMapper">
+
+    <resultMap id="OshExamQuestionMap" type="com.backstage.system.domain.exam.OshExamQuestion">
+        <id     property="id"              column="id"/>
+        <result property="examId"         column="exam_id"/>
+        <result property="title"         column="title"/>
+        <result property="score"         column="score"/>
+        <result property="type"          column="type"/>
+        <result property="remark"       column="remark"/>
+        <result property="options"      column="options"/>
+        <result property="correctAnswer" column="correct_answer"/>
+        <result property="deleteFlag"    column="delete_flag"/>
+        <result property="createBy"     column="create_by"/>
+        <result property="createTime"   column="create_time"/>
+        <result property="updateBy"     column="update_by"/>
+        <result property="updateTime"   column="update_time"/>
+    </resultMap>
+
+    <insert id="insertQuestion" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO osh_question (
+            exam_id, title, score, type, remark, options, correct_answer,
+            delete_flag, create_by, create_time, update_by, update_time
+        ) VALUES (
+            #{examId}, #{title}, #{score}, #{type}, #{remark}, #{options}, #{correctAnswer},
+            0, #{createBy}, NOW(), #{updateBy}, NOW()
+        )
+    </insert>
+
+    <update id="updateQuestion">
+        UPDATE osh_question
+        SET title = #{title},
+            score = #{score},
+            type = #{type},
+            remark = #{remark},
+            options = #{options},
+            correct_answer = #{correctAnswer},
+            update_by = #{updateBy},
+            update_time = NOW()
+        WHERE id = #{id}
+          AND exam_id = #{examId}
+          AND delete_flag = 0
+    </update>
+
+    <update id="softDeleteQuestion">
+        UPDATE osh_question
+        SET delete_flag = 1,
+            update_by = #{operator},
+            update_time = NOW()
+        WHERE id = #{id}
+          AND exam_id = #{examId}
+          AND delete_flag = 0
+    </update>
+
+    <select id="selectByIdAndExamId" resultMap="OshExamQuestionMap">
+        SELECT id, exam_id, title, score, type, remark, options, correct_answer,
+               delete_flag, create_by, create_time, update_by, update_time
+        FROM osh_question
+        WHERE id = #{id}
+          AND exam_id = #{examId}
+          AND delete_flag = 0
+    </select>
+</mapper>
