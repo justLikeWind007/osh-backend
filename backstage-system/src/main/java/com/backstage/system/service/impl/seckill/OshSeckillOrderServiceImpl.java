@@ -107,6 +107,27 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
     }
 
     /**
+     * 根据秒杀单号查询订单
+     */
+    @Override
+    public OshSeckillOrder getOrderBySeckillNo(String seckillNo, Long userId) {
+        return orderMapper.selectOrderBySeckillNo(seckillNo);
+    }
+
+    /**
+     * 通过秒杀单号查询订单状态（支付完成后前端轮询用）
+     * 校验订单归属，防止越权查询
+     */
+    @Override
+    public SeckillResultVO getOrderStatusBySeckillNo(String seckillNo, Long userId) {
+        OshSeckillOrder order = orderMapper.selectOrderBySeckillNo(seckillNo);
+        if (order == null || !order.getUserId().equals(userId)) {
+            return null;
+        }
+        return toResultVO(order);
+    }
+
+    /**
      * 接口10：执行秒杀
      * 用户需指定 activityId + itemId，表示抢这场活动里的哪个商品
      */
@@ -118,15 +139,16 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
         if (activity == null) {
             throw new ServiceException("活动不存在");
         }
-        if (activity.getStatus() != 2) {
-            throw new ServiceException("活动未在进行中");
+        // 已下架/已删除直接拦截
+        if (activity.getStatus() == 4) {
+            throw new ServiceException("活动已下架");
         }
-        // 校验当前时间是否在活动时间窗口内（兜底，防止定时任务未跑时状态不准确）
+        // 以时间窗口作为"是否进行中"的唯一标准，不依赖定时任务更新的 status 字段
         Date now = new Date();
-        if (activity.getStartTime() != null && now.before(activity.getStartTime())) {
+        if (activity.getStartTime() == null || now.before(activity.getStartTime())) {
             throw new ServiceException("活动尚未开始");
         }
-        if (activity.getEndTime() != null && now.after(activity.getEndTime())) {
+        if (activity.getEndTime() == null || now.after(activity.getEndTime())) {
             throw new ServiceException("活动已结束");
         }
 

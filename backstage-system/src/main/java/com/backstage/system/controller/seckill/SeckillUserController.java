@@ -7,9 +7,13 @@ import com.backstage.common.core.domain.R;
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.enums.LimitType;
 import com.backstage.common.exception.ServiceException;
+import com.backstage.common.utils.ip.IpUtils;
+import com.backstage.system.domain.seckill.OshSeckillOrder;
 import com.backstage.system.domain.user.OshUser;
+import com.backstage.system.domain.vo.order.PayResponse;
 import com.backstage.system.domain.vo.seckill.SeckillActivityUserVO;
 import com.backstage.system.domain.vo.seckill.SeckillResultVO;
+import com.backstage.system.service.order.PayService;
 import com.backstage.system.service.seckill.IOshSeckillActivityService;
 import com.backstage.system.service.seckill.IOshSeckillOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +43,9 @@ public class SeckillUserController extends BaseController {
 
     @Autowired
     private IOshSeckillOrderService orderService;
+
+    @Autowired
+    private PayService payService;
 
     /**
      * 接口8：查询进行中的秒杀活动列表（用户端）
@@ -106,5 +113,45 @@ public class SeckillUserController extends BaseController {
         } catch (ServiceException e) {
             return R.fail(e.getMessage());
         }
+    }
+
+    /**
+     * 接口14：通过秒杀单号查询订单状态（支付完成后前端轮询用）
+     */
+    @GetMapping("/order/status/{seckillNo}")
+    public R<SeckillResultVO> getOrderStatus(@PathVariable String seckillNo) {
+        Long userId = getCurrentUser().getId();
+        SeckillResultVO result = orderService.getOrderStatusBySeckillNo(seckillNo, userId);
+        return result != null ? R.ok(result) : R.fail("订单不存在");
+    }
+    /*
+     * 前端拿到 seckillNo 后调此接口，返回支付链接（payurl）或二维码（qrcode）
+     */
+    @PostMapping("/order/pay/{seckillNo}")
+    public R<PayResponse> pay(@PathVariable String seckillNo) {
+        Long userId = getCurrentUser().getId();
+
+        // 查询秒杀订单
+        OshSeckillOrder order = orderService.getOrderBySeckillNo(seckillNo, userId);
+        if (order == null) {
+            return R.fail("订单不存在");
+        }
+        if (!order.getUserId().equals(userId)) {
+            return R.fail("无权操作此订单");
+        }
+        if (order.getStatus() != 0) {
+            return R.fail("订单状态不正确，无法发起支付");
+        }
+
+        // 发起支付，以 seckillNo 作为外部订单号
+        String clientIp = IpUtils.getIpAddr();
+        String money = order.getSeckillPrice().toString();
+        String name = order.getGoodsTitle();
+        PayResponse resp = payService.createPay(seckillNo, name, money, clientIp);
+
+        if (resp.getCode() != 1) {
+            return R.fail("发起支付失败：" + resp.getMsg());
+        }
+        return R.ok(resp);
     }
 }

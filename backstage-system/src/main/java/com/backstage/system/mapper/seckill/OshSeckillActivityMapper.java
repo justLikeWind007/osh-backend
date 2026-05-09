@@ -30,4 +30,26 @@ public interface OshSeckillActivityMapper {
 
     /** 批量更新活动状态 */
     int updateActivityStatusByIds(@Param("ids") List<Long> ids, @Param("status") Integer status);
+
+    /**
+     * 查询即将开始的活动（status=1 且 start_time <= now）
+     */
+    List<OshSeckillActivity> selectActivitiesToStart();
+
+    /**
+     * 查询即将结束的活动（status=2 且 end_time <= now）
+     */
+    List<OshSeckillActivity> selectActivitiesToEnd();
+
+    /**
+     * 将"未开始"且开始时间已到的活动改为"进行中"
+     * status: 1→2，start_time <= now
+     */
+    int updateToOngoing();
+
+    /**
+     * 将"进行中"且结束时间已过的活动改为"已结束"
+     * status: 2→3，end_time <= now
+     */
+    int updateToFinished();
 }

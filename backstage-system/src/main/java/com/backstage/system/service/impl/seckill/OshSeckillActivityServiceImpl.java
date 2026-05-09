@@ -16,13 +16,18 @@ import com.backstage.system.mapper.seckill.OshSeckillActivityItemMapper;
 import com.backstage.system.mapper.seckill.OshSeckillActivityMapper;
 import com.backstage.system.mapper.seckill.OshSeckillGoodsMapper;
 import com.backstage.system.service.seckill.IOshSeckillActivityService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -34,6 +39,13 @@ import java.util.stream.Collectors;
 @Service
 public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService {
 
+    private static final Logger logger = LoggerFactory.getLogger(OshSeckillActivityServiceImpl.class);
+
+    private static final String SECKILL_ACTIVITY_KEY = "seckill:activity:";
+    private static final String SECKILL_ITEM_KEY     = "seckill:item:";
+    private static final String SECKILL_STOCK_KEY    = "seckill:stock:";
+    private static final long   CACHE_EXPIRE         = 7200L;
+
     @Autowired
     private OshSeckillActivityMapper activityMapper;
 
@@ -44,9 +56,10 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
     private OshSeckillGoodsMapper goodsMapper;
 
     @Autowired
-    private StringRedisTemplate stringRedisTemplate;
+    private RedisTemplate<Object, Object> redisTemplate;
 
-    private static final String SECKILL_STOCK_KEY = "seckill:stock:";
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     // ==================== 查询 ====================
 
@@ -69,6 +82,7 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
     @Override
     public List<SeckillActivityUserVO> selectActiveActivityList(String title, Integer goodsType) {
         List<Long> activityIds;
+        Date now = new Date();
         // 有搜索条件时，先从明细表找符合条件的活动ID
         if ((title != null && !title.isEmpty()) || goodsType != null) {
             activityIds = itemMapper.selectActiveActivityIdsByCondition(title, goodsType);
@@ -76,22 +90,27 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
                 return java.util.Collections.emptyList();
             }
         } else {
-            // 无搜索条件，查所有进行中的活动
+            // 无搜索条件，查所有已发布（非草稿、非下架）的活动，再用时间过滤
             OshSeckillActivity query = new OshSeckillActivity();
-            query.setStatus(2);
             activityIds = activityMapper.selectActivityList(query)
                     .stream()
+                    .filter(a -> a.getStatus() != 0 && a.getStatus() != 4) // 排除草稿和下架
                     .map(OshSeckillActivity::getId)
                     .collect(Collectors.toList());
             if (activityIds.isEmpty()) {
                 return java.util.Collections.emptyList();
             }
         }
-        // 根据活动ID列表查活动详情 + 明细
+        // 根据活动ID列表查活动详情 + 明细，以时间窗口判断是否进行中
         return activityIds.stream()
                 .map(id -> {
                     OshSeckillActivity activity = activityMapper.selectActivityById(id);
-                    if (activity == null || activity.getStatus() != 2) return null;
+                    if (activity == null) return null;
+                    // 下架直接跳过
+                    if (activity.getStatus() == 4) return null;
+                    // 时间窗口判断
+                    if (activity.getStartTime() == null || now.before(activity.getStartTime())) return null;
+                    if (activity.getEndTime() == null || now.after(activity.getEndTime())) return null;
                     List<OshSeckillActivityItem> items = itemMapper.selectItemsByActivityId(id);
                     // 有搜索条件时，明细只展示匹配的商品
                     if ((title != null && !title.isEmpty()) || goodsType != null) {
@@ -118,9 +137,13 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
     @Override
     public SeckillActivityUserVO selectActiveActivityById(Long id) {
         OshSeckillActivity activity = activityMapper.selectActivityById(id);
-        if (activity == null || activity.getStatus() != 2) {
+        if (activity == null || activity.getStatus() == 4) {
             return null;
         }
+        // 以时间窗口判断是否进行中，不依赖 status=2
+        Date now = new Date();
+        if (activity.getStartTime() == null || now.before(activity.getStartTime())) return null;
+        if (activity.getEndTime() == null || now.after(activity.getEndTime())) return null;
         List<OshSeckillActivityItem> items = itemMapper.selectItemsByActivityId(id);
         return toUserVO(activity, items);
     }
@@ -222,7 +245,41 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
                 throw new ServiceException("活动【" + exist.getTitle() + "】不是未开始或进行中状态，无法下架");
             }
         }
-        return activityMapper.updateActivityStatusByIds(dto.getIds(), targetStatus);
+        int result = activityMapper.updateActivityStatusByIds(dto.getIds(), targetStatus);
+
+        // 发布活动时提前预热 Redis 缓存，避免秒杀开始瞬间缓存击穿
+        if (targetStatus == 1) {
+            dto.getIds().forEach(this::warmUpCache);
+        }
+
+        return result;
+    }
+
+    /**
+     * 发布活动后预热 Redis 缓存（提前写入，避免秒杀开始瞬间缓存击穿）
+     * 写入 status=1 的活动信息 + 明细信息 + 库存 Key
+     * 定时任务只需把活动缓存里的 status 更新为 2，库存 Key 已提前就绪
+     */
+    private void warmUpCache(Long activityId) {
+        OshSeckillActivity activity = activityMapper.selectActivityById(activityId);
+        if (activity == null) return;
+
+        // 写入活动缓存（此时 status=1，定时任务改成 2 后会覆盖）
+        redisTemplate.opsForValue().set(
+                SECKILL_ACTIVITY_KEY + activityId, activity, CACHE_EXPIRE, TimeUnit.SECONDS);
+
+        // 写入明细缓存 + 库存 Key
+        List<OshSeckillActivityItem> items = itemMapper.selectItemsByActivityId(activityId);
+        for (OshSeckillActivityItem item : items) {
+            redisTemplate.opsForValue().set(
+                    SECKILL_ITEM_KEY + item.getId(), item, CACHE_EXPIRE, TimeUnit.SECONDS);
+
+            String stockKey = SECKILL_STOCK_KEY + activityId + ":" + item.getId();
+            // 只在 Key 不存在时写入，避免覆盖已有库存（防止重复发布）
+            stringRedisTemplate.opsForValue().setIfAbsent(
+                    stockKey, String.valueOf(item.getAvailableStock()), CACHE_EXPIRE, TimeUnit.SECONDS);
+        }
+        logger.info("【活动发布】活动{}缓存预热完成，明细数量：{}", activityId, items.size());
     }
 
     /**

@@ -20,6 +20,16 @@ public interface IOshSeckillOrderService {
     List<SeckillOrderAdminVO> selectOrderList(OshSeckillOrder order);
 
     /**
+     * 根据秒杀单号查询订单（含归属校验用）
+     */
+    OshSeckillOrder getOrderBySeckillNo(String seckillNo, Long userId);
+
+    /**
+     * 通过秒杀单号查询订单状态（支付完成后前端轮询用）
+     */
+    SeckillResultVO getOrderStatusBySeckillNo(String seckillNo, Long userId);
+
+    /**
      * 接口10：执行秒杀
      * 流程：校验活动 → 校验明细 → Lua 脚本扣减库存 → 发 Kafka 消息
      *
