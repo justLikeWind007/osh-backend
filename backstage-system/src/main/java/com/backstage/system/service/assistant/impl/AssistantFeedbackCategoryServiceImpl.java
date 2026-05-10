@@ -6,7 +6,6 @@ import com.backstage.system.domain.assistant.vo.AssistantFeedbackCategoryVO;
 import com.backstage.system.mapper.assistant.AssistantFeedbackCategoryMapper;
 import com.backstage.system.service.assistant.IAssistantFeedbackCategoryService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,7 +17,6 @@ import java.util.stream.Collectors;
  * @author backstage
  */
 @Service
-@RequiredArgsConstructor
 public class AssistantFeedbackCategoryServiceImpl 
         extends ServiceImpl<AssistantFeedbackCategoryMapper, AssistantFeedbackCategory>
         implements IAssistantFeedbackCategoryService {

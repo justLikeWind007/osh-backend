@@ -1,5 +1,8 @@
 package com.backstage.system.service.assistant.impl;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.backstage.common.core.page.TableDataInfo;
@@ -28,8 +31,6 @@ import com.backstage.system.utils.UserContextUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.pagehelper.PageInfo;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,11 +51,19 @@ import java.util.stream.Collectors;
  *
  * @author backstage
  */
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackMapper, AssistantFeedback>
         implements IAssistantFeedbackService {
+
+    private static final Logger log = LoggerFactory.getLogger(AssistantFeedbackServiceImpl.class);
+
+    public AssistantFeedbackServiceImpl(IAssistantFeedbackCategoryService categoryService, IAssistantFeedbackLikeService likeService, IAssistantFeedbackFavoriteService favoriteService, IAssistantFeedbackProcessRecordService processRecordService, OshUserMapper oshUserMapper) {
+        this.categoryService = categoryService;
+        this.likeService = likeService;
+        this.favoriteService = favoriteService;
+        this.processRecordService = processRecordService;
+        this.oshUserMapper = oshUserMapper;
+    }
 
     private final IAssistantFeedbackCategoryService categoryService;
     private final IAssistantFeedbackLikeService likeService;

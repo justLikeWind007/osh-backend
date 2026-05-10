@@ -15,7 +15,6 @@ import com.backstage.system.service.assistant.IAssistantFeedbackService;
 import com.backstage.system.utils.UserContextUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -28,8 +27,12 @@ import org.springframework.web.bind.annotation.*;
 @Api(tags = "AI助手反馈-管理接口")
 @RestController
 @RequestMapping("/admin/feedback")
-@RequiredArgsConstructor
 public class AssistantFeedbackAdminController extends BaseController {
+
+    public AssistantFeedbackAdminController(IAssistantFeedbackService feedbackService, IAssistantFeedbackCategoryService categoryService) {
+        this.feedbackService = feedbackService;
+        this.categoryService = categoryService;
+    }
 
     private final IAssistantFeedbackService feedbackService;
     private final IAssistantFeedbackCategoryService categoryService;

@@ -1,13 +1,10 @@
 package com.backstage.system.domain.assistant.dto;
 
-import lombok.Data;
-
 /**
  * AI 助手反馈分页查询 DTO
  *
  * @author backstage
  */
-@Data
 public class AssistantFeedbackPageDTO {
 
     /**
@@ -59,4 +56,84 @@ public class AssistantFeedbackPageDTO {
      * 每页数量（默认 10）
      */
     private Integer pageSize = 10;
+
+    public Long getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
+    }
+
+    public String getCategoryCode() {
+        return categoryCode;
+    }
+
+    public void setCategoryCode(String categoryCode) {
+        this.categoryCode = categoryCode;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public Integer getIsPinned() {
+        return isPinned;
+    }
+
+    public void setIsPinned(Integer isPinned) {
+        this.isPinned = isPinned;
+    }
+
+    public String getKeyword() {
+        return keyword;
+    }
+
+    public void setKeyword(String keyword) {
+        this.keyword = keyword;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public Integer getIsAnnouncement() {
+        return isAnnouncement;
+    }
+
+    public void setIsAnnouncement(Integer isAnnouncement) {
+        this.isAnnouncement = isAnnouncement;
+    }
+
+    public String getSortType() {
+        return sortType;
+    }
+
+    public void setSortType(String sortType) {
+        this.sortType = sortType;
+    }
+
+    public Integer getPageNum() {
+        return pageNum;
+    }
+
+    public void setPageNum(Integer pageNum) {
+        this.pageNum = pageNum;
+    }
+
+    public Integer getPageSize() {
+        return pageSize;
+    }
+
+    public void setPageSize(Integer pageSize) {
+        this.pageSize = pageSize;
+    }
 }

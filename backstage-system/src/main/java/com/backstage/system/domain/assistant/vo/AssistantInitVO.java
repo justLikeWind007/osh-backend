@@ -1,13 +1,11 @@
 package com.backstage.system.domain.assistant.vo;
 
-import lombok.Data;
 
 /**
  * AI 助手初始化信息 VO
  *
  * @author backstage
  */
-@Data
 public class AssistantInitVO {
 
     /**
@@ -44,4 +42,60 @@ public class AssistantInitVO {
      * 课程问答不可用原因说明
      */
     private String courseQaReason;
+
+    public Boolean getLoggedIn() {
+        return loggedIn;
+    }
+
+    public void setLoggedIn(Boolean loggedIn) {
+        this.loggedIn = loggedIn;
+    }
+
+    public Boolean getFeedbackEnabled() {
+        return feedbackEnabled;
+    }
+
+    public void setFeedbackEnabled(Boolean feedbackEnabled) {
+        this.feedbackEnabled = feedbackEnabled;
+    }
+
+    public String getFeedbackMessage() {
+        return feedbackMessage;
+    }
+
+    public void setFeedbackMessage(String feedbackMessage) {
+        this.feedbackMessage = feedbackMessage;
+    }
+
+    public Long getCourseId() {
+        return courseId;
+    }
+
+    public void setCourseId(Long courseId) {
+        this.courseId = courseId;
+    }
+
+    public String getCourseName() {
+        return courseName;
+    }
+
+    public void setCourseName(String courseName) {
+        this.courseName = courseName;
+    }
+
+    public Boolean getCourseQaEnabled() {
+        return courseQaEnabled;
+    }
+
+    public void setCourseQaEnabled(Boolean courseQaEnabled) {
+        this.courseQaEnabled = courseQaEnabled;
+    }
+
+    public String getCourseQaReason() {
+        return courseQaReason;
+    }
+
+    public void setCourseQaReason(String courseQaReason) {
+        this.courseQaReason = courseQaReason;
+    }
 }

@@ -3,7 +3,6 @@ package com.backstage.system.domain.assistant;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
 
 import java.time.LocalDateTime;
 
@@ -12,7 +11,6 @@ import java.time.LocalDateTime;
  *
  * @author backstage
  */
-@Data
 @TableName("assistant_feedback_favorite")
 public class AssistantFeedbackFavorite {
 
@@ -36,4 +34,36 @@ public class AssistantFeedbackFavorite {
      * 收藏时间
      */
     private LocalDateTime createTime;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Long getFeedbackId() {
+        return feedbackId;
+    }
+
+    public void setFeedbackId(Long feedbackId) {
+        this.feedbackId = feedbackId;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public LocalDateTime getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(LocalDateTime createTime) {
+        this.createTime = createTime;
+    }
 }

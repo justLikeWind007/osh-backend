@@ -1,7 +1,5 @@
 package com.backstage.system.domain.assistant.dto;
 
-import lombok.Data;
-
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
 
@@ -10,7 +8,6 @@ import javax.validation.constraints.Size;
  *
  * @author backstage
  */
-@Data
 public class AssistantTicketStatusUpdateDTO {
 
     /**
@@ -24,4 +21,20 @@ public class AssistantTicketStatusUpdateDTO {
      */
     @Size(max = 1000, message = "处理说明不能超过1000个字符")
     private String remark;
+
+    public String getToStatus() {
+        return toStatus;
+    }
+
+    public void setToStatus(String toStatus) {
+        this.toStatus = toStatus;
+    }
+
+    public String getRemark() {
+        return remark;
+    }
+
+    public void setRemark(String remark) {
+        this.remark = remark;
+    }
 }

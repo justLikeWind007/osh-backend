@@ -1,7 +1,5 @@
 package com.backstage.system.domain.assistant;
 
-import lombok.Getter;
-
 import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Function;
@@ -12,7 +10,6 @@ import java.util.stream.Collectors;
  *
  * @author backstage
  */
-@Getter
 public enum AssistantPriority {
 
     /**
@@ -46,6 +43,18 @@ public enum AssistantPriority {
         this.code = code;
         this.description = description;
         this.level = level;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public int getLevel() {
+        return level;
     }
 
     /**

@@ -1,13 +1,10 @@
 package com.backstage.system.domain.assistant.vo;
 
-import lombok.Data;
-
 /**
  * AI 助手问答响应 VO
  *
  * @author backstage
  */
-@Data
 public class AssistantAnswerVO {
 
     /**
@@ -39,4 +36,52 @@ public class AssistantAnswerVO {
      * 回答类型（mock：模拟回答、rag：RAG 检索回答、llm：大模型直接回答）
      */
     private String answerType;
+
+    public String getMode() {
+        return mode;
+    }
+
+    public void setMode(String mode) {
+        this.mode = mode;
+    }
+
+    public Long getCourseId() {
+        return courseId;
+    }
+
+    public void setCourseId(Long courseId) {
+        this.courseId = courseId;
+    }
+
+    public String getCourseName() {
+        return courseName;
+    }
+
+    public void setCourseName(String courseName) {
+        this.courseName = courseName;
+    }
+
+    public String getQuestion() {
+        return question;
+    }
+
+    public void setQuestion(String question) {
+        this.question = question;
+    }
+
+    public String getAnswer() {
+        return answer;
+    }
+
+    public void setAnswer(String answer) {
+        this.answer = answer;
+    }
+
+    public String getAnswerType() {
+        return answerType;
+    }
+
+    public void setAnswerType(String answerType) {
+        this.answerType = answerType;
+    }
 }

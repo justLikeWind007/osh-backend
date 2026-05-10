@@ -1,7 +1,5 @@
 package com.backstage.system.domain.assistant.dto;
 
-import lombok.Data;
-
 import javax.validation.constraints.NotBlank;
 
 /**
@@ -9,7 +7,6 @@ import javax.validation.constraints.NotBlank;
  *
  * @author backstage
  */
-@Data
 public class AssistantSiteQaAskDTO {
 
     /**
@@ -17,4 +14,12 @@ public class AssistantSiteQaAskDTO {
      */
     @NotBlank(message = "问题不能为空")
     private String question;
+
+    public String getQuestion() {
+        return question;
+    }
+
+    public void setQuestion(String question) {
+        this.question = question;
+    }
 }

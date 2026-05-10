@@ -1,7 +1,5 @@
 package com.backstage.system.domain.assistant;
 
-import lombok.Getter;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -16,7 +14,6 @@ import java.util.stream.Collectors;
  *
  * @author backstage
  */
-@Getter
 public enum AssistantTicketStatus {
 
     /**
@@ -71,6 +68,14 @@ public enum AssistantTicketStatus {
     AssistantTicketStatus(String code, String description) {
         this.code = code;
         this.description = description;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public String getDescription() {
+        return description;
     }
 
     /**

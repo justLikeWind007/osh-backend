@@ -14,7 +14,6 @@ import com.backstage.system.service.assistant.IAssistantFeedbackCommentService;
 import com.backstage.system.service.assistant.IAssistantFeedbackService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,8 +27,13 @@ import java.util.List;
 @Api(tags = "AI助手反馈-公开接口")
 @RestController
 @RequestMapping("/pc/public/feedback")
-@RequiredArgsConstructor
 public class AssistantFeedbackPublicController extends BaseController {
+
+    public AssistantFeedbackPublicController(IAssistantFeedbackCategoryService categoryService, IAssistantFeedbackService feedbackService, IAssistantFeedbackCommentService commentService) {
+        this.categoryService = categoryService;
+        this.feedbackService = feedbackService;
+        this.commentService = commentService;
+    }
 
     private final IAssistantFeedbackCategoryService categoryService;
     private final IAssistantFeedbackService feedbackService;

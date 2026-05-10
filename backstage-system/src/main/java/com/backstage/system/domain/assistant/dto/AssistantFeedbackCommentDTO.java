@@ -1,7 +1,5 @@
 package com.backstage.system.domain.assistant.dto;
 
-import lombok.Data;
-
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
 
@@ -10,7 +8,6 @@ import javax.validation.constraints.Size;
  *
  * @author backstage
  */
-@Data
 public class AssistantFeedbackCommentDTO {
 
     /**
@@ -39,4 +36,44 @@ public class AssistantFeedbackCommentDTO {
      * 回复的用户名（二级评论时必填）
      */
     private String replyToUserName;
+
+    public Long getFeedbackId() {
+        return feedbackId;
+    }
+
+    public void setFeedbackId(Long feedbackId) {
+        this.feedbackId = feedbackId;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
+    public Long getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(Long parentId) {
+        this.parentId = parentId;
+    }
+
+    public Long getReplyToUserId() {
+        return replyToUserId;
+    }
+
+    public void setReplyToUserId(Long replyToUserId) {
+        this.replyToUserId = replyToUserId;
+    }
+
+    public String getReplyToUserName() {
+        return replyToUserName;
+    }
+
+    public void setReplyToUserName(String replyToUserName) {
+        this.replyToUserName = replyToUserName;
+    }
 }

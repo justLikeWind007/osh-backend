@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
 
 import java.time.LocalDateTime;
 
@@ -13,7 +12,6 @@ import java.time.LocalDateTime;
  *
  * @author backstage
  */
-@Data
 @TableName("assistant_feedback_comment")
 public class AssistantFeedbackComment {
 
@@ -93,4 +91,124 @@ public class AssistantFeedbackComment {
      */
     @TableLogic
     private Integer deleteFlag;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Long getFeedbackId() {
+        return feedbackId;
+    }
+
+    public void setFeedbackId(Long feedbackId) {
+        this.feedbackId = feedbackId;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
+    public Long getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(Long parentId) {
+        this.parentId = parentId;
+    }
+
+    public Long getRootId() {
+        return rootId;
+    }
+
+    public void setRootId(Long rootId) {
+        this.rootId = rootId;
+    }
+
+    public Long getReplyToUserId() {
+        return replyToUserId;
+    }
+
+    public void setReplyToUserId(Long replyToUserId) {
+        this.replyToUserId = replyToUserId;
+    }
+
+    public String getReplyToUserName() {
+        return replyToUserName;
+    }
+
+    public void setReplyToUserName(String replyToUserName) {
+        this.replyToUserName = replyToUserName;
+    }
+
+    public Integer getCommentLevel() {
+        return commentLevel;
+    }
+
+    public void setCommentLevel(Integer commentLevel) {
+        this.commentLevel = commentLevel;
+    }
+
+    public Integer getIsAdminReply() {
+        return isAdminReply;
+    }
+
+    public void setIsAdminReply(Integer isAdminReply) {
+        this.isAdminReply = isAdminReply;
+    }
+
+    public LocalDateTime getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(LocalDateTime createTime) {
+        this.createTime = createTime;
+    }
+
+    public LocalDateTime getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(LocalDateTime updateTime) {
+        this.updateTime = updateTime;
+    }
+
+    public Long getCreateBy() {
+        return createBy;
+    }
+
+    public void setCreateBy(Long createBy) {
+        this.createBy = createBy;
+    }
+
+    public Long getUpdateBy() {
+        return updateBy;
+    }
+
+    public void setUpdateBy(Long updateBy) {
+        this.updateBy = updateBy;
+    }
+
+    public Integer getDeleteFlag() {
+        return deleteFlag;
+    }
+
+    public void setDeleteFlag(Integer deleteFlag) {
+        this.deleteFlag = deleteFlag;
+    }
 }

@@ -13,7 +13,6 @@ import com.backstage.system.service.assistant.IAssistantFeedbackCommentService;
 import com.backstage.system.service.assistant.IAssistantFeedbackService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,10 +29,14 @@ import java.util.stream.Collectors;
  * @author backstage
  */
 @Service
-@RequiredArgsConstructor
 public class AssistantFeedbackCommentServiceImpl
         extends ServiceImpl<AssistantFeedbackCommentMapper, AssistantFeedbackComment>
         implements IAssistantFeedbackCommentService {
+
+    public AssistantFeedbackCommentServiceImpl(IAssistantFeedbackService feedbackService, OshUserMapper oshUserMapper) {
+        this.feedbackService = feedbackService;
+        this.oshUserMapper = oshUserMapper;
+    }
 
     private final IAssistantFeedbackService feedbackService;
     private final OshUserMapper oshUserMapper;

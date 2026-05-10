@@ -1,5 +1,8 @@
 package com.backstage.system.service.assistant.impl;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.backstage.common.core.domain.AjaxResult;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.system.domain.assistant.AssistantFeedback;
@@ -11,8 +14,6 @@ import com.backstage.system.util.FeedbackHotScoreCalculator;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.toolkit.Db;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,10 +24,15 @@ import java.time.LocalDateTime;
  *
  * @author backstage
  */
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class AssistantFeedbackLikeServiceImpl implements IAssistantFeedbackLikeService {
+
+    private static final Logger log = LoggerFactory.getLogger(AssistantFeedbackLikeServiceImpl.class);
+
+    public AssistantFeedbackLikeServiceImpl(AssistantFeedbackMapper assistantFeedbackMapper, AssistantFeedbackLikeMapper assistantFeedbackLikeMapper) {
+        this.assistantFeedbackMapper = assistantFeedbackMapper;
+        this.assistantFeedbackLikeMapper = assistantFeedbackLikeMapper;
+    }
 
     private final AssistantFeedbackMapper assistantFeedbackMapper;
     private final AssistantFeedbackLikeMapper assistantFeedbackLikeMapper;

@@ -6,7 +6,6 @@ import com.backstage.system.domain.assistant.vo.AssistantAnswerVO;
 import com.backstage.system.domain.assistant.vo.AssistantInitVO;
 import com.backstage.system.service.assistant.IAssistantService;
 import com.backstage.system.service.course.ICourseManageService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -17,8 +16,11 @@ import java.util.Arrays;
  * @author backstage
  */
 @Service
-@RequiredArgsConstructor
 public class AssistantServiceImpl implements IAssistantService {
+
+    public AssistantServiceImpl(ICourseManageService courseManageService) {
+        this.courseManageService = courseManageService;
+    }
 
     private static final int VIP_LEVEL = 3;
 

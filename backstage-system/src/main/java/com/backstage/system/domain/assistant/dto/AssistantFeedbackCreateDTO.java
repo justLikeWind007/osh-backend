@@ -1,7 +1,5 @@
 package com.backstage.system.domain.assistant.dto;
 
-import lombok.Data;
-
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
@@ -11,7 +9,6 @@ import javax.validation.constraints.Size;
  *
  * @author backstage
  */
-@Data
 public class AssistantFeedbackCreateDTO {
 
     /**
@@ -39,4 +36,36 @@ public class AssistantFeedbackCreateDTO {
      */
     @Size(max = 255, message = "页面路径不能超过255个字符")
     private String pagePath;
+
+    public Long getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
+    public String getPagePath() {
+        return pagePath;
+    }
+
+    public void setPagePath(String pagePath) {
+        this.pagePath = pagePath;
+    }
 }

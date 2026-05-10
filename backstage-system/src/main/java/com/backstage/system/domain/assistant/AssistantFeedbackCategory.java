@@ -3,7 +3,6 @@ package com.backstage.system.domain.assistant;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
 
 import java.time.LocalDateTime;
 
@@ -12,7 +11,6 @@ import java.time.LocalDateTime;
  *
  * @author backstage
  */
-@Data
 @TableName("assistant_feedback_category")
 public class AssistantFeedbackCategory {
 
@@ -86,4 +84,116 @@ public class AssistantFeedbackCategory {
      * 更新时间
      */
     private LocalDateTime updateTime;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getDriveForce() {
+        return driveForce;
+    }
+
+    public void setDriveForce(String driveForce) {
+        this.driveForce = driveForce;
+    }
+
+    public String getExpectedResult() {
+        return expectedResult;
+    }
+
+    public void setExpectedResult(String expectedResult) {
+        this.expectedResult = expectedResult;
+    }
+
+    public String getToneTendency() {
+        return toneTendency;
+    }
+
+    public void setToneTendency(String toneTendency) {
+        this.toneTendency = toneTendency;
+    }
+
+    public String getIcon() {
+        return icon;
+    }
+
+    public void setIcon(String icon) {
+        this.icon = icon;
+    }
+
+    public Integer getSortOrder() {
+        return sortOrder;
+    }
+
+    public void setSortOrder(Integer sortOrder) {
+        this.sortOrder = sortOrder;
+    }
+
+    public Integer getIsAdminOnly() {
+        return isAdminOnly;
+    }
+
+    public void setIsAdminOnly(Integer isAdminOnly) {
+        this.isAdminOnly = isAdminOnly;
+    }
+
+    public Integer getAllowComment() {
+        return allowComment;
+    }
+
+    public void setAllowComment(Integer allowComment) {
+        this.allowComment = allowComment;
+    }
+
+    public Integer getIsEnabled() {
+        return isEnabled;
+    }
+
+    public void setIsEnabled(Integer isEnabled) {
+        this.isEnabled = isEnabled;
+    }
+
+    public LocalDateTime getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(LocalDateTime createTime) {
+        this.createTime = createTime;
+    }
+
+    public LocalDateTime getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(LocalDateTime updateTime) {
+        this.updateTime = updateTime;
+    }
 }

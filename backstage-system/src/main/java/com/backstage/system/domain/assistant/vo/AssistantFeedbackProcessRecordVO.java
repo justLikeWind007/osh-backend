@@ -1,6 +1,5 @@
 package com.backstage.system.domain.assistant.vo;
 
-import lombok.Data;
 
 import java.time.LocalDateTime;
 
@@ -9,7 +8,6 @@ import java.time.LocalDateTime;
  *
  * @author backstage
  */
-@Data
 public class AssistantFeedbackProcessRecordVO {
 
     /**
@@ -61,4 +59,85 @@ public class AssistantFeedbackProcessRecordVO {
      * 创建时间
      */
     private LocalDateTime createTime;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Long getFeedbackId() {
+        return feedbackId;
+    }
+
+    public void setFeedbackId(Long feedbackId) {
+        this.feedbackId = feedbackId;
+    }
+
+    public String getFromStatus() {
+        return fromStatus;
+    }
+
+    public void setFromStatus(String fromStatus) {
+        this.fromStatus = fromStatus;
+    }
+
+    public String getFromStatusText() {
+        return fromStatusText;
+    }
+
+    public void setFromStatusText(String fromStatusText) {
+        this.fromStatusText = fromStatusText;
+    }
+
+    public String getToStatus() {
+        return toStatus;
+    }
+
+    public void setToStatus(String toStatus) {
+        this.toStatus = toStatus;
+    }
+
+    public String getToStatusText() {
+        return toStatusText;
+    }
+
+    public void setToStatusText(String toStatusText) {
+        this.toStatusText = toStatusText;
+    }
+
+    public Long getOperatorId() {
+        return operatorId;
+    }
+
+    public void setOperatorId(Long operatorId) {
+        this.operatorId = operatorId;
+    }
+
+    public String getOperatorName() {
+        return operatorName;
+    }
+
+    public void setOperatorName(String operatorName) {
+        this.operatorName = operatorName;
+    }
+
+    public String getRemark() {
+        return remark;
+    }
+
+    public void setRemark(String remark) {
+        this.remark = remark;
+    }
+
+    public LocalDateTime getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(LocalDateTime createTime) {
+        this.createTime = createTime;
+    }
+
 }

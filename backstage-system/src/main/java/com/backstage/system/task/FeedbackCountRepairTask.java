@@ -6,8 +6,8 @@ import com.backstage.system.domain.assistant.AssistantFeedbackFavorite;
 import com.backstage.system.domain.assistant.AssistantFeedbackLike;
 import com.backstage.system.util.FeedbackHotScoreCalculator;
 import com.baomidou.mybatisplus.extension.toolkit.Db;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -28,10 +28,10 @@ import java.util.List;
  *
  * @author backstage
  */
-@Slf4j
 @Component
-@RequiredArgsConstructor
 public class FeedbackCountRepairTask {
+
+    private static final Logger log = LoggerFactory.getLogger(FeedbackCountRepairTask.class);
 
     /**
      * 修复反馈冗余字段（保证最终一致性）

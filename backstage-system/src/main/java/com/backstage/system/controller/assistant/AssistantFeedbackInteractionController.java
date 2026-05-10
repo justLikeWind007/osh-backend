@@ -9,7 +9,6 @@ import com.backstage.system.service.assistant.IAssistantFeedbackLikeService;
 import com.backstage.system.utils.UserContextUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -23,8 +22,12 @@ import java.util.Map;
 @Api(tags = "AI助手反馈-互动接口")
 @RestController
 @RequestMapping("/pc/feedback")
-@RequiredArgsConstructor
 public class AssistantFeedbackInteractionController extends BaseController {
+
+    public AssistantFeedbackInteractionController(IAssistantFeedbackLikeService likeService, IAssistantFeedbackFavoriteService favoriteService) {
+        this.likeService = likeService;
+        this.favoriteService = favoriteService;
+    }
 
     private final IAssistantFeedbackLikeService likeService;
     private final IAssistantFeedbackFavoriteService favoriteService;

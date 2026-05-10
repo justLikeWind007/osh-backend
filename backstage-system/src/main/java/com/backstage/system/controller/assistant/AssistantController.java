@@ -18,14 +18,18 @@ import com.backstage.system.service.assistant.IAssistantFeedbackCommentService;
 import com.backstage.system.service.assistant.IAssistantFeedbackService;
 import com.backstage.system.service.assistant.IAssistantService;
 import com.backstage.system.utils.UserContextUtil;
-import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/pc/assistant")
 public class AssistantController extends BaseController {
+
+    public AssistantController(IAssistantService assistantService, IAssistantFeedbackService assistantFeedbackService, IAssistantFeedbackCommentService assistantFeedbackCommentService) {
+        this.assistantService = assistantService;
+        this.assistantFeedbackService = assistantFeedbackService;
+        this.assistantFeedbackCommentService = assistantFeedbackCommentService;
+    }
 
     private static final int VIP_LEVEL = 3;
 
