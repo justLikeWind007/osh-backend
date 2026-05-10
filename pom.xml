@@ -314,6 +314,7 @@
         <module>backstage-generator</module>
         <module>backstage-common</module>
         <module>backstage-flink</module>
+        <module>backstage-hbase</module>
     </modules>
     <packaging>pom</packaging>
 
