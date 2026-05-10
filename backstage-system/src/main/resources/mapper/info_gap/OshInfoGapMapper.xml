@@ -12,6 +12,7 @@
         <result column="middle_count" property="middleCount" />
         <result column="bad_count" property="badCount" />
         <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
         <result column="nickname" property="nickname" />
         <result column="avatar" property="avatar" />
         <result column="isFollowed" property="isFollowed" />
@@ -19,36 +20,25 @@
 
     <select id="selectInfoGapPage" resultMap="InfoGapVOResult">
         SELECT
-        g.id,
-        g.user_id,
-        g.title,
-        g.tag,
-        g.content,
-        g.good_count,
-        g.middle_count,
-        g.bad_count,
-        g.create_time,
-        u.nickname AS nickname,
-        u.avatar AS avatar,
-        <choose>
-            <when test="currentUserId != null">
-                (SELECT COUNT(1) FROM osh_info_gap_follow f
-                WHERE f.user_id = #{currentUserId} AND f.target_user_id = g.user_id) > 0
-            </when>
-            <otherwise>
-                0
-            </otherwise>
-        </choose> AS isFollowed
+            g.id,
+            g.user_id,
+            g.title,
+            g.tag,
+            g.content,
+            g.good_count,
+            g.middle_count,
+            g.bad_count,
+            g.create_time,
+            g.update_time
         FROM osh_info_gap g
-        LEFT JOIN osh_user u ON g.user_id = u.id
         WHERE g.status = 0
-        AND g.is_deleted = 0
+            AND g.is_deleted = 0
         <choose>
             <when test="type == 'hot'">
-                ORDER BY g.good_count DESC, g.create_time DESC
+                ORDER BY g.good_count DESC, g.update_time DESC
             </when>
             <otherwise>
-                ORDER BY g.create_time DESC
+                ORDER BY g.update_time DESC
             </otherwise>
         </choose>
     </select>
@@ -70,11 +60,15 @@
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <select id="selectInfoGapPage" resultMap="InfoGapVOResult">
-        SELECT
-        g.*, u.nickname, u.avatar,
-        (SELECT type FROM osh_info_gap_vote v WHERE v.info_gap_id = g.id AND v.user_id = #{currentUserId} LIMIT 1) AS isVoted,
-        FROM osh_info_gap g ...
+    <select id="selectInfoGapPageForFollow" resultMap="InfoGapVOResult">
+        select *
+        from osh_info_gap oig
+        where oig.id IN (
+            select oigf.info_gap_id
+            from osh_info_gap_follow oigf
+            where oigf.user_id = #{currentUserId}
+              and oigf.delete_flag = 0
+        )
+        order by oig.update_time desc
     </select>
-
 </mapper>
