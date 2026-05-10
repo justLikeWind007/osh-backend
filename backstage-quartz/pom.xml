@@ -34,6 +34,14 @@
             <groupId>com.backstage</groupId>
             <artifactId>backstage-common</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.backstage</groupId>
+            <artifactId>backstage-system</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.backstage</groupId>
+            <artifactId>backstage-system</artifactId>
+        </dependency>
 
     </dependencies>
 
