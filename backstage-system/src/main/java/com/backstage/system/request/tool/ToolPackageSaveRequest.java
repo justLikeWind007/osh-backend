@@ -16,7 +16,7 @@ public class ToolPackageSaveRequest {
     @ApiModelProperty(value = "套餐ID，新增不传，修改传入", example = "1")
     private Long id;
 
-    @ApiModelProperty(value = "套餐名称", required = true, example = "10次体验包")
+    @ApiModelProperty(value = "套餐名称，不传时按使用次数自动生成", example = "10次使用套餐")
     private String packageName;
 
     @ApiModelProperty(value = "购买后增加的使用次数", required = true, example = "10")
@@ -26,7 +26,7 @@ public class ToolPackageSaveRequest {
     @ApiModelProperty(value = "现金价格", example = "9.90")
     private BigDecimal price;
 
-    @ApiModelProperty(value = "积分价格", example = "100")
+    @ApiModelProperty(value = "积分价格，后端按现金价格1:10自动换算", example = "100")
     private Integer pointCost;
 
     @ApiModelProperty(value = "支付类型：1-现金，2-积分，3-现金+积分", example = "1")

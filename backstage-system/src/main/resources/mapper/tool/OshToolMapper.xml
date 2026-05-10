@@ -34,6 +34,7 @@
         <result property="collectionFlag" column="collection_flag"/>
         <result property="remainingCount" column="remaining_count"/>
         <result property="purchasedFlag" column="purchased_flag"/>
+        <result property="voteType" column="vote_type"/>
     </resultMap>
 
     <select id="pageQuerySearchTool" resultMap="OshToolResult">
@@ -44,7 +45,8 @@
                t.create_time, t.update_by, t.update_time, t.delete_flag,
                case when c.id is null then 0 else 1 end as collection_flag,
                coalesce(q.remaining_count, 0) as remaining_count,
-               case when coalesce(q.remaining_count, 0) > 0 then 1 else 0 end as purchased_flag
+               case when coalesce(q.remaining_count, 0) > 0 then 1 else 0 end as purchased_flag,
+               coalesce(v.type, 0) as vote_type
         from osh_tool t
         <if test="request.tags != null and request.tags.size() > 0">
             inner join osh_tool_tag_rel tr on tr.tool_id = t.id
@@ -61,13 +63,20 @@
             left join osh_user_tool_quota q on q.tool_id = t.id
                 and q.user_id = #{userId}
                 and q.delete_flag = 0
+            left join osh_tool_vote v on v.tool_id = t.id
+                and v.user_id = #{userId}
+                and v.delete_flag = 0
         </if>
         <if test="userId == null">
             left join osh_tool_collection c on 1 = 0
             left join osh_user_tool_quota q on 1 = 0
+            left join osh_tool_vote v on 1 = 0
         </if>
         where t.delete_flag = 0
           and t.status = 1
+        <if test="request.toolId != null">
+          and t.id = #{request.toolId}
+        </if>
         <if test="request.keyword != null and request.keyword != ''">
           and (
               t.tool_name like concat('%', #{request.keyword}, '%')
@@ -92,13 +101,53 @@
         order by purchased_flag desc, t.total_usage desc, t.collection_count desc, t.id desc
     </select>
 
+    <select id="selectRecommendTools" resultMap="OshToolResult">
+        select
+               t.id, t.tool_name, t.description, t.logo_url, t.access_type, t.route_path, t.iframe_url, t.github_url,
+               t.price, t.original_price, t.point_cost, t.status, t.good_count, t.neutral_count, t.bad_count,
+               t.view_count, t.total_usage, t.collection_count, t.remark, t.resource_type, t.level, t.create_by,
+               t.create_time, t.update_by, t.update_time, t.delete_flag,
+               case when c.id is null then 0 else 1 end as collection_flag,
+               coalesce(q.remaining_count, 0) as remaining_count,
+               case when coalesce(q.remaining_count, 0) > 0 then 1 else 0 end as purchased_flag,
+               coalesce(v.type, 0) as vote_type
+        from osh_tool t
+        <if test="userId != null">
+            left join osh_tool_collection c on c.tool_id = t.id
+                and c.user_id = #{userId}
+                and c.delete_flag = 0
+            left join osh_user_tool_quota q on q.tool_id = t.id
+                and q.user_id = #{userId}
+                and q.delete_flag = 0
+            left join osh_tool_vote v on v.tool_id = t.id
+                and v.user_id = #{userId}
+                and v.delete_flag = 0
+        </if>
+        <if test="userId == null">
+            left join osh_tool_collection c on 1 = 0
+            left join osh_user_tool_quota q on 1 = 0
+            left join osh_tool_vote v on 1 = 0
+        </if>
+        where t.delete_flag = 0
+          and t.status = 1
+        <choose>
+            <when test="request.type == 'LATEST'">
+                order by t.create_time desc, t.id desc
+            </when>
+            <otherwise>
+                order by t.collection_count desc, t.total_usage desc, t.id desc
+            </otherwise>
+        </choose>
+    </select>
+
     <select id="selectToolById" resultMap="OshToolResult">
         select id, tool_name, description, logo_url, access_type, route_path, iframe_url, github_url,
                price, original_price, point_cost, status, good_count, neutral_count, bad_count,
                view_count, total_usage, collection_count, remark, resource_type, level, create_by, create_time,
                update_by, update_time, delete_flag,
                0 as remaining_count,
-               0 as purchased_flag
+               0 as purchased_flag,
+               0 as vote_type
         from osh_tool
         where id = #{id}
           and delete_flag = 0
@@ -113,6 +162,54 @@
           and delete_flag = 0
         limit 1
     </select>
+
+    <update id="consumeUserToolQuota">
+        update osh_user_tool_quota
+        set remaining_count = remaining_count - 1,
+            used_count = used_count + 1,
+            last_use_time = now(),
+            update_by = #{operator},
+            update_time = now()
+        where tool_id = #{toolId}
+          and user_id = #{userId}
+          and remaining_count > 0
+          and delete_flag = 0
+    </update>
+
+    <update id="increaseTotalUsage">
+        update osh_tool
+        set total_usage = total_usage + 1
+        where id = #{toolId}
+          and delete_flag = 0
+    </update>
+
+    <update id="increaseGoodCount">
+        update osh_tool
+        set good_count = good_count + 1
+        where id = #{toolId}
+          and delete_flag = 0
+    </update>
+
+    <update id="decreaseGoodCount">
+        update osh_tool
+        set good_count = case when good_count > 0 then good_count - 1 else 0 end
+        where id = #{toolId}
+          and delete_flag = 0
+    </update>
+
+    <update id="increaseBadCount">
+        update osh_tool
+        set bad_count = bad_count + 1
+        where id = #{toolId}
+          and delete_flag = 0
+    </update>
+
+    <update id="decreaseBadCount">
+        update osh_tool
+        set bad_count = case when bad_count > 0 then bad_count - 1 else 0 end
+        where id = #{toolId}
+          and delete_flag = 0
+    </update>
 
     <insert id="insertTool" parameterType="com.backstage.system.domain.tool.OshTool"
             useGeneratedKeys="true" keyProperty="id">

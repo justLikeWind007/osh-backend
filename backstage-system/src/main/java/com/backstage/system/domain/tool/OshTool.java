@@ -108,6 +108,9 @@ public class OshTool {
     @ApiModelProperty("当前用户是否已购买：0-否，1-是")
     private Integer purchasedFlag;
 
+    @ApiModelProperty("当前用户评价类型：0-未评价，1-点赞，3-差评")
+    private Integer voteType;
+
     @ApiModelProperty("工具售卖套餐列表")
     private List<OshToolPackage> packages;
 
@@ -349,6 +352,14 @@ public class OshTool {
 
     public void setPurchasedFlag(Integer purchasedFlag) {
         this.purchasedFlag = purchasedFlag;
+    }
+
+    public Integer getVoteType() {
+        return voteType;
+    }
+
+    public void setVoteType(Integer voteType) {
+        this.voteType = voteType;
     }
 
     public List<OshToolPackage> getPackages() {
