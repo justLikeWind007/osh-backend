@@ -201,11 +201,11 @@ public class AssistantFeedbackListVO {
         this.statusText = statusText;
     }
 
-    public Integer getPinned() {
+    public Integer getIsPinned() {
         return isPinned;
     }
 
-    public void setPinned(Integer isPinned) {
+    public void setIsPinned(Integer isPinned) {
         this.isPinned = isPinned;
     }
 
