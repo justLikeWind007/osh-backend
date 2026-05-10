@@ -29,8 +29,12 @@
             g.middle_count,
             g.bad_count,
             g.create_time,
-            g.update_time
+            g.update_time,
+            ou.username as nickname,
+            ou.avatar
         FROM osh_info_gap g
+        left join osh_user ou
+            on g.user_id = ou.id
         WHERE g.status = 0
             AND g.is_deleted = 0
         <choose>
