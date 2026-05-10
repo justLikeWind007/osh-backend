@@ -1,0 +1,176 @@
+package com.backstage.system.controller.assistant;
+
+import com.backstage.common.constant.HttpStatus;
+import com.backstage.common.core.controller.BaseController;
+import com.backstage.common.core.domain.R;
+import com.backstage.common.core.page.TableDataInfo;
+import com.backstage.common.exception.ServiceException;
+import com.backstage.system.domain.assistant.dto.AssistantFeedbackCreateDTO;
+import com.backstage.system.domain.assistant.dto.AssistantFeedbackPageDTO;
+import com.backstage.system.domain.assistant.dto.AssistantTicketQueryDTO;
+import com.backstage.system.domain.assistant.dto.AssistantTicketStatusUpdateDTO;
+import com.backstage.system.domain.assistant.vo.AssistantFeedbackVO;
+import com.backstage.system.service.assistant.IAssistantFeedbackCategoryService;
+import com.backstage.system.service.assistant.IAssistantFeedbackService;
+import com.backstage.system.utils.UserContextUtil;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+
+/**
+ * AI 助手反馈管理接口 Controller（需要管理员权限）
+ *
+ * @author backstage
+ */
+@Api(tags = "AI助手反馈-管理接口")
+@RestController
+@RequestMapping("/admin/feedback")
+public class AssistantFeedbackAdminController extends BaseController {
+
+    public AssistantFeedbackAdminController(IAssistantFeedbackService feedbackService, IAssistantFeedbackCategoryService categoryService) {
+        this.feedbackService = feedbackService;
+        this.categoryService = categoryService;
+    }
+
+    private final IAssistantFeedbackService feedbackService;
+    private final IAssistantFeedbackCategoryService categoryService;
+
+    /**
+     * 创建公告（仅管理员）
+     */
+    @ApiOperation("创建公告")
+    @PreAuthorize("@ss.hasPermi('system:feedback:manage')")
+    @PostMapping("/announcement/create")
+    public R<AssistantFeedbackVO> createAnnouncement(@Validated @RequestBody AssistantFeedbackCreateDTO dto) {
+        ensureAdmin();
+        Long userId = getCurrentUserId();
+
+        // 验证分类是否为公告分类
+        if (!categoryService.isAdminOnly(dto.getCategoryId())) {
+            return R.fail("只能创建公告类型的反馈");
+        }
+
+        AssistantFeedbackVO feedback = feedbackService.createFeedback(userId, dto);
+        return R.ok(feedback, "公告创建成功");
+    }
+
+    /**
+     * 反馈管理列表（分页）
+     */
+    @ApiOperation("反馈管理列表")
+    @PreAuthorize("@ss.hasPermi('system:feedback:manage')")
+    @PostMapping("/page")
+    public TableDataInfo pageFeedback(@RequestBody AssistantFeedbackPageDTO dto) {
+        ensureAdmin();
+        return feedbackService.pageFeedback(dto);
+    }
+
+    /**
+     * 工单管理列表（分页）
+     */
+    @ApiOperation("工单管理列表")
+    @PreAuthorize("@ss.hasPermi('system:feedback:manage')")
+    @GetMapping("/ticket/list")
+    public TableDataInfo ticketList(AssistantTicketQueryDTO queryDTO) {
+        ensureAdmin();
+        startPage();
+        return feedbackService.listTickets(queryDTO);
+    }
+
+    /**
+     * 置顶反馈
+     */
+    @ApiOperation("置顶反馈")
+    @PreAuthorize("@ss.hasPermi('system:feedback:manage')")
+    @PostMapping("/{id}/pin")
+    public R<String> pinFeedback(@PathVariable("id") Long feedbackId,
+                                  @RequestParam("pinOrder") Integer pinOrder) {
+        ensureAdmin();
+        feedbackService.pinFeedback(feedbackId, pinOrder);
+        return R.ok("置顶成功");
+    }
+
+    /**
+     * 取消置顶
+     */
+    @ApiOperation("取消置顶")
+    @PreAuthorize("@ss.hasPermi('system:feedback:manage')")
+    @PostMapping("/{id}/unpin")
+    public R<String> unpinFeedback(@PathVariable("id") Long feedbackId) {
+        ensureAdmin();
+        feedbackService.unpinFeedback(feedbackId);
+        return R.ok("取消置顶成功");
+    }
+
+    /**
+     * 更新反馈状态
+     */
+    @ApiOperation("更新反馈状态")
+    @PreAuthorize("@ss.hasPermi('system:feedback:manage')")
+    @PostMapping("/{id}/status")
+    public R<AssistantFeedbackVO> updateStatus(@PathVariable("id") Long feedbackId,
+                                                 @Validated @RequestBody AssistantTicketStatusUpdateDTO dto) {
+        ensureAdmin();
+        Long handlerId = getCurrentUserId();
+        AssistantFeedbackVO feedback = feedbackService.updateTicketStatus(feedbackId, handlerId, dto);
+        return R.ok(feedback, "状态更新成功");
+    }
+
+    /**
+     * 更新工单状态
+     */
+    @ApiOperation("更新工单状态")
+    @PreAuthorize("@ss.hasPermi('system:feedback:manage')")
+    @PostMapping("/ticket/{ticketId}/status")
+    public R<AssistantFeedbackVO> updateTicketStatus(@PathVariable("ticketId") Long ticketId,
+                                                     @Validated @RequestBody AssistantTicketStatusUpdateDTO dto) {
+        ensureAdmin();
+        Long handlerId = getCurrentUserId();
+        try {
+            AssistantFeedbackVO feedback = feedbackService.updateTicketStatus(ticketId, handlerId, dto);
+            return R.ok(feedback, "工单状态更新成功");
+        } catch (IllegalArgumentException ex) {
+            return R.fail(ex.getMessage());
+        }
+    }
+
+    /**
+     * 删除反馈（逻辑删除）
+     */
+    @ApiOperation("删除反馈")
+    @PreAuthorize("@ss.hasPermi('system:feedback:manage')")
+    @DeleteMapping("/{id}")
+    public R<String> deleteFeedback(@PathVariable("id") Long feedbackId) {
+        ensureAdmin();
+        feedbackService.deleteFeedback(feedbackId);
+        return R.ok("删除成功");
+    }
+
+    /**
+     * 获取当前用户 ID
+     */
+    private Long getCurrentUserId() {
+        try {
+            return UserContextUtil.getCurrentUserId();
+        } catch (Exception e) {
+            throw new ServiceException("获取用户信息失败", HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+    /**
+     * 确保当前用户是管理员（level >= 4）。
+     * 当前阶段保留等级校验作为兜底，避免仅凭新权限点放开历史管理员边界。
+     */
+    private void ensureAdmin() {
+        try {
+            Integer level = UserContextUtil.getCurrentLevel();
+            if (level == null || level < 4) {
+                throw new ServiceException("无权限操作", HttpStatus.FORBIDDEN);
+            }
+        } catch (Exception e) {
+            throw new ServiceException("权限验证失败", HttpStatus.FORBIDDEN);
+        }
+    }
+}

@@ -26,7 +26,7 @@ public class GlobalLogicDeleteInterceptor implements Interceptor {
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
-        StatementHandler handler = (StatementHandler) invocation.getTarget();
+        StatementHandler handler = resolveStatementHandler(invocation.getTarget());
         MetaObject metaObject = SystemMetaObject.forObject(handler);
         BoundSql boundSql = (BoundSql) metaObject.getValue("delegate.boundSql");
         String originalSql = boundSql.getSql();
@@ -76,6 +76,25 @@ public class GlobalLogicDeleteInterceptor implements Interceptor {
         metaObject.setValue("delegate.boundSql.sql", newSql);
 
         return invocation.proceed();
+    }
+
+    /**
+     * 解开 MyBatis 插件和 JDK 动态代理包装，拿到真实的 StatementHandler。
+     * 当前拦截器后续需要读取 delegate.boundSql；如果直接使用 invocation.getTarget()，
+     * 在多插件叠加场景下拿到的可能只是代理对象，代理本身没有 delegate 属性，
+     * 会触发 There is no getter for property named 'delegate' 异常。
+     */
+    private StatementHandler resolveStatementHandler(Object target) {
+        MetaObject metaObject = SystemMetaObject.forObject(target);
+        while (metaObject.hasGetter("h")) {
+            Object object = metaObject.getValue("h");
+            metaObject = SystemMetaObject.forObject(object);
+        }
+        while (metaObject.hasGetter("target")) {
+            Object object = metaObject.getValue("target");
+            metaObject = SystemMetaObject.forObject(object);
+        }
+        return (StatementHandler) metaObject.getOriginalObject();
     }
 
     /**
