@@ -1,4 +1,5 @@
 package com.backstage.system.service.impl.info_gap;
+import com.backstage.common.exception.ServiceException;
 import com.backstage.system.domain.dto.info_gap.InfoGapCreateDTO;
 import com.backstage.system.domain.info_gap.OshInfoGap;
 import com.backstage.system.domain.info_gap.OshInfoGapFollow;
@@ -149,5 +150,29 @@ public class InfoGapServiceImpl implements InfoGapService {
     // 辅助方法：抽取列名逻辑，避免代码重复
     private String getColumnByType(Integer type) {
         return (type == 1) ? "good_count" : (type == 2 ? "middle_count" : "bad_count");
+    }
+
+    @Override
+    public void infoGapCollectAdd(Long userId, String username, Long infoGapId) {
+        if (userId == null) {
+            throw new ServiceException("请先登录");
+        }
+        if (infoGapId == null) {
+            throw new ServiceException("信息差ID不能为空");
+        }
+
+        // 检查当前用户是否已经收藏了目标信息差
+
+
+        // 记录收藏关系，统计到 osh_info_gap_follow
+
+        // 计算当前信息差被收藏次数
+
+
+    }
+
+    @Override
+    public void infoGapCollectRemove(Long userId, String username, Long infoGapId) {
+
     }
 }
