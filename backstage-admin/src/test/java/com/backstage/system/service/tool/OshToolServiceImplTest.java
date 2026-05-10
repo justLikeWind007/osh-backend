@@ -1,13 +1,15 @@
 package com.backstage.system.service.tool;
 
 import com.backstage.system.domain.tool.OshTool;
+import com.backstage.system.domain.tool.OshToolPackage;
 import com.backstage.system.domain.tool.OshToolTag;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.mapper.tool.OshToolCollectionMapper;
 import com.backstage.system.mapper.tool.OshToolMapper;
+import com.backstage.system.mapper.tool.OshToolPackageMapper;
 import com.backstage.system.mapper.tool.OshToolTagMapper;
+import com.backstage.system.request.tool.ToolPackageSaveRequest;
 import com.backstage.system.request.tool.ToolSaveRequest;
-import com.backstage.system.service.common.OssService;
 import com.backstage.system.service.impl.tool.OshToolServiceImpl;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -15,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -38,10 +41,10 @@ public class OshToolServiceImplTest {
     private OshToolTagMapper oshToolTagMapper;
 
     @Mock
-    private OshToolCollectionMapper oshToolCollectionMapper;
+    private OshToolPackageMapper oshToolPackageMapper;
 
     @Mock
-    private OssService ossService;
+    private OshToolCollectionMapper oshToolCollectionMapper;
 
     @Test
     public void shouldCreateMissingTagsWhenCreatingToolWithNewTagNames() {
@@ -76,7 +79,56 @@ public class OshToolServiceImplTest {
     }
 
     @Test
-    public void shouldReturnLimitedLogoUrlWhenToolDetailUsesRelativeLogoPath() {
+    public void shouldCreateToolPackagesWhenCreatingToolWithPackages() {
+        ToolPackageSaveRequest packageRequest = new ToolPackageSaveRequest();
+        packageRequest.setPackageName("10次体验包");
+        packageRequest.setUseCount(10);
+        packageRequest.setPrice(new BigDecimal("9.90"));
+        packageRequest.setPayType(1);
+        packageRequest.setSortOrder(10);
+
+        ToolSaveRequest request = new ToolSaveRequest();
+        request.setToolName("测试工具");
+        request.setAccessType(1);
+        request.setRoutePath("/test/test");
+        request.setResourceType("CASH_ONLY");
+        request.setPackages(Collections.singletonList(packageRequest));
+
+        OshUser operator = new OshUser();
+        operator.setUsername("admin");
+
+        when(oshToolMapper.insertTool(any(OshTool.class))).thenAnswer(invocation -> {
+            OshTool tool = invocation.getArgument(0);
+            tool.setId(10002L);
+            return 1;
+        });
+        when(oshToolPackageMapper.insertToolPackage(any(OshToolPackage.class))).thenReturn(1);
+
+        Long toolId = toolService.createTool(request, operator);
+
+        assertEquals(Long.valueOf(10002L), toolId);
+        verify(oshToolPackageMapper).insertToolPackage(org.mockito.ArgumentMatchers.argThat(toolPackage ->
+                Integer.valueOf(99).equals(toolPackage.getPointCost())
+                        && Integer.valueOf(1).equals(toolPackage.getPayType())
+        ));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldRejectCreateToolWhenTagCountExceedsLimit() {
+        ToolSaveRequest request = new ToolSaveRequest();
+        request.setToolName("测试工具");
+        request.setAccessType(1);
+        request.setRoutePath("/test/test");
+        request.setTags(Arrays.asList("标签一", "标签二", "标签三", "标签四"));
+
+        OshUser operator = new OshUser();
+        operator.setUsername("admin");
+
+        toolService.createTool(request, operator);
+    }
+
+    @Test
+    public void shouldReturnToolDetailWithoutConvertingLogoUrl() {
         OshTool tool = new OshTool();
         tool.setId(10001L);
         tool.setLogoUrl("common/image/tool/logo.png");
@@ -85,12 +137,50 @@ public class OshToolServiceImplTest {
         when(oshToolTagMapper.selectTagNamesByToolId(10001L)).thenReturn(Collections.singletonList("PDF工具"));
         when(oshToolCollectionMapper.selectActiveToolIdsByUserIdAndToolIds(9L, Collections.singletonList(10001L)))
                 .thenReturn(Collections.singletonList(10001L));
-        when(ossService.getLimitedUrl("common/image/tool/logo.png", 1440)).thenReturn("https://oss.example.com/signed-logo.png");
+        OshToolPackage toolPackage = new OshToolPackage();
+        toolPackage.setId(1L);
+        toolPackage.setToolId(10001L);
+        toolPackage.setPackageName("10次体验包");
+        when(oshToolPackageMapper.selectPackagesByToolId(10001L)).thenReturn(Collections.singletonList(toolPackage));
+        when(oshToolMapper.selectUserRemainingCount(10001L, 9L)).thenReturn(8);
 
         OshTool result = toolService.getToolDetail(10001L, 9L);
 
-        assertEquals("https://oss.example.com/signed-logo.png", result.getLogoUrl());
+        assertEquals("common/image/tool/logo.png", result.getLogoUrl());
         assertEquals(Integer.valueOf(1), result.getCollectionFlag());
+        assertEquals(Integer.valueOf(8), result.getRemainingCount());
+        assertEquals(Integer.valueOf(1), result.getPurchasedFlag());
+        assertEquals("10次体验包", result.getPackages().get(0).getPackageName());
         assertEquals(Collections.singletonList("PDF工具"), result.getTags());
+    }
+
+    @Test
+    public void shouldConsumeUsageWhenToolIsPaidResourceType() {
+        OshTool tool = new OshTool();
+        tool.setId(10001L);
+        tool.setResourceType("CASH_ONLY");
+
+        when(oshToolMapper.selectToolById(10001L)).thenReturn(tool);
+        when(oshToolMapper.consumeUserToolQuota(10001L, 9L, "normal")).thenReturn(1);
+        when(oshToolMapper.selectUserRemainingCount(10001L, 9L)).thenReturn(7);
+
+        Integer remainingCount = toolService.consumeToolUsage(9L, "normal", 10001L);
+
+        assertEquals(Integer.valueOf(7), remainingCount);
+        verify(oshToolMapper).consumeUserToolQuota(10001L, 9L, "normal");
+    }
+
+    @Test
+    public void shouldSkipConsumeUsageWhenToolIsFreeResourceType() {
+        OshTool tool = new OshTool();
+        tool.setId(10001L);
+        tool.setResourceType("FREE");
+
+        when(oshToolMapper.selectToolById(10001L)).thenReturn(tool);
+
+        Integer remainingCount = toolService.consumeToolUsage(9L, "normal", 10001L);
+
+        assertEquals(Integer.valueOf(0), remainingCount);
+        verify(oshToolMapper, times(0)).consumeUserToolQuota(any(Long.class), any(Long.class), any(String.class));
     }
 }
