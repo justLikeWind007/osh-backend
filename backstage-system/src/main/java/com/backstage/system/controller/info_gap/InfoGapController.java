@@ -41,8 +41,10 @@ public class InfoGapController {
      */
     @PostMapping("/save")
     public R<Void> save(@RequestBody InfoGapCreateDTO dto) {
-        Long loginUserId = 1L;
-        infoGapService.createInfoGap(dto, loginUserId);
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
+
+        infoGapService.createInfoGap(dto, currentUserId);
         return R.ok();
     }
 
@@ -51,8 +53,10 @@ public class InfoGapController {
      */
     @PostMapping("/vote")
     public R<Void> vote(@RequestParam Long id, @RequestParam Integer type) {
-        Long loginUserId = 1L;
-        infoGapService.vote(loginUserId, id, type);
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
+
+        infoGapService.vote(currentUserId, id, type);
         return R.ok();
     }
 
@@ -62,8 +66,10 @@ public class InfoGapController {
      */
     @PostMapping("/follow/{authorId}")
     public R<Void> follow(@PathVariable Long authorId) {
-        Long loginUserId = 1L;
-        infoGapService.toggleFollow(loginUserId, authorId);
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
+
+        infoGapService.toggleFollow(currentUserId, authorId);
         return R.ok();
     }
 
