@@ -7,6 +7,7 @@ import com.backstage.system.utils.SignUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -20,11 +21,16 @@ public class NotifyController {
 
     private static final Logger logger = LoggerFactory.getLogger(NotifyController.class);
 
+    private static final String SECKILL_BOUGHT_KEY = "seckill:bought:";
+
     @Autowired
     private OshSeckillOrderMapper seckillOrderMapper;
 
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
     @Anonymous
-    @GetMapping("/pay")
+    @RequestMapping(value = "/pay", method = {RequestMethod.GET, RequestMethod.POST})
     public String notify(HttpServletRequest request) {
         try {
             // 1. 接收回调参数
@@ -89,6 +95,10 @@ public class NotifyController {
         update.setStatus(1);
         update.setPayTime(new Date());
         seckillOrderMapper.updateOrder(update);
+
+        // 支付成功后写入已购 Set，永久拦截该用户重复购买同一商品
+        String boughtKey = SECKILL_BOUGHT_KEY + order.getActivityId() + ":" + order.getItemId();
+        stringRedisTemplate.opsForSet().add(boughtKey, String.valueOf(order.getUserId()));
 
         logger.info("【支付回调】秒杀订单支付成功，seckillNo={}", seckillNo);
     }

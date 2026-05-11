@@ -76,7 +76,6 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
             "    return -2 \n" +
             "end \n" +
             "redis.call('decr', KEYS[1]) \n" +
-            "redis.call('sadd', KEYS[2], ARGV[1]) \n" +
             "return 1";
 
     @Autowired

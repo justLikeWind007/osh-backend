@@ -32,4 +32,7 @@ public interface OshSeckillOrderMapper {
 
     /** 修改秒杀订单 */
     int updateOrder(OshSeckillOrder order);
+
+    /** 查询支付超时的待支付订单（status=0 且 pay_expire_time < now） */
+    List<OshSeckillOrder> selectTimeoutOrders();
 }

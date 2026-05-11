@@ -79,6 +79,13 @@
          #{status}, #{payExpireTime}, CURRENT_TIMESTAMP)
     </insert>
 
+    <!-- 查询支付超时的待支付订单（status=0 且 pay_expire_time < now） -->
+    <select id="selectTimeoutOrders" resultMap="OshSeckillOrderResult">
+        <include refid="selectOrderVo"/>
+        where status = 0
+          and pay_expire_time &lt; NOW()
+    </select>
+
     <update id="updateOrder" parameterType="com.backstage.system.domain.seckill.OshSeckillOrder">
         update osh_seckill_order
         <trim prefix="SET" suffixOverrides=",">

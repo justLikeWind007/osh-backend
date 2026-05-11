@@ -9,6 +9,7 @@ import com.backstage.system.service.impl.seckill.OshSeckillOrderServiceImpl.Seck
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
@@ -30,6 +31,9 @@ public class SeckillOrderConsumer {
     @Autowired
     private OshSeckillActivityItemMapper itemMapper;
 
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
     @KafkaListener(topics = KafkaConstants.SECKILL_ORDER_CREATE_TOPIC,
                    groupId = "${spring.kafka.consumer.group-id}")
     public void consumeSeckillOrder(String message) {
@@ -44,7 +48,21 @@ public class SeckillOrderConsumer {
                 return;
             }
 
-            // 1. 写入订单表
+            // 1. 同步扣减明细表库存（available_stock -1，sold_count +1）
+            int quantity = msg.getQuantity() != null ? msg.getQuantity() : 1;
+            int affected = itemMapper.decrStock(msg.getItemId(), quantity);
+            if (affected == 0) {
+                // 数据库库存扣减失败，回滚 Redis 库存
+                String stockKey = "seckill:stock:" + msg.getActivityId() + ":" + msg.getItemId();
+                stringRedisTemplate.opsForValue().increment(stockKey, quantity);
+                logger.error("【秒杀消费者】数据库库存不足，已回滚Redis库存，itemId={}, seckillNo={}",
+                        msg.getItemId(), msg.getSeckillNo());
+                return; // 不创建订单
+            }
+            logger.info("【秒杀消费者】数据库库存扣减成功，itemId={}, quantity={}",
+                    msg.getItemId(), quantity);
+
+            // 2. 写入订单表
             OshSeckillOrder order = new OshSeckillOrder();
             order.setSeckillNo(msg.getSeckillNo());
             order.setActivityId(msg.getActivityId());
@@ -63,17 +81,6 @@ public class SeckillOrderConsumer {
             orderMapper.insertOrder(order);
             logger.info("【秒杀消费者】订单创建成功，seckillNo={}, userId={}",
                     msg.getSeckillNo(), msg.getUserId());
-
-            // 2. 同步扣减明细表库存（available_stock -1，sold_count +1）
-            int quantity = msg.getQuantity() != null ? msg.getQuantity() : 1;
-            int affected = itemMapper.decrStock(msg.getItemId(), quantity);
-            if (affected == 0) {
-                logger.warn("【秒杀消费者】数据库库存扣减失败（可能已不足），itemId={}, seckillNo={}",
-                        msg.getItemId(), msg.getSeckillNo());
-            } else {
-                logger.info("【秒杀消费者】数据库库存扣减成功，itemId={}, quantity={}",
-                        msg.getItemId(), quantity);
-            }
 
         } catch (Exception e) {
             logger.error("【秒杀消费者】订单创建失败，message={}，错误：{}", message, e.getMessage(), e);
