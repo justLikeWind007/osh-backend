@@ -13,6 +13,9 @@ import java.util.List;
 @ApiModel(description = "工具搜索请求")
 public class ToolSearchRequest extends PageRequest {
 
+    @ApiModelProperty(value = "工具ID，传入时精确查询单个工具", example = "10001")
+    private Long toolId;
+
     @ApiModelProperty(value = "标签ID列表", example = "[1,2]")
     private List<Long> tags;
 
@@ -27,6 +30,14 @@ public class ToolSearchRequest extends PageRequest {
 
     @ApiModelProperty(value = "收藏筛选：1-只查询已收藏", example = "1")
     private Integer collectionFlag;
+
+    public Long getToolId() {
+        return toolId;
+    }
+
+    public void setToolId(Long toolId) {
+        this.toolId = toolId;
+    }
 
     public List<Long> getTags() {
         return tags;

@@ -65,6 +65,9 @@ public class ToolSaveRequest {
     @ApiModelProperty(value = "标签名称列表，不存在的标签会自动创建", example = "[\"PDF工具\",\"图片工具\"]")
     private List<String> tags;
 
+    @ApiModelProperty(value = "工具售卖套餐列表", example = "[{\"packageName\":\"10次包\",\"useCount\":10,\"price\":9.90,\"pointCost\":0,\"payType\":1}]")
+    private List<ToolPackageSaveRequest> packages;
+
     public Long getId() {
         return id;
     }
@@ -202,5 +205,13 @@ public class ToolSaveRequest {
             }
         }
         this.tags = normalized;
+    }
+
+    public List<ToolPackageSaveRequest> getPackages() {
+        return packages;
+    }
+
+    public void setPackages(List<ToolPackageSaveRequest> packages) {
+        this.packages = packages;
     }
 }

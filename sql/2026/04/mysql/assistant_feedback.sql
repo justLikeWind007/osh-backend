@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS `assistant_feedback` (
+  `id` bigint NOT NULL COMMENT '主键 ID',
+  `user_id` bigint NOT NULL COMMENT '提交用户 ID',
+  `ticket_no` varchar(32) NOT NULL COMMENT '工单编号',
+  `type` varchar(32) NOT NULL COMMENT '反馈类型：bug/suggestion/optimization/other',
+  `priority` varchar(16) NOT NULL DEFAULT 'medium' COMMENT '优先级：low/medium/high',
+  `title` varchar(128) NOT NULL COMMENT '反馈标题',
+  `content` varchar(1000) NOT NULL COMMENT '反馈内容',
+  `status` varchar(32) NOT NULL DEFAULT 'submitted' COMMENT '工单状态：submitted/triaged/in_progress/resolved/closed/rejected',
+  `result` varchar(1000) DEFAULT '' COMMENT '处理结果',
+  `page_path` varchar(255) DEFAULT NULL COMMENT '提交页面路径',
+  `handler_id` bigint DEFAULT NULL COMMENT '当前处理人 ID',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `create_by` bigint DEFAULT NULL COMMENT '创建人',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `update_by` bigint DEFAULT NULL COMMENT '更新人',
+  `delete_flag` tinyint DEFAULT 0 COMMENT '逻辑删除标记：0-未删除 1-已删除',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_ticket_no` (`ticket_no`),
+  KEY `idx_feedback_user_time` (`user_id`, `create_time`),
+  KEY `idx_feedback_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_as_cs COMMENT='智能悬浮助手反馈表';
