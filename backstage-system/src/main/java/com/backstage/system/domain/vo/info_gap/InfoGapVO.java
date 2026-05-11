@@ -23,7 +23,9 @@ public class InfoGapVO {
     private Boolean isFollowed;
     private Integer isVoted;
 
-    private String tagList;
+    private String tag1;
+    private String tag2;
+    private String tag3;
 
     public Integer getIsVoted() { return isVoted; }
     public void setIsVoted(Integer isVoted) { this.isVoted = isVoted; }
@@ -59,11 +61,27 @@ public class InfoGapVO {
     public Boolean getIsFollowed() { return isFollowed; }
     public void setIsFollowed(Boolean isFollowed) { this.isFollowed = isFollowed; }
 
-    public String getTagList() {
-        return tagList;
+    public String getTag1() {
+        return tag1;
     }
 
-    public void setTagList(String tagList) {
-        this.tagList = tagList;
+    public void setTag1(String tag1) {
+        this.tag1 = tag1;
+    }
+
+    public String getTag2() {
+        return tag2;
+    }
+
+    public void setTag2(String tag2) {
+        this.tag2 = tag2;
+    }
+
+    public String getTag3() {
+        return tag3;
+    }
+
+    public void setTag3(String tag3) {
+        this.tag3 = tag3;
     }
 }
