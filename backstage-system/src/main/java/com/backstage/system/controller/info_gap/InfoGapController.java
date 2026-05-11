@@ -43,7 +43,9 @@ public class InfoGapController {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
 
-        infoGapService.createInfoGap(dto, currentUserId);
+        System.out.println(dto);
+
+//        infoGapService.createInfoGap(dto, currentUserId);
         return R.ok();
     }
 
