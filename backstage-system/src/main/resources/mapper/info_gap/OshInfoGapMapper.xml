@@ -16,6 +16,7 @@
         <result column="nickname" property="nickname" />
         <result column="avatar" property="avatar" />
         <result column="isFollowed" property="isFollowed" />
+        <result column="tag_list" property="tagList" />
     </resultMap>
 
     <select id="selectInfoGapPage" resultMap="InfoGapVOResult">
@@ -31,12 +32,18 @@
             g.create_time,
             g.update_time,
             ou.username as nickname,
-            ou.avatar
+            ou.avatar,
+            GROUP_CONCAT(t.tag_name ORDER BY rel.sort_no SEPARATOR ',') AS tag_list
         FROM osh_info_gap g
         left join osh_user ou
             on g.user_id = ou.id
+        left join osh_info_gap_tag_rel rel
+            on g.id = rel.info_gap_id and rel.delete_flag = 0
+        left join osh_info_gap_tag t
+            on rel.gap_tag_id = t.id and t.delete_flag = 0
         WHERE g.status = 0
             AND g.is_deleted = 0
+        GROUP BY g.id
         <choose>
             <when test="type == 'hot'">
                 ORDER BY g.good_count DESC, g.update_time DESC

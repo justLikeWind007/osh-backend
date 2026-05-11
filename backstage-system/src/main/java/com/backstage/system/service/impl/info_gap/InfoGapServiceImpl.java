@@ -91,42 +91,53 @@ public class InfoGapServiceImpl implements InfoGapService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void vote(Long userId, Long infoId, Integer type) {
-        // 1. 查出该用户对该信息的旧评价记录
+        // 查出该用户对该信息的旧评价记录
         OshInfoGapVote existVote = voteMapper.selectVoteRecord(userId, infoId);
 
         // 定义当前点击类型的列名
         String currentColumn = getColumnByType(type);
 
-        if (existVote != null) {
-            // 情况 A：点击的是同一种类型 -> 取消评价（逻辑不变）
-            if (existVote.getType().equals(type)) {
-                voteMapper.deleteVoteRecord(existVote.getId());
-                infoGapMapper.decrementCountAtomically(infoId, currentColumn);
-                return;
-            } else {
-                // 情况 B：【核心修改】切换评价（比如从好评 1 切换到差评 3）
-                // 1. 减去旧类型的计数
-                String oldColumn = getColumnByType(existVote.getType());
-                infoGapMapper.decrementCountAtomically(infoId, oldColumn);
+        // 情况1：从未评价 → 新增评价
+        if (existVote == null) {
+            OshInfoGapVote vote = new OshInfoGapVote();
+            vote.setUserId(userId);
+            vote.setInfoGapId(infoId);
+            vote.setType(type);
+            voteMapper.insertVoteRecord(vote);
 
-                // 2. 更新评价记录的类型
-                existVote.setType(type);
-                voteMapper.updateVoteRecord(existVote); // 这里需要你 Mapper 有个 update 方法
-
-                // 3. 增加新类型的计数
+            if (!type.equals(0)) {
                 infoGapMapper.updateCountAtomically(infoId, currentColumn);
-                return;
             }
+
+            return;
         }
 
-        // 2. 情况 C：不存在评价，直接新增（逻辑不变）
-        OshInfoGapVote vote = new OshInfoGapVote();
-        vote.setUserId(userId);
-        vote.setInfoGapId(infoId);
-        vote.setType(type);
+        Integer oldType = existVote.getType();
+        if (oldType.equals(type)) {
+            // 重复点击同一评价（取消评价）
+            voteMapper.cancelVoteRecord(userId, infoId);
+            infoGapMapper.decrementCountAtomically(infoId, currentColumn);
+            return;
+        }
 
-        voteMapper.insertVoteRecord(vote);
-        infoGapMapper.updateCountAtomically(infoId, currentColumn);
+        if (oldType.equals(0)) {
+            // 从 0 → 新评价（恢复/重新评价）
+            existVote.setType(type);
+            voteMapper.updateVoteRecord(existVote);
+        } else {
+            // 切换评价（如 1 → 2 / 2 → 3）
+
+            // 1. 减去旧类型的计数
+            String oldColumn = getColumnByType(oldType);
+            infoGapMapper.decrementCountAtomically(infoId, oldColumn);
+
+            // 2. 更新评价记录的类型
+            existVote.setType(type);
+            voteMapper.updateVoteRecord(existVote);
+
+            // 3. 增加新类型的计数
+            infoGapMapper.updateCountAtomically(infoId, currentColumn);
+        }
     }
 
     @Override

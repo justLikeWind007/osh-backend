@@ -23,6 +23,8 @@ public class InfoGapVO {
     private Boolean isFollowed;
     private Integer isVoted;
 
+    private String tagList;
+
     public Integer getIsVoted() { return isVoted; }
     public void setIsVoted(Integer isVoted) { this.isVoted = isVoted; }
     public LocalDateTime getUpdateTime() {
@@ -56,4 +58,12 @@ public class InfoGapVO {
     public void setAvatar(String avatar) { this.avatar = avatar; }
     public Boolean getIsFollowed() { return isFollowed; }
     public void setIsFollowed(Boolean isFollowed) { this.isFollowed = isFollowed; }
+
+    public String getTagList() {
+        return tagList;
+    }
+
+    public void setTagList(String tagList) {
+        this.tagList = tagList;
+    }
 }

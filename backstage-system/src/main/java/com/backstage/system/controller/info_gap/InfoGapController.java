@@ -4,12 +4,10 @@ import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.response.PageResponse;
 import com.backstage.system.domain.dto.info_gap.InfoGapCreateDTO;
-import com.backstage.system.domain.info_gap.InfoGapCollectReqDTO;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.domain.vo.info_gap.InfoGapVO;
 import com.backstage.system.service.info_gap.InfoGapService;
 import com.backstage.system.utils.UserContextUtil;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.pagehelper.PageInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -84,21 +82,4 @@ public class InfoGapController {
         return R.ok(infoGapService.recommend());
     }
 
-    /**
-     * 收藏信息差
-     */
-    @PostMapping("/collection/add")
-    public R<String> collectionAdd(InfoGapCollectReqDTO request) {
-        OshUser currentOshUser = UserContextUtil.getCurrentUser();
-        if (currentOshUser == null) {
-            return R.fail("请登录");
-        }
-
-        infoGapService.infoGapCollectAdd(
-                currentOshUser.getId(),
-                currentOshUser.getUsername(),
-                request.getInfoGapId());
-
-        return R.ok();
-    }
 }
