@@ -1,0 +1,186 @@
+package com.backstage.system.service.tool;
+
+import com.backstage.system.domain.tool.OshTool;
+import com.backstage.system.domain.tool.OshToolPackage;
+import com.backstage.system.domain.tool.OshToolTag;
+import com.backstage.system.domain.user.OshUser;
+import com.backstage.system.mapper.tool.OshToolCollectionMapper;
+import com.backstage.system.mapper.tool.OshToolMapper;
+import com.backstage.system.mapper.tool.OshToolPackageMapper;
+import com.backstage.system.mapper.tool.OshToolTagMapper;
+import com.backstage.system.request.tool.ToolPackageSaveRequest;
+import com.backstage.system.request.tool.ToolSaveRequest;
+import com.backstage.system.service.impl.tool.OshToolServiceImpl;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.Collections;
+
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@RunWith(MockitoJUnitRunner.class)
+public class OshToolServiceImplTest {
+
+    @InjectMocks
+    private OshToolServiceImpl toolService;
+
+    @Mock
+    private OshToolMapper oshToolMapper;
+
+    @Mock
+    private OshToolTagMapper oshToolTagMapper;
+
+    @Mock
+    private OshToolPackageMapper oshToolPackageMapper;
+
+    @Mock
+    private OshToolCollectionMapper oshToolCollectionMapper;
+
+    @Test
+    public void shouldCreateMissingTagsWhenCreatingToolWithNewTagNames() {
+        ToolSaveRequest request = new ToolSaveRequest();
+        request.setToolName("图片转PDF");
+        request.setAccessType(1);
+        request.setRoutePath("/tool/image-to-pdf");
+        request.setTags(Arrays.asList("PDF工具", "图片工具"));
+
+        OshUser operator = new OshUser();
+        operator.setUsername("admin");
+
+        when(oshToolMapper.insertTool(any(OshTool.class))).thenAnswer(invocation -> {
+            OshTool tool = invocation.getArgument(0);
+            tool.setId(10001L);
+            return 1;
+        });
+        when(oshToolTagMapper.selectByName("PDF工具")).thenReturn(null);
+        when(oshToolTagMapper.selectByName("图片工具")).thenReturn(null);
+        when(oshToolTagMapper.insertToolTag(any(OshToolTag.class))).thenAnswer(invocation -> {
+            OshToolTag tag = invocation.getArgument(0);
+            tag.setId("PDF工具".equals(tag.getName()) ? 1L : 2L);
+            return 1;
+        });
+
+        Long toolId = toolService.createTool(request, operator);
+
+        assertEquals(Long.valueOf(10001L), toolId);
+        verify(oshToolTagMapper, times(2)).insertToolTag(any(OshToolTag.class));
+        verify(oshToolTagMapper).insertToolTagRel(eq(10001L), eq(1L), eq("admin"));
+        verify(oshToolTagMapper).insertToolTagRel(eq(10001L), eq(2L), eq("admin"));
+    }
+
+    @Test
+    public void shouldCreateToolPackagesWhenCreatingToolWithPackages() {
+        ToolPackageSaveRequest packageRequest = new ToolPackageSaveRequest();
+        packageRequest.setPackageName("10次体验包");
+        packageRequest.setUseCount(10);
+        packageRequest.setPrice(new BigDecimal("9.90"));
+        packageRequest.setPayType(1);
+        packageRequest.setSortOrder(10);
+
+        ToolSaveRequest request = new ToolSaveRequest();
+        request.setToolName("测试工具");
+        request.setAccessType(1);
+        request.setRoutePath("/test/test");
+        request.setResourceType("CASH_ONLY");
+        request.setPackages(Collections.singletonList(packageRequest));
+
+        OshUser operator = new OshUser();
+        operator.setUsername("admin");
+
+        when(oshToolMapper.insertTool(any(OshTool.class))).thenAnswer(invocation -> {
+            OshTool tool = invocation.getArgument(0);
+            tool.setId(10002L);
+            return 1;
+        });
+        when(oshToolPackageMapper.insertToolPackage(any(OshToolPackage.class))).thenReturn(1);
+
+        Long toolId = toolService.createTool(request, operator);
+
+        assertEquals(Long.valueOf(10002L), toolId);
+        verify(oshToolPackageMapper).insertToolPackage(org.mockito.ArgumentMatchers.argThat(toolPackage ->
+                Integer.valueOf(99).equals(toolPackage.getPointCost())
+                        && Integer.valueOf(1).equals(toolPackage.getPayType())
+        ));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldRejectCreateToolWhenTagCountExceedsLimit() {
+        ToolSaveRequest request = new ToolSaveRequest();
+        request.setToolName("测试工具");
+        request.setAccessType(1);
+        request.setRoutePath("/test/test");
+        request.setTags(Arrays.asList("标签一", "标签二", "标签三", "标签四"));
+
+        OshUser operator = new OshUser();
+        operator.setUsername("admin");
+
+        toolService.createTool(request, operator);
+    }
+
+    @Test
+    public void shouldReturnToolDetailWithoutConvertingLogoUrl() {
+        OshTool tool = new OshTool();
+        tool.setId(10001L);
+        tool.setLogoUrl("common/image/tool/logo.png");
+
+        when(oshToolMapper.selectToolById(10001L)).thenReturn(tool);
+        when(oshToolTagMapper.selectTagNamesByToolId(10001L)).thenReturn(Collections.singletonList("PDF工具"));
+        when(oshToolCollectionMapper.selectActiveToolIdsByUserIdAndToolIds(9L, Collections.singletonList(10001L)))
+                .thenReturn(Collections.singletonList(10001L));
+        OshToolPackage toolPackage = new OshToolPackage();
+        toolPackage.setId(1L);
+        toolPackage.setToolId(10001L);
+        toolPackage.setPackageName("10次体验包");
+        when(oshToolPackageMapper.selectPackagesByToolId(10001L)).thenReturn(Collections.singletonList(toolPackage));
+        when(oshToolMapper.selectUserRemainingCount(10001L, 9L)).thenReturn(8);
+
+        OshTool result = toolService.getToolDetail(10001L, 9L);
+
+        assertEquals("common/image/tool/logo.png", result.getLogoUrl());
+        assertEquals(Integer.valueOf(1), result.getCollectionFlag());
+        assertEquals(Integer.valueOf(8), result.getRemainingCount());
+        assertEquals(Integer.valueOf(1), result.getPurchasedFlag());
+        assertEquals("10次体验包", result.getPackages().get(0).getPackageName());
+        assertEquals(Collections.singletonList("PDF工具"), result.getTags());
+    }
+
+    @Test
+    public void shouldConsumeUsageWhenToolIsPaidResourceType() {
+        OshTool tool = new OshTool();
+        tool.setId(10001L);
+        tool.setResourceType("CASH_ONLY");
+
+        when(oshToolMapper.selectToolById(10001L)).thenReturn(tool);
+        when(oshToolMapper.consumeUserToolQuota(10001L, 9L, "normal")).thenReturn(1);
+        when(oshToolMapper.selectUserRemainingCount(10001L, 9L)).thenReturn(7);
+
+        Integer remainingCount = toolService.consumeToolUsage(9L, "normal", 10001L);
+
+        assertEquals(Integer.valueOf(7), remainingCount);
+        verify(oshToolMapper).consumeUserToolQuota(10001L, 9L, "normal");
+    }
+
+    @Test
+    public void shouldSkipConsumeUsageWhenToolIsFreeResourceType() {
+        OshTool tool = new OshTool();
+        tool.setId(10001L);
+        tool.setResourceType("FREE");
+
+        when(oshToolMapper.selectToolById(10001L)).thenReturn(tool);
+
+        Integer remainingCount = toolService.consumeToolUsage(9L, "normal", 10001L);
+
+        assertEquals(Integer.valueOf(0), remainingCount);
+        verify(oshToolMapper, times(0)).consumeUserToolQuota(any(Long.class), any(Long.class), any(String.class));
+    }
+}

@@ -14,4 +14,6 @@ import java.util.List;
  */
 public interface OshQATagMapper extends BaseMapper<Tag> {
     List<Long> selectTagIdsByQuestionId(Long questionId);
+
+    Tag selectTagByName(String name);
 }

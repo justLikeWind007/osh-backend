@@ -50,6 +50,8 @@ public class OshUserServiceImpl implements IOshUserService {
     private OshUserViolationMapper oshUserViolationMapper;
     @Autowired
     private OshUserAssetMapper oshUserAssetMapper;
+    @Autowired
+    private OshUserAssetRecordMapper oshUserAssetRecordMapper;
 
     @Override
     public R<OshUserLoginVO> login(String username, String password) {
@@ -80,12 +82,12 @@ public class OshUserServiceImpl implements IOshUserService {
         String token = createToken(oshUser);
         OshUserLoginVO userLoginVo = new OshUserLoginVO();
         userLoginVo.setToken(token);
-        Integer roleId = oshRoleMapper.getRoleIdByUserId(oshUser.getId());
+        List<Integer> roleIds = oshRoleMapper.getRoleIdsByUserId(oshUser.getId());
         Map<String, String> asset = getAsset(oshUser.getId());
-        Map<String, String> role = getRole(roleId);
-        Map<String, List<String>> permissionList = getPermission(roleId);
+        Map<String, String> role = getRole(roleIds);
+        Map<String, List<String>> permissionList = getPermission(roleIds);
         userLoginVo.setAsset(asset);
-        userLoginVo.setRole(getRole(roleId));
+        userLoginVo.setRole(role);
         userLoginVo.setPermissionList(permissionList);
         Map<String, Object> map = new HashMap<>();
         map.put(OshUserConstants.ASSET, asset);
@@ -141,6 +143,7 @@ public class OshUserServiceImpl implements IOshUserService {
         oshUser.setUsername(userMap.get(OshUserConstants.USERNAME));
         oshUser.setPassword(userMap.get(OshUserConstants.PASSWORD));
         oshUser.setEmail(userMap.get(OshUserConstants.EMAIL));
+        oshUser.setDeleteFlag((byte) 0);  // 明确设置，避免拦截器过滤
         ThreadLocalUtil.set(OshUserConstants.USER_ID, userId);
         oshUserMapper.insert(oshUser);
         oshUserMapper.addUniqueId(oshUser.getId(), uniqueId);
@@ -335,9 +338,54 @@ public class OshUserServiceImpl implements IOshUserService {
         return R.ok(ResultCode.SUCCESS.getMsg());
     }
 
-
-
-
+    @Override
+    public R<String> updateAsset(Integer changeType, Integer changeSource, Integer assetType, Long changeAmount, String remark) {
+        LambdaQueryWrapper<OshUserAsset> wrapper = new LambdaQueryWrapper<>();
+        Long userId = UserContextUtil.getCurrentUserId();
+        wrapper.eq(OshUserAsset::getUserId, userId).select(OshUserAsset::getGoldCoin, OshUserAsset::getPoints);
+        OshUserAssetRecord oshUserAssetRecord = new OshUserAssetRecord();
+        oshUserAssetRecord.setUserId(userId);
+        oshUserAssetRecord.setChangeType(changeType);
+        oshUserAssetRecord.setChangeSource(changeSource);
+        oshUserAssetRecord.setAssetType(assetType);
+        oshUserAssetRecord.setChangeAmount(changeAmount);
+        oshUserAssetRecord.setRemark(remark);
+        Map<String,Object> userMap = redisCache.getCacheObject(OshUserConstants.LOGIN_USER + userId);
+        if (userMap == null) {
+            return R.fail(ResultCode.FAILED_NOT_LOGIN.getMsg());
+        }
+        Map<String,String> asset = (Map<String,String>)userMap.get(OshUserConstants.ASSET);
+        Long goldCoin = Long.valueOf(asset.get(OshUserConstants.GOLD_COIN));
+        Long points = Long.valueOf(asset.get(OshUserConstants.POINTS));
+        if (assetType == 0) {
+            oshUserAssetRecord.setBeforeBalance(goldCoin);
+            if (changeType == 0) {
+                goldCoin += changeAmount;
+            } else {
+                goldCoin -= changeAmount;
+            }
+            oshUserAssetRecord.setAfterBalance(goldCoin);
+        } else {
+            oshUserAssetRecord.setBeforeBalance(points);
+            if (changeType == 0) {
+                points += changeAmount;
+            } else {
+                points -= changeAmount;
+            }
+            oshUserAssetRecord.setAfterBalance(points);
+        }
+        OshUserAsset oshUserAsset = new OshUserAsset();
+        oshUserAsset.setGoldCoin(goldCoin);
+        oshUserAsset.setPoints(points);
+        oshUserAssetMapper.update(oshUserAsset, wrapper);
+        oshUserAssetRecordMapper.insert(oshUserAssetRecord);
+        // 更新redis
+        asset.put(OshUserConstants.GOLD_COIN, String.valueOf(goldCoin));
+        asset.put(OshUserConstants.POINTS, String.valueOf(points));
+        userMap.put(OshUserConstants.ASSET, asset);
+        redisCache.setCacheObject(OshUserConstants.LOGIN_USER + userId, userMap);
+        return R.ok(ResultCode.SUCCESS.getMsg());
+    }
 
 
     public String createToken(OshUser oshUser) {
@@ -350,8 +398,8 @@ public class OshUserServiceImpl implements IOshUserService {
     private Map<String, String> getAsset(Long id) {
         OshUserAsset asset = ensureUserAsset(id);
         HashMap<String, String> result = new HashMap<>();
-        result.put("goldCoin", String.valueOf(Optional.ofNullable(asset.getGoldCoin()).orElse(0L)));
-        result.put("points", String.valueOf(Optional.ofNullable(asset.getPoints()).orElse(0L)));
+        result.put(OshUserConstants.GOLD_COIN, String.valueOf(Optional.ofNullable(asset.getGoldCoin()).orElse(0L)));
+        result.put(OshUserConstants.POINTS, String.valueOf(Optional.ofNullable(asset.getPoints()).orElse(0L)));
         return result;
     }
 
@@ -382,11 +430,17 @@ public class OshUserServiceImpl implements IOshUserService {
         return created;
     }
 
-    public Map<String,String> getRole(Integer roleId) {
+    public Map<String,String> getRole(List<Integer> roleId) {
         LambdaQueryWrapper<OshRole> roleWrapper = new LambdaQueryWrapper<>();
-        roleWrapper.eq(OshRole::getId, roleId).eq(OshRole::getDeleteFlag, 0)
+        roleWrapper.in(OshRole::getId, roleId).eq(OshRole::getDeleteFlag, 0)
                 .select(OshRole::getRoleName, OshRole::getRoleCode, OshRole::getLevel);
-        OshRole oshRole = oshRoleMapper.selectOne(roleWrapper);
+        List<OshRole> oshRoleList = oshRoleMapper.selectList(roleWrapper);
+        OshRole oshRole = oshRoleList.get(0);
+        for (OshRole curRole : oshRoleList) {
+            if (curRole.getLevel() > oshRole.getLevel()) {
+                oshRole = curRole;
+            }
+        }
         Map<String, String> roleMap = new HashMap<>();
         roleMap.put("roleName", oshRole.getRoleName());
         roleMap.put("roleCode", oshRole.getRoleCode());
@@ -394,8 +448,8 @@ public class OshUserServiceImpl implements IOshUserService {
         return roleMap;
     }
 
-    public Map<String,List<String>> getPermission(Integer roleId) {
-        List<Integer> ids = oshPermissionMapper.selectPermissionIdsByRoleId(roleId);
+    public Map<String,List<String>> getPermission(List<Integer> roleIds) {
+        List<Integer> ids = oshPermissionMapper.selectPermissionIdsByRoleIds(roleIds);
         LambdaQueryWrapper<OshPermission> permissionWrapper = new LambdaQueryWrapper<>();
         permissionWrapper.in(OshPermission::getId, ids).eq(OshPermission::getDeleteFlag, 0);
         List<OshPermission> oshPermissions = oshPermissionMapper.selectList(permissionWrapper);

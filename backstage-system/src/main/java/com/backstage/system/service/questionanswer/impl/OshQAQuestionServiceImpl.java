@@ -3,6 +3,7 @@ package com.backstage.system.service.questionanswer.impl;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.enums.QAQuestionSearchType;
+import com.backstage.common.enums.ResourceTypeEnum;
 import com.backstage.common.enums.ResultCode;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.system.domain.questionanswer.Answer;
@@ -14,6 +15,7 @@ import com.backstage.system.mapper.questionanswer.OshQAAnswerMapper;
 import com.backstage.system.mapper.questionanswer.OshQAQuestionMapper;
 import com.backstage.system.mapper.questionanswer.OshQATagMapper;
 import com.backstage.system.service.questionanswer.IOshQAQuestionService;
+import com.backstage.system.utils.ResourcePermissionUtil;
 import com.backstage.system.utils.UserContextUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
@@ -50,7 +52,10 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
 
 
     @Override
-    public R<String> addQuestion(Long userId, Long resourceNo, String resourceType, String content, Byte isPaidOnly, List<Long> tags) {
+    public R<String> addQuestion(Long userId, Long resourceNo, String resourceType, String content, Byte isPaidOnly, List<String> tags) {
+        if(!ResourcePermissionUtil.hasPermission(ResourceTypeEnum.fromTypeCode(resourceType),resourceNo)) {
+            return R.fail(ResultCode.FAILED_USER_PERMISSION_DENIED.getMsg());
+        }
         Question question = new Question();
         question.setUserId(userId);
         question.setResourceNo(resourceNo);
@@ -66,9 +71,11 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
         oshQaQuestionMapper.insert(question);
 
         if (tags != null && !tags.isEmpty()) {
-            for (Long tagId : tags) {
-                // 这里你原本就传了userId作为标签的创建者，逻辑是对的
-                oshQaQuestionMapper.addQuestionTags(question.getId(), tagId, userId);
+            for (String tagName : tags) {
+                Long tagId = resolveQATagId(tagName, userId);
+                if (tagId != null) {
+                    oshQaQuestionMapper.addQuestionTags(question.getId(), tagId, userId);
+                }
             }
         }
         return R.ok(ResultCode.SUCCESS.getMsg());
@@ -100,7 +107,7 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
     }
 
     @Override
-    public R<String> editQuestion(Long userId, Long questionId, Long resourceNo, String resourceType, String content, Byte isPaidOnly, List<Long> tags) {
+    public R<String> editQuestion(Long userId, Long questionId, Long resourceNo, String resourceType, String content, Byte isPaidOnly, List<String> tags) {
         LambdaQueryWrapper<Question> wrapper = new LambdaQueryWrapper<Question>().select(Question::getUserId).eq(Question::getId, questionId);
         Question question = oshQaQuestionMapper.selectOne(wrapper);
         if (question == null) {
@@ -114,12 +121,12 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
         question.setContent(content);
         question.setIsPaidOnly(isPaidOnly);
         oshQaQuestionMapper.update(question, new LambdaQueryWrapper<Question>().eq(Question::getId, questionId));
-        List<Long> tagIds = oshQaTagMapper.selectTagIdsByQuestionId(questionId);
-        if (CollectionUtils.isNotEmpty(tagIds) && !(tagIds.equals(tags))) {
+        if (tags != null) {
             oshQaQuestionMapper.deleteQuestionTags(questionId);
-            if (CollectionUtils.isNotEmpty(tags)) {
-                for (Long tagId : tags) {
-                    oshQaQuestionMapper.addQuestionTags(question.getId(), tagId, userId);
+            for (String tagName : tags) {
+                Long tagId = resolveQATagId(tagName, userId);
+                if (tagId != null) {
+                    oshQaQuestionMapper.addQuestionTags(questionId, tagId, userId);
                 }
             }
         }
@@ -176,13 +183,26 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
 
     @Override
     public TableDataInfo list(Long userId, Long resourceNo, String resourceType, String type, String keyword, Integer pageNum, Integer pageSize) {
+        // 兼容旧数据：'course' 和 '课程' 都能查到
+        final String normalizedResourceType;
+        if ("course".equalsIgnoreCase(resourceType)) {
+            normalizedResourceType = null; // 先不用 resourceType 过滤，下面用 IN 查询
+        } else {
+            normalizedResourceType = resourceType;
+        }
+
         LambdaQueryWrapper<Question> wrapper = new LambdaQueryWrapper<Question>()
                 // 1. 必须加：只查未删除的数据
                 .eq(Question::getDeleteFlag, 0)
                 .eq(resourceNo != null, Question::getResourceNo, resourceNo)
-                .eq(StringUtils.isNotEmpty(resourceType), Question::getResourceType, resourceType)
+                .eq(StringUtils.isNotEmpty(normalizedResourceType), Question::getResourceType, normalizedResourceType)
                 .like(StringUtils.isNotEmpty(keyword), Question::getContent, keyword)
                 .orderByDesc(Question::getViewCount);
+
+        // 兼容 course 和 课程 两种历史数据
+        if ("course".equalsIgnoreCase(resourceType)) {
+            wrapper.in(Question::getResourceType, java.util.Arrays.asList("course", "课程"));
+        }
 
         // 2. 这里的 type 判空处理
         if (StringUtils.isNotEmpty(type)) {
@@ -243,7 +263,7 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
         if (answer.getIsSolution() == 1 || question.getStatus() == 2) {
             return R.fail(ResultCode.FAILED_USER_ANSWER_ALREADY_MARKED.getMsg());
         }
-        if (question.getUserId().equals(userId) || UserContextUtil.hasPermission(4)) {
+        if (question.getUserId().equals(userId) || UserContextUtil.getCurrentLevel() > 4) {
             answer.setIsSolution((byte)1);
             oshQaAnswerMapper.update(answer, answerWrapper);
             question.setStatus((byte)2);
@@ -347,5 +367,33 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
             return R.ok(ResultCode.SUCCESS.getMsg());
         }
         return R.fail(ResultCode.FAILED.getMsg());
+    }
+
+    /**
+     * 根据标签名解析标签ID：存在则复用，不存在则自动创建。
+     * 与课程模块的 resolveCourseTag 逻辑保持一致。
+     */
+    private Long resolveQATagId(String tagName, Long userId) {
+        if (tagName == null || tagName.trim().isEmpty()) {
+            return null;
+        }
+        String name = tagName.trim();
+        Tag existing = oshQaTagMapper.selectTagByName(name);
+        if (existing != null) {
+            return existing.getId();
+        }
+        // 不存在则新建，createBy/updateBy 由 MyBatis-Plus 自动填充
+        Tag tag = new Tag();
+        tag.setName(name);
+        tag.setType("custom");
+        tag.setUseCount(0);
+        try {
+            oshQaTagMapper.insert(tag);
+            return tag.getId();
+        } catch (org.springframework.dao.DuplicateKeyException ex) {
+            // 并发场景下可能已被其他请求插入，重新查一次
+            Tag retry = oshQaTagMapper.selectTagByName(name);
+            return retry != null ? retry.getId() : null;
+        }
     }
 }

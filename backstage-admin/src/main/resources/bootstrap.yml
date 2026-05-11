@@ -9,9 +9,11 @@ spring:
       password: g5t52By7
       discovery:
         namespace: d4208eb8-261f-44a1-adf5-c12406fbd1a2
+        # macOS 需要去掉 http:// ---> 43.242.200.25:8848
         server-addr: http://43.242.200.25:8848
       config:
         namespace: d4208eb8-261f-44a1-adf5-c12406fbd1a2
+        # macOS 需要去掉 http:// ---> 43.242.200.25:8848
         server-addr: http://43.242.200.25:8848
         file-extension: yaml
         shared-configs:
@@ -25,4 +27,6 @@ spring:
           - data-id: osh-backend-mail-dev.yaml
             refresh: true
           - data-id: osh-backend-elasticsearch-dev.yaml
+            refresh: true
+          - data-id: osh-backend-jasypt-dev.yaml
             refresh: true

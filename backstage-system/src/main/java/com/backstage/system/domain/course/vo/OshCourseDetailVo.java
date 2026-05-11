@@ -71,7 +71,19 @@ public class OshCourseDetailVo {
     /** 资源类型 */
     private String resourceType;
 
+    /** 资源类型描述（中文，仅用于展示） */
+    private String resourceTypeDesc;
+
     private String level; // 或者 Integer level，根据你数据库类型来
+
+    /** 服务周期（月） */
+    private Integer servicePeriod;
+
+    /**
+     * 课程访问级别：FULL=全部章节可看，TRIAL=仅试看免费章节
+     * 由后端根据用户角色+购买记录动态计算，前端直接使用
+     */
+    private String accessLevel;
 
     // 章节列表字段（用于存放课程的大纲、视频路径等）
     private List<OshCourseSectionVo> sections;
@@ -95,6 +107,22 @@ public class OshCourseDetailVo {
         return level;
     }
 
+    public Integer getServicePeriod() {
+        return servicePeriod;
+    }
+
+    public void setServicePeriod(Integer servicePeriod) {
+        this.servicePeriod = servicePeriod;
+    }
+
+
+    public String getAccessLevel() {
+        return accessLevel;
+    }
+
+    public void setAccessLevel(String accessLevel) {
+        this.accessLevel = accessLevel;
+    }
 
     // 如果类上没有 @Data 注解，务必手动加上 Setter
     public void setResourceType(String resourceType) {
@@ -103,6 +131,14 @@ public class OshCourseDetailVo {
 
     public String getResourceType() {
         return resourceType;
+    }
+
+    public String getResourceTypeDesc() {
+        return resourceTypeDesc;
+    }
+
+    public void setResourceTypeDesc(String resourceTypeDesc) {
+        this.resourceTypeDesc = resourceTypeDesc;
     }
 
     public OshCourseDetailVo() {

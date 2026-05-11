@@ -18,6 +18,7 @@ import com.backstage.system.mapper.course.OshCourseCollectionMapper;
 import com.backstage.system.mapper.course.OshCourseMaterialMapper;
 import com.backstage.system.mapper.course.OshCourseSectionMapper;
 import com.backstage.system.mapper.course.OshCourseTagMapper;
+import com.backstage.system.mapper.user.OshRoleMapper;
 import com.backstage.system.request.CourseCreateRequest;
 import com.backstage.system.request.CourseChapterCreateRequest;
 import com.backstage.system.request.CourseMaterialCreateRequest;
@@ -76,6 +77,14 @@ public class OshCourseServiceImpl implements IOshCourseService {
     @Autowired
     private OshCourseSectionMapper oshCourseSectionMapper;
 
+    @Autowired
+    private OshRoleMapper oshRoleMapper;
+
+    // 拥有全量访问权限的角色 code（与 osh_role.role_code 保持一致）
+    private static final Set<String> FULL_ACCESS_ROLE_CODES = new HashSet<>(
+            Arrays.asList("vip", "small_class", "manager", "core_developer", "founder")
+    );
+
 
 
     // 注入你之前提到的 OSS 服务接口
@@ -89,7 +98,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         if (Integer.valueOf(1).equals(request.getCollectionFlag()) && userId != null) {
             list = oshCourseMapper.pageQueryUserCollectionSearchCourse(userId, request);
         } else {
-            list = oshCourseMapper.pageQuerySearchCourse(request);
+             list = oshCourseMapper.pageQuerySearchCourse(request, userId);
             fillCollectionFlag(list, userId);
         }
         fillBuyFlag(list, userId);
@@ -146,7 +155,42 @@ public class OshCourseServiceImpl implements IOshCourseService {
             }
         }
 
+        // 5. 计算 accessLevel：FULL=全部章节可看，TRIAL=仅试看
+        vo.setAccessLevel(resolveAccessLevel(vo, userId));
+
         return vo;
+    }
+
+    /**
+     * 判断用户对该课程的访问级别
+     * FULL  - 全部章节可看
+     * TRIAL - 仅免费试看章节
+     */
+    private String resolveAccessLevel(OshCourseDetailVo vo, Long userId) {
+        // 1. 免费课程，所有人全开放
+        Integer freeType = vo.getFreeType();
+        if (freeType != null && (freeType == 0 || freeType == 2)) {
+            return "FULL";
+        }
+
+        // 2. 未登录，只能试看
+        if (userId == null) {
+            return "TRIAL";
+        }
+
+        // 3. 查用户角色，高级角色直接全开放
+        String roleCode = oshRoleMapper.getRoleCodeByUserId(userId);
+        if (roleCode != null && FULL_ACCESS_ROLE_CODES.contains(roleCode.toLowerCase())) {
+            return "FULL";
+        }
+
+        // 4. 普通用户：查是否已单独购买该课程
+        if (oshCourseMapper.countUserBoughtCourse(vo.getId(), userId) > 0) {
+            return "FULL";
+        }
+
+        // 5. 其他情况：仅试看
+        return "TRIAL";
     }
 
     @Override
@@ -565,12 +609,14 @@ public class OshCourseServiceImpl implements IOshCourseService {
         course.setPrice(request.getPrice());
         course.setTPrice(request.getTPrice());
         course.setType(StringUtils.trimToNull(request.getType()));
-        course.setFreeType(defaultInteger(request.getFreeType()));
+        // freeType 由前端根据 resourceType 传入，不用 defaultInteger 兜底为 0（0=完全免费会导致付费课被误判）
+        course.setFreeType(request.getFreeType() != null ? request.getFreeType() : 3);
         course.setAfterServiceDays(defaultInteger(request.getAfterServiceDays()));
         course.setExamId(request.getExamId());
         course.setRemark(StringUtils.trimToNull(request.getRemark()));
         course.setResourceType(request.getResourceType());
         course.setLevel(request.getLevel());
+        course.setServicePeriod(request.getServicePeriod());
 
         course.setSubCount(CourseConstants.DEFAULT_COUNT);
         course.setTotalDuration(CourseConstants.DEFAULT_COUNT);
@@ -603,12 +649,13 @@ public class OshCourseServiceImpl implements IOshCourseService {
         course.setPrice(request.getPrice());
         course.setTPrice(request.getTPrice());
         course.setType(StringUtils.trimToNull(request.getType()));
-        course.setFreeType(defaultInteger(request.getFreeType()));
+        course.setFreeType(request.getFreeType() != null ? request.getFreeType() : 3);
         course.setAfterServiceDays(defaultInteger(request.getAfterServiceDays()));
         course.setExamId(request.getExamId());
         course.setRemark(StringUtils.trimToNull(request.getRemark()));
         course.setResourceType(request.getResourceType());
         course.setLevel(request.getLevel());
+        if (request.getServicePeriod() != null) course.setServicePeriod(request.getServicePeriod());
         course.setStatus(OshCourseStatusEnum.PUBLISHED.getCode());
         String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
         course.setUpdateBy(operatorName);
@@ -618,6 +665,21 @@ public class OshCourseServiceImpl implements IOshCourseService {
     private void bindCourseMaterial(Long courseId, CourseMaterialCreateRequest materialRequest, OshUser operator) {
         if (materialRequest == null) {
             return;
+        }
+        // 新增资料时校验必填字段
+        if (materialRequest.getMaterialId() == null) {
+            if (org.apache.commons.lang3.StringUtils.isBlank(materialRequest.getFileName())) {
+                throw new com.backstage.common.exception.ServiceException("资料文件名称不能为空");
+            }
+            if (org.apache.commons.lang3.StringUtils.isBlank(materialRequest.getFileUrl())) {
+                throw new com.backstage.common.exception.ServiceException("资料文件地址不能为空");
+            }
+            if (org.apache.commons.lang3.StringUtils.isBlank(materialRequest.getFileType())) {
+                throw new com.backstage.common.exception.ServiceException("资料文件类型不能为空");
+            }
+            if (materialRequest.getFileSize() == null || materialRequest.getFileSize().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                throw new com.backstage.common.exception.ServiceException("资料文件大小不能为空");
+            }
         }
         OshCourseMaterial material = buildCourseMaterialForCreate(courseId, materialRequest, operator);
         oshCourseMaterialMapper.insertMaterialEntity(material);
@@ -644,6 +706,10 @@ public class OshCourseServiceImpl implements IOshCourseService {
     }
 
     private void rebuildCourseMaterial(Long courseId, CourseMaterialCreateRequest materialRequest, OshUser operator) {
+        // 如果传了 materialId，说明是已有资料，直接保留，不删不增
+        if (materialRequest != null && materialRequest.getMaterialId() != null) {
+            return;
+        }
         oshCourseMaterialMapper.deleteMaterialsByCourseId(courseId);
         bindCourseMaterial(courseId, materialRequest, operator);
     }
@@ -719,7 +785,8 @@ public class OshCourseServiceImpl implements IOshCourseService {
         }
         CourseResourceEnum resourceEnum = CourseResourceEnum.fromCode(vo.getResourceType());
         if (resourceEnum != null) {
-            vo.setResourceType(resourceEnum.getDesc());
+            // 只设置描述字段，保留原始 code 供前端回显使用
+            vo.setResourceTypeDesc(resourceEnum.getDesc());
         }
     }
 

@@ -11,9 +11,9 @@ public enum CourseResourceEnum {
     FREE("FREE", "免费"),
     CASH_ONLY("CASH_ONLY", "仅现金"),
     CASH_POINT("CASH_POINT", "现金&积分"),
-    VIP("VIP", "VIP免费"),
-    SMALL_CLASS("SMALL_CLASS", "小班免费"),
-    INTERNAL("INTERNAL", "内部免费");
+    VIP("VIP", "VIP专属"),
+    SMALL_CLASS("SMALL_CLASS", "小班专属"),
+    INTERNAL("INTERNAL", "内部专属");
 
     private final String code;
     private final String desc;

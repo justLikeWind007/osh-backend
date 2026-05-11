@@ -4,6 +4,7 @@ import com.backstage.common.response.PageResponse;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.system.domain.course.es.OshCourseEsDocument;
 import com.backstage.system.domain.course.vo.CourseSearchLoginVo;
+import com.backstage.system.domain.user.CurrentUser;
 import com.backstage.system.enums.CourseResourceEnum;
 import com.backstage.system.mapper.course.OshCourseEsMapper;
 import com.backstage.system.mapper.course.OshCourseCollectionMapper;
@@ -107,7 +108,8 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
             request.setPageSize(pageSize);
 
             PageHelper.startPage(pageNum, pageSize);
-            List<CourseSearchLoginVo> rows = oshCourseMapper.pageQuerySearchCourse(request);
+            CurrentUser currentUser = new CurrentUser();
+            List<CourseSearchLoginVo> rows = oshCourseMapper.pageQuerySearchCourse(request, currentUser.getId());
             if (StringUtils.isEmpty(rows)) {
                 break;
             }

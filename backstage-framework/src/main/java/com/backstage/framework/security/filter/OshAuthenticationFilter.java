@@ -22,6 +22,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created with IntelliJ IDEA.
@@ -32,6 +33,8 @@ import java.util.*;
  */
 @Component
 public class OshAuthenticationFilter extends OncePerRequestFilter {
+    private static final int LOGIN_EXPIRE_MINUTES = 500;
+
     @Autowired
     private RedisCache redisCache;
 
@@ -67,17 +70,22 @@ public class OshAuthenticationFilter extends OncePerRequestFilter {
         }
 
 
-        Map<String, Object> userInfoMap = redisCache.getCacheObject(OshUserConstants.LOGIN_USER + userId);
+        String loginUserKey = OshUserConstants.LOGIN_USER + userId;
+        Map<String, Object> userInfoMap = redisCache.getCacheObject(loginUserKey);
 
         if (userInfoMap != null) {
             if (userId != null) {
+                // 前台站点登录态保存在 LoginUser:{userId}，每次有效请求都顺延 TTL，避免长时间编辑后 Redis 会话先过期。
+                redisCache.expire(loginUserKey, LOGIN_EXPIRE_MINUTES, TimeUnit.MINUTES);
                 ThreadLocalUtil.set(OshUserConstants.USER_ID, userId);
                 Map<String, String> role = (Map<String, String>) userInfoMap.get(OshUserConstants.ROLE);
                 ThreadLocalUtil.set(OshUserConstants.LEVEL, role.get(OshUserConstants.LEVEL));
+                ThreadLocalUtil.set(OshUserConstants.ROLE_CODE, role.get(OshUserConstants.ROLE_CODE));
                 LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
                 wrapper.eq(OshUser::getId, userId);
                 OshUser oshUser = oshUserMapper.selectOne(wrapper);
                 ThreadLocalUtil.set(OshUserConstants.USER_INFO, oshUser);
+                ThreadLocalUtil.set(OshUserConstants.USERNAME, oshUser.getUsername());
                 OshUserDetail oshUserDetail = new OshUserDetail();
                 oshUserDetail.setUserInfoMap(userInfoMap);
 
