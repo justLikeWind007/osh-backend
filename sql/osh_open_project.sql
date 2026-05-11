@@ -18,9 +18,6 @@ CREATE TABLE `osh_open_project` (
     `is_archived`      tinyint      NOT NULL DEFAULT 0 COMMENT '是否已归档：0-活跃，1-已归档',
     `last_sync_time`   datetime     DEFAULT NULL COMMENT '最后一次从 GitHub 同步数据的时间',
 
-    -- 课程关联
-    `course_url`       varchar(500) DEFAULT NULL COMMENT '关联课程URL（本站课程地址，如 /course/1，无则为 null）',
-
     -- 基础字段
     `create_time`      datetime     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `create_by`        bigint       DEFAULT NULL COMMENT '创建人（用户ID）',

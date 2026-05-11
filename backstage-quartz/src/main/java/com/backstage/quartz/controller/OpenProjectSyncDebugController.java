@@ -1,6 +1,7 @@
 package com.backstage.quartz.controller;
 
 import com.backstage.common.annotation.Anonymous;
+import com.backstage.quartz.task.OpenProjectSyncTask;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

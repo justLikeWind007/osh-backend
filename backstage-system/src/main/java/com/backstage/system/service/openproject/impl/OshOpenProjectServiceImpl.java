@@ -1,16 +1,23 @@
 package com.backstage.system.service.openproject.impl;
 
 import com.backstage.system.domain.openproject.OshOpenProject;
+import com.backstage.system.domain.openproject.OshOpenProjectResourceRel;
 import com.backstage.system.domain.openproject.OshOpenProjectTag;
 import com.backstage.system.domain.openproject.OshOpenProjectTagRel;
 import com.backstage.system.domain.openproject.dto.OpenProjectAuditDTO;
 import com.backstage.system.domain.openproject.dto.OpenProjectQueryDTO;
+import com.backstage.system.domain.openproject.dto.OpenProjectResourceDTO;
 import com.backstage.system.domain.openproject.dto.OpenProjectSubmitDTO;
 import com.backstage.system.domain.openproject.vo.OpenProjectVO;
+import com.backstage.system.domain.websocket.WsNotifyMessage;
 import com.backstage.system.mapper.openproject.OshOpenProjectMapper;
+import com.backstage.system.mapper.openproject.OshOpenProjectResourceRelMapper;
 import com.backstage.system.mapper.openproject.OshOpenProjectTagMapper;
 import com.backstage.system.mapper.openproject.OshOpenProjectTagRelMapper;
+import com.backstage.system.service.openproject.IOshOpenProjectFavoriteService;
 import com.backstage.system.service.openproject.IOshOpenProjectService;
+import com.backstage.system.service.websocket.WebSocketNotifyService;
+import com.backstage.system.utils.UserContextUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.github.pagehelper.PageHelper;
@@ -36,6 +43,15 @@ public class OshOpenProjectServiceImpl implements IOshOpenProjectService {
     @Autowired
     private OshOpenProjectTagRelMapper tagRelMapper;
 
+    @Autowired
+    private OshOpenProjectResourceRelMapper resourceRelMapper;
+
+    @Autowired
+    private IOshOpenProjectFavoriteService favoriteService;
+
+    @Autowired
+    private WebSocketNotifyService webSocketNotifyService;
+
     @Override
     public Map<String, Object> listPage(OpenProjectQueryDTO queryDTO) {
         int pageNum = queryDTO.getPageNum() == null ? 1 : queryDTO.getPageNum();
@@ -50,7 +66,6 @@ public class OshOpenProjectServiceImpl implements IOshOpenProjectService {
             );
             tagFilterIds = rels.stream().map(OshOpenProjectTagRel::getProjectId).collect(Collectors.toSet());
             if (tagFilterIds.isEmpty()) {
-                // 没有匹配的项目，直接返回空
                 Map<String, Object> empty = new LinkedHashMap<>();
                 empty.put("rows", Collections.emptyList());
                 empty.put("total", 0L);
@@ -58,6 +73,39 @@ public class OshOpenProjectServiceImpl implements IOshOpenProjectService {
                 empty.put("pageSize", pageSize);
                 return empty;
             }
+        }
+
+        // 如果只看收藏，查出当前用户收藏的 projectId
+        Long currentUserId = UserContextUtil.getCurrentUserId();
+        Set<Long> favoriteIds = null;
+        if (Boolean.TRUE.equals(queryDTO.getOnlyFavorite())) {
+            favoriteIds = favoriteService.getFavoriteProjectIds(currentUserId);
+            if (favoriteIds.isEmpty()) {
+                Map<String, Object> empty = new LinkedHashMap<>();
+                empty.put("rows", Collections.emptyList());
+                empty.put("total", 0L);
+                empty.put("pageNum", pageNum);
+                empty.put("pageSize", pageSize);
+                return empty;
+            }
+        }
+
+        // 合并标签筛选和收藏筛选的 id 集合（取交集）
+        Set<Long> idFilter = null;
+        if (tagFilterIds != null && favoriteIds != null) {
+            idFilter = tagFilterIds.stream().filter(favoriteIds::contains).collect(Collectors.toSet());
+            if (idFilter.isEmpty()) {
+                Map<String, Object> empty = new LinkedHashMap<>();
+                empty.put("rows", Collections.emptyList());
+                empty.put("total", 0L);
+                empty.put("pageNum", pageNum);
+                empty.put("pageSize", pageSize);
+                return empty;
+            }
+        } else if (tagFilterIds != null) {
+            idFilter = tagFilterIds;
+        } else if (favoriteIds != null) {
+            idFilter = favoriteIds;
         }
 
         // 构建查询条件
@@ -71,10 +119,9 @@ public class OshOpenProjectServiceImpl implements IOshOpenProjectService {
                     .or().like(OshOpenProject::getProjectDesc, kw));
         }
 
-        if (tagFilterIds != null) {
-            wrapper.in(OshOpenProject::getId, tagFilterIds);
+        if (idFilter != null) {
+            wrapper.in(OshOpenProject::getId, idFilter);
         }
-
         // 排序：白名单校验，防止 SQL 注入
         String sortField = queryDTO.getSortField();
         boolean asc = "asc".equalsIgnoreCase(queryDTO.getSortOrder());
@@ -125,6 +172,22 @@ public class OshOpenProjectServiceImpl implements IOshOpenProjectService {
             }
         }
 
+        // 查当前用户收藏集合（用于标记 favorited，未登录则为空集合）
+        final Set<Long> userFavoriteIds = favoriteService.getFavoriteProjectIds(currentUserId);
+
+        // 批量查询资源关联
+        Map<Long, List<OshOpenProjectResourceRel>> projectResourceMap = new HashMap<>();
+        if (!projectIds.isEmpty()) {
+            List<OshOpenProjectResourceRel> resourceRels = resourceRelMapper.selectList(
+                    new LambdaQueryWrapper<OshOpenProjectResourceRel>()
+                            .in(OshOpenProjectResourceRel::getProjectId, projectIds)
+                            .eq(OshOpenProjectResourceRel::getDeleteFlag, (byte) 0)
+            );
+            for (OshOpenProjectResourceRel rel : resourceRels) {
+                projectResourceMap.computeIfAbsent(rel.getProjectId(), k -> new ArrayList<>()).add(rel);
+            }
+        }
+
         // 转 VO
         List<OpenProjectVO> voList = projects.stream().map(p -> {
             OpenProjectVO vo = new OpenProjectVO();
@@ -144,7 +207,8 @@ public class OshOpenProjectServiceImpl implements IOshOpenProjectService {
             vo.setLastCommitTime(p.getLastCommitTime());
             vo.setIsArchived(p.getIsArchived());
             vo.setLastSyncTime(p.getLastSyncTime());
-            vo.setCourseUrl(p.getCourseUrl());
+            vo.setResources(projectResourceMap.getOrDefault(p.getId(), Collections.emptyList()));
+            vo.setFavorited(userFavoriteIds.contains(p.getId()));
             return vo;
         }).collect(Collectors.toList());
 
@@ -169,7 +233,6 @@ public class OshOpenProjectServiceImpl implements IOshOpenProjectService {
         project.setProjectUrl(dto.getProjectUrl());
         project.setAuthorName(dto.getAuthorName());
         project.setProjectCover(dto.getProjectCover());
-        project.setCourseUrl(dto.getCourseUrl());
         project.setStatus(0);
         project.setClickCount(0);
         project.setStarCount(0);
@@ -177,6 +240,20 @@ public class OshOpenProjectServiceImpl implements IOshOpenProjectService {
         project.setIsArchived((byte) 0);
         project.setDeleted(false);
         projectMapper.insert(project);
+
+        // 保存资源关联（课程、电子书、工具等）
+        if (!CollectionUtils.isEmpty(dto.getResources())) {
+            for (OpenProjectResourceDTO res : dto.getResources()) {
+                if (!StringUtils.hasText(res.getResourceUrl())) continue;
+                OshOpenProjectResourceRel rel = new OshOpenProjectResourceRel();
+                rel.setProjectId(project.getId());
+                rel.setResourceType(res.getResourceType());
+                rel.setResourceUrl(res.getResourceUrl());
+                rel.setResourceName(res.getResourceName());
+                rel.setDeleted(false);
+                resourceRelMapper.insert(rel);
+            }
+        }
 
         // 保存已有标签关联
         if (!CollectionUtils.isEmpty(dto.getTagIds())) {
@@ -276,7 +353,6 @@ public class OshOpenProjectServiceImpl implements IOshOpenProjectService {
             vo.setProjectCover(p.getProjectCover());
             vo.setStatus(p.getStatus());
             vo.setCreateTime(p.getCreateTime());
-            vo.setCourseUrl(p.getCourseUrl());
             vo.setTagNames(projectTagNameMap.getOrDefault(p.getId(), Collections.emptyList()));
             return vo;
         }).collect(Collectors.toList());
@@ -305,6 +381,17 @@ public class OshOpenProjectServiceImpl implements IOshOpenProjectService {
         project.setStatus(dto.getStatus());
         project.setRejectReason(dto.getRejectReason());
         projectMapper.updateById(project);
+
+        // 审核通过时广播公告给所有在线用户
+        if (dto.getStatus() == 1) {
+            WsNotifyMessage broadcast = new WsNotifyMessage();
+            broadcast.setType("NEW_OPEN_PROJECT");
+            broadcast.setTitle("新开源项目上线");
+            broadcast.setContent("「" + project.getProjectName() + "」已上线，快来看看吧！");
+            broadcast.setJumpUrl("/openproject/list");
+            broadcast.setBizId(String.valueOf(project.getId()));
+            webSocketNotifyService.broadcast(broadcast);
+        }
     }
 
     @Override
@@ -354,7 +441,14 @@ public class OshOpenProjectServiceImpl implements IOshOpenProjectService {
         vo.setLastCommitTime(p.getLastCommitTime());
         vo.setIsArchived(p.getIsArchived());
         vo.setLastSyncTime(p.getLastSyncTime());
-        vo.setCourseUrl(p.getCourseUrl());
+
+        // 查资源关联
+        List<OshOpenProjectResourceRel> resources = resourceRelMapper.selectList(
+                new LambdaQueryWrapper<OshOpenProjectResourceRel>()
+                        .eq(OshOpenProjectResourceRel::getProjectId, id)
+                        .eq(OshOpenProjectResourceRel::getDeleteFlag, (byte) 0)
+        );
+        vo.setResources(resources);
         return vo;
     }
 

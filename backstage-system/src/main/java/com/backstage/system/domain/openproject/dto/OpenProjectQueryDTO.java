@@ -18,6 +18,14 @@ public class OpenProjectQueryDTO {
      */
     private String sortOrder = "desc";
 
+    /**
+     * 是否只看我收藏的：true=只看收藏，false/null=全部
+     */
+    private Boolean onlyFavorite;
+
+    public Boolean getOnlyFavorite() { return onlyFavorite; }
+    public void setOnlyFavorite(Boolean onlyFavorite) { this.onlyFavorite = onlyFavorite; }
+
     public String getKeyword() { return keyword; }
     public void setKeyword(String keyword) { this.keyword = keyword; }
 

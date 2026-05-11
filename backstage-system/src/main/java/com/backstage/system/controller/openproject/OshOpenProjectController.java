@@ -6,21 +6,30 @@ import com.backstage.system.domain.openproject.OshOpenProjectTag;
 import com.backstage.system.domain.openproject.dto.OpenProjectAuditDTO;
 import com.backstage.system.domain.openproject.dto.OpenProjectQueryDTO;
 import com.backstage.system.domain.openproject.dto.OpenProjectSubmitDTO;
+import com.backstage.system.domain.openproject.vo.OpenProjectRankVO;
 import com.backstage.system.domain.openproject.vo.OpenProjectVO;
+import com.backstage.system.service.openproject.IOshOpenProjectFavoriteService;
+import com.backstage.system.service.openproject.IOshOpenProjectRankService;
 import com.backstage.system.service.openproject.IOshOpenProjectService;
+import com.backstage.system.utils.UserContextUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-
 @RestController
 @RequestMapping("/pc/openproject")
 public class OshOpenProjectController {
 
     @Autowired
     private IOshOpenProjectService openProjectService;
+
+    @Autowired
+    private IOshOpenProjectFavoriteService favoriteService;
+
+    @Autowired
+    private IOshOpenProjectRankService rankService;
 
     /** 分页查询已通过的开源项目列表 */
     @PostMapping("/list")
@@ -93,5 +102,38 @@ public class OshOpenProjectController {
         } catch (Exception e) {
             return R.fail("提交失败，请稍后重试");
         }
+    }
+
+    /** 收藏项目 */
+    @PostMapping("/favorite")
+    @PreAuthorize("hasAuthority('op:collection')")
+    public R<Void> favorite(@RequestParam Long projectId) {
+        Long userId = UserContextUtil.getCurrentUserId();
+        favoriteService.favorite(userId, projectId);
+        return R.ok();
+    }
+
+    /** 取消收藏 */
+    @PostMapping("/favorite/cancel")
+    @PreAuthorize("hasAuthority('op:cancel:collection')")
+    public R<Void> cancelFavorite(@RequestParam Long projectId) {
+        Long userId = UserContextUtil.getCurrentUserId();
+        favoriteService.cancelFavorite(userId, projectId);
+        return R.ok();
+    }
+
+    /**
+     * 排行榜
+     * @param rankType star / fork
+     * @param period   7 / 30（天）
+     * @param topN     返回前 N 名，默认 10
+     */
+    @GetMapping("/rank")
+    @PreAuthorize("hasAuthority('op:rank')")
+    public R<List<OpenProjectRankVO>> rank(
+            @RequestParam(defaultValue = "star") String rankType,
+            @RequestParam(defaultValue = "7")    int period,
+            @RequestParam(defaultValue = "10")   int topN) {
+        return R.ok(rankService.getRank(rankType, period, topN));
     }
 }

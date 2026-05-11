@@ -1,5 +1,7 @@
 package com.backstage.system.domain.openproject.vo;
 
+import com.backstage.system.domain.openproject.OshOpenProjectResourceRel;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -23,8 +25,14 @@ public class OpenProjectVO {
     private Byte isArchived;
     private LocalDateTime lastSyncTime;
 
-    // 课程关联
-    private String courseUrl;
+    // 关联本站资源（课程、电子书、工具等）
+    private List<OshOpenProjectResourceRel> resources;
+
+    /** 当前用户是否已收藏 */
+    private Boolean favorited;
+
+    public Boolean getFavorited() { return favorited; }
+    public void setFavorited(Boolean favorited) { this.favorited = favorited; }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -74,6 +82,6 @@ public class OpenProjectVO {
     public LocalDateTime getLastSyncTime() { return lastSyncTime; }
     public void setLastSyncTime(LocalDateTime lastSyncTime) { this.lastSyncTime = lastSyncTime; }
 
-    public String getCourseUrl() { return courseUrl; }
-    public void setCourseUrl(String courseUrl) { this.courseUrl = courseUrl; }
+    public List<OshOpenProjectResourceRel> getResources() { return resources; }
+    public void setResources(List<OshOpenProjectResourceRel> resources) { this.resources = resources; }
 }

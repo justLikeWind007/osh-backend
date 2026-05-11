@@ -16,10 +16,10 @@ public class OpenProjectSubmitDTO {
     private List<String> customTags;
 
     /**
-     * 关联课程 URL（本站课程地址，如 /course/1）
-     * 若本站有对该项目的讲解课程则填写，否则传 null
+     * 关联本站资源列表（课程、电子书、工具等）
+     * 替代原来的单一 courseUrl 字段
      */
-    private String courseUrl;
+    private List<OpenProjectResourceDTO> resources;
 
     public String getProjectName() { return projectName; }
     public void setProjectName(String projectName) { this.projectName = projectName; }
@@ -42,6 +42,6 @@ public class OpenProjectSubmitDTO {
     public List<String> getCustomTags() { return customTags; }
     public void setCustomTags(List<String> customTags) { this.customTags = customTags; }
 
-    public String getCourseUrl() { return courseUrl; }
-    public void setCourseUrl(String courseUrl) { this.courseUrl = courseUrl; }
+    public List<OpenProjectResourceDTO> getResources() { return resources; }
+    public void setResources(List<OpenProjectResourceDTO> resources) { this.resources = resources; }
 }

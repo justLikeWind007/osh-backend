@@ -58,12 +58,6 @@ public class OshOpenProject extends OSHBaseEntity implements Serializable {
     /** 最后一次从 GitHub 同步数据的时间 */
     private LocalDateTime lastSyncTime;
 
-    /**
-     * 关联课程 URL（本站课程地址，如 /course/1）
-     * 若本站有对该项目的讲解课程则填写，否则为 null
-     */
-    private String courseUrl;
-
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -105,7 +99,4 @@ public class OshOpenProject extends OSHBaseEntity implements Serializable {
 
     public LocalDateTime getLastSyncTime() { return lastSyncTime; }
     public void setLastSyncTime(LocalDateTime lastSyncTime) { this.lastSyncTime = lastSyncTime; }
-
-    public String getCourseUrl() { return courseUrl; }
-    public void setCourseUrl(String courseUrl) { this.courseUrl = courseUrl; }
 }

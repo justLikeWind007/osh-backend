@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.backstage.system.domain.openproject.OshOpenProject;
 import com.backstage.system.mapper.openproject.OshOpenProjectMapper;
+import com.backstage.system.service.openproject.IOshOpenProjectRankService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import org.slf4j.Logger;
@@ -11,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -46,6 +48,9 @@ public class OpenProjectSyncTask {
     @Autowired
     private OshOpenProjectMapper projectMapper;
 
+    @Autowired(required = false)
+    private IOshOpenProjectRankService rankService;
+
     /**
      * 全量同步所有已通过审核的开源项目的 GitHub 数据
      * 每天凌晨 2 点执行：0 0 2 * * ?
@@ -80,6 +85,15 @@ public class OpenProjectSyncTask {
         }
 
         log.info("开源项目 GitHub 数据同步完成，成功={}，跳过={}，失败={}", success, skip, fail);
+
+        // 同步完成后保存今日快照，用于排行榜增量计算
+        if (rankService != null) {
+            try {
+                rankService.saveTodaySnapshot();
+            } catch (Exception e) {
+                log.error("保存今日快照失败：{}", e.getMessage());
+            }
+        }
     }
 
     /**
@@ -140,7 +154,9 @@ public class OpenProjectSyncTask {
         conn.setRequestMethod("GET");
         conn.setRequestProperty("Accept", "application/vnd.github.v3+json");
         conn.setRequestProperty("User-Agent", "osh-backend");
-        conn.setRequestProperty("Authorization", githubToken);
+        if (StringUtils.hasText(githubToken)) {
+            conn.setRequestProperty("Authorization", "token " + githubToken);
+        }
         conn.setConnectTimeout(5000);
         conn.setReadTimeout(10000);
 
