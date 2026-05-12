@@ -18,6 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 反馈收藏服务实现
@@ -103,6 +106,19 @@ public class AssistantFeedbackFavoriteServiceImpl implements IAssistantFeedbackF
                 .eq(AssistantFeedbackFavorite::getFeedbackId, feedbackId)
                 .eq(AssistantFeedbackFavorite::getUserId, userId)
                 .exists();
+    }
+
+    @Override
+    public Set<Long> listFavoriteFeedbackIds(Long userId) {
+        if (userId == null) {
+            return Collections.emptySet();
+        }
+        return Db.lambdaQuery(AssistantFeedbackFavorite.class)
+                .eq(AssistantFeedbackFavorite::getUserId, userId)
+                .list()
+                .stream()
+                .map(AssistantFeedbackFavorite::getFeedbackId)
+                .collect(Collectors.toSet());
     }
 
     /**
