@@ -4,6 +4,10 @@ import java.time.LocalDateTime;
 
 public class InfoGapTagListRespDTO {
     /**
+     * 主键id
+     */
+    private Long id;
+    /**
      * 标签名
      */
     private String tagName;
@@ -15,6 +19,14 @@ public class InfoGapTagListRespDTO {
      * 被引用次数
      */
     private Long tagUseCount;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
 
     public String getTagName() {
         return tagName;

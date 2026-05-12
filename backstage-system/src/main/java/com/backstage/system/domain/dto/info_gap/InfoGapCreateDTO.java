@@ -9,7 +9,7 @@ public class InfoGapCreateDTO {
     private String title;
     private String content;
     private String tag;
-    private List<String> tags;
+    private List<Long> tagIds;
 
     // Getter and Setter
     public String getTitle() { return title; }
@@ -19,12 +19,12 @@ public class InfoGapCreateDTO {
     public String getTag() { return tag; }
     public void setTag(String tag) { this.tag = tag; }
 
-    public List<String> getTags() {
-        return tags;
+    public List<Long> getTagIds() {
+        return tagIds;
     }
 
-    public void setTags(List<String> tags) {
-        this.tags = tags;
+    public void setTagIds(List<Long> tagIds) {
+        this.tagIds = tagIds;
     }
 
     @Override
@@ -33,7 +33,7 @@ public class InfoGapCreateDTO {
                 "title='" + title + '\'' +
                 ", content='" + content + '\'' +
                 ", tag='" + tag + '\'' +
-                ", tags=" + tags +
+                ", tagIds=" + tagIds +
                 '}';
     }
 }

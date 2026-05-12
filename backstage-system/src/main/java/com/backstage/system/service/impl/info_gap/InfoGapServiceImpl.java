@@ -1,17 +1,13 @@
 package com.backstage.system.service.impl.info_gap;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.system.domain.dto.info_gap.InfoGapCreateDTO;
-import com.backstage.system.domain.info_gap.OshInfoGap;
-import com.backstage.system.domain.info_gap.OshInfoGapFollow;
-import com.backstage.system.domain.info_gap.OshInfoGapVote;
+import com.backstage.system.domain.info_gap.*;
 import com.backstage.system.domain.user.risk.OshUserRiskProfile;
 import com.backstage.system.domain.vo.info_gap.InfoGapVO;
-import com.backstage.system.mapper.info_gap.OshInfoGapFollowMapper;
-import com.backstage.system.mapper.info_gap.OshInfoGapMapper;
-import com.backstage.system.mapper.info_gap.OshInfoGapVoteMapper;
-import com.backstage.system.mapper.info_gap.OshUserRiskProfileMapper;
+import com.backstage.system.mapper.info_gap.*;
 import com.backstage.system.service.info_gap.InfoGapService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.pagehelper.PageHelper;
@@ -35,6 +31,10 @@ public class InfoGapServiceImpl implements InfoGapService {
     private OshInfoGapMapper infoGapMapper;
     @Autowired
     private OshInfoGapFollowMapper followMapper;
+    @Autowired
+    private OshInfoGapTagRelMapper infoGapTagRelMapper;
+    @Autowired
+    private OshInfoGapTagMapper infoGapTagMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -77,6 +77,7 @@ public class InfoGapServiceImpl implements InfoGapService {
             throw new RuntimeException("操作受限：您的账号因违规已被封禁");
         }
 
+        // 存储信息差详细
         OshInfoGap entity = new OshInfoGap();
         entity.setUserId(userId);
         entity.setTitle(dto.getTitle());
@@ -86,6 +87,26 @@ public class InfoGapServiceImpl implements InfoGapService {
 
         // 手动保存
         infoGapMapper.insertInfoGap(entity);
+
+        Long infoGapId = entity.getId();
+        List<Long> tagIds = dto.getTagIds();
+        int sort = 1;
+        if (tagIds != null && !tagIds.isEmpty()) {
+            for (Long tagId : tagIds) {
+                OshInfoGapTagRel oshInfoGapTagRel = new OshInfoGapTagRel();
+                oshInfoGapTagRel.setInfoGapId(infoGapId);
+                oshInfoGapTagRel.setGapTagId(tagId);
+                oshInfoGapTagRel.setSortNo(sort++);
+
+                infoGapTagRelMapper.insert(oshInfoGapTagRel);
+
+                LambdaUpdateWrapper<OshInfoGapTag> updateWrapper = new LambdaUpdateWrapper<>();
+                updateWrapper.eq(OshInfoGapTag::getId, tagId)
+                        .setSql("tag_use_count = tag_use_count + 1");
+
+                infoGapTagMapper.update(null, updateWrapper);
+            }
+        }
     }
 
     @Override

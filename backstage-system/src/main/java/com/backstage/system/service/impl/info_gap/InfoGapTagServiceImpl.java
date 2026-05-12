@@ -30,6 +30,7 @@ public class InfoGapTagServiceImpl implements InfoGapTagService {
 
         List<InfoGapTagListRespDTO> result = oshInfoGapTags.stream().map(tag -> {
             InfoGapTagListRespDTO respDTO = new InfoGapTagListRespDTO();
+            respDTO.setId(tag.getId());
             respDTO.setTagName(tag.getTagName());
             respDTO.setStatus(tag.getStatus());
             respDTO.setTagUseCount(tag.getTagUseCount());
