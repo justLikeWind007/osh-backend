@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.concurrent.ListenableFuture;
 
 import java.util.concurrent.TimeUnit;
+import org.springframework.util.concurrent.ListenableFutureCallback;
 
 /**
  * Created with IntelliJ IDEA.

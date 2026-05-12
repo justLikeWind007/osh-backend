@@ -145,14 +145,13 @@ public class MyBatisConfig
         sessionFactory.setMapperLocations(resolveMapperLocations(StringUtils.split(mapperLocations, ",")));
         sessionFactory.setConfigLocation(new DefaultResourceLoader().getResource(configLocation));
 
-        // 添加 MyBatis Plus 插件
-        sessionFactory.setPlugins(mybatisPlusInterceptor);
+        // 同时挂载 MP 分页插件和全局逻辑删除插件，避免后者覆盖前者导致分页失效。
+        sessionFactory.setPlugins(mybatisPlusInterceptor, globalLogicDeleteInterceptor);
 
         // 配置自动填充
         GlobalConfig globalConfig = new GlobalConfig();
         globalConfig.setMetaObjectHandler(metaObjectHandler);
         sessionFactory.setGlobalConfig(globalConfig);
-        sessionFactory.setPlugins(globalLogicDeleteInterceptor);
 
         return sessionFactory.getObject();
     }

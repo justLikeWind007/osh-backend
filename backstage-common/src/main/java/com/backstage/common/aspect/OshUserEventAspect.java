@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Created with IntelliJ IDEA.
@@ -50,8 +51,9 @@ public class OshUserEventAspect {
         String module = oshUserEvent.module();
         String methodName = joinPoint.getSignature().getName();
         Map<String,Object> userMap = redisCache.getCacheObject(OshUserConstants.LOGIN_USER + userId);
-        if (userMap == null) {
-            return R.fail(ResultCode.FAILED_NOT_LOGIN.getMsg());
+        // 匿名接口（userId 为 null 或 Redis 中无登录信息）：跳过事件记录，直接执行主流程
+        if (userId == null || userMap == null) {
+            return joinPoint.proceed();
         }
         Map<String,String> asset = (Map<String,String>)userMap.get(OshUserConstants.ASSET);
         Long goldCoin = Long.valueOf(asset.get(OshUserConstants.GOLD_COIN));
@@ -71,7 +73,15 @@ public class OshUserEventAspect {
             throw e;
         } finally {
             logger.info("用户行为日志: {}", event);
-            KafkaMessageUtil.sendMessage(oshUserEvent.topic(), JSON.toJSONString(event));
+            // 异步发送，不阻塞主流程
+            final OshUserEvent finalEvent = event;
+            final String topic = oshUserEvent.topic();
+            CompletableFuture.runAsync(() ->
+                KafkaMessageUtil.sendMessage(topic, JSON.toJSONString(finalEvent))
+            ).exceptionally(ex -> {
+                logger.error("异步发送用户行为事件失败, topic: {}, 原因: {}", topic, ex.getMessage());
+                return null;
+            });
         }
     }
 }
