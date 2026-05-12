@@ -26,11 +26,16 @@
     <delete id="deleteVoteRecord">
         DELETE FROM osh_info_gap_vote WHERE id = #{id}
     </delete>
+
     <update id="updateVoteRecord">
         UPDATE osh_info_gap_vote
-        SET type = #{type},
-        create_time = NOW()
+        SET type = #{type}
         WHERE id = #{id}
     </update>
 
+    <update id="cancelVoteRecord">
+        UPDATE osh_info_gap_vote
+        SET type = 0
+        WHERE user_id = #{userId} AND info_gap_id = #{infoId}
+    </update>
 </mapper>
