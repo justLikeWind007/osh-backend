@@ -88,8 +88,8 @@ public class InfoGapController {
     /**
      * 收藏/取消收藏信息差
      */
-    @GetMapping("/collect/{infoGapId}")
-    public R<Void> collect(@PathVariable Long infoGapId) {
+    @GetMapping("/collect")
+    public R<Void> collect(@RequestParam("infoGapId") Long infoGapId) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
 

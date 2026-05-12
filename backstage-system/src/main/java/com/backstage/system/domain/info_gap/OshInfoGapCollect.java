@@ -32,6 +32,16 @@ public class OshInfoGapCollect {
     private Long infoGapId;
 
     /**
+     * 信息差标题
+     */
+    private String infoGapTitle;
+
+    /**
+     * 信息差状态(0:未收藏,1:已收藏)
+     */
+    private Integer collectStatus;
+
+    /**
      * 创建时间
      */
     private LocalDateTime createTime;
@@ -42,7 +52,7 @@ public class OshInfoGapCollect {
     private LocalDateTime updateTime;
 
     /**
-     * 逻辑删除标记(0未删,1已删)
+     * 逻辑删除标记(0:未删,1:已删)
      */
     @TableLogic
     private Integer deleteFlag;
@@ -101,5 +111,21 @@ public class OshInfoGapCollect {
 
     public void setDeleteFlag(Integer deleteFlag) {
         this.deleteFlag = deleteFlag;
+    }
+
+    public String getInfoGapTitle() {
+        return infoGapTitle;
+    }
+
+    public void setInfoGapTitle(String infoGapTitle) {
+        this.infoGapTitle = infoGapTitle;
+    }
+
+    public Integer getCollectStatus() {
+        return collectStatus;
+    }
+
+    public void setCollectStatus(Integer collectStatus) {
+        this.collectStatus = collectStatus;
     }
 }

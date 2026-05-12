@@ -35,8 +35,7 @@ public class InfoGapCollectServiceImpl implements InfoGapCollectService {
 
         LambdaQueryWrapper<OshInfoGapCollect> queryWrapper = Wrappers.lambdaQuery(OshInfoGapCollect.class)
                 .eq(OshInfoGapCollect::getUserId, userId)
-                .eq(OshInfoGapCollect::getInfoGapId, infoGapId)
-                .eq(OshInfoGapCollect::getDeleteFlag, 0);
+                .eq(OshInfoGapCollect::getInfoGapId, infoGapId);
 
         OshInfoGapCollect oshInfoGapCollect = infoGapCollectMapper.selectOne(queryWrapper);
 
@@ -44,18 +43,30 @@ public class InfoGapCollectServiceImpl implements InfoGapCollectService {
         if (oshInfoGapCollect == null) {
             OshInfoGapCollect entity = new OshInfoGapCollect();
             entity.setUserId(userId);
-            entity.setInfoGapId(infoGapId);
             entity.setTargetUserId(authorId);
+            entity.setInfoGapId(infoGapId);
+            entity.setInfoGapTitle(oshInfoGap.getTitle());
+            entity.setCollectStatus(1);
 
             infoGapCollectMapper.insert(entity);
             return;
         }
 
-        // 已收藏 → 取消收藏
-        LambdaUpdateWrapper<OshInfoGapCollect> updateWrapper = Wrappers.lambdaUpdate(OshInfoGapCollect.class)
-                .eq(OshInfoGapCollect::getId, oshInfoGapCollect.getId())
-                .set(OshInfoGapCollect::getDeleteFlag, 1);
+        if (oshInfoGapCollect.getCollectStatus() == 1) {
+            // 已收藏 → 取消收藏
+            LambdaUpdateWrapper<OshInfoGapCollect> updateWrapper = Wrappers.lambdaUpdate(OshInfoGapCollect.class)
+                    .eq(OshInfoGapCollect::getId, oshInfoGapCollect.getId())
+                    .set(OshInfoGapCollect::getCollectStatus, 0);
 
-        infoGapCollectMapper.update(null, updateWrapper);
+            infoGapCollectMapper.update(null, updateWrapper);
+        } else {
+            // 已取消 → 重新收藏
+            LambdaUpdateWrapper<OshInfoGapCollect> updateWrapper = Wrappers.lambdaUpdate(OshInfoGapCollect.class)
+                    .eq(OshInfoGapCollect::getId, oshInfoGapCollect.getId())
+                    .set(OshInfoGapCollect::getCollectStatus, 1);
+
+            infoGapCollectMapper.update(null, updateWrapper);
+        }
+
     }
 }
