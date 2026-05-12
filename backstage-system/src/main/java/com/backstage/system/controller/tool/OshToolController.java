@@ -4,42 +4,43 @@ import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.annotation.DistributeLock;
 import com.backstage.common.core.controller.BaseController;
 import com.backstage.common.core.domain.R;
-import com.backstage.common.enums.UploadPathEnum;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.common.response.PageResponse;
-import com.backstage.system.constants.CourseUploadConstants;
+import com.backstage.system.config.properties.SearchEsProperties;
 import com.backstage.system.domain.tool.OshTool;
 import com.backstage.system.domain.tool.OshToolTag;
+import com.backstage.system.domain.tool.ToolUsagePermission;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.request.tool.ToolCollectionRequest;
 import com.backstage.system.request.tool.ToolDeleteRequest;
+import com.backstage.system.request.tool.ToolRecommendRequest;
 import com.backstage.system.request.tool.ToolSaveRequest;
 import com.backstage.system.request.tool.ToolSearchRequest;
-import com.backstage.system.service.common.OssService;
+import com.backstage.system.request.tool.ToolUsageConsumeRequest;
+import com.backstage.system.request.tool.ToolVoteRequest;
 import com.backstage.system.service.tool.IOshToolCollectionService;
+import com.backstage.system.service.tool.IOshToolEsService;
 import com.backstage.system.service.tool.IOshToolService;
 import com.backstage.system.utils.UserContextUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.validation.constraints.NotNull;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 @Api(tags = "工具管理")
 @RestController
 @RequestMapping("/pc/tool")
 public class OshToolController extends BaseController {
+
+    private static final Logger log = LoggerFactory.getLogger(OshToolController.class);
 
     @Autowired
     private IOshToolService oshToolService;
@@ -48,7 +49,10 @@ public class OshToolController extends BaseController {
     private IOshToolCollectionService oshToolCollectionService;
 
     @Autowired
-    private OssService ossService;
+    private IOshToolEsService oshToolEsService;
+
+    @Autowired
+    private SearchEsProperties searchEsProperties;
 
     @ApiOperation("工具搜索")
     @PostMapping("/search")
@@ -62,7 +66,47 @@ public class OshToolController extends BaseController {
         if (Integer.valueOf(1).equals(request.getCollectionFlag()) && userId == null) {
             return R.ok(PageResponse.of(Collections.emptyList(), 0L, request.getPageNum(), request.getPageSize()), "ok");
         }
+        if (searchEsProperties.isEnabled()) {
+            try {
+                return R.ok(oshToolEsService.searchTools(request, userId), "ok");
+            } catch (Exception ex) {
+                log.warn("tool search fallback to mysql after es failure, request={}, userId={}", request, userId, ex);
+            }
+        }
         List<OshTool> list = oshToolService.pageQuerySearchTool(userId, request);
+        com.github.pagehelper.PageInfo<OshTool> pageInfo = new com.github.pagehelper.PageInfo<>(list);
+        return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
+    }
+
+    @ApiOperation("ES工具搜索")
+    @PostMapping("/esSearch")
+    @PreAuthorize("hasAuthority('tool:list')")
+    public R<PageResponse<OshTool>> esToolSearch(@RequestBody ToolSearchRequest request) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long userId = currentOshUser == null ? null : currentOshUser.getId();
+        if (request == null) {
+            request = new ToolSearchRequest();
+        }
+        return R.ok(oshToolEsService.searchTools(request, userId), "ok");
+    }
+
+    @ApiOperation("全量同步工具到ES")
+    @PostMapping("/esSync/all")
+//    @PreAuthorize("hasAuthority('tool:es:sync')")
+    public R<Integer> syncAllToolsToEs() {
+        return R.ok(oshToolEsService.syncAllToolsToEs(), "ok");
+    }
+
+    @ApiOperation("工具推荐列表")
+    @PostMapping("/recommend")
+    @Anonymous
+    public R<PageResponse<OshTool>> recommend(@RequestBody ToolRecommendRequest request) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long userId = currentOshUser == null ? null : currentOshUser.getId();
+        if (request == null) {
+            request = new ToolRecommendRequest();
+        }
+        List<OshTool> list = oshToolService.listRecommendTools(userId, request);
         com.github.pagehelper.PageInfo<OshTool> pageInfo = new com.github.pagehelper.PageInfo<>(list);
         return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
     }
@@ -74,80 +118,6 @@ public class OshToolController extends BaseController {
         return R.ok(oshToolService.listAvailableTags());
     }
 
-    @ApiOperation("上传工具封面")
-    @PostMapping("/cover/upload")
-    @PreAuthorize("hasAuthority('tool:create')")
-    public R<Map<String, Object>> uploadToolCover(
-            @ApiParam("封面文件") @RequestParam("file") MultipartFile file,
-            @ApiParam("封面名称") @RequestParam(value = "coverName", required = false) String coverName) {
-        String fileName = file.getOriginalFilename();
-        String extension = "";
-        if (fileName != null && fileName.contains(".")) {
-            extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
-        }
-        if (!CourseUploadConstants.ALLOWED_IMAGE_EXTENSIONS.contains(extension)) {
-            throw new ServiceException(CourseUploadConstants.IMAGE_FORMAT_ERROR);
-        }
-        if (file.getSize() > CourseUploadConstants.MAX_IMAGE_SIZE) {
-            throw new ServiceException(CourseUploadConstants.IMAGE_SIZE_ERROR);
-        }
-
-        try {
-            String relativePath = ossService.upload(file, UploadPathEnum.TOOL_COVER, "covers");
-            if (relativePath == null || CourseUploadConstants.isUploadError(relativePath)) {
-                throw new ServiceException(relativePath);
-            }
-            Map<String, Object> coverInfo = new HashMap<>();
-            coverInfo.put("coverName", StringUtils.defaultIfBlank(coverName, fileName));
-            coverInfo.put("url", ossService.getLimitedUrl(relativePath, 1440));
-            coverInfo.put("relativePath", relativePath);
-            coverInfo.put("size", file.getSize());
-            coverInfo.put("type", extension);
-            return R.ok(coverInfo);
-        } catch (ServiceException ex) {
-            throw ex;
-        } catch (Exception ex) {
-            throw new ServiceException("上传工具封面失败：" + ex.getMessage());
-        }
-    }
-
-    @ApiOperation("获取工具封面临时URL")
-    @GetMapping("/cover/url")
-    @Anonymous
-    public R<String> getToolCoverUrl(
-            @ApiParam("工具封面相对路径") @RequestParam("path") String path,
-            @ApiParam("URL有效期（分钟），默认30") @RequestParam(value = "minute", required = false, defaultValue = "30") Integer minute) {
-        if (StringUtils.isBlank(path)) {
-            return R.fail("封面路径不能为空");
-        }
-        int validMinute = Math.min(minute != null ? minute : 30, 120);
-        return R.ok(oshToolService.getToolLogoUrl(path, validMinute));
-    }
-
-    @ApiOperation("批量获取工具封面临时URL")
-    @GetMapping("/cover/urls")
-    @Anonymous
-    public R<Map<String, String>> batchGetToolCoverUrls(
-            @ApiParam("工具封面相对路径列表，最多50个，逗号分隔") @RequestParam("paths") String paths,
-            @ApiParam("URL有效期（分钟），默认30") @RequestParam(value = "minute", required = false, defaultValue = "30") Integer minute) {
-        List<String> pathList = new ArrayList<>();
-        if (StringUtils.isNotBlank(paths)) {
-            for (String path : paths.split(",")) {
-                if (StringUtils.isNotBlank(path)) {
-                    pathList.add(path.trim());
-                }
-            }
-        }
-        if (pathList.isEmpty()) {
-            return R.ok(new HashMap<>(), "ok");
-        }
-        if (pathList.size() > 50) {
-            pathList = pathList.subList(0, 50);
-        }
-        int validMinute = Math.min(minute != null ? minute : 30, 120);
-        return R.ok(oshToolService.batchGetToolLogoUrlsByPaths(pathList, validMinute), "ok");
-    }
-
     @ApiOperation("工具详情")
     @GetMapping("/detail/{id}")
     @Anonymous
@@ -156,6 +126,18 @@ public class OshToolController extends BaseController {
         Long userId = currentOshUser == null ? null : currentOshUser.getId();
         OshTool tool = oshToolService.getToolDetail(id, userId);
         return tool == null ? R.fail("工具不存在") : R.ok(tool);
+    }
+
+    @ApiOperation("记录工具浏览次数")
+    @PostMapping("/view/{id}")
+    @Anonymous
+    public R<String> recordToolView(@NotNull @PathVariable("id") Long id) {
+        try {
+            oshToolService.recordToolView(id);
+            return R.ok("记录成功");
+        } catch (IllegalArgumentException | ServiceException ex) {
+            return R.fail(ex.getMessage());
+        }
     }
 
     @ApiOperation("新增/修改工具")
@@ -199,6 +181,7 @@ public class OshToolController extends BaseController {
     @ApiOperation("批量删除工具")
     @PostMapping("/delete")
     @PreAuthorize("hasAuthority('tool:delete')")
+    @DistributeLock(scene = "tool:delete", key = "operation", expireTime = 10000, waitTime = 3000, releaseImmediately = true)
     public R<String> deleteTools(@Validated @RequestBody ToolDeleteRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         if (currentOshUser == null) {
@@ -234,5 +217,77 @@ public class OshToolController extends BaseController {
         }
         oshToolCollectionService.removeToolCollection(currentOshUser.getId(), currentOshUser.getUsername(), request.getToolId());
         return R.ok("取消工具收藏成功");
+    }
+
+    @ApiOperation("扣减工具使用次数")
+    @PostMapping("/use/consume")
+    @PreAuthorize("hasAuthority('tool:use:consume')")
+    public R<Integer> consumeToolUsage(@Validated @RequestBody ToolUsageConsumeRequest request) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        if (currentOshUser == null) {
+            return R.fail("请先登录");
+        }
+        try {
+            Integer remainingCount = oshToolService.consumeToolUsage(
+                    currentOshUser.getId(),
+                    UserContextUtil.getCurrentLevel(),
+                    currentOshUser.getUsername(),
+                    request.getToolId()
+            );
+            return R.ok(remainingCount);
+        } catch (IllegalArgumentException | ServiceException ex) {
+            return R.fail(ex.getMessage());
+        }
+    }
+
+    @ApiOperation("校验工具使用与扣费权限")
+    @PostMapping("/use/check")
+    @PreAuthorize("hasAuthority('tool:use:consume')")
+    public R<ToolUsagePermission> checkToolUsagePermission(@Validated @RequestBody ToolUsageConsumeRequest request) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        if (currentOshUser == null) {
+            return R.fail("请先登录");
+        }
+        try {
+            return R.ok(oshToolService.checkToolUsagePermission(
+                    currentOshUser.getId(),
+                    UserContextUtil.getCurrentLevel(),
+                    request.getToolId()
+            ));
+        } catch (IllegalArgumentException | ServiceException ex) {
+            return R.fail(ex.getMessage());
+        }
+    }
+
+    @ApiOperation("点赞工具")
+    @PostMapping("/vote/good")
+    @PreAuthorize("hasAuthority('tool:vote:good')")
+    public R<Integer> voteGoodTool(@Validated @RequestBody ToolVoteRequest request) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        if (currentOshUser == null) {
+            return R.fail("请先登录");
+        }
+        try {
+            Integer voteType = oshToolService.voteTool(currentOshUser.getId(), currentOshUser.getUsername(), request.getToolId(), 1);
+            return R.ok(voteType);
+        } catch (IllegalArgumentException | ServiceException ex) {
+            return R.fail(ex.getMessage());
+        }
+    }
+
+    @ApiOperation("差评工具")
+    @PostMapping("/vote/bad")
+    @PreAuthorize("hasAuthority('tool:vote:bad')")
+    public R<Integer> voteBadTool(@Validated @RequestBody ToolVoteRequest request) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        if (currentOshUser == null) {
+            return R.fail("请先登录");
+        }
+        try {
+            Integer voteType = oshToolService.voteTool(currentOshUser.getId(), currentOshUser.getUsername(), request.getToolId(), 3);
+            return R.ok(voteType);
+        } catch (IllegalArgumentException | ServiceException ex) {
+            return R.fail(ex.getMessage());
+        }
     }
 }

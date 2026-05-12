@@ -8,9 +8,9 @@ create table `osh_role` (
     `description` varchar(200) comment '角色描述',
     `status` tinyint default 1 comment '状态：1-启用，0-禁用',
     `create_time` datetime default current_timestamp comment '创建时间',
-    `create_by` varchar(64) default 'system' comment '创建人',
+    `create_by` bigint NOT NULL default 0 comment '创建人',
     `update_time` datetime default current_timestamp on update current_timestamp comment '更新时间',
-    `update_by` varchar(64) default 'system' comment '更新人',
+    `update_by` bigint NOT NULL default 0 comment '更新人',
     `delete_flag` tinyint default 0 comment '删除标志：0-未删除，1-已删除'
 ) engine=innodb default charset=utf8mb4 collate=utf8mb4_0900_as_cs comment='角色表';
 

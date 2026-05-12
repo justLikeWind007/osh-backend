@@ -1,6 +1,7 @@
 package com.backstage.system.mapper.tool;
 
 import com.backstage.system.domain.tool.OshTool;
+import com.backstage.system.request.tool.ToolRecommendRequest;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -12,7 +13,26 @@ public interface OshToolMapper {
     List<OshTool> pageQuerySearchTool(@Param("request") com.backstage.system.request.tool.ToolSearchRequest request,
                                       @Param("userId") Long userId);
 
+    List<OshTool> selectRecommendTools(@Param("request") ToolRecommendRequest request,
+                                       @Param("userId") Long userId);
+
     OshTool selectToolById(@Param("id") Long id);
+
+    Integer selectUserRemainingCount(@Param("toolId") Long toolId, @Param("userId") Long userId);
+
+    int consumeUserToolQuota(@Param("toolId") Long toolId, @Param("userId") Long userId, @Param("operator") String operator);
+
+    int increaseTotalUsage(@Param("toolId") Long toolId);
+
+    int increaseViewCount(@Param("toolId") Long toolId);
+
+    int increaseGoodCount(@Param("toolId") Long toolId);
+
+    int decreaseGoodCount(@Param("toolId") Long toolId);
+
+    int increaseBadCount(@Param("toolId") Long toolId);
+
+    int decreaseBadCount(@Param("toolId") Long toolId);
 
     int insertTool(OshTool tool);
 

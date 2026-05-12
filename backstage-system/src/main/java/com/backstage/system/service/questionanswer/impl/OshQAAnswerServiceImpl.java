@@ -76,7 +76,7 @@ public class OshQAAnswerServiceImpl implements IOshQAAnswerService {
 
         // 查询回答者昵称
         OshUser answerer = userMapper.selectById(answererUserId);
-        String nickname = (answerer != null && answerer.getNickname() != null)
+        String nickname = (answerer != null && answerer.getUsername() != null)
                 ? answerer.getNickname() : "匿名用户";
 
         // 构建消息体，content 截取摘要
