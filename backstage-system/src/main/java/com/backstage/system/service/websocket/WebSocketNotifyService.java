@@ -28,6 +28,14 @@ public class WebSocketNotifyService {
         webSocketHandler.sendToUser(targetUserId, message);
     }
 
+    /**
+     * 广播消息给所有在线用户（不持久化）
+     * 适用于公告、系统通知等场景
+     */
+    public void broadcast(WsNotifyMessage message) {
+        webSocketHandler.broadcast(message);
+    }
+
     // ── 工具方法 ──────────────────────────────────────────────────────────────
 
     /**

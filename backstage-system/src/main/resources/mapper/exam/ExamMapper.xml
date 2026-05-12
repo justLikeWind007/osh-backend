@@ -1,54 +1,144 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.backstage.system.mapper.exam.OshExamMapper">
-    <resultMap id="ExamDetailMap" type="com.backstage.system.domain.vo.exam.ExamDetailVo">
-        <id property="id" column="id" />
-        <result property="title" column="title" />
-        <result property="total_score" column="total_score" />
-        <result property="pass_score" column="pass_score" />
-        <result property="expire" column="expire" />
 
+    <!-- 考试详情（含题目列表） -->
+    <resultMap id="ExamDetailMap" type="com.backstage.system.domain.vo.exam.ExamDetailVo">
+        <id     property="id"           column="id" />
+        <result property="title"        column="title" />
+        <result property="total_score"  column="total_score" />
+        <result property="pass_score"   column="pass_score" />
+        <result property="expire"       column="expire" />
         <collection property="testpaper_questions" ofType="com.backstage.system.domain.vo.exam.QuestionVo">
-            <id property="id" column="q_id" />
+            <id     property="id"          column="q_id" />
             <result property="question_id" column="q_question_id" />
-            <result property="title" column="q_title" />
-            <result property="score" column="q_score" />
-            <result property="type" column="q_type" />
-            <result property="remark" column="q_remark" />
-            <result property="options" column="q_options" />
+            <result property="title"       column="q_title" />
+            <result property="score"       column="q_score" />
+            <result property="type"        column="q_type" />
+            <result property="remark"      column="q_remark" />
+            <result property="options"     column="q_options" />
+            <result property="correct_answer" column="q_correct_answer" />
         </collection>
     </resultMap>
 
     <select id="selectExamById" resultMap="ExamDetailMap">
         SELECT
-        e.id,
-        e.title,
-        e.total_score,
-        e.pass_score,
-        e.expire,
-        q.id AS q_id,
-        q.id AS q_question_id, -- 确保这个别名对应 ResultMap 里的 q_question_id
-        q.title AS q_title,
-        q.score AS q_score,
-        q.type AS q_type,
-        q.remark AS q_remark,
-        q.options AS q_options
+            e.id,
+            e.title,
+            e.total_score,
+            e.pass_score,
+            e.expire,
+            q.id          AS q_id,
+            q.id          AS q_question_id,
+            q.title       AS q_title,
+            q.score       AS q_score,
+            q.type        AS q_type,
+            q.remark      AS q_remark,
+            q.options     AS q_options,
+            q.correct_answer AS q_correct_answer
         FROM osh_examination e
-        LEFT JOIN osh_question q ON e.id = q.exam_id AND q.is_delete = 0
+        LEFT JOIN osh_question q ON e.id = q.exam_id AND q.delete_flag = 0
         WHERE e.id = #{id}
-        AND e.is_delete = 0
+          AND e.delete_flag = 0
     </select>
 
-    <select id="selectExamList" resultType="com.backstage.system.domain.vo.exam.ExamVo">
-        SELECT
-        id, title, total_score, pass_score, expire, question_count
-        FROM
-        osh_examination
-        WHERE
-        status = 1 AND is_delete = 0
-        ORDER BY
-        id DESC
+    <!--
+        考试列表 VO 显式 resultMap。
+        必须显式映射：项目全局开启了 mapUnderscoreToCamelCase=true，
+        会把列 total_score 自动转成属性 totalScore 去找；
+        而 ExamVo 的属性故意保留蛇形（total_score 等，前端按蛇形读），
+        没有显式 resultMap 时这些字段会被 MyBatis 忽略，导致回显为 null。
+    -->
+    <resultMap id="ExamListMap" type="com.backstage.system.domain.vo.exam.ExamVo">
+        <id     property="id"             column="id" />
+        <result property="title"          column="title" />
+        <result property="total_score"    column="total_score" />
+        <result property="pass_score"     column="pass_score" />
+        <result property="expire"         column="expire" />
+        <result property="question_count" column="question_count" />
+        <result property="start_time"     column="start_time" />
+        <result property="end_time"       column="end_time" />
+        <result property="status"         column="status" />
+        <result property="cover"          column="cover" />
+        <result property="description"    column="description" />
+        <result property="collect_count"  column="collect_count" />
+        <result property="resource_type"  column="resource_type" />
+        <result property="resource_id"    column="resource_id" />
+    </resultMap>
+
+    <!-- 考试列表（支持关键词/标签/资源过滤） -->
+    <select id="selectExamList" resultMap="ExamListMap">
+        SELECT DISTINCT
+            e.id,
+            e.title,
+            e.total_score,
+            e.pass_score,
+            e.expire,
+            e.question_count,
+            e.start_time,
+            e.end_time,
+            e.status,
+            e.cover,
+            e.description,
+            e.collect_count,
+            e.resource_type,
+            e.resource_id
+        FROM osh_examination e
+        <if test="dto.tag != null and dto.tag != ''">
+            LEFT JOIN osh_exam_tag_rel etr ON e.id = etr.exam_id AND etr.delete_flag = 0
+            LEFT JOIN osh_exam_tag et ON etr.tag_id = et.id AND et.delete_flag = 0
+        </if>
+        <if test="dto.collectFlag != null and dto.collectFlag == 1 and dto.userId != null">
+            INNER JOIN osh_exam_collection ec ON e.id = ec.exam_id AND ec.user_id = #{dto.userId} AND ec.delete_flag = 0
+        </if>
+        WHERE e.status = 1
+          AND e.delete_flag = 0
+        <if test="dto.keyword != null and dto.keyword != ''">
+            AND e.title LIKE CONCAT('%', #{dto.keyword}, '%')
+        </if>
+        <if test="dto.tag != null and dto.tag != ''">
+            AND et.name = #{dto.tag}
+        </if>
+        <if test="dto.resourceType != null and dto.resourceType != ''">
+            AND e.resource_type = #{dto.resourceType}
+        </if>
+        <if test="dto.resourceId != null">
+            AND e.resource_id = #{dto.resourceId}
+        </if>
+        ORDER BY e.id DESC
     </select>
 
+    <!-- 查询用户已完成的考试ID -->
+    <select id="selectFinishedExamIdsByUserId" resultType="java.lang.Long">
+        SELECT DISTINCT exam_id
+        FROM osh_user_exam_record
+        WHERE user_id = #{userId}
+          AND answer_status = 1
+          AND delete_flag = 0
+    </select>
+
+    <!-- 软删除考试 -->
+    <update id="deleteExamById">
+        UPDATE osh_examination
+        SET delete_flag = 1,
+            create_by = #{operator}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateExamQuestionStats">
+        UPDATE osh_examination e
+        SET e.question_count = (
+                SELECT COUNT(*)
+                FROM osh_question q
+                WHERE q.exam_id = #{examId} AND q.delete_flag = 0
+            ),
+            e.total_score = COALESCE((
+                SELECT SUM(q.score)
+                FROM osh_question q
+                WHERE q.exam_id = #{examId} AND q.delete_flag = 0
+            ), 0)
+        WHERE e.id = #{examId}
+          AND e.delete_flag = 0
+    </update>
 
 </mapper>

@@ -90,6 +90,33 @@ public class OshWebSocketHandler extends TextWebSocketHandler {
         return s != null && s.isOpen();
     }
 
+    /**
+     * 广播消息给所有在线用户
+     * 广播消息不持久化（公告性质，不需要写库）
+     */
+    public void broadcast(Object payload) {
+        if (sessions.isEmpty()) return;
+        String json = JSON.toJSONString(payload);
+        TextMessage message = new TextMessage(json);
+        int success = 0, fail = 0;
+        for (WebSocketSession session : sessions.values()) {
+            if (session == null || !session.isOpen()) continue;
+            try {
+                session.sendMessage(message);
+                success++;
+            } catch (Exception e) {
+                fail++;
+                log.warn("WS 广播失败，sessionId={}，原因={}", session.getId(), e.getMessage());
+            }
+        }
+        log.info("WS 广播完成，成功={}，失败={}", success, fail);
+    }
+
+    /** 当前在线人数 */
+    public int getOnlineCount() {
+        return (int) sessions.values().stream().filter(s -> s != null && s.isOpen()).count();
+    }
+
     private void persist(Long userId, Object payload) {
         if (persistHandler == null) return;
         try {

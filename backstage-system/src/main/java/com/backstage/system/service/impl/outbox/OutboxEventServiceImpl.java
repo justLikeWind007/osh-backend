@@ -9,6 +9,8 @@ import com.backstage.system.mapper.outbox.OshOutboxEventMapper;
 import com.backstage.system.service.OutboxEventService;
 import com.backstage.system.service.course.CourseIndexDeleteMessage;
 import com.backstage.system.service.course.CourseIndexUpsertMessage;
+import com.backstage.system.service.tool.ToolIndexDeleteMessage;
+import com.backstage.system.service.tool.ToolIndexMessage;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +27,7 @@ public class OutboxEventServiceImpl implements OutboxEventService {
 
     private static final Logger log = LoggerFactory.getLogger(OutboxEventServiceImpl.class);
     private static final String AGGREGATE_TYPE_COURSE = "COURSE";
+    private static final String AGGREGATE_TYPE_TOOL = "TOOL";
     private static final String EVENT_TYPE_COURSE_INDEX_CREATE = "COURSE_INDEX_CREATE";
     private static final String EVENT_TYPE_COURSE_INDEX_UPDATE = "COURSE_INDEX_UPDATE";
     private static final String EVENT_TYPE_COURSE_INDEX_DELETE = "COURSE_INDEX_DELETE";
@@ -56,17 +59,50 @@ public class OutboxEventServiceImpl implements OutboxEventService {
                 JSON.toJSONString(message), operator);
     }
 
+    @Override
+    public void saveToolIndexEvent(Long toolId, ToolIndexMessage message, OshUser operator) {
+        String operatorName = operator == null ? null : operator.getUsername();
+        saveToolIndexEvent(toolId, message, operatorName);
+    }
+
+    @Override
+    public void saveToolIndexEvent(Long toolId, ToolIndexMessage message, String operator) {
+        if (message == null || StringUtils.isBlank(message.getEventType())) {
+            log.warn("工具索引消息为空或事件类型为空，跳过outbox写入, toolId={}", toolId);
+            return;
+        }
+        saveEvent(AGGREGATE_TYPE_TOOL, toolId, message.getEventType(), KafkaConstants.TOOL_INDEX_TOPIC,
+                JSON.toJSONString(message), "tool:" + toolId, operator);
+    }
+
+    @Override
+    public void saveToolIndexDeleteEvent(Long toolId, ToolIndexDeleteMessage message, OshUser operator) {
+        String operatorName = operator == null ? null : operator.getUsername();
+        if (message == null || StringUtils.isBlank(message.getEventType())) {
+            log.warn("工具索引删除消息为空或事件类型为空，跳过outbox写入, toolId={}", toolId);
+            return;
+        }
+        saveEvent(AGGREGATE_TYPE_TOOL, toolId, message.getEventType(), KafkaConstants.TOOL_INDEX_TOPIC,
+                JSON.toJSONString(message), "tool:" + toolId, operatorName);
+    }
+
     private void saveCourseEvent(Long courseId, String eventType, String topic, String payload, OshUser operator) {
+        String operatorName = operator == null ? null : operator.getUsername();
+        saveEvent(AGGREGATE_TYPE_COURSE, courseId, eventType, topic, payload, "course:" + courseId, operatorName);
+    }
+
+    private void saveEvent(String aggregateType, Long aggregateId, String eventType, String topic,
+                           String payload, String messageKey, String operator) {
         LocalDateTime now = LocalDateTime.now();
-        String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
+        String operatorName = StringUtils.trimToNull(operator);
 
         OshOutboxEvent event = new OshOutboxEvent();
         event.setEventId(UUID.randomUUID().toString().replace("-", ""));
-        event.setAggregateType(AGGREGATE_TYPE_COURSE);
-        event.setAggregateId(courseId);
+        event.setAggregateType(aggregateType);
+        event.setAggregateId(aggregateId);
         event.setEventType(eventType);
         event.setTopic(topic);
-        event.setMessageKey("course:" + courseId);
+        event.setMessageKey(messageKey);
         event.setPayload(payload);
         event.setStatus(OutboxEventStatusEnum.PENDING.getCode());
         event.setRetryCount(DEFAULT_RETRY_COUNT);
