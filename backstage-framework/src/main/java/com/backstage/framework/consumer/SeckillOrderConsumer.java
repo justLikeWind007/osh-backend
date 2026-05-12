@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 
 /**
@@ -36,7 +37,7 @@ public class SeckillOrderConsumer {
 
     @KafkaListener(topics = KafkaConstants.SECKILL_ORDER_CREATE_TOPIC,
                    groupId = "${spring.kafka.consumer.group-id}")
-    public void consumeSeckillOrder(String message) {
+    public void consumeSeckillOrder(String message, Acknowledgment ack) {
         logger.info("【秒杀消费者】收到订单创建消息：{}", message);
         try {
             SeckillOrderMessage msg = JSON.parseObject(message, SeckillOrderMessage.class);
@@ -45,6 +46,7 @@ public class SeckillOrderConsumer {
             OshSeckillOrder exist = orderMapper.selectOrderBySeckillNo(msg.getSeckillNo());
             if (exist != null) {
                 logger.warn("【秒杀消费者】订单已存在，跳过重复消费，seckillNo={}", msg.getSeckillNo());
+                ack.acknowledge(); // 手动提交
                 return;
             }
 
@@ -57,6 +59,7 @@ public class SeckillOrderConsumer {
                 stringRedisTemplate.opsForValue().increment(stockKey, quantity);
                 logger.error("【秒杀消费者】数据库库存不足，已回滚Redis库存，itemId={}, seckillNo={}",
                         msg.getItemId(), msg.getSeckillNo());
+                ack.acknowledge(); // 手动提交（业务失败但消息已处理）
                 return; // 不创建订单
             }
             logger.info("【秒杀消费者】数据库库存扣减成功，itemId={}, quantity={}",
@@ -82,8 +85,11 @@ public class SeckillOrderConsumer {
             logger.info("【秒杀消费者】订单创建成功，seckillNo={}, userId={}",
                     msg.getSeckillNo(), msg.getUserId());
 
+            ack.acknowledge(); // 手动提交（成功）
+
         } catch (Exception e) {
             logger.error("【秒杀消费者】订单创建失败，message={}，错误：{}", message, e.getMessage(), e);
+            // 不调用 ack.acknowledge()，消息会重新消费
         }
     }
 }

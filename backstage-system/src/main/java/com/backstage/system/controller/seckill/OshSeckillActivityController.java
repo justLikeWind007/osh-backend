@@ -1,6 +1,5 @@
 package com.backstage.system.controller.seckill;
 
-import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.annotation.Log;
 import com.backstage.common.core.controller.BaseController;
 import com.backstage.common.core.domain.R;
@@ -17,6 +16,7 @@ import com.backstage.system.domain.vo.seckill.SeckillOrderAdminVO;
 import com.backstage.system.service.seckill.IOshSeckillActivityService;
 import com.backstage.system.service.seckill.IOshSeckillOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,9 +40,8 @@ public class OshSeckillActivityController extends BaseController {
 
     /**
      * 接口7：查询秒杀订单列表（管理端）
-     * 查询条件：activityId、userId、status、seckillNo
      */
-    // @PreAuthorize("@ss.hasPermi('seckill:order:list')")
+    @PreAuthorize("hasAuthority('seckill:order:list')")
     @GetMapping("/order/list")
     public TableDataInfo orderList(OshSeckillOrder order) {
         startPage();
@@ -52,9 +51,8 @@ public class OshSeckillActivityController extends BaseController {
 
     /**
      * 接口5：查询活动列表
-     * 查询条件：title（模糊）、status
      */
-    // @PreAuthorize("@ss.hasPermi('seckill:activity:list')")
+    @PreAuthorize("hasAuthority('seckill:activity:list')")
     @GetMapping("/list")
     public TableDataInfo list(OshSeckillActivity activity) {
         startPage();
@@ -65,7 +63,7 @@ public class OshSeckillActivityController extends BaseController {
     /**
      * 接口6：查询活动详情
      */
-    // @PreAuthorize("@ss.hasPermi('seckill:activity:query')")
+    @PreAuthorize("hasAuthority('seckill:activity:query')")
     @GetMapping("/detail/{id}")
     public R<SeckillActivityVO> getInfo(@PathVariable Long id) {
         SeckillActivityVO vo = activityService.selectActivityById(id);
@@ -75,7 +73,7 @@ public class OshSeckillActivityController extends BaseController {
     /**
      * 接口1：创建秒杀活动
      */
-    // @PreAuthorize("@ss.hasPermi('seckill:activity:add')")
+    @PreAuthorize("hasAuthority('seckill:activity:add')")
     @Log(title = "秒杀活动", businessType = BusinessType.INSERT)
     @PostMapping("/add")
     public R add(@Validated @RequestBody SeckillActivityAddDTO dto) {
@@ -90,7 +88,7 @@ public class OshSeckillActivityController extends BaseController {
     /**
      * 接口3：修改秒杀活动（仅草稿状态可修改）
      */
-    // @PreAuthorize("@ss.hasPermi('seckill:activity:edit')")
+    @PreAuthorize("hasAuthority('seckill:activity:edit')")
     @Log(title = "秒杀活动", businessType = BusinessType.UPDATE)
     @PostMapping("/update")
     public R edit(@Validated @RequestBody SeckillActivityUpdateDTO dto) {
@@ -105,7 +103,7 @@ public class OshSeckillActivityController extends BaseController {
     /**
      * 接口2：发布 / 下架活动
      */
-    // @PreAuthorize("@ss.hasPermi('seckill:activity:edit')")
+    @PreAuthorize("hasAuthority('seckill:activity:status')")
     @Log(title = "秒杀活动", businessType = BusinessType.UPDATE)
     @PostMapping("/status")
     public R updateStatus(@Validated @RequestBody SeckillActivityStatusDTO dto) {
@@ -120,7 +118,7 @@ public class OshSeckillActivityController extends BaseController {
     /**
      * 接口4：批量逻辑删除活动
      */
-    // @PreAuthorize("@ss.hasPermi('seckill:activity:remove')")
+    @PreAuthorize("hasAuthority('seckill:activity:remove')")
     @Log(title = "秒杀活动", businessType = BusinessType.DELETE)
     @DeleteMapping("/batch")
     public R<String> batchDelete(@RequestParam List<Long> ids) {

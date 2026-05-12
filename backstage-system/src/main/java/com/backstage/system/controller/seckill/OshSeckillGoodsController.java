@@ -1,6 +1,5 @@
 package com.backstage.system.controller.seckill;
 
-import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.annotation.Log;
 import com.backstage.common.core.controller.BaseController;
 import com.backstage.common.core.domain.R;
@@ -14,6 +13,7 @@ import com.backstage.system.domain.seckill.OshSeckillGoods;
 import com.backstage.system.domain.vo.seckill.SeckillGoodsVO;
 import com.backstage.system.service.seckill.IOshSeckillGoodsService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,7 +35,7 @@ public class OshSeckillGoodsController extends BaseController {
     /**
      * 查询秒杀商品池列表
      */
-    // @PreAuthorize("@ss.hasPermi('seckill:goods:list')")
+    @PreAuthorize("hasAuthority('seckill:goods:list')")
     @GetMapping("/list")
     public TableDataInfo list(OshSeckillGoods goods) {
         startPage();
@@ -46,7 +46,7 @@ public class OshSeckillGoodsController extends BaseController {
     /**
      * 查询秒杀商品详情
      */
-    // @PreAuthorize("@ss.hasPermi('seckill:goods:query')")
+    @PreAuthorize("hasAuthority('seckill:goods:query')")
     @GetMapping("/detail/{id}")
     public R<SeckillGoodsVO> getInfo(@PathVariable Long id) {
         SeckillGoodsVO vo = seckillGoodsService.selectSeckillGoodsById(id);
@@ -56,7 +56,7 @@ public class OshSeckillGoodsController extends BaseController {
     /**
      * 添加商品到秒杀商品池
      */
-    // @PreAuthorize("@ss.hasPermi('seckill:goods:add')")
+    @PreAuthorize("hasAuthority('seckill:goods:add')")
     @Log(title = "秒杀商品", businessType = BusinessType.INSERT)
     @PostMapping("/add")
     public R add(@Validated @RequestBody SeckillGoodsAddDTO dto) {
@@ -67,7 +67,7 @@ public class OshSeckillGoodsController extends BaseController {
     /**
      * 批量上架 / 下架秒杀商品
      */
-    // @PreAuthorize("@ss.hasPermi('seckill:goods:edit')")
+    @PreAuthorize("hasAuthority('seckill:goods:status')")
     @Log(title = "秒杀商品", businessType = BusinessType.UPDATE)
     @PostMapping("/status")
     public R updateStatus(@Validated @RequestBody SeckillGoodsStatusDTO dto) {
@@ -78,7 +78,7 @@ public class OshSeckillGoodsController extends BaseController {
     /**
      * 修改秒杀商品信息
      */
-    // @PreAuthorize("@ss.hasPermi('seckill:goods:edit')")
+    @PreAuthorize("hasAuthority('seckill:goods:edit')")
     @Log(title = "秒杀商品", businessType = BusinessType.UPDATE)
     @PostMapping("/update")
     public R edit(@Validated @RequestBody SeckillGoodsUpdateDTO dto) {
@@ -89,7 +89,7 @@ public class OshSeckillGoodsController extends BaseController {
     /**
      * 批量逻辑删除秒杀商品
      */
-    // @PreAuthorize("@ss.hasPermi('seckill:goods:remove')")
+    @PreAuthorize("hasAuthority('seckill:goods:remove')")
     @Log(title = "秒杀商品", businessType = BusinessType.DELETE)
     @DeleteMapping("/batch")
     public R<String> batchDelete(@RequestParam List<Long> ids) {

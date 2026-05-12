@@ -116,12 +116,43 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
     /**
      * 通过秒杀单号查询订单状态（支付完成后前端轮询用）
      * 校验订单归属，防止越权查询
+     * 若订单 status=0，主动调易支付确认是否已付款，避免依赖回调
      */
     @Override
     public SeckillResultVO getOrderStatusBySeckillNo(String seckillNo, Long userId) {
         OshSeckillOrder order = orderMapper.selectOrderBySeckillNo(seckillNo);
         if (order == null || !order.getUserId().equals(userId)) {
             return null;
+        }
+        // status=0（待支付）时，主动查询易支付确认是否已付款
+        if (order.getStatus() == 0) {
+            try {
+                String queryUrl = com.backstage.common.config.PayConfig.STATUS
+                        + "?act=order"
+                        + "&pid=" + com.backstage.common.config.PayConfig.PID
+                        + "&key=" + com.backstage.common.config.PayConfig.KEY
+                        + "&out_trade_no=" + seckillNo;
+                org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+                java.util.Map<?, ?> res = restTemplate.getForObject(queryUrl, java.util.Map.class);
+                if (res != null
+                        && "1".equals(String.valueOf(res.get("code")))
+                        && "1".equals(String.valueOf(res.get("status")))) {
+                    // 易支付确认已支付，更新订单状态
+                    OshSeckillOrder update = new OshSeckillOrder();
+                    update.setId(order.getId());
+                    update.setStatus(1);
+                    update.setPayTime(new Date());
+                    orderMapper.updateOrder(update);
+                    // 写入已购 Set，防止重复购买
+                    String boughtKey = SECKILL_BOUGHT_KEY + order.getActivityId() + ":" + order.getItemId();
+                    stringRedisTemplate.opsForSet().add(boughtKey, String.valueOf(userId));
+                    logger.info("【秒杀状态查询】主动确认支付成功，seckillNo={}", seckillNo);
+                    order.setStatus(1);
+                    order.setPayTime(new Date());
+                }
+            } catch (Exception e) {
+                logger.warn("【秒杀状态查询】主动查询支付状态失败，seckillNo={}, error={}", seckillNo, e.getMessage());
+            }
         }
         return toResultVO(order);
     }
@@ -196,37 +227,79 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
         long expireSeconds = (activity.getPayTimeoutMin() != null ? activity.getPayTimeoutMin() : 15) * 60L;
         redisTemplate.opsForValue().set(orderKey, seckillNo, expireSeconds, TimeUnit.SECONDS);
 
-        // 7. 发送 Kafka 消息，异步创建订单
-        SeckillOrderMessage message = new SeckillOrderMessage();
-        message.setSeckillNo(seckillNo);
-        message.setActivityId(activityId);
-        message.setItemId(itemId);
-        message.setUserId(userId);
-        message.setGoodsId(item.getGoodsId());
-        message.setGoodsType(item.getGoodsType());
-        message.setGoodsTitle(item.getTitle());
-        message.setGoodsCover(item.getCover());
-        message.setOriginPrice(item.getOriginPrice());
-        message.setSeckillPrice(item.getSeckillPrice());
-        message.setQuantity(1);
-        message.setPayExpireTime(payExpireTime);
-
+        // =====================================================================
+        // 【临时方案 - 测试用】直接同步写库，绕过 Kafka
+        // 待 Kafka 依赖冲突（redisson-spring-data 版本问题）修复后，
+        // 删除下方临时代码，恢复下面注释掉的 Kafka 方案
+        // =====================================================================
         try {
-            KafkaMessageUtil.sendMessage(
-                    KafkaConstants.SECKILL_ORDER_CREATE_TOPIC,
-                    seckillNo,
-                    JSON.toJSONString(message)
-            );
-            logger.info("【秒杀】发送订单创建消息成功，seckillNo={}, userId={}, activityId={}, itemId={}",
-                    seckillNo, userId, activityId, itemId);
+            // 扣减数据库库存
+            int affected = itemMapper.decrStock(itemId, 1);
+            if (affected == 0) {
+                // 数据库库存不足，回滚 Redis
+                stringRedisTemplate.opsForValue().increment(stockKey);
+                stringRedisTemplate.opsForSet().remove(boughtKey, String.valueOf(userId));
+                redisTemplate.delete(orderKey);
+                throw new ServiceException("库存不足");
+            }
+            // 直接写入订单表
+            OshSeckillOrder order = new OshSeckillOrder();
+            order.setSeckillNo(seckillNo);
+            order.setActivityId(activityId);
+            order.setItemId(itemId);
+            order.setUserId(userId);
+            order.setGoodsId(item.getGoodsId());
+            order.setGoodsType(item.getGoodsType());
+            order.setGoodsTitle(item.getTitle());
+            order.setGoodsCover(item.getCover());
+            order.setOriginPrice(item.getOriginPrice());
+            order.setSeckillPrice(item.getSeckillPrice());
+            order.setQuantity(1);
+            order.setStatus(0); // 待支付
+            order.setPayExpireTime(payExpireTime);
+            orderMapper.insertOrder(order);
+            logger.info("【秒杀-临时】订单同步写库成功，seckillNo={}, userId={}", seckillNo, userId);
+        } catch (ServiceException e) {
+            throw e;
         } catch (Exception e) {
-            // Kafka 发送失败，回滚 Redis 库存、已购记录、流程状态 Key
-            logger.error("【秒杀】Kafka 消息发送失败，回滚 Redis，seckillNo={}", seckillNo, e);
+            logger.error("【秒杀-临时】订单写库失败，回滚 Redis，seckillNo={}", seckillNo, e);
             stringRedisTemplate.opsForValue().increment(stockKey);
             stringRedisTemplate.opsForSet().remove(boughtKey, String.valueOf(userId));
             redisTemplate.delete(orderKey);
             throw new ServiceException("秒杀失败，请重试");
         }
+        // =====================================================================
+        // 【Kafka 方案 - 待恢复】修复 redisson-spring-data 依赖冲突后，
+        // 删除上方临时代码，恢复以下注释
+        // =====================================================================
+//        SeckillOrderMessage message = new SeckillOrderMessage();
+//        message.setSeckillNo(seckillNo);
+//        message.setActivityId(activityId);
+//        message.setItemId(itemId);
+//        message.setUserId(userId);
+//        message.setGoodsId(item.getGoodsId());
+//        message.setGoodsType(item.getGoodsType());
+//        message.setGoodsTitle(item.getTitle());
+//        message.setGoodsCover(item.getCover());
+//        message.setOriginPrice(item.getOriginPrice());
+//        message.setSeckillPrice(item.getSeckillPrice());
+//        message.setQuantity(1);
+//        message.setPayExpireTime(payExpireTime);
+//        try {
+//            KafkaMessageUtil.sendMessage(
+//                    KafkaConstants.SECKILL_ORDER_CREATE_TOPIC,
+//                    seckillNo,
+//                    JSON.toJSONString(message)
+//            );
+//            logger.info("【秒杀】发送订单创建消息成功，seckillNo={}, userId={}, activityId={}, itemId={}",
+//                    seckillNo, userId, activityId, itemId);
+//        } catch (Exception e) {
+//            logger.error("【秒杀】Kafka 消息发送失败，回滚 Redis，seckillNo={}", seckillNo, e);
+//            stringRedisTemplate.opsForValue().increment(stockKey);
+//            stringRedisTemplate.opsForSet().remove(boughtKey, String.valueOf(userId));
+//            redisTemplate.delete(orderKey);
+//            throw new ServiceException("秒杀失败，请重试");
+//        }
 
         // 7. 立即返回结果给前端
         SeckillResultVO vo = new SeckillResultVO();
