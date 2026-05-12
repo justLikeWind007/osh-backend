@@ -2189,4 +2189,38 @@ public class CourseManageServiceImpl implements ICourseManageService {
             return null;
         }
     }
+
+    @Override
+    public Map<String, String> batchGetContentImageUrls(List<String> paths, int minute) {
+        Map<String, String> result = new HashMap<>();
+        if (paths == null || paths.isEmpty()) {
+            return result;
+        }
+        // 获取 OSS 配置，用于从完整临时 URL 中提取 fileKey
+        String bucketName = ossUtil.getOssProperties().getBucketName();
+        for (String path : paths) {
+            if (StringUtils.isEmpty(path)) {
+                continue;
+            }
+            try {
+                String fileKey = path;
+                // 兼容完整临时 URL（旧数据存的是临时 URL）
+                // 格式: https://<endpoint>/<bucketName>/<fileKey>?X-Amz-...
+                if (path.startsWith("http")) {
+                    String urlPath = path.contains("?") ? path.substring(0, path.indexOf("?")) : path;
+                    String marker = "/" + bucketName + "/";
+                    int idx = urlPath.indexOf(marker);
+                    if (idx >= 0) {
+                        fileKey = urlPath.substring(idx + marker.length());
+                    }
+                }
+                // key 统一用 fileKey（相对路径），方便前端存到 data-src
+                result.put(fileKey, ossService.getLimitedUrl(fileKey, minute));
+            } catch (Exception e) {
+                log.warn("生成内容图片临时URL失败, path={}, error={}", path, e.getMessage());
+            }
+        }
+        return result;
+    }
 }
+

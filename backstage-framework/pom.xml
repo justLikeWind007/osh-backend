@@ -81,7 +81,12 @@
             <groupId>com.backstage</groupId>
             <artifactId>backstage-system</artifactId>
         </dependency>
-
+        
+        <!-- websocket -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

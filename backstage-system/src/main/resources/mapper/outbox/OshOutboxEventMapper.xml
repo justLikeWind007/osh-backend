@@ -50,6 +50,15 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         LIMIT #{limit}
     </select>
 
+    <select id="selectEventById" resultMap="OshOutboxEventResult">
+        SELECT id, event_id, aggregate_type, aggregate_id, event_type, topic, message_key, payload,
+               status, retry_count, max_retry_count, next_retry_time, last_error, sent_time,
+               create_by, create_time, update_by, update_time, delete_flag
+        FROM osh_outbox_event
+        WHERE id = #{id}
+          AND delete_flag = 0
+    </select>
+
     <update id="markSending">
         UPDATE osh_outbox_event
         SET status = 1,

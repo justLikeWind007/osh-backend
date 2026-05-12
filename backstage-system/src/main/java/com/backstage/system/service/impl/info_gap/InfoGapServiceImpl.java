@@ -10,11 +10,19 @@ import com.backstage.system.mapper.info_gap.OshInfoGapMapper;
 import com.backstage.system.mapper.info_gap.OshInfoGapVoteMapper;
 import com.backstage.system.mapper.info_gap.OshUserRiskProfileMapper;
 import com.backstage.system.service.info_gap.InfoGapService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.github.pagehelper.PageHelper;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 public class InfoGapServiceImpl implements InfoGapService {
 
@@ -45,9 +53,14 @@ public class InfoGapServiceImpl implements InfoGapService {
     }
 
     @Override
-    public Page<InfoGapVO> getInfoGapList(Integer pageNum, String type, Long currentUserId) {
-        Page<InfoGapVO> page = new Page<>(pageNum, 10);
-        return infoGapMapper.selectInfoGapPage(page, type, currentUserId);
+    public List<InfoGapVO> getInfoGapList(Integer pageNum, Integer pageSize, String type, Long currentUserId) {
+        if (type != null && type.equals("follow")) {
+            PageHelper.startPage(pageNum, pageSize);
+            return infoGapMapper.selectInfoGapPageForFollow(currentUserId);
+        } else {
+            PageHelper.startPage(pageNum, pageSize);
+            return infoGapMapper.selectInfoGapPage(type, currentUserId);
+        }
     }
 
     @Override
@@ -113,6 +126,24 @@ public class InfoGapServiceImpl implements InfoGapService {
 
         voteMapper.insertVoteRecord(vote);
         infoGapMapper.updateCountAtomically(infoId, currentColumn);
+    }
+
+    @Override
+    public List<InfoGapVO> recommend() {
+        LambdaQueryWrapper<OshInfoGap> queryWrapper = Wrappers.lambdaQuery(OshInfoGap.class)
+                .eq(OshInfoGap::getIsDeleted, 0)
+                .orderByDesc(OshInfoGap::getGoodCount)
+                .orderByDesc(OshInfoGap::getFollowCount)
+                .last("Limit 3");
+
+        List<OshInfoGap> infoGapList = infoGapMapper.selectList(queryWrapper);
+        List<InfoGapVO> infoGapVOList = infoGapList.stream().map(infoGap -> {
+            InfoGapVO infoGapVO = new InfoGapVO();
+            BeanUtils.copyProperties(infoGap, infoGapVO);
+            return infoGapVO;
+        }).collect(Collectors.toList());
+
+        return infoGapVOList;
     }
 
     // 辅助方法：抽取列名逻辑，避免代码重复

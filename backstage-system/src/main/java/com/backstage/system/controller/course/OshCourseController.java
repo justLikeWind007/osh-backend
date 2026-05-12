@@ -193,8 +193,10 @@ public class OshCourseController extends BaseController {
         if (currentOshUser == null) {
             return R.fail("请先登录");
         }
-        if (!oshCourseService.canUserAskQuestion(request.getCourseId(), request.getSectionId(), currentOshUser.getId())) {
-            return R.fail("您未购买该课程，且课程或章节未免费开放，无法提交课程问题");
+        // 权限判断：level >= 2 直接放行；level < 2 时需要已付费该课程
+        int userLevel = UserContextUtil.getCurrentLevel();
+        if (userLevel < 2 && !oshCourseService.canUserAskQuestion(request.getCourseId(), request.getSectionId(), currentOshUser.getId())) {
+            return R.fail("需要 VIP 及以上等级，或已购买该课程，才能提问");
         }
         return R.ok(oshCourseQuestionService.submitQuestion(currentOshUser.getId(), currentOshUser.getUsername(), request));
     }
@@ -264,6 +266,7 @@ public class OshCourseController extends BaseController {
         update.setRemark(req.getRemark());
         update.setResourceType(req.getResourceType());
         update.setLevel(req.getLevel());
+        update.setServicePeriod(req.getServicePeriod());
         update.setTags(req.getTags());
         update.setMaterial(req.getMaterial());
         return update;
