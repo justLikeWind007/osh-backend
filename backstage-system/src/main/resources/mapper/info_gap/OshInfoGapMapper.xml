@@ -83,10 +83,10 @@
         select *
         from osh_info_gap oig
         where oig.id IN (
-            select oigf.info_gap_id
-            from osh_info_gap_follow oigf
-            where oigf.user_id = #{currentUserId}
-              and oigf.delete_flag = 0
+            select oigc.info_gap_id
+            from osh_info_gap_collect oigc
+            where oigc.user_id = #{currentUserId}
+              and oigc.delete_flag = 0
         )
         order by oig.update_time desc
     </select>
