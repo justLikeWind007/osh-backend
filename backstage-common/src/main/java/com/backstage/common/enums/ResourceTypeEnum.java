@@ -12,6 +12,7 @@ public enum ResourceTypeEnum {
     QA_QUESTION("qa_question","osh_question_answer_question"),
     QA_ANSWER("qa_answer","osh_question_answer_answer"),
     BOOK("book","osh_book"),
+    WEBSITE("website","osh_practical_website"),
     ;
     private final String type;
     private final String tableName;

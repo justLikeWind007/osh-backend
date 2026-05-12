@@ -42,8 +42,32 @@
           AND e.delete_flag = 0
     </select>
 
+    <!--
+        考试列表 VO 显式 resultMap。
+        必须显式映射：项目全局开启了 mapUnderscoreToCamelCase=true，
+        会把列 total_score 自动转成属性 totalScore 去找；
+        而 ExamVo 的属性故意保留蛇形（total_score 等，前端按蛇形读），
+        没有显式 resultMap 时这些字段会被 MyBatis 忽略，导致回显为 null。
+    -->
+    <resultMap id="ExamListMap" type="com.backstage.system.domain.vo.exam.ExamVo">
+        <id     property="id"             column="id" />
+        <result property="title"          column="title" />
+        <result property="total_score"    column="total_score" />
+        <result property="pass_score"     column="pass_score" />
+        <result property="expire"         column="expire" />
+        <result property="question_count" column="question_count" />
+        <result property="start_time"     column="start_time" />
+        <result property="end_time"       column="end_time" />
+        <result property="status"         column="status" />
+        <result property="cover"          column="cover" />
+        <result property="description"    column="description" />
+        <result property="collect_count"  column="collect_count" />
+        <result property="resource_type"  column="resource_type" />
+        <result property="resource_id"    column="resource_id" />
+    </resultMap>
+
     <!-- 考试列表（支持关键词/标签/资源过滤） -->
-    <select id="selectExamList" resultType="com.backstage.system.domain.vo.exam.ExamVo">
+    <select id="selectExamList" resultMap="ExamListMap">
         SELECT DISTINCT
             e.id,
             e.title,
