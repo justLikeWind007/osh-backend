@@ -183,6 +183,13 @@
           and delete_flag = 0
     </update>
 
+    <update id="increaseViewCount">
+        update osh_tool
+        set view_count = view_count + 1
+        where id = #{toolId}
+          and delete_flag = 0
+    </update>
+
     <update id="increaseGoodCount">
         update osh_tool
         set good_count = good_count + 1

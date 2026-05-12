@@ -1,35 +1,14 @@
-package com.backstage.system.request.tool;
+package com.backstage.system.service.tool;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
-import org.apache.commons.lang3.StringUtils;
-
-import javax.validation.constraints.DecimalMin;
 import java.math.BigDecimal;
 
-/**
- * 工具使用次数套餐保存请求
- */
-@ApiModel(description = "工具使用次数套餐保存请求")
-public class ToolPackageSaveRequest {
+public class ToolIndexPackageMessage {
 
-    @ApiModelProperty(value = "套餐ID，新增不传，修改传入", example = "1")
     private Long id;
-
-    @ApiModelProperty(value = "套餐名称，不传时按使用次数自动生成", example = "10次使用套餐")
     private String packageName;
-
-    @ApiModelProperty(value = "购买后增加的使用次数", required = true, example = "10")
     private Integer useCount;
-
-    @DecimalMin(value = "0.00", message = "现金价格不能小于0")
-    @ApiModelProperty(value = "现金价格", example = "9.90")
     private BigDecimal price;
-
-    @ApiModelProperty(value = "状态：0-停用，1-启用", example = "1")
     private Integer status;
-
-    @ApiModelProperty(value = "排序，值越大越靠前", example = "10")
     private Integer sortOrder;
 
     public Long getId() {
@@ -45,7 +24,7 @@ public class ToolPackageSaveRequest {
     }
 
     public void setPackageName(String packageName) {
-        this.packageName = StringUtils.trimToNull(packageName);
+        this.packageName = packageName;
     }
 
     public Integer getUseCount() {

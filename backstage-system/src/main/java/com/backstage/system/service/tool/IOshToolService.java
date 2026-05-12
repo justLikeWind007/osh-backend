@@ -2,6 +2,7 @@ package com.backstage.system.service.tool;
 
 import com.backstage.system.domain.tool.OshTool;
 import com.backstage.system.domain.tool.OshToolTag;
+import com.backstage.system.domain.tool.ToolUsagePermission;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.request.tool.ToolRecommendRequest;
 import com.backstage.system.request.tool.ToolSaveRequest;
@@ -25,7 +26,11 @@ public interface IOshToolService {
 
     OshTool getToolDetail(Long toolId, Long userId);
 
-    Integer consumeToolUsage(Long userId, String operator, Long toolId);
+    ToolUsagePermission checkToolUsagePermission(Long userId, Integer userLevel, Long toolId);
+
+    Integer consumeToolUsage(Long userId, Integer userLevel, String operator, Long toolId);
 
     Integer voteTool(Long userId, String operator, Long toolId, Integer type);
+
+    void recordToolView(Long toolId);
 }
