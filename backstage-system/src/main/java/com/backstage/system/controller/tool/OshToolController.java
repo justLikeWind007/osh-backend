@@ -9,6 +9,7 @@ import com.backstage.common.response.PageResponse;
 import com.backstage.system.config.properties.SearchEsProperties;
 import com.backstage.system.domain.tool.OshTool;
 import com.backstage.system.domain.tool.OshToolTag;
+import com.backstage.system.domain.tool.ToolUsagePermission;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.request.tool.ToolCollectionRequest;
 import com.backstage.system.request.tool.ToolDeleteRequest;
@@ -220,6 +221,7 @@ public class OshToolController extends BaseController {
 
     @ApiOperation("扣减工具使用次数")
     @PostMapping("/use/consume")
+    @PreAuthorize("hasAuthority('tool:use:consume')")
     public R<Integer> consumeToolUsage(@Validated @RequestBody ToolUsageConsumeRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         if (currentOshUser == null) {
@@ -228,10 +230,30 @@ public class OshToolController extends BaseController {
         try {
             Integer remainingCount = oshToolService.consumeToolUsage(
                     currentOshUser.getId(),
+                    UserContextUtil.getCurrentLevel(),
                     currentOshUser.getUsername(),
                     request.getToolId()
             );
             return R.ok(remainingCount);
+        } catch (IllegalArgumentException | ServiceException ex) {
+            return R.fail(ex.getMessage());
+        }
+    }
+
+    @ApiOperation("校验工具使用与扣费权限")
+    @PostMapping("/use/check")
+    @PreAuthorize("hasAuthority('tool:use:consume')")
+    public R<ToolUsagePermission> checkToolUsagePermission(@Validated @RequestBody ToolUsageConsumeRequest request) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        if (currentOshUser == null) {
+            return R.fail("请先登录");
+        }
+        try {
+            return R.ok(oshToolService.checkToolUsagePermission(
+                    currentOshUser.getId(),
+                    UserContextUtil.getCurrentLevel(),
+                    request.getToolId()
+            ));
         } catch (IllegalArgumentException | ServiceException ex) {
             return R.fail(ex.getMessage());
         }

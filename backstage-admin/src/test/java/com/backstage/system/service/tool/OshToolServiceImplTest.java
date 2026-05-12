@@ -4,10 +4,12 @@ import com.backstage.system.domain.tool.OshTool;
 import com.backstage.system.domain.tool.OshToolPackage;
 import com.backstage.system.domain.tool.OshToolTag;
 import com.backstage.system.domain.user.OshUser;
+import com.backstage.common.exception.ServiceException;
 import com.backstage.system.mapper.tool.OshToolCollectionMapper;
 import com.backstage.system.mapper.tool.OshToolMapper;
 import com.backstage.system.mapper.tool.OshToolPackageMapper;
 import com.backstage.system.mapper.tool.OshToolTagMapper;
+import com.backstage.system.domain.tool.ToolUsagePermission;
 import com.backstage.system.service.OutboxEventService;
 import com.backstage.system.request.tool.ToolPackageSaveRequest;
 import com.backstage.system.request.tool.ToolSaveRequest;
@@ -28,6 +30,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -192,12 +195,13 @@ public class OshToolServiceImplTest {
         OshTool tool = new OshTool();
         tool.setId(10001L);
         tool.setResourceType("CASH_ONLY");
+        tool.setLevel(1);
 
         when(oshToolMapper.selectToolById(10001L)).thenReturn(tool);
         when(oshToolMapper.consumeUserToolQuota(10001L, 9L, "normal")).thenReturn(1);
-        when(oshToolMapper.selectUserRemainingCount(10001L, 9L)).thenReturn(7);
+        when(oshToolMapper.selectUserRemainingCount(10001L, 9L)).thenReturn(8, 7);
 
-        Integer remainingCount = toolService.consumeToolUsage(9L, "normal", 10001L);
+        Integer remainingCount = toolService.consumeToolUsage(9L, 1, "normal", 10001L);
 
         assertEquals(Integer.valueOf(7), remainingCount);
         verify(oshToolMapper).consumeUserToolQuota(10001L, 9L, "normal");
@@ -210,13 +214,50 @@ public class OshToolServiceImplTest {
         OshTool tool = new OshTool();
         tool.setId(10001L);
         tool.setResourceType("FREE");
+        tool.setLevel(1);
 
         when(oshToolMapper.selectToolById(10001L)).thenReturn(tool);
 
-        Integer remainingCount = toolService.consumeToolUsage(9L, "normal", 10001L);
+        Integer remainingCount = toolService.consumeToolUsage(9L, 1, "normal", 10001L);
 
         assertEquals(Integer.valueOf(0), remainingCount);
         verify(oshToolMapper, times(0)).consumeUserToolQuota(any(Long.class), any(Long.class), any(String.class));
+    }
+
+    @Test(expected = ServiceException.class)
+    public void shouldRejectConsumeUsageBeforeDeductingWhenPaidToolHasNoRemainingCount() {
+        OshTool tool = new OshTool();
+        tool.setId(10001L);
+        tool.setResourceType("CASH_ONLY");
+        tool.setLevel(1);
+
+        when(oshToolMapper.selectToolById(10001L)).thenReturn(tool);
+        when(oshToolMapper.selectUserRemainingCount(10001L, 9L)).thenReturn(0);
+
+        try {
+            toolService.consumeToolUsage(9L, 1, "normal", 10001L);
+        } finally {
+            verify(oshToolMapper, never()).consumeUserToolQuota(any(Long.class), any(Long.class), any(String.class));
+            verify(oshToolMapper, never()).increaseTotalUsage(any(Long.class));
+        }
+    }
+
+    @Test
+    public void shouldReturnToolUsagePermissionWithQuotaStateForPaidTool() {
+        OshTool tool = new OshTool();
+        tool.setId(10001L);
+        tool.setResourceType("CASH_ONLY");
+        tool.setLevel(1);
+
+        when(oshToolMapper.selectToolById(10001L)).thenReturn(tool);
+        when(oshToolMapper.selectUserRemainingCount(10001L, 9L)).thenReturn(0);
+
+        ToolUsagePermission permission = toolService.checkToolUsagePermission(9L, 1, 10001L);
+
+        assertEquals(Boolean.TRUE, permission.getUseAllowed());
+        assertEquals(Boolean.FALSE, permission.getDeductAllowed());
+        assertEquals(Integer.valueOf(0), permission.getRemainingCount());
+        assertEquals("工具使用次数不足", permission.getMessage());
     }
 
     @Test

@@ -4,6 +4,7 @@ import com.backstage.common.exception.ServiceException;
 import com.backstage.system.domain.tool.OshTool;
 import com.backstage.system.domain.tool.OshToolPackage;
 import com.backstage.system.domain.tool.OshToolTag;
+import com.backstage.system.domain.tool.ToolUsagePermission;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.mapper.tool.OshToolCollectionMapper;
 import com.backstage.system.mapper.tool.OshToolMapper;
@@ -162,7 +163,7 @@ public class OshToolServiceImpl implements IOshToolService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Integer consumeToolUsage(Long userId, String operator, Long toolId) {
+    public Integer consumeToolUsage(Long userId, Integer userLevel, String operator, Long toolId) {
         if (userId == null) {
             throw new IllegalArgumentException("请先登录");
         }
@@ -173,8 +174,15 @@ public class OshToolServiceImpl implements IOshToolService {
         if (tool == null) {
             throw new ServiceException("工具不存在");
         }
+        ToolUsagePermission permission = buildToolUsagePermission(tool, userId, userLevel);
+        if (!Boolean.TRUE.equals(permission.getUseAllowed())) {
+            throw new ServiceException(permission.getMessage());
+        }
         if (!isPackageEnabledResourceType(tool.getResourceType())) {
             return 0;
+        }
+        if (!Boolean.TRUE.equals(permission.getDeductAllowed())) {
+            throw new ServiceException(permission.getMessage());
         }
         if (oshToolMapper.consumeUserToolQuota(toolId, userId, operator) <= 0) {
             throw new ServiceException("工具使用次数不足");
@@ -182,6 +190,21 @@ public class OshToolServiceImpl implements IOshToolService {
         oshToolMapper.increaseTotalUsage(toolId);
         saveToolIndexEvent(toolId, ToolIndexEventType.TOOL_INDEX_COUNTER, operator);
         return oshToolMapper.selectUserRemainingCount(toolId, userId);
+    }
+
+    @Override
+    public ToolUsagePermission checkToolUsagePermission(Long userId, Integer userLevel, Long toolId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("请先登录");
+        }
+        if (toolId == null) {
+            throw new IllegalArgumentException("工具ID不能为空");
+        }
+        OshTool tool = oshToolMapper.selectToolById(toolId);
+        if (tool == null) {
+            throw new ServiceException("工具不存在");
+        }
+        return buildToolUsagePermission(tool, userId, userLevel);
     }
 
     @Override
@@ -397,6 +420,32 @@ public class OshToolServiceImpl implements IOshToolService {
 
     private boolean isPackageEnabledResourceType(String resourceType) {
         return RESOURCE_TYPE_CASH_ONLY.equals(resourceType) || RESOURCE_TYPE_CASH_POINT.equals(resourceType);
+    }
+
+    private ToolUsagePermission buildToolUsagePermission(OshTool tool, Long userId, Integer userLevel) {
+        ToolUsagePermission permission = new ToolUsagePermission();
+        int level = userLevel == null ? 0 : userLevel;
+        int requiredLevel = tool.getLevel() == null ? 0 : tool.getLevel();
+        if (level < requiredLevel) {
+            permission.setUseAllowed(false);
+            permission.setDeductAllowed(false);
+            permission.setRemainingCount(0);
+            permission.setMessage("用户权限不足");
+            return permission;
+        }
+        permission.setUseAllowed(true);
+        if (!isPackageEnabledResourceType(tool.getResourceType())) {
+            permission.setDeductAllowed(false);
+            permission.setRemainingCount(0);
+            permission.setMessage("允许使用");
+            return permission;
+        }
+        Integer remainingCount = oshToolMapper.selectUserRemainingCount(tool.getId(), userId);
+        int value = remainingCount == null ? 0 : remainingCount;
+        permission.setRemainingCount(value);
+        permission.setDeductAllowed(value > 0);
+        permission.setMessage(value > 0 ? "允许使用" : "工具使用次数不足");
+        return permission;
     }
 
     private void fillToolPackages(List<OshTool> tools) {
