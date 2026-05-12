@@ -4,6 +4,7 @@ import com.backstage.system.domain.tool.OshTool;
 import com.backstage.system.domain.tool.OshToolCollection;
 import com.backstage.system.mapper.tool.OshToolCollectionMapper;
 import com.backstage.system.mapper.tool.OshToolMapper;
+import com.backstage.system.service.OutboxEventService;
 import com.backstage.system.service.impl.tool.OshToolCollectionServiceImpl;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,6 +28,12 @@ public class OshToolCollectionServiceImplTest {
     @Mock
     private OshToolMapper oshToolMapper;
 
+    @Mock
+    private IOshToolEsService oshToolEsService;
+
+    @Mock
+    private OutboxEventService outboxEventService;
+
     @Test
     public void shouldIncreaseToolCollectionCountWhenUserCollectsToolFirstTime() {
         when(oshToolMapper.selectToolById(10001L)).thenReturn(buildTool());
@@ -36,6 +43,7 @@ public class OshToolCollectionServiceImplTest {
         collectionService.collectTool(9L, "admin", 10001L);
 
         verify(oshToolMapper).increaseCollectionCount(10001L);
+        verify(oshToolEsService).buildIndexMessage(10001L, ToolIndexEventType.TOOL_INDEX_COUNTER);
     }
 
     @Test
@@ -50,6 +58,7 @@ public class OshToolCollectionServiceImplTest {
         collectionService.collectTool(9L, "admin", 10001L);
 
         verify(oshToolMapper).increaseCollectionCount(10001L);
+        verify(oshToolEsService).buildIndexMessage(10001L, ToolIndexEventType.TOOL_INDEX_COUNTER);
     }
 
     @Test
@@ -76,6 +85,7 @@ public class OshToolCollectionServiceImplTest {
         collectionService.removeToolCollection(9L, "admin", 10001L);
 
         verify(oshToolMapper).decreaseCollectionCount(10001L);
+        verify(oshToolEsService).buildIndexMessage(10001L, ToolIndexEventType.TOOL_INDEX_COUNTER);
     }
 
     @Test

@@ -24,6 +24,8 @@ public interface OshToolMapper {
 
     int increaseTotalUsage(@Param("toolId") Long toolId);
 
+    int increaseViewCount(@Param("toolId") Long toolId);
+
     int increaseGoodCount(@Param("toolId") Long toolId);
 
     int decreaseGoodCount(@Param("toolId") Long toolId);

@@ -15,7 +15,12 @@ import com.backstage.system.request.tool.ToolPackageSaveRequest;
 import com.backstage.system.request.tool.ToolRecommendRequest;
 import com.backstage.system.request.tool.ToolSaveRequest;
 import com.backstage.system.request.tool.ToolSearchRequest;
+import com.backstage.system.service.OutboxEventService;
+import com.backstage.system.service.tool.IOshToolEsService;
 import com.backstage.system.service.tool.IOshToolService;
+import com.backstage.system.service.tool.ToolIndexDeleteMessage;
+import com.backstage.system.service.tool.ToolIndexEventType;
+import com.backstage.system.service.tool.ToolIndexMessage;
 import com.github.pagehelper.PageHelper;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,14 +38,11 @@ import java.util.Map;
 public class OshToolServiceImpl implements IOshToolService {
 
     private static final int ACCESS_TYPE_INTERNAL = 1;
-    private static final int ACCESS_TYPE_IFRAME = 2;
     private static final int MAX_TOOL_TAG_COUNT = 3;
     private static final String DEFAULT_RESOURCE_TYPE = "FREE";
     private static final String RESOURCE_TYPE_CASH_ONLY = "CASH_ONLY";
     private static final String RESOURCE_TYPE_CASH_POINT = "CASH_POINT";
     private static final int PAY_TYPE_CASH = 1;
-    private static final int PAY_TYPE_CASH_POINT = 3;
-    private static final BigDecimal POINT_EXCHANGE_RATE = BigDecimal.TEN;
     private static final int RECOMMEND_PAGE_SIZE = 5;
     private static final int VOTE_TYPE_GOOD = 1;
     private static final int VOTE_TYPE_BAD = 3;
@@ -59,6 +61,12 @@ public class OshToolServiceImpl implements IOshToolService {
 
     @Autowired
     private OshToolVoteMapper oshToolVoteMapper;
+
+    @Autowired
+    private IOshToolEsService oshToolEsService;
+
+    @Autowired
+    private OutboxEventService outboxEventService;
 
     @Override
     public List<OshTool> pageQuerySearchTool(Long userId, ToolSearchRequest request) {
@@ -96,8 +104,9 @@ public class OshToolServiceImpl implements IOshToolService {
         }
         syncToolTags(tool.getId(), request.getTags(), operator.getUsername());
         if (request.getPackages() != null) {
-            syncToolPackages(tool.getId(), resolvePackagesByResourceType(request), request.getResourceType(), operator.getUsername());
+            syncToolPackages(tool.getId(), resolvePackagesByResourceType(request), operator.getUsername());
         }
+        saveToolIndexEvent(tool.getId(), ToolIndexEventType.TOOL_INDEX_CREATE, operator);
         return tool.getId();
     }
 
@@ -118,8 +127,9 @@ public class OshToolServiceImpl implements IOshToolService {
             syncToolTags(tool.getId(), request.getTags(), operator.getUsername());
         }
         if (request.getPackages() != null) {
-            syncToolPackages(tool.getId(), resolvePackagesByResourceType(request), request.getResourceType(), operator.getUsername());
+            syncToolPackages(tool.getId(), resolvePackagesByResourceType(request), operator.getUsername());
         }
+        saveToolIndexEvent(tool.getId(), ToolIndexEventType.TOOL_INDEX_UPDATE, operator);
         return tool.getId();
     }
 
@@ -132,6 +142,7 @@ public class OshToolServiceImpl implements IOshToolService {
         oshToolMapper.deleteToolsByIds(ids, operator.getUsername());
         for (Long id : ids) {
             oshToolTagMapper.softDeleteRelationsByToolId(id, operator.getUsername());
+            outboxEventService.saveToolIndexDeleteEvent(id, new ToolIndexDeleteMessage(id), operator);
         }
     }
 
@@ -169,6 +180,7 @@ public class OshToolServiceImpl implements IOshToolService {
             throw new ServiceException("工具使用次数不足");
         }
         oshToolMapper.increaseTotalUsage(toolId);
+        saveToolIndexEvent(toolId, ToolIndexEventType.TOOL_INDEX_COUNTER, operator);
         return oshToolMapper.selectUserRemainingCount(toolId, userId);
     }
 
@@ -191,6 +203,7 @@ public class OshToolServiceImpl implements IOshToolService {
             if (type.equals(existVote.getType())) {
                 oshToolVoteMapper.deleteToolVote(existVote.getId(), operator);
                 decreaseVoteCount(toolId, type);
+                saveToolIndexEvent(toolId, ToolIndexEventType.TOOL_INDEX_COUNTER, operator);
                 return 0;
             }
             decreaseVoteCount(toolId, existVote.getType());
@@ -198,6 +211,7 @@ public class OshToolServiceImpl implements IOshToolService {
             existVote.setUpdateBy(operator);
             oshToolVoteMapper.updateToolVote(existVote);
             increaseVoteCount(toolId, type);
+            saveToolIndexEvent(toolId, ToolIndexEventType.TOOL_INDEX_COUNTER, operator);
             return type;
         }
 
@@ -215,7 +229,20 @@ public class OshToolServiceImpl implements IOshToolService {
             oshToolVoteMapper.insertToolVote(vote);
         }
         increaseVoteCount(toolId, type);
+        saveToolIndexEvent(toolId, ToolIndexEventType.TOOL_INDEX_COUNTER, operator);
         return type;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void recordToolView(Long toolId) {
+        if (toolId == null) {
+            throw new IllegalArgumentException("工具ID不能为空");
+        }
+        if (oshToolMapper.increaseViewCount(toolId) <= 0) {
+            throw new ServiceException("工具不存在");
+        }
+        saveToolIndexEvent(toolId, ToolIndexEventType.TOOL_INDEX_COUNTER, (String) null);
     }
 
     private OshTool buildTool(ToolSaveRequest request, String operator) {
@@ -224,13 +251,13 @@ public class OshToolServiceImpl implements IOshToolService {
         tool.setToolName(request.getToolName());
         tool.setDescription(request.getDescription());
         tool.setLogoUrl(null);
-        tool.setAccessType(request.getId() == null && request.getAccessType() == null ? ACCESS_TYPE_INTERNAL : request.getAccessType());
+        tool.setAccessType(ACCESS_TYPE_INTERNAL);
         tool.setRoutePath(request.getRoutePath());
-        tool.setIframeUrl(request.getIframeUrl());
+        tool.setIframeUrl(null);
         tool.setGithubUrl(request.getGithubUrl());
         tool.setPrice(BigDecimal.ZERO);
         tool.setOriginalPrice(BigDecimal.ZERO);
-        tool.setPointCost(request.getId() == null && request.getPointCost() == null ? 0 : request.getPointCost());
+        tool.setPointCost(0);
         tool.setStatus(request.getId() == null && request.getStatus() == null ? 1 : request.getStatus());
         tool.setRemark(request.getRemark());
         tool.setResourceType(request.getId() == null ? StringUtils.defaultIfBlank(request.getResourceType(), DEFAULT_RESOURCE_TYPE) : request.getResourceType());
@@ -263,15 +290,8 @@ public class OshToolServiceImpl implements IOshToolService {
     }
 
     private void validateAccessTarget(ToolSaveRequest request) {
-        Integer accessType = request.getAccessType() == null ? ACCESS_TYPE_INTERNAL : request.getAccessType();
-        if (request.getId() != null && request.getAccessType() == null) {
-            return;
-        }
-        if (ACCESS_TYPE_INTERNAL == accessType && StringUtils.isBlank(request.getRoutePath())) {
+        if (StringUtils.isBlank(request.getRoutePath())) {
             throw new IllegalArgumentException("站内工具前端路由不能为空");
-        }
-        if (ACCESS_TYPE_IFRAME == accessType && StringUtils.isBlank(request.getIframeUrl())) {
-            throw new IllegalArgumentException("第三方iframe地址不能为空");
         }
     }
 
@@ -316,7 +336,7 @@ public class OshToolServiceImpl implements IOshToolService {
         return newTag;
     }
 
-    private void syncToolPackages(Long toolId, List<ToolPackageSaveRequest> packages, String resourceType, String operator) {
+    private void syncToolPackages(Long toolId, List<ToolPackageSaveRequest> packages, String operator) {
         if (packages == null) {
             return;
         }
@@ -329,7 +349,7 @@ public class OshToolServiceImpl implements IOshToolService {
                 continue;
             }
             validateToolPackage(request);
-            OshToolPackage toolPackage = buildToolPackage(toolId, request, resourceType, operator);
+            OshToolPackage toolPackage = buildToolPackage(toolId, request, operator);
             if (request.getId() == null) {
                 if (oshToolPackageMapper.insertToolPackage(toolPackage) <= 0) {
                     throw new ServiceException("新增工具套餐失败");
@@ -340,15 +360,15 @@ public class OshToolServiceImpl implements IOshToolService {
         }
     }
 
-    private OshToolPackage buildToolPackage(Long toolId, ToolPackageSaveRequest request, String resourceType, String operator) {
+    private OshToolPackage buildToolPackage(Long toolId, ToolPackageSaveRequest request, String operator) {
         OshToolPackage toolPackage = new OshToolPackage();
         toolPackage.setId(request.getId());
         toolPackage.setToolId(toolId);
         toolPackage.setPackageName(StringUtils.defaultIfBlank(request.getPackageName(), request.getUseCount() + "次使用套餐"));
         toolPackage.setUseCount(request.getUseCount());
         toolPackage.setPrice(request.getPrice() == null ? BigDecimal.ZERO : request.getPrice());
-        toolPackage.setPointCost(calculatePointCost(request.getPrice()));
-        toolPackage.setPayType(resolvePackagePayType(resourceType));
+        toolPackage.setPointCost(0);
+        toolPackage.setPayType(PAY_TYPE_CASH);
         toolPackage.setStatus(request.getStatus() == null ? 1 : request.getStatus());
         toolPackage.setSortOrder(request.getSortOrder() == null ? 0 : request.getSortOrder());
         toolPackage.setCreateBy(operator);
@@ -377,15 +397,6 @@ public class OshToolServiceImpl implements IOshToolService {
 
     private boolean isPackageEnabledResourceType(String resourceType) {
         return RESOURCE_TYPE_CASH_ONLY.equals(resourceType) || RESOURCE_TYPE_CASH_POINT.equals(resourceType);
-    }
-
-    private int calculatePointCost(BigDecimal price) {
-        BigDecimal value = price == null ? BigDecimal.ZERO : price;
-        return value.multiply(POINT_EXCHANGE_RATE).intValue();
-    }
-
-    private int resolvePackagePayType(String resourceType) {
-        return RESOURCE_TYPE_CASH_POINT.equals(resourceType) ? PAY_TYPE_CASH_POINT : PAY_TYPE_CASH;
     }
 
     private void fillToolPackages(List<OshTool> tools) {
@@ -463,5 +474,15 @@ public class OshToolServiceImpl implements IOshToolService {
 
     private boolean isExternalUrl(String url) {
         return StringUtils.startsWithIgnoreCase(url, "http://") || StringUtils.startsWithIgnoreCase(url, "https://");
+    }
+
+    private void saveToolIndexEvent(Long toolId, String eventType, OshUser operator) {
+        ToolIndexMessage message = oshToolEsService.buildIndexMessage(toolId, eventType);
+        outboxEventService.saveToolIndexEvent(toolId, message, operator);
+    }
+
+    private void saveToolIndexEvent(Long toolId, String eventType, String operator) {
+        ToolIndexMessage message = oshToolEsService.buildIndexMessage(toolId, eventType);
+        outboxEventService.saveToolIndexEvent(toolId, message, operator);
     }
 }

@@ -28,4 +28,6 @@ public interface IOshToolService {
     Integer consumeToolUsage(Long userId, String operator, Long toolId);
 
     Integer voteTool(Long userId, String operator, Long toolId, Integer type);
+
+    void recordToolView(Long toolId);
 }

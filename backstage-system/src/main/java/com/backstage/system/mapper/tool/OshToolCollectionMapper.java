@@ -21,6 +21,21 @@ public interface OshToolCollectionMapper extends BaseMapper<OshToolCollection> {
                                    @Param("deleteFlag") Integer deleteFlag,
                                    @Param("operator") String operator);
 
+    default List<Long> selectActiveToolIdsByUserId(Long userId) {
+        if (userId == null) {
+            return Collections.emptyList();
+        }
+        LambdaQueryWrapper<OshToolCollection> queryWrapper = new LambdaQueryWrapper<OshToolCollection>()
+                .select(OshToolCollection::getToolId)
+                .eq(OshToolCollection::getUserId, userId)
+                .eq(OshToolCollection::getDeleteFlag, 0)
+                .orderByDesc(OshToolCollection::getUpdateTime);
+
+        return selectList(queryWrapper).stream()
+                .map(OshToolCollection::getToolId)
+                .collect(Collectors.toList());
+    }
+
     default List<Long> selectActiveToolIdsByUserIdAndToolIds(Long userId, List<Long> toolIds) {
         if (userId == null || toolIds == null || toolIds.isEmpty()) {
             return Collections.emptyList();
