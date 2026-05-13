@@ -50,7 +50,7 @@
         left join osh_info_gap_tag t
             on rel.gap_tag_id = t.id and t.delete_flag = 0
         WHERE g.status = 0
-            AND g.is_deleted = 0
+            AND g.delete_flag = 0
         GROUP BY g.id
         <choose>
             <when test="type == 'hot'">
@@ -70,13 +70,13 @@
     <update id="updateCountAtomically">
         UPDATE osh_info_gap
         SET ${column} = ${column} + 1
-        WHERE id = #{id} AND is_deleted = 0
+        WHERE id = #{id} AND delete_flag = 0
     </update>
 
     <update id="decrementCountAtomically">
         UPDATE osh_info_gap
         SET ${column} = GREATEST(${column} - 1, 0)
-        WHERE id = #{id} AND is_deleted = 0
+        WHERE id = #{id} AND delete_flag = 0
     </update>
 
     <select id="selectInfoGapPageForFollow" resultMap="InfoGapVOResult">
