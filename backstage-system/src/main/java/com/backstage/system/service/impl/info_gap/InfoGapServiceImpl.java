@@ -164,9 +164,9 @@ public class InfoGapServiceImpl implements InfoGapService {
     @Override
     public List<InfoGapVO> recommend() {
         LambdaQueryWrapper<OshInfoGap> queryWrapper = Wrappers.lambdaQuery(OshInfoGap.class)
-                .eq(OshInfoGap::getIsDeleted, 0)
+                .eq(OshInfoGap::getDeleteFlag, 0)
                 .orderByDesc(OshInfoGap::getGoodCount)
-                .orderByDesc(OshInfoGap::getFollowCount)
+                .orderByDesc(OshInfoGap::getCollectCount)
                 .last("Limit 3");
 
         List<OshInfoGap> infoGapList = infoGapMapper.selectList(queryWrapper);
