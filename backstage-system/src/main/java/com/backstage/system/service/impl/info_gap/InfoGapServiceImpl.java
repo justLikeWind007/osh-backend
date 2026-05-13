@@ -58,6 +58,9 @@ public class InfoGapServiceImpl implements InfoGapService {
         if (type != null && type.equals("follow")) {
             PageHelper.startPage(pageNum, pageSize);
             return infoGapMapper.selectInfoGapPageForFollow(currentUserId);
+        } else if (type != null && type.equals("myself")) {
+            PageHelper.startPage(pageNum, pageSize);
+            return infoGapMapper.selectInfoGapPageForMySelf(currentUserId);
         } else {
             PageHelper.startPage(pageNum, pageSize);
             return infoGapMapper.selectInfoGapPage(type, currentUserId);
@@ -206,5 +209,15 @@ public class InfoGapServiceImpl implements InfoGapService {
     @Override
     public void infoGapCollectRemove(Long userId, String username, Long infoGapId) {
 
+    }
+
+    @Override
+    public void viewCount(Long infoGapId) {
+
+        LambdaUpdateWrapper<OshInfoGap> updateWrapper = Wrappers.lambdaUpdate(OshInfoGap.class)
+                .eq(OshInfoGap::getId, infoGapId)
+                .setSql("view_count = view_count + 1");
+
+        infoGapMapper.update(null, updateWrapper);
     }
 }

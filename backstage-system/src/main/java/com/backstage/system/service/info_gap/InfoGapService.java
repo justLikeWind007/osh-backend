@@ -29,4 +29,7 @@ public interface InfoGapService {
 
     // 取消收藏信息差
     void infoGapCollectRemove(Long userId, String username, Long infoGapId);
+
+    // 统计点击观看信息差的次数
+    void viewCount(Long infoGapId);
 }

@@ -97,4 +97,15 @@ public class InfoGapController {
         return R.ok();
     }
 
+    /**
+     * 统计信息差观看次数
+     */
+    @GetMapping("/view")
+    @Anonymous
+    public R<Void> view(@RequestParam("infoGapId") Long infoGapId) {
+        infoGapService.viewCount(infoGapId);
+
+        return R.ok();
+    }
+
 }

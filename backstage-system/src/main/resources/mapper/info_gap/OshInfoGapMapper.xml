@@ -90,4 +90,12 @@
         )
         order by oig.update_time desc
     </select>
+
+    <select id="selectInfoGapPageForMySelf" resultMap="InfoGapVOResult">
+        select *
+        from osh_info_gap
+        where user_id = #{currentUserId}
+            and delete_flag = 0
+        order by update_time desc
+    </select>
 </mapper>
