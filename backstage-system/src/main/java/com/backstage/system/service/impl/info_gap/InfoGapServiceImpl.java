@@ -1,6 +1,7 @@
 package com.backstage.system.service.impl.info_gap;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.system.domain.dto.info_gap.InfoGapCreateDTO;
+import com.backstage.system.domain.dto.info_gap.InfoGapSearchReqDTO;
 import com.backstage.system.domain.info_gap.*;
 import com.backstage.system.domain.user.risk.OshUserRiskProfile;
 import com.backstage.system.domain.vo.info_gap.InfoGapVO;
@@ -17,6 +18,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -219,5 +221,11 @@ public class InfoGapServiceImpl implements InfoGapService {
                 .setSql("view_count = view_count + 1");
 
         infoGapMapper.update(null, updateWrapper);
+    }
+
+    @Override
+    public List<InfoGapVO> searchInfoGap(InfoGapSearchReqDTO request) {
+        List<InfoGapVO> infoGapVOS = infoGapMapper.searchInfoGap(request.getKeyword(), request.getCategory());
+        return infoGapVOS;
     }
 }
