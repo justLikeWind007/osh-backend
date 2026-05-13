@@ -24,7 +24,7 @@ public class OutboxEventPublishTask {
     @Autowired
     private OshOutboxEventMapper outboxEventMapper;
 
-    @Scheduled(fixedDelay = 3000)
+    // @Scheduled(fixedDelay = 3000)
     public void publishPendingEvents() {
         recoverTimeoutSendingEvents();
         List<OshOutboxEvent> events = outboxEventMapper.selectPendingEvents(BATCH_SIZE);
