@@ -1,15 +1,26 @@
 package com.backstage.system.controller.common;
 
 import com.backstage.common.annotation.Anonymous;
-import com.backstage.system.utils.SignUtil;
+import com.backstage.system.service.order.UnifiedOrderService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/notify")
-public class NotifyController {
+public class PayNotifyController {
+
+    private static final Logger log = LoggerFactory.getLogger(PayNotifyController.class);
+
+    @Resource
+    private UnifiedOrderService unifiedOrderService;
+
     @Anonymous
     @GetMapping("/pay")
     public String notify(HttpServletRequest request) {
@@ -20,26 +31,8 @@ public class NotifyController {
             for (String key : req.keySet()) {
                 params.put(key, req.get(key)[0]);
             }
-
-            // 验签 防止伪造
-            String sign = params.get("sign");
-            String localSign = SignUtil.createSign(params);
-
-            if (!sign.equals(localSign)) {
-                return "FAIL";
-            }
-
-            // 支付成功
-            String tradeStatus = params.get("trade_status");
-            if ("TRADE_SUCCESS".equals(tradeStatus)) {
-                String outTradeNo = params.get("out_trade_no");
-                System.out.println("订单号：" + outTradeNo);
-                // 更新数据库订单状态
-                
-
-                return "success";
-            }
-            return "FAIL";
+            log.info("【支付模块】支付回调，参数如下：{}",params);
+            return unifiedOrderService.handlePayNotify(params) ? "success" : "FAIL";
         } catch (Exception e) {
             return "FAIL";
         }
