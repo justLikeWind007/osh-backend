@@ -8,7 +8,7 @@ import java.util.Random;
 
 public class HBaseTest {
 
-    @Test
+//    @Test
     public void test() {
         HBaseClient client = new ThriftV1HBaseClient("43.242.200.25", 9090);
 
@@ -32,7 +32,7 @@ public class HBaseTest {
         }
     }
 
-    @Test
+//    @Test
     public void batchTest() {
         HBaseClient client = new ThriftV1HBaseClient("43.242.200.25", 9090);
 
@@ -54,7 +54,7 @@ public class HBaseTest {
 
     }
 
-    @Test
+//    @Test
     public void query() {
         HBaseClient client = new ThriftV1HBaseClient("43.242.200.25", 9090);
 
