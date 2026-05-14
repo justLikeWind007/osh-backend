@@ -31,7 +31,7 @@ public class ToolSaveRequest {
     @ApiModelProperty(value = "GitHub地址", example = "https://github.com/example/tool")
     private String githubUrl;
 
-    @ApiModelProperty(value = "状态：0-待审核，1-上架，2-下架", example = "1")
+    @ApiModelProperty(value = "状态：2-待审核，4-上架，6-下架", example = "2")
     private Integer status;
 
     @ApiModelProperty(value = "备注", example = "首批上线工具")

@@ -13,6 +13,8 @@ public interface OshToolMapper {
     List<OshTool> pageQuerySearchTool(@Param("request") com.backstage.system.request.tool.ToolSearchRequest request,
                                       @Param("userId") Long userId);
 
+    List<OshTool> selectAllToolsForEsSync();
+
     List<OshTool> selectRecommendTools(@Param("request") ToolRecommendRequest request,
                                        @Param("userId") Long userId);
 

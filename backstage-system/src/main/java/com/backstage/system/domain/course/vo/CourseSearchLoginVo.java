@@ -99,6 +99,9 @@ public class CourseSearchLoginVo {
     @ApiModelProperty("状态")
     private Integer status;
 
+    @ApiModelProperty("删除标记")
+    private Integer deleteFlag;
+
     @ApiModelProperty("考试 ID")
     private Integer examId;
 
@@ -358,6 +361,14 @@ public class CourseSearchLoginVo {
 
     public void setExamId(Integer examId) {
         this.examId = examId;
+    }
+
+    public Integer getDeleteFlag() {
+        return deleteFlag;
+    }
+
+    public void setDeleteFlag(Integer deleteFlag) {
+        this.deleteFlag = deleteFlag;
     }
 
     public Integer getCollectionFlag() {

@@ -92,6 +92,15 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
 
     @Override
     public int syncAllCoursesToEs() {
+        return syncCoursesToEs(false);
+    }
+
+    @Override
+    public int syncAllCoursesToEsWithoutStatusFilter() {
+        return syncCoursesToEs(true);
+    }
+
+    private int syncCoursesToEs(boolean includeAllStatuses) {
         int pageNum = 1;
         int pageSize = 200;
         int total = 0;
@@ -108,8 +117,9 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
             request.setPageSize(pageSize);
 
             PageHelper.startPage(pageNum, pageSize);
-            CurrentUser currentUser = new CurrentUser();
-            List<CourseSearchLoginVo> rows = oshCourseMapper.pageQuerySearchCourse(request, currentUser.getId());
+            List<CourseSearchLoginVo> rows = includeAllStatuses
+                    ? oshCourseMapper.pageQueryAllCoursesForEsSync(request)
+                    : oshCourseMapper.pageQuerySearchCourse(request, new CurrentUser().getId());
             if (StringUtils.isEmpty(rows)) {
                 break;
             }
@@ -298,7 +308,7 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
         document.setLevel(row.getLevel());
         document.setStatus(row.getStatus());
         document.setExamId(row.getExamId());
-        document.setDeleteFlag(0);
+        document.setDeleteFlag(row.getDeleteFlag() == null ? 0 : row.getDeleteFlag());
         document.setCreateTime(row.getCreateTime());
         document.setUpdateTime(row.getUpdateTime());
 

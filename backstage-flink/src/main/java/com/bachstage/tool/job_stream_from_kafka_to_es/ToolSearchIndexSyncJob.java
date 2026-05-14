@@ -26,7 +26,7 @@ public class ToolSearchIndexSyncJob
     private static final String EVENT_TYPE_UPDATE = "TOOL_INDEX_UPDATE";
     private static final String EVENT_TYPE_DELETE = "TOOL_INDEX_DELETE";
     private static final String EVENT_TYPE_COUNTER = "TOOL_INDEX_COUNTER";
-    private static final Integer PUBLISHED_STATUS = 1;
+    private static final Integer PUBLISHED_STATUS = 4;
 
     public static void main(String[] args) throws Exception
     {
@@ -83,9 +83,16 @@ public class ToolSearchIndexSyncJob
                 .name("tool-index-source")
                 .map((MapFunction<String, JSONObject>) value -> {
                     log.info("【工具索引】收到消息: {}" , value);
-                    return JSON.parseObject(value);
+                    try {
+                        return JSON.parseObject(value);
+                    } catch (Exception ex) {
+                        log.error("【工具索引】解析消息失败，跳过该条非JSON数据: {}", value, ex);
+                        return null;
+                    }
                 })
                 .name("tool-index-parse")
+                .filter(message -> message != null)
+                .name("tool-index-json-filter")
                 .filter(message -> {
                     Long toolId = message.getLong("id");
                     String eventType = message.getString("eventType");

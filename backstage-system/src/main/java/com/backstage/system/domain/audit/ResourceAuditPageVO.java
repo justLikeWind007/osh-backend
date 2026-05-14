@@ -14,6 +14,9 @@ public class ResourceAuditPageVO {
     @ApiModelProperty(value = "总数", example = "20")
     private Long total;
 
+    @ApiModelProperty(value = "当前资源类型待审核总数", example = "20")
+    private Long pendingTotal;
+
     @ApiModelProperty(value = "页码", example = "1")
     private Integer pageNum;
 
@@ -34,6 +37,14 @@ public class ResourceAuditPageVO {
 
     public void setTotal(Long total) {
         this.total = total;
+    }
+
+    public Long getPendingTotal() {
+        return pendingTotal;
+    }
+
+    public void setPendingTotal(Long pendingTotal) {
+        this.pendingTotal = pendingTotal;
     }
 
     public Integer getPageNum() {

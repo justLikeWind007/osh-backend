@@ -3,6 +3,7 @@ package com.backstage.system.service;
 import com.backstage.system.domain.outbox.OshOutboxEvent;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.mapper.outbox.OshOutboxEventMapper;
+import com.backstage.system.service.course.CourseIndexEventType;
 import com.backstage.system.service.course.CourseIndexUpsertMessage;
 import com.backstage.system.service.impl.outbox.OutboxEventPublishTask;
 import com.backstage.system.service.impl.outbox.OutboxEventServiceImpl;
@@ -40,15 +41,17 @@ public class OutboxEventServiceImplTest {
     }
 
     @Test
-    public void shouldPublishOutboxEventAfterTransactionCommitWhenSavingCourseIndexCreateEvent() {
+    public void shouldPublishOutboxEventAfterTransactionCommitWhenSavingCourseIndexEvent() {
         when(outboxEventMapper.insertOutboxEvent(any(OshOutboxEvent.class))).thenAnswer(invocation -> {
             OshOutboxEvent event = invocation.getArgument(0);
             event.setId(55L);
             return 1;
         });
         TransactionSynchronizationManager.initSynchronization();
+        CourseIndexUpsertMessage message = new CourseIndexUpsertMessage();
+        message.setEventType(CourseIndexEventType.COURSE_INDEX_CREATE);
 
-        outboxEventService.saveCourseIndexCreateEvent(10001L, new CourseIndexUpsertMessage(), buildOperator());
+        outboxEventService.saveCourseIndexEvent(10001L, message, buildOperator());
 
         verify(outboxEventPublishTask, never()).publishEventById(55L);
         for (TransactionSynchronization synchronization : TransactionSynchronizationManager.getSynchronizations()) {
@@ -64,8 +67,10 @@ public class OutboxEventServiceImplTest {
             event.setId(56L);
             return 1;
         });
+        CourseIndexUpsertMessage message = new CourseIndexUpsertMessage();
+        message.setEventType(CourseIndexEventType.COURSE_INDEX_CREATE);
 
-        outboxEventService.saveCourseIndexCreateEvent(10002L, new CourseIndexUpsertMessage(), buildOperator());
+        outboxEventService.saveCourseIndexEvent(10002L, message, buildOperator());
 
         verify(outboxEventPublishTask).publishEventById(56L);
     }

@@ -14,6 +14,7 @@ public enum ResourceTypeEnum {
     BOOK("book","osh_book"),
     TOOL("tool","osh_tool"),
     WEBSITE("website","osh_practical_website"),
+    OPEN_PROJECT("open_project", "osh_open_project"),
     ;
     private final String type;
     private final String tableName;
