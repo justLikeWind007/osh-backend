@@ -39,7 +39,7 @@ public class InfoGapCollectServiceImpl implements InfoGapCollectService {
 
         OshInfoGapCollect oshInfoGapCollect = infoGapCollectMapper.selectOne(queryWrapper);
 
-        // 未收藏 → 新增收藏
+        // 1. 未收藏 → 新增收藏
         if (oshInfoGapCollect == null) {
             OshInfoGapCollect entity = new OshInfoGapCollect();
             entity.setUserId(userId);
@@ -49,23 +49,38 @@ public class InfoGapCollectServiceImpl implements InfoGapCollectService {
             entity.setCollectStatus(1);
 
             infoGapCollectMapper.insert(entity);
+
+            LambdaUpdateWrapper<OshInfoGap> updateWrapper = Wrappers.lambdaUpdate(OshInfoGap.class)
+                    .eq(OshInfoGap::getId, infoGapId)
+                    .setSql("collect_count = collect_count + 1");
+            infoGapMapper.update(null, updateWrapper);
+
             return;
         }
 
         if (oshInfoGapCollect.getCollectStatus() == 1) {
-            // 已收藏 → 取消收藏
+            // 2. 已收藏 → 取消收藏
             LambdaUpdateWrapper<OshInfoGapCollect> updateWrapper = Wrappers.lambdaUpdate(OshInfoGapCollect.class)
                     .eq(OshInfoGapCollect::getId, oshInfoGapCollect.getId())
                     .set(OshInfoGapCollect::getCollectStatus, 0);
 
             infoGapCollectMapper.update(null, updateWrapper);
+
+            LambdaUpdateWrapper<OshInfoGap> updateWrapperCount = Wrappers.lambdaUpdate(OshInfoGap.class)
+                    .eq(OshInfoGap::getId, infoGapId)
+                    .setSql("collect_count = GREATEST(collect_count - 1, 0)");
+            infoGapMapper.update(null, updateWrapperCount);
         } else {
-            // 已取消 → 重新收藏
+            // 3. 已取消 → 重新收藏
             LambdaUpdateWrapper<OshInfoGapCollect> updateWrapper = Wrappers.lambdaUpdate(OshInfoGapCollect.class)
                     .eq(OshInfoGapCollect::getId, oshInfoGapCollect.getId())
                     .set(OshInfoGapCollect::getCollectStatus, 1);
-
             infoGapCollectMapper.update(null, updateWrapper);
+
+            LambdaUpdateWrapper<OshInfoGap> updateWrapperCount = Wrappers.lambdaUpdate(OshInfoGap.class)
+                    .eq(OshInfoGap::getId, infoGapId)
+                    .setSql("collect_count = collect_count + 1");
+            infoGapMapper.update(null, updateWrapperCount);
         }
 
     }
