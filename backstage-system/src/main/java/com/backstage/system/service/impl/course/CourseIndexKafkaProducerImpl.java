@@ -12,11 +12,11 @@ public class CourseIndexKafkaProducerImpl implements CourseIndexKafkaProducer {
 
     @Override
     public void sendCourseIndexCreate(CourseIndexUpsertMessage message) {
-        KafkaMessageUtil.sendMessage(KafkaConstants.COURSE_INDEX_CREATE_TOPIC, JSON.toJSONString(message));
+        KafkaMessageUtil.sendMessage(KafkaConstants.COURSE_INDEX_TOPIC, JSON.toJSONString(message));
     }
 
     @Override
     public void sendCourseIndexUpdate(CourseIndexUpsertMessage message) {
-        KafkaMessageUtil.sendMessage(KafkaConstants.COURSE_INDEX_UPDATE_TOPIC, JSON.toJSONString(message));
+        KafkaMessageUtil.sendMessage(KafkaConstants.COURSE_INDEX_TOPIC, JSON.toJSONString(message));
     }
 }

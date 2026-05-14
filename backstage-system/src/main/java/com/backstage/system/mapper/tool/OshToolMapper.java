@@ -13,6 +13,8 @@ public interface OshToolMapper {
     List<OshTool> pageQuerySearchTool(@Param("request") com.backstage.system.request.tool.ToolSearchRequest request,
                                       @Param("userId") Long userId);
 
+    List<OshTool> selectAllToolsForEsSync();
+
     List<OshTool> selectRecommendTools(@Param("request") ToolRecommendRequest request,
                                        @Param("userId") Long userId);
 
@@ -23,6 +25,8 @@ public interface OshToolMapper {
     int consumeUserToolQuota(@Param("toolId") Long toolId, @Param("userId") Long userId, @Param("operator") String operator);
 
     int increaseTotalUsage(@Param("toolId") Long toolId);
+
+    int increaseViewCount(@Param("toolId") Long toolId);
 
     int increaseGoodCount(@Param("toolId") Long toolId);
 

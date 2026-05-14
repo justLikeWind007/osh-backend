@@ -13,4 +13,6 @@ public interface OshInfoGapVoteMapper{
     OshInfoGapVote selectVoteRecord(@Param("userId")Long userId,@Param("infoId")Long infoId);
 
     void updateVoteRecord(OshInfoGapVote existVote);
+
+    void cancelVoteRecord(@Param("userId")Long userId, @Param("infoId")Long infoId);
 }

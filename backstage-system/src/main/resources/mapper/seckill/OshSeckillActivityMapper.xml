@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.seckill.OshSeckillActivityMapper">
+
+    <resultMap type="com.backstage.system.domain.seckill.OshSeckillActivity" id="OshSeckillActivityResult">
+        <result property="id"            column="id"/>
+        <result property="title"         column="title"/>
+        <result property="startTime"     column="start_time"/>
+        <result property="endTime"       column="end_time"/>
+        <result property="status"        column="status"/>
+        <result property="payTimeoutMin" column="pay_timeout_min"/>
+        <result property="createBy"      column="create_by"/>
+        <result property="createTime"    column="create_time"/>
+        <result property="updateBy"      column="update_by"/>
+        <result property="updateTime"    column="update_time"/>
+        <result property="deleteFlag"    column="delete_flag"/>
+    </resultMap>
+
+    <sql id="selectActivityVo">
+        select id, title, start_time, end_time, status, pay_timeout_min,
+               create_by, create_time, update_by, update_time, delete_flag
+        from osh_seckill_activity
+        where (delete_flag = 0 or delete_flag is null)
+    </sql>
+
+    <!-- 根据ID查询 -->
+    <select id="selectActivityById" parameterType="Long" resultMap="OshSeckillActivityResult">
+        <include refid="selectActivityVo"/>
+        and id = #{id}
+    </select>
+
+    <!-- 列表查询 -->
+    <select id="selectActivityList" parameterType="com.backstage.system.domain.seckill.OshSeckillActivity"
+            resultMap="OshSeckillActivityResult">
+        <include refid="selectActivityVo"/>
+        <if test="title != null and title != ''">
+            and title like concat('%', #{title}, '%')
+        </if>
+        <if test="status != null">
+            and status = #{status}
+        </if>
+        order by create_time desc
+    </select>
+
+    <!-- 新增 -->
+    <insert id="insertActivity" parameterType="com.backstage.system.domain.seckill.OshSeckillActivity"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into osh_seckill_activity
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="title != null and title != ''">title,</if>
+            <if test="startTime != null">start_time,</if>
+            <if test="endTime != null">end_time,</if>
+            <if test="payTimeoutMin != null">pay_timeout_min,</if>
+            <if test="createBy != null and createBy != ''">create_by,</if>
+            status,
+            create_time,
+            delete_flag,
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="title != null and title != ''">#{title},</if>
+            <if test="startTime != null">#{startTime},</if>
+            <if test="endTime != null">#{endTime},</if>
+            <if test="payTimeoutMin != null">#{payTimeoutMin},</if>
+            <if test="createBy != null and createBy != ''">#{createBy},</if>
+            0,
+            CURRENT_TIMESTAMP,
+            0,
+        </trim>
+    </insert>
+
+    <!-- 修改 -->
+    <update id="updateActivity" parameterType="com.backstage.system.domain.seckill.OshSeckillActivity">
+        update osh_seckill_activity
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="title != null and title != ''">title = #{title},</if>
+            <if test="startTime != null">start_time = #{startTime},</if>
+            <if test="endTime != null">end_time = #{endTime},</if>
+            <if test="payTimeoutMin != null">pay_timeout_min = #{payTimeoutMin},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            update_time = CURRENT_TIMESTAMP,
+        </trim>
+        where id = #{id}
+    </update>
+
+    <!-- 批量逻辑删除 -->
+    <update id="deleteActivityByIds">
+        update osh_seckill_activity
+        set delete_flag = 1, update_time = CURRENT_TIMESTAMP
+        where id in
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <!-- 批量更新活动状态 -->
+    <update id="updateActivityStatusByIds">
+        update osh_seckill_activity
+        set status = #{status}, update_time = CURRENT_TIMESTAMP
+        where id in
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <!-- 查询即将开始的活动（status=1 且 start_time <= now） -->
+    <select id="selectActivitiesToStart" resultMap="OshSeckillActivityResult">
+        <include refid="selectActivityVo"/>
+        and status = 1
+        and start_time &lt;= NOW()
+    </select>
+
+    <!-- 查询即将结束的活动（status=2 且 end_time <= now） -->
+    <select id="selectActivitiesToEnd" resultMap="OshSeckillActivityResult">
+        <include refid="selectActivityVo"/>
+        and status = 2
+        and end_time &lt;= NOW()
+    </select>
+
+    <!-- 未开始 → 进行中：status=1 且 start_time <= now -->
+    <update id="updateToOngoing">
+        update osh_seckill_activity
+        set status = 2, update_time = CURRENT_TIMESTAMP
+        where status = 1
+          and start_time &lt;= NOW()
+          and (delete_flag = 0 or delete_flag is null)
+    </update>
+
+    <!-- 进行中 → 已结束：status=2 且 end_time <= now -->
+    <update id="updateToFinished">
+        update osh_seckill_activity
+        set status = 3, update_time = CURRENT_TIMESTAMP
+        where status = 2
+          and end_time &lt;= NOW()
+          and (delete_flag = 0 or delete_flag is null)
+    </update>
+
+</mapper>

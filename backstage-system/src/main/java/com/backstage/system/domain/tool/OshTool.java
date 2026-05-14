@@ -49,7 +49,7 @@ public class OshTool {
     @ApiModelProperty("单次消耗积分/余额")
     private Integer pointCost;
 
-    @ApiModelProperty("状态：0-待审核，1-上架，2-下架")
+    @ApiModelProperty("状态：2-待审核，4-上架，6-下架")
     private Integer status;
 
     @ApiModelProperty("好评数")

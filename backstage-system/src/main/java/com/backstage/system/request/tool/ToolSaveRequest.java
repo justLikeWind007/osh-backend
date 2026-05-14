@@ -4,8 +4,6 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import org.apache.commons.lang3.StringUtils;
 
-import javax.validation.constraints.DecimalMin;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,30 +25,13 @@ public class ToolSaveRequest {
     @ApiModelProperty(value = "工具图标相对路径", example = "common/image/tool/202605/logo.png")
     private String logoUrl;
 
-    @ApiModelProperty(value = "访问类型：1-站内工具，2-iframe第三方工具", example = "1")
-    private Integer accessType;
-
     @ApiModelProperty(value = "站内工具前端路由", example = "/tool/image-to-pdf")
     private String routePath;
-
-    @ApiModelProperty(value = "第三方iframe地址", example = "https://example.com/tool")
-    private String iframeUrl;
 
     @ApiModelProperty(value = "GitHub地址", example = "https://github.com/example/tool")
     private String githubUrl;
 
-    @DecimalMin(value = "0.00", message = "当前价格不能小于0")
-    @ApiModelProperty(value = "当前价格", example = "0.00")
-    private BigDecimal price;
-
-    @DecimalMin(value = "0.00", message = "原价不能小于0")
-    @ApiModelProperty(value = "原价/市场价", example = "19.90")
-    private BigDecimal originalPrice;
-
-    @ApiModelProperty(value = "单次消耗积分/余额", example = "0")
-    private Integer pointCost;
-
-    @ApiModelProperty(value = "状态：0-待审核，1-上架，2-下架", example = "1")
+    @ApiModelProperty(value = "状态：2-待审核，4-上架，6-下架", example = "2")
     private Integer status;
 
     @ApiModelProperty(value = "备注", example = "首批上线工具")
@@ -65,7 +46,7 @@ public class ToolSaveRequest {
     @ApiModelProperty(value = "标签名称列表，不存在的标签会自动创建", example = "[\"PDF工具\",\"图片工具\"]")
     private List<String> tags;
 
-    @ApiModelProperty(value = "工具售卖套餐列表", example = "[{\"packageName\":\"10次包\",\"useCount\":10,\"price\":9.90,\"pointCost\":0,\"payType\":1}]")
+    @ApiModelProperty(value = "工具售卖套餐列表", example = "[{\"packageName\":\"10次包\",\"useCount\":10,\"price\":9.90}]")
     private List<ToolPackageSaveRequest> packages;
 
     public Long getId() {
@@ -100,14 +81,6 @@ public class ToolSaveRequest {
         this.logoUrl = StringUtils.trimToNull(logoUrl);
     }
 
-    public Integer getAccessType() {
-        return accessType;
-    }
-
-    public void setAccessType(Integer accessType) {
-        this.accessType = accessType;
-    }
-
     public String getRoutePath() {
         return routePath;
     }
@@ -116,44 +89,12 @@ public class ToolSaveRequest {
         this.routePath = StringUtils.trimToNull(routePath);
     }
 
-    public String getIframeUrl() {
-        return iframeUrl;
-    }
-
-    public void setIframeUrl(String iframeUrl) {
-        this.iframeUrl = StringUtils.trimToNull(iframeUrl);
-    }
-
     public String getGithubUrl() {
         return githubUrl;
     }
 
     public void setGithubUrl(String githubUrl) {
         this.githubUrl = StringUtils.trimToNull(githubUrl);
-    }
-
-    public BigDecimal getPrice() {
-        return price;
-    }
-
-    public void setPrice(BigDecimal price) {
-        this.price = price;
-    }
-
-    public BigDecimal getOriginalPrice() {
-        return originalPrice;
-    }
-
-    public void setOriginalPrice(BigDecimal originalPrice) {
-        this.originalPrice = originalPrice;
-    }
-
-    public Integer getPointCost() {
-        return pointCost;
-    }
-
-    public void setPointCost(Integer pointCost) {
-        this.pointCost = pointCost;
     }
 
     public Integer getStatus() {

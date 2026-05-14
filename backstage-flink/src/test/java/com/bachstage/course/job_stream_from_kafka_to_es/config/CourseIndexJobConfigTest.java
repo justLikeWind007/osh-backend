@@ -10,43 +10,24 @@ public class CourseIndexJobConfigTest
     @After
     public void tearDown()
     {
-        System.clearProperty("course.index.update-topic");
-        System.clearProperty("course.index.delete-topic");
+        System.clearProperty("course.index.topic");
     }
 
     @Test
-    public void shouldUseDefaultUpdateTopicWhenSystemPropertyIsMissing()
+    public void shouldUseDefaultTopicWhenSystemPropertyIsMissing()
     {
         CourseIndexJobConfig config = CourseIndexJobConfig.fromSystem();
 
-        assertEquals("osh.course.index.update", config.getUpdateTopic());
+        assertEquals("osh.course.index", config.getTopic());
     }
 
     @Test
-    public void shouldPreferSystemPropertyUpdateTopicWhenProvided()
+    public void shouldPreferSystemPropertyTopicWhenProvided()
     {
-        System.setProperty("course.index.update-topic", "osh.course.index.update.test");
+        System.setProperty("course.index.topic", "osh.course.index.test");
 
         CourseIndexJobConfig config = CourseIndexJobConfig.fromSystem();
 
-        assertEquals("osh.course.index.update.test", config.getUpdateTopic());
-    }
-
-    @Test
-    public void shouldUseDefaultDeleteTopicWhenSystemPropertyIsMissing()
-    {
-        CourseIndexJobConfig config = CourseIndexJobConfig.fromSystem();
-
-        assertEquals("osh.course.index.delete", config.getDeleteTopic());
-    }
-
-    @Test
-    public void shouldPreferSystemPropertyDeleteTopicWhenProvided()
-    {
-        System.setProperty("course.index.delete-topic", "osh.course.index.delete.test");
-
-        CourseIndexJobConfig config = CourseIndexJobConfig.fromSystem();
-
-        assertEquals("osh.course.index.delete.test", config.getDeleteTopic());
+        assertEquals("osh.course.index.test", config.getTopic());
     }
 }

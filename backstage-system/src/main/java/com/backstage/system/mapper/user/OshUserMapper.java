@@ -12,7 +12,7 @@ import org.apache.ibatis.annotations.Param;
  * Time: 16:44
  */
 public interface OshUserMapper extends BaseMapper<OshUser> {
-//    OshUser getUserByUsername(String username);
+    OshUser getUserByUsername(String username);
 //
 //    OshUser getUserByUsernameOrEmail(String name);
 //

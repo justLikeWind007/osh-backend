@@ -8,6 +8,7 @@ import cn.hutool.core.util.StrUtil;
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.system.domain.assistant.AssistantFeedbackCategory;
+import com.backstage.system.domain.assistant.vo.AssistantFeedbackTagVO;
 import com.backstage.system.domain.assistant.AssistantTicketStatus;
 import com.backstage.system.domain.assistant.AssistantFeedback;
 import com.backstage.system.domain.assistant.dto.AssistantFeedbackCreateDTO;
@@ -26,6 +27,7 @@ import com.backstage.system.service.assistant.IAssistantFeedbackFavoriteService;
 import com.backstage.system.service.assistant.IAssistantFeedbackLikeService;
 import com.backstage.system.service.assistant.IAssistantFeedbackProcessRecordService;
 import com.backstage.system.service.assistant.IAssistantFeedbackService;
+import com.backstage.system.service.assistant.IAssistantFeedbackTagService;
 import com.backstage.system.util.FeedbackHotScoreCalculator;
 import com.backstage.system.utils.UserContextUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -40,8 +42,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -57,11 +61,12 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
 
     private static final Logger log = LoggerFactory.getLogger(AssistantFeedbackServiceImpl.class);
 
-    public AssistantFeedbackServiceImpl(IAssistantFeedbackCategoryService categoryService, IAssistantFeedbackLikeService likeService, IAssistantFeedbackFavoriteService favoriteService, IAssistantFeedbackProcessRecordService processRecordService, OshUserMapper oshUserMapper) {
+    public AssistantFeedbackServiceImpl(IAssistantFeedbackCategoryService categoryService, IAssistantFeedbackLikeService likeService, IAssistantFeedbackFavoriteService favoriteService, IAssistantFeedbackProcessRecordService processRecordService, IAssistantFeedbackTagService feedbackTagService, OshUserMapper oshUserMapper) {
         this.categoryService = categoryService;
         this.likeService = likeService;
         this.favoriteService = favoriteService;
         this.processRecordService = processRecordService;
+        this.feedbackTagService = feedbackTagService;
         this.oshUserMapper = oshUserMapper;
     }
 
@@ -69,11 +74,18 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
     private final IAssistantFeedbackLikeService likeService;
     private final IAssistantFeedbackFavoriteService favoriteService;
     private final IAssistantFeedbackProcessRecordService processRecordService;
+    private final IAssistantFeedbackTagService feedbackTagService;
     private final OshUserMapper oshUserMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public AssistantFeedbackVO createFeedback(Long userId, AssistantFeedbackCreateDTO dto) {
+        return createFeedback(userId, dto, false);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public AssistantFeedbackVO createFeedback(Long userId, AssistantFeedbackCreateDTO dto, boolean allowAdminOnly) {
         // 验证分类是否存在且可用
         AssistantFeedbackCategory category = categoryService.getById(dto.getCategoryId());
         if (category == null || category.getIsEnabled() == 0) {
@@ -81,7 +93,7 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         }
 
         // 检查是否为管理员专用分类
-        if (category.getIsAdminOnly() == 1) {
+        if (!allowAdminOnly && category.getIsAdminOnly() == 1) {
             throw new ServiceException("该分类仅管理员可用");
         }
 
@@ -108,8 +120,9 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         feedback.setDeleted(false);
         feedback.setCreateBy(userId);
         feedback.setUpdateBy(userId);
-        
+
         save(feedback);
+        feedbackTagService.bindFeedbackTags(feedback.getId(), dto.getTagIds(), userId);
         safeCreateProcessRecord(feedback.getId(), null, AssistantTicketStatus.PENDING.getCode(),
                 userId, getUserDisplayName(getUserById(userId), "匿名用户"), "用户提交反馈");
         return toVO(feedback);
@@ -151,17 +164,17 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
     public AssistantFeedbackVO updateTicketStatus(Long ticketId, Long handlerId, AssistantTicketStatusUpdateDTO dto) {
         String targetStatus = AssistantTicketStatus.normalize(dto.getToStatus());
         if (!AssistantTicketStatus.isValid(targetStatus)) {
-            throw new IllegalArgumentException("不支持的工单状态");
+            throw new ServiceException("不支持的工单状态");
         }
 
         AssistantFeedback feedback = this.getById(ticketId);
         if (feedback == null || feedback.getDeleteFlag() == 1) {
-            throw new IllegalArgumentException("工单不存在");
+            throw new ServiceException("工单不存在");
         }
 
         String currentStatus = AssistantTicketStatus.normalize(feedback.getStatus());
         if (!AssistantTicketStatus.canTransfer(currentStatus, targetStatus)) {
-            throw new IllegalArgumentException("当前状态不允许流转到目标状态");
+            throw new ServiceException("当前状态不允许流转到目标状态");
         }
 
         OshUser handler = getUserById(handlerId);
@@ -173,11 +186,11 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         feedback.setResult(StrUtil.blankToDefault(remark, ""));
         feedback.setHandlerId(handlerId);
         feedback.setHandlerName(handlerName);
-        feedback.setHandledTime(handledTime);
-        feedback.setCloseReason(AssistantTicketStatus.CLOSED.getCode().equals(targetStatus) ? StrUtil.blankToDefault(remark, "") : null);
         feedback.setUpdateBy(handlerId);
         this.updateById(feedback);
         safeCreateProcessRecord(ticketId, currentStatus, targetStatus, handlerId, handlerName, remark);
+        feedback.setHandledTime(handledTime);
+        feedback.setCloseReason(AssistantTicketStatus.CLOSED.getCode().equals(targetStatus) ? StrUtil.blankToDefault(remark, "") : null);
         return toVO(feedback);
     }
 
@@ -185,6 +198,10 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
      * 实体转 VO
      */
     private AssistantFeedbackVO toVO(AssistantFeedback feedback) {
+        return toVO(feedback, null);
+    }
+
+    private AssistantFeedbackVO toVO(AssistantFeedback feedback, Map<Long, List<AssistantFeedbackTagVO>> feedbackTagMap) {
         AssistantFeedbackVO vo = new AssistantFeedbackVO();
         BeanUtils.copyProperties(feedback, vo);
         fillUserInfo(vo, feedback.getUserId());
@@ -200,6 +217,7 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
             vo.setCategoryName(category.getName());
             vo.setCategoryIcon(category.getIcon());
         }
+        vo.setTags(resolveFeedbackTags(feedback.getId(), feedbackTagMap));
 
         return vo;
     }
@@ -218,9 +236,10 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
     @Override
     public TableDataInfo pageFeedback(AssistantFeedbackPageDTO dto) {
         Page<AssistantFeedback> page = queryFeedbackPage(dto);
+        Map<Long, List<AssistantFeedbackTagVO>> feedbackTagMap = buildFeedbackTagMap(page.getRecords());
 
         List<AssistantFeedbackVO> rows = page.getRecords().stream()
-                .map(this::toVO)
+                .map(feedback -> toVO(feedback, feedbackTagMap))
                 .collect(Collectors.toList());
 
         return new TableDataInfo(rows, page.getTotal());
@@ -231,15 +250,22 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         Page<AssistantFeedback> page = queryFeedbackPage(dto);
         Map<Long, OshUser> userMap = buildUserMap(page.getRecords());
         Map<Long, AssistantFeedbackCategory> categoryMap = buildCategoryMap(page.getRecords());
+        Map<Long, List<AssistantFeedbackTagVO>> feedbackTagMap = buildFeedbackTagMap(page.getRecords());
 
         List<AssistantFeedbackListVO> rows = page.getRecords().stream()
-                .map(feedback -> toListVO(feedback, userMap, categoryMap))
+                .map(feedback -> toListVO(feedback, userMap, categoryMap, feedbackTagMap))
                 .collect(Collectors.toList());
 
         return new TableDataInfo(rows, page.getTotal());
     }
 
     private Page<AssistantFeedback> queryFeedbackPage(AssistantFeedbackPageDTO dto) {
+        Set<Long> tagFilteredFeedbackIds = filterFeedbackIdsByTags(dto.getTagIds());
+        Set<Long> scopedFeedbackIds = filterFeedbackIdsByQueryMode(dto);
+        Set<Long> filteredFeedbackIds = intersectFeedbackIds(tagFilteredFeedbackIds, scopedFeedbackIds);
+        if (shouldReturnEmptyPage(tagFilteredFeedbackIds, scopedFeedbackIds, filteredFeedbackIds)) {
+            return new Page<>(dto.getPageNum(), dto.getPageSize(), 0);
+        }
         // 处理 isAnnouncement 参数：转换为分类查询
         Long categoryIdToQuery = dto.getCategoryId();
         if (dto.getIsAnnouncement() != null) {
@@ -260,6 +286,7 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
                     Long announcementCategoryId = announcementCategory.getId();
                     Page<AssistantFeedback> page = lambdaQuery()
                             .ne(AssistantFeedback::getCategoryId, announcementCategoryId)
+                            .in(filteredFeedbackIds != null && !filteredFeedbackIds.isEmpty(), AssistantFeedback::getId, filteredFeedbackIds)
                             .eq(dto.getCategoryId() != null, AssistantFeedback::getCategoryId, dto.getCategoryId())
                             .eq(StrUtil.isNotBlank(dto.getStatus()), AssistantFeedback::getStatus, AssistantTicketStatus.normalize(dto.getStatus()))
                             .eq(dto.getIsPinned() != null, AssistantFeedback::getIsPinned, dto.getIsPinned())
@@ -276,6 +303,7 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         }
 
         return lambdaQuery()
+                .in(filteredFeedbackIds != null && !filteredFeedbackIds.isEmpty(), AssistantFeedback::getId, filteredFeedbackIds)
                 .eq(categoryIdToQuery != null, AssistantFeedback::getCategoryId, categoryIdToQuery)
                 .eq(StrUtil.isNotBlank(dto.getStatus()), AssistantFeedback::getStatus, AssistantTicketStatus.normalize(dto.getStatus()))
                 .eq(dto.getIsPinned() != null, AssistantFeedback::getIsPinned, dto.getIsPinned())
@@ -343,6 +371,8 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
             detailVO.setCategoryIcon(category.getIcon());
             detailVO.setAllowComment(category.getAllowComment());
         }
+        detailVO.setTags(buildFeedbackTagMap(Collections.singletonList(feedback)).getOrDefault(feedbackId, Collections.emptyList()));
+        detailVO.setViewCount((feedback.getViewCount() == null ? 0 : feedback.getViewCount()) + 1);
 
         // 填充当前用户的互动状态（点赞、收藏）
         try {
@@ -388,7 +418,8 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
 
     private AssistantFeedbackListVO toListVO(AssistantFeedback feedback,
                                              Map<Long, OshUser> userMap,
-                                             Map<Long, AssistantFeedbackCategory> categoryMap) {
+                                             Map<Long, AssistantFeedbackCategory> categoryMap,
+                                             Map<Long, List<AssistantFeedbackTagVO>> feedbackTagMap) {
         AssistantFeedbackListVO vo = new AssistantFeedbackListVO();
         BeanUtils.copyProperties(feedback, vo);
         vo.setStatus(AssistantTicketStatus.normalize(feedback.getStatus()));
@@ -403,6 +434,7 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         }
 
         vo.setContentPreview(buildContentPreview(feedback.getContent()));
+        vo.setTags(feedbackTagMap.getOrDefault(feedback.getId(), Collections.emptyList()));
         return vo;
     }
 
@@ -466,6 +498,78 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
                 .list()
                 .stream()
                 .collect(Collectors.toMap(AssistantFeedbackCategory::getId, Function.identity()));
+    }
+
+    private Map<Long, List<AssistantFeedbackTagVO>> buildFeedbackTagMap(List<AssistantFeedback> feedbackList) {
+        Set<Long> feedbackIds = feedbackList.stream()
+                .map(AssistantFeedback::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        return feedbackTagService.mapFeedbackTags(feedbackIds);
+    }
+
+    private Set<Long> filterFeedbackIdsByTags(List<Long> tagIds) {
+        if (tagIds == null || tagIds.isEmpty()) {
+            return null;
+        }
+        return feedbackTagService.listFeedbackIdsByTagIds(tagIds);
+    }
+
+    private Set<Long> filterFeedbackIdsByQueryMode(AssistantFeedbackPageDTO dto) {
+        String queryMode = normalizeQueryMode(dto.getQueryMode());
+        if ("all".equals(queryMode)) {
+            return null;
+        }
+        Long userId = dto.getUserId();
+        if (userId == null) {
+            return Collections.emptySet();
+        }
+        if ("mine".equals(queryMode)) {
+            return lambdaQuery()
+                    .select(AssistantFeedback::getId)
+                    .eq(AssistantFeedback::getUserId, userId)
+                    .eq(AssistantFeedback::getDeleteFlag, (byte) 0)
+                    .list()
+                    .stream()
+                    .map(AssistantFeedback::getId)
+                    .collect(Collectors.toSet());
+        }
+        if ("favorite".equals(queryMode)) {
+            return favoriteService.listFavoriteFeedbackIds(userId);
+        }
+        return null;
+    }
+
+    private String normalizeQueryMode(String queryMode) {
+        if (StrUtil.isBlank(queryMode)) {
+            return "all";
+        }
+        return queryMode.trim().toLowerCase();
+    }
+
+    private Set<Long> intersectFeedbackIds(Set<Long> leftIds, Set<Long> rightIds) {
+        if (leftIds == null) {
+            return rightIds;
+        }
+        if (rightIds == null) {
+            return leftIds;
+        }
+        return leftIds.stream().filter(rightIds::contains).collect(Collectors.toSet());
+    }
+
+    private boolean shouldReturnEmptyPage(Set<Long> tagFilteredFeedbackIds, Set<Long> scopedFeedbackIds, Set<Long> filteredFeedbackIds) {
+        boolean tagFilterEmpty = tagFilteredFeedbackIds != null && tagFilteredFeedbackIds.isEmpty();
+        boolean scopeFilterEmpty = scopedFeedbackIds != null && scopedFeedbackIds.isEmpty();
+        boolean intersectionEmpty = filteredFeedbackIds != null && filteredFeedbackIds.isEmpty();
+        return tagFilterEmpty || scopeFilterEmpty || intersectionEmpty;
+    }
+
+    private List<AssistantFeedbackTagVO> resolveFeedbackTags(Long feedbackId, Map<Long, List<AssistantFeedbackTagVO>> feedbackTagMap) {
+        if (feedbackTagMap != null) {
+            return feedbackTagMap.getOrDefault(feedbackId, Collections.emptyList());
+        }
+        return feedbackTagService.mapFeedbackTags(Collections.singleton(feedbackId))
+                .getOrDefault(feedbackId, Collections.emptyList());
     }
 
     private OshUser getUserById(Long userId) {

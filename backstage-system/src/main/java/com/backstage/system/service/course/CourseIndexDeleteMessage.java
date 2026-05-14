@@ -6,6 +6,7 @@ package com.backstage.system.service.course;
  */
 public class CourseIndexDeleteMessage
 {
+    private String eventType = "COURSE_INDEX_DELETE";
     private Long id;
 
     public CourseIndexDeleteMessage()
@@ -15,6 +16,16 @@ public class CourseIndexDeleteMessage
     public CourseIndexDeleteMessage(Long id)
     {
         this.id = id;
+    }
+
+    public String getEventType()
+    {
+        return eventType;
+    }
+
+    public void setEventType(String eventType)
+    {
+        this.eventType = eventType;
     }
 
     public Long getId()
