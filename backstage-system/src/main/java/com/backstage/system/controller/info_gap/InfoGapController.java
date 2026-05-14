@@ -4,6 +4,7 @@ import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.response.PageResponse;
 import com.backstage.system.domain.dto.info_gap.InfoGapCreateDTO;
+import com.backstage.system.domain.dto.info_gap.InfoGapSearchReqDTO;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.domain.vo.info_gap.InfoGapVO;
 import com.backstage.system.service.info_gap.InfoGapCollectService;
@@ -88,13 +89,40 @@ public class InfoGapController {
     /**
      * 收藏/取消收藏信息差
      */
-    @GetMapping("/collect/{infoGapId}")
-    public R<Void> collect(@PathVariable Long infoGapId) {
+    @GetMapping("/collect")
+    public R<Void> collect(@RequestParam("infoGapId") Long infoGapId) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
 
         infoGapCollectService.collectInfoGap(currentUserId, infoGapId);
         return R.ok();
+    }
+
+    /**
+     * 统计信息差观看次数
+     */
+    @GetMapping("/view")
+    @Anonymous
+    public R<Void> view(@RequestParam("infoGapId") Long infoGapId) {
+        infoGapService.viewCount(infoGapId);
+
+        return R.ok();
+    }
+
+    /**
+     * 搜索功能
+     */
+    @PostMapping("/search")
+    @Anonymous
+    public R<PageResponse<InfoGapVO>> search(@RequestBody InfoGapSearchReqDTO request) {
+        if (request.getCategory() != null && request.getCategory().trim().isEmpty()) {
+            request.setCategory(null);
+        }
+
+        List<InfoGapVO> infoGapSearchList = infoGapService.searchInfoGap(request);
+
+        PageInfo<InfoGapVO> pageInfo = new PageInfo<>(infoGapSearchList);
+        return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()));
     }
 
 }
