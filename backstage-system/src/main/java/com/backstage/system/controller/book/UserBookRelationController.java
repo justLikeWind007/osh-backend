@@ -1,6 +1,9 @@
 package com.backstage.system.controller.book;
 
+import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.R;
+import com.backstage.common.threadlocal.ThreadLocalUtil;
+import com.backstage.system.domain.vo.pay.OrderCheckoutRespVO;
 import com.backstage.system.domain.vo.book.BookRelationActionReqVO;
 import com.backstage.system.domain.vo.book.BookRelationReqVO;
 import com.backstage.system.domain.vo.book.BookRelationStatusVO;
@@ -44,12 +47,14 @@ public class UserBookRelationController {
     }
 
     /**
-     * 购买电子书
+     * 购买电子书，返回支付信息（二维码/支付链接）
      */
     @PostMapping("/purchase")
-    public R<String> purchase(@Valid @RequestBody BookRelationReqVO reqVO) {
-        bookService.purchaseBook(reqVO.getBookId());
-        return R.ok("购买成功");
+    @Anonymous
+    public R<OrderCheckoutRespVO> purchase(@Valid @RequestBody BookRelationReqVO reqVO) {
+        Long userId = ThreadLocalUtil.getCurrentUserId();
+        OrderCheckoutRespVO result = bookService.purchaseBook(reqVO.getBookId(), userId, reqVO.getChannel());
+        return R.ok(result);
     }
 
     /**

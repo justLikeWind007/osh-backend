@@ -2,6 +2,7 @@ package com.backstage.system.service.book;
 
 import com.backstage.system.controller.book.BookListReqVO;
 import com.backstage.system.domain.book.BookDO;
+import com.backstage.system.domain.vo.pay.OrderCheckoutRespVO;
 import com.backstage.system.domain.vo.book.*;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -127,11 +128,21 @@ public interface IBookService extends IService<BookDO> {
     void followBook(Long bookId, Integer status);
 
     /**
-     * 购买电子书
+     * 购买电子书（发起支付，返回支付信息）
      *
      * @param bookId 电子书ID
+     * @param userId 用户ID
+     * @param channel 支付渠道
+     * @return 支付结算结果
      */
-    void purchaseBook(Long bookId);
+    OrderCheckoutRespVO purchaseBook(Long bookId, Long userId, String channel);
+
+    /**
+     * 发放电子书访问权限（支付成功后由回调触发）
+     *
+     * @param orderNo 订单号
+     */
+    void grantBookAccess(String orderNo);
 
     /**
      * 查询用户与某本电子书的关联状态
