@@ -28,9 +28,6 @@ public class OutboxEventServiceImpl implements OutboxEventService {
     private static final Logger log = LoggerFactory.getLogger(OutboxEventServiceImpl.class);
     private static final String AGGREGATE_TYPE_COURSE = "COURSE";
     private static final String AGGREGATE_TYPE_TOOL = "TOOL";
-    private static final String EVENT_TYPE_COURSE_INDEX_CREATE = "COURSE_INDEX_CREATE";
-    private static final String EVENT_TYPE_COURSE_INDEX_UPDATE = "COURSE_INDEX_UPDATE";
-    private static final String EVENT_TYPE_COURSE_INDEX_DELETE = "COURSE_INDEX_DELETE";
     private static final int DEFAULT_RETRY_COUNT = 0;
     private static final int DEFAULT_MAX_RETRY_COUNT = 10;
     private static final int NORMAL_DELETE_FLAG = 0;
@@ -42,21 +39,25 @@ public class OutboxEventServiceImpl implements OutboxEventService {
     private OutboxEventPublishTask outboxEventPublishTask;
 
     @Override
-    public void saveCourseIndexCreateEvent(Long courseId, CourseIndexUpsertMessage message, OshUser operator) {
-        saveCourseEvent(courseId, EVENT_TYPE_COURSE_INDEX_CREATE, KafkaConstants.COURSE_INDEX_CREATE_TOPIC,
-                JSON.toJSONString(message), operator);
-    }
-
-    @Override
-    public void saveCourseIndexUpdateEvent(Long courseId, CourseIndexUpsertMessage message, OshUser operator) {
-        saveCourseEvent(courseId, EVENT_TYPE_COURSE_INDEX_UPDATE, KafkaConstants.COURSE_INDEX_UPDATE_TOPIC,
-                JSON.toJSONString(message), operator);
+    public void saveCourseIndexEvent(Long courseId, CourseIndexUpsertMessage message, OshUser operator) {
+        if (message == null || StringUtils.isBlank(message.getEventType())) {
+            log.warn("课程索引消息为空或事件类型为空，跳过outbox写入, courseId={}", courseId);
+            return;
+        }
+        String operatorName = operator == null ? null : operator.getUsername();
+        saveEvent(AGGREGATE_TYPE_COURSE, courseId, message.getEventType(), KafkaConstants.COURSE_INDEX_TOPIC,
+                JSON.toJSONString(message), "course:" + courseId, operatorName);
     }
 
     @Override
     public void saveCourseIndexDeleteEvent(Long courseId, CourseIndexDeleteMessage message, OshUser operator) {
-        saveCourseEvent(courseId, EVENT_TYPE_COURSE_INDEX_DELETE, KafkaConstants.COURSE_INDEX_DELETE_TOPIC,
-                JSON.toJSONString(message), operator);
+        if (message == null || StringUtils.isBlank(message.getEventType())) {
+            log.warn("课程索引删除消息为空或事件类型为空，跳过outbox写入, courseId={}", courseId);
+            return;
+        }
+        String operatorName = operator == null ? null : operator.getUsername();
+        saveEvent(AGGREGATE_TYPE_COURSE, courseId, message.getEventType(), KafkaConstants.COURSE_INDEX_TOPIC,
+                JSON.toJSONString(message), "course:" + courseId, operatorName);
     }
 
     @Override
@@ -84,11 +85,6 @@ public class OutboxEventServiceImpl implements OutboxEventService {
         }
         saveEvent(AGGREGATE_TYPE_TOOL, toolId, message.getEventType(), KafkaConstants.TOOL_INDEX_TOPIC,
                 JSON.toJSONString(message), "tool:" + toolId, operatorName);
-    }
-
-    private void saveCourseEvent(Long courseId, String eventType, String topic, String payload, OshUser operator) {
-        String operatorName = operator == null ? null : operator.getUsername();
-        saveEvent(AGGREGATE_TYPE_COURSE, courseId, eventType, topic, payload, "course:" + courseId, operatorName);
     }
 
     private void saveEvent(String aggregateType, Long aggregateId, String eventType, String topic,

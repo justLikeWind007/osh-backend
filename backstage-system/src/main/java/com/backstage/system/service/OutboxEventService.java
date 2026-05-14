@@ -8,9 +8,7 @@ import com.backstage.system.service.tool.ToolIndexMessage;
 
 public interface OutboxEventService {
 
-    void saveCourseIndexCreateEvent(Long courseId, CourseIndexUpsertMessage message, OshUser operator);
-
-    void saveCourseIndexUpdateEvent(Long courseId, CourseIndexUpsertMessage message, OshUser operator);
+    void saveCourseIndexEvent(Long courseId, CourseIndexUpsertMessage message, OshUser operator);
 
     void saveCourseIndexDeleteEvent(Long courseId, CourseIndexDeleteMessage message, OshUser operator);
 

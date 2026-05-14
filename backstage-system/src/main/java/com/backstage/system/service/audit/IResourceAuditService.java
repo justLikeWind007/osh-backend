@@ -7,5 +7,5 @@ public interface IResourceAuditService {
 
     ResourceAuditPageVO pagePending(ResourceAuditRequest request);
 
-    int approve(String resourceType, Long resourceId, String operator, Long operatorId);
+    int audit(String resourceType, Long resourceId, Integer status, String operator, Long operatorId);
 }

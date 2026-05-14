@@ -281,7 +281,7 @@ public class OshToolServiceImpl implements IOshToolService {
         tool.setPrice(BigDecimal.ZERO);
         tool.setOriginalPrice(BigDecimal.ZERO);
         tool.setPointCost(0);
-        tool.setStatus(request.getId() == null && request.getStatus() == null ? 1 : request.getStatus());
+        tool.setStatus(request.getId() == null && request.getStatus() == null ? 2 : request.getStatus());
         tool.setRemark(request.getRemark());
         tool.setResourceType(request.getId() == null ? StringUtils.defaultIfBlank(request.getResourceType(), DEFAULT_RESOURCE_TYPE) : request.getResourceType());
         tool.setLevel(request.getId() == null && request.getLevel() == null ? 1 : request.getLevel());
