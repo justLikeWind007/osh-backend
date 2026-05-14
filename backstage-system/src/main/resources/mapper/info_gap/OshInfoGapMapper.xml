@@ -11,56 +11,75 @@
         <result column="good_count" property="goodCount" />
         <result column="middle_count" property="middleCount" />
         <result column="bad_count" property="badCount" />
+        <result column="view_count" property="viewCount" />
+        <result column="collect_count" property="collectCount" />
         <result column="create_time" property="createTime" />
         <result column="update_time" property="updateTime" />
         <result column="nickname" property="nickname" />
         <result column="avatar" property="avatar" />
         <result column="isFollowed" property="isFollowed" />
+        <result column="isVoted" property="isVoted" />
         <result column="tag_1" property="tag1" />
         <result column="tag_2" property="tag2" />
         <result column="tag_3" property="tag3" />
     </resultMap>
 
     <select id="selectInfoGapPage" resultMap="InfoGapVOResult">
-        SELECT
-            g.id,
-            g.user_id,
-            g.title,
-            g.tag,
-            g.content,
-            g.good_count,
-            g.middle_count,
-            g.bad_count,
-            g.create_time,
-            g.update_time,
+        select
+            oig.id,
+            oig.user_id,
+            oig.title,
+            oig.tag,
+            oig.content,
+            oig.good_count,
+            oig.middle_count,
+            oig.bad_count,
+            oig.collect_count,
+            oig.view_count,
+            oig.create_time,
+            oig.update_time,
             ou.username as nickname,
             ou.avatar,
-            MAX(CASE WHEN rel.rn = 1 THEN t.tag_name END) AS tag_1,
-            MAX(CASE WHEN rel.rn = 2 THEN t.tag_name END) AS tag_2,
-            MAX(CASE WHEN rel.rn = 3 THEN t.tag_name END) AS tag_3
-        FROM osh_info_gap g
+        case when exists (
+            select 1
+            from osh_info_gap_collect oigc
+            where oigc.user_id = #{currentUserId}
+            and oigc.info_gap_id = oig.id
+            and oigc.collect_status = 1
+            and oigc.delete_flag = 0
+        ) then 1 else 0 end as isFollowed,
+        ifnull((
+            select oigv.vote_type
+            from osh_info_gap_vote oigv
+            where oigv.user_id = #{currentUserId}
+                and oigv.info_gap_id = oig.id
+                and oigv.delete_flag = 0
+            limit 1
+        ), 0) as isVoted,
+        max(case when oigtr.rn = 1 then oigt.tag_name end) as tag_1,
+        max(case when oigtr.rn = 2 then oigt.tag_name end) as tag_2,
+        max(case when oigtr.rn = 3 then oigt.tag_name end) as tag_3
+        from osh_info_gap oig
         left join osh_user ou
-            on g.user_id = ou.id
-        LEFT JOIN (
-            SELECT info_gap_id, gap_tag_id,
-                ROW_NUMBER() OVER (PARTITION BY info_gap_id ORDER BY sort_no) AS rn
-            FROM osh_info_gap_tag_rel
-            WHERE delete_flag = 0
-            ) as rel ON g.id = rel.info_gap_id AND rel.rn &lt;= 3
-        left join osh_info_gap_tag t
-            on rel.gap_tag_id = t.id and t.delete_flag = 0
-        WHERE g.status = 0
-            AND g.delete_flag = 0
-        GROUP BY g.id
+            on oig.user_id = ou.id
+        left join (
+            select info_gap_id, gap_tag_id, row_number() over (partition by info_gap_id order by sort_no) as rn
+            from osh_info_gap_tag_rel where delete_flag = 0) as oigtr
+            on oig.id = oigtr.info_gap_id and oigtr.rn &lt;= 3
+        left join osh_info_gap_tag oigt
+            on oigtr.gap_tag_id = oigt.id and oigt.delete_flag = 0
+        where oig.status = 0 and oig.delete_flag = 0
+        group by oig.id
         <choose>
             <when test="type == 'hot'">
-                ORDER BY g.good_count DESC, g.update_time DESC
+                order by oig.good_count desc, oig.update_time desc
             </when>
             <otherwise>
-                ORDER BY g.update_time DESC
+                order by oig.update_time desc
             </otherwise>
         </choose>
     </select>
+
 
     <insert id="insertInfoGap" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO osh_info_gap (user_id, title, tag, content, status, create_time)
@@ -80,36 +99,106 @@
     </update>
 
     <select id="selectInfoGapPageForFollow" resultMap="InfoGapVOResult">
-        select *
+        select
+            oig.id,
+            oig.user_id,
+            oig.title,
+            oig.tag,
+            oig.content,
+            oig.good_count,
+            oig.middle_count,
+            oig.bad_count,
+            oig.collect_count,
+            oig.view_count,
+            oig.create_time,
+            oig.update_time,
+            ou.username as nickname,
+            ou.avatar,
+            1 as isFollowed,
+            ifnull((
+                select oigv.vote_type
+                from osh_info_gap_vote oigv
+                where oigv.user_id = #{currentUserId}
+                  and oigv.info_gap_id = oig.id
+                  and oigv.delete_flag = 0
+                limit 1
+                ), 0) as isVoted,
+            max(case when oigtr.rn = 1 then oigt.tag_name end) as tag_1,
+            max(case when oigtr.rn = 2 then oigt.tag_name end) as tag_2,
+            max(case when oigtr.rn = 3 then oigt.tag_name end) as tag_3
         from osh_info_gap oig
-        where oig.id IN (
-            select oigc.info_gap_id
-            from osh_info_gap_collect oigc
-            where oigc.user_id = #{currentUserId}
-              and oigc.delete_flag = 0
-        )
+        inner join osh_info_gap_collect oigc
+        on oigc.info_gap_id = oig.id
+            and oigc.user_id = #{currentUserId}
+            and oigc.collect_status = 1
+            and oigc.delete_flag = 0
+        left join osh_user ou
+            on oig.user_id = ou.id
+        left join (
+            select info_gap_id, gap_tag_id, row_number() over (partition by info_gap_id order by sort_no) as rn
+            from osh_info_gap_tag_rel
+            where delete_flag = 0) as oigtr
+            on oig.id = oigtr.info_gap_id and oigtr.rn &lt;= 3
+        left join osh_info_gap_tag oigt
+            on oigtr.gap_tag_id = oigt.id and oigt.delete_flag = 0
+        where oig.delete_flag = 0
+        group by oig.id
         order by oig.update_time desc
     </select>
 
+
+
     <select id="selectInfoGapPageForMySelf" resultMap="InfoGapVOResult">
-        select *
-        from osh_info_gap
-        where user_id = #{currentUserId}
-            and delete_flag = 0
-        order by update_time desc
+        select
+            oig.id,
+            oig.user_id,
+            oig.title,
+            oig.tag,
+            oig.content,
+            oig.good_count,
+            oig.middle_count,
+            oig.bad_count,
+            oig.collect_count,
+            oig.view_count,
+            oig.create_time,
+            oig.update_time,
+            ou.username as nickname,
+            ou.avatar,
+            case when exists (
+                select 1
+                from osh_info_gap_collect oigc
+                where oigc.user_id = #{currentUserId}
+                and oigc.info_gap_id = oig.id
+                and oigc.collect_status = 1
+                and oigc.delete_flag = 0
+            ) then 1 else 0 end as isFollowed,
+            ifnull((
+                select oigv.vote_type
+                from osh_info_gap_vote oigv
+                where oigv.user_id = #{currentUserId}
+                and oigv.info_gap_id = oig.id
+                and oigv.delete_flag = 0
+                limit 1
+            ), 0) as isVoted,
+            max(case when oigtr.rn = 1 then oigt.tag_name end) as tag_1,
+            max(case when oigtr.rn = 2 then oigt.tag_name end) as tag_2,
+            max(case when oigtr.rn = 3 then oigt.tag_name end) as tag_3
+        from osh_info_gap oig
+        left join osh_user ou
+            on oig.user_id = ou.id
+        left join (
+            select info_gap_id, gap_tag_id, row_number() over (partition by info_gap_id order by sort_no) as rn
+            from osh_info_gap_tag_rel
+            where delete_flag = 0) as oigtr
+            on oig.id = oigtr.info_gap_id and oigtr.rn &lt;= 3
+        left join osh_info_gap_tag oigt
+            on oigtr.gap_tag_id = oigt.id and oigt.delete_flag = 0
+        where oig.user_id = #{currentUserId}
+            and oig.delete_flag = 0
+        group by oig.id
+        order by oig.update_time desc
     </select>
 
-    <select id="searchInfoGap" resultMap="InfoGapVOResult">
-        select *
-        from osh_info_gap
-        where 1 = 1
-            and delete_flag = 0
-        <if test="keyword != null and keyword != ''">
-            AND (title LIKE CONCAT('%', #{keyword}, '%') OR content LIKE CONCAT('%', #{keyword}, '%'))
-        </if>
-        <if test="categoryId != null and categoryId != ''">
-            AND tag = #{categoryId}
-        </if>
-        ORDER BY update_time DESC
-    </select>
+
+
 </mapper>

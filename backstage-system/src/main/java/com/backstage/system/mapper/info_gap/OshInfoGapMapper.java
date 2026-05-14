@@ -22,7 +22,7 @@ public interface OshInfoGapMapper extends BaseMapper<OshInfoGap> {
 
     void decrementCountAtomically(@Param("id")Long infoId,@Param("column")  String column);
 
-    // 当前用户关注的信息差列表
+    // 当前用户收藏的信息差列表
     List<InfoGapVO> selectInfoGapPageForFollow(@Param("currentUserId") Long currentUserId);
 
     // 查询当前用户发布的信息差
