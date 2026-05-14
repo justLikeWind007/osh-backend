@@ -109,8 +109,16 @@ public class OshCourseController extends BaseController {
     @PostMapping("/esSync/all")
     @Anonymous
     public R<Integer> syncAllCoursesToEs() {
-        return R.ok(oshCourseEsService.syncAllCoursesToEs(), "ok");
+//        return R.ok(oshCourseEsService.syncAllCoursesToEs(), "ok");
+        return R.ok(oshCourseEsService.syncAllCoursesToEsWithoutStatusFilter(), "ok");
     }
+
+//    @ApiOperation("全量同步课程到ES（不按状态过滤）")
+//    @PostMapping("/esSync/all/raw")
+//    @Anonymous
+//    public R<Integer> syncAllCoursesToEsWithoutStatusFilter() {
+//        return R.ok(oshCourseEsService.syncAllCoursesToEsWithoutStatusFilter(), "ok");
+//    }
 
 
     @ApiOperation("登录态课程搜索")

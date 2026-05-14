@@ -48,7 +48,7 @@ public class OshQAController {
     @ApiOperation("标签录入")
     @GetMapping("/tag/search")
     @OshUserEvent(module = "答疑模块", actionType = "查询", description = "标签录入")
-    @Anonymous
+    @PreAuthorize("hasAuthority('qna:tag:search')")
     public R<List<QATagVO>> searchTags(@RequestParam(value = "type",required = false) String type) {
         return IOshQATagService.searchTags(type);
     }
@@ -56,7 +56,7 @@ public class OshQAController {
     @ApiOperation("新增问题")
     @PostMapping("/question/create")
     @OshUserEvent(module = "答疑模块", actionType = "新增", description = "新增问题", resourceType = ResourceType.QA_TAG_TYPE)
-    @Anonymous
+    @PreAuthorize("hasAuthority('qna:question:create')")
     public R<String> addQuestion(
             @RequestBody AddQuestionDTO addQuestionDTO) {
         Long userId = UserContextUtil.getCurrentUserId();

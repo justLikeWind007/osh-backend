@@ -16,6 +16,9 @@
         <result column="nickname" property="nickname" />
         <result column="avatar" property="avatar" />
         <result column="isFollowed" property="isFollowed" />
+        <result column="tag_1" property="tag1" />
+        <result column="tag_2" property="tag2" />
+        <result column="tag_3" property="tag3" />
     </resultMap>
 
     <select id="selectInfoGapPage" resultMap="InfoGapVOResult">
@@ -29,10 +32,26 @@
             g.middle_count,
             g.bad_count,
             g.create_time,
-            g.update_time
+            g.update_time,
+            ou.username as nickname,
+            ou.avatar,
+            MAX(CASE WHEN rel.rn = 1 THEN t.tag_name END) AS tag_1,
+            MAX(CASE WHEN rel.rn = 2 THEN t.tag_name END) AS tag_2,
+            MAX(CASE WHEN rel.rn = 3 THEN t.tag_name END) AS tag_3
         FROM osh_info_gap g
+        left join osh_user ou
+            on g.user_id = ou.id
+        LEFT JOIN (
+            SELECT info_gap_id, gap_tag_id,
+                ROW_NUMBER() OVER (PARTITION BY info_gap_id ORDER BY sort_no) AS rn
+            FROM osh_info_gap_tag_rel
+            WHERE delete_flag = 0
+            ) as rel ON g.id = rel.info_gap_id AND rel.rn &lt;= 3
+        left join osh_info_gap_tag t
+            on rel.gap_tag_id = t.id and t.delete_flag = 0
         WHERE g.status = 0
             AND g.is_deleted = 0
+        GROUP BY g.id
         <choose>
             <when test="type == 'hot'">
                 ORDER BY g.good_count DESC, g.update_time DESC
@@ -64,10 +83,10 @@
         select *
         from osh_info_gap oig
         where oig.id IN (
-            select oigf.info_gap_id
-            from osh_info_gap_follow oigf
-            where oigf.user_id = #{currentUserId}
-              and oigf.delete_flag = 0
+            select oigc.info_gap_id
+            from osh_info_gap_collect oigc
+            where oigc.user_id = #{currentUserId}
+              and oigc.delete_flag = 0
         )
         order by oig.update_time desc
     </select>

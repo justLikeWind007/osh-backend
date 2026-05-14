@@ -23,4 +23,10 @@ public interface InfoGapService {
 
     // 精品推荐列表
     List<InfoGapVO> recommend();
+
+    // 收藏信息差
+    void infoGapCollectAdd(Long userId, String username, Long infoGapId);
+
+    // 取消收藏信息差
+    void infoGapCollectRemove(Long userId, String username, Long infoGapId);
 }

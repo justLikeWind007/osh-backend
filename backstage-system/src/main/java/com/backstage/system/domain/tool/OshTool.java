@@ -49,7 +49,7 @@ public class OshTool {
     @ApiModelProperty("单次消耗积分/余额")
     private Integer pointCost;
 
-    @ApiModelProperty("状态：0-待审核，1-上架，2-下架")
+    @ApiModelProperty("状态：2-待审核，4-上架，6-下架")
     private Integer status;
 
     @ApiModelProperty("好评数")
@@ -101,6 +101,18 @@ public class OshTool {
 
     @ApiModelProperty("当前用户是否收藏：0-否，1-是")
     private Integer collectionFlag;
+
+    @ApiModelProperty("当前用户剩余使用次数")
+    private Integer remainingCount;
+
+    @ApiModelProperty("当前用户是否已购买：0-否，1-是")
+    private Integer purchasedFlag;
+
+    @ApiModelProperty("当前用户评价类型：0-未评价，1-点赞，3-差评")
+    private Integer voteType;
+
+    @ApiModelProperty("工具售卖套餐列表")
+    private List<OshToolPackage> packages;
 
     public Long getId() {
         return id;
@@ -324,5 +336,37 @@ public class OshTool {
 
     public void setCollectionFlag(Integer collectionFlag) {
         this.collectionFlag = collectionFlag;
+    }
+
+    public Integer getRemainingCount() {
+        return remainingCount;
+    }
+
+    public void setRemainingCount(Integer remainingCount) {
+        this.remainingCount = remainingCount;
+    }
+
+    public Integer getPurchasedFlag() {
+        return purchasedFlag;
+    }
+
+    public void setPurchasedFlag(Integer purchasedFlag) {
+        this.purchasedFlag = purchasedFlag;
+    }
+
+    public Integer getVoteType() {
+        return voteType;
+    }
+
+    public void setVoteType(Integer voteType) {
+        this.voteType = voteType;
+    }
+
+    public List<OshToolPackage> getPackages() {
+        return packages;
+    }
+
+    public void setPackages(List<OshToolPackage> packages) {
+        this.packages = packages;
     }
 }

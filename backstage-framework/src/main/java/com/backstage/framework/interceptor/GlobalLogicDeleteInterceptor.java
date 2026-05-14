@@ -17,16 +17,16 @@ import java.util.regex.Pattern;
 })
 public class GlobalLogicDeleteInterceptor implements Interceptor {
 
-    // 匹配 osh_ 开头的表名（含可选别名）
-    // 例如：osh_course、osh_course c、osh_course AS c
+    // 匹配 FROM 或 JOIN 后面的 osh_ 开头表名（含可选别名）
+    // 只匹配真正的表名，不匹配 SELECT 字段里的 osh_ 开头字段名
     private static final Pattern TABLE_PATTERN = Pattern.compile(
-            "\\b(osh_\\w+)(?:\\s+(?:AS\\s+)?(\\w+))?",
+            "(?:FROM|JOIN)\\s+(osh_\\w+)(?:\\s+(?:AS\\s+)?(\\w+))?",
             Pattern.CASE_INSENSITIVE
     );
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
-        StatementHandler handler = (StatementHandler) invocation.getTarget();
+        StatementHandler handler = resolveStatementHandler(invocation.getTarget());
         MetaObject metaObject = SystemMetaObject.forObject(handler);
         BoundSql boundSql = (BoundSql) metaObject.getValue("delegate.boundSql");
         String originalSql = boundSql.getSql();
@@ -76,6 +76,25 @@ public class GlobalLogicDeleteInterceptor implements Interceptor {
         metaObject.setValue("delegate.boundSql.sql", newSql);
 
         return invocation.proceed();
+    }
+
+    /**
+     * 解开 MyBatis 插件和 JDK 动态代理包装，拿到真实的 StatementHandler。
+     * 当前拦截器后续需要读取 delegate.boundSql；如果直接使用 invocation.getTarget()，
+     * 在多插件叠加场景下拿到的可能只是代理对象，代理本身没有 delegate 属性，
+     * 会触发 There is no getter for property named 'delegate' 异常。
+     */
+    private StatementHandler resolveStatementHandler(Object target) {
+        MetaObject metaObject = SystemMetaObject.forObject(target);
+        while (metaObject.hasGetter("h")) {
+            Object object = metaObject.getValue("h");
+            metaObject = SystemMetaObject.forObject(object);
+        }
+        while (metaObject.hasGetter("target")) {
+            Object object = metaObject.getValue("target");
+            metaObject = SystemMetaObject.forObject(object);
+        }
+        return (StatementHandler) metaObject.getOriginalObject();
     }
 
     /**

@@ -9,4 +9,6 @@ public interface IOshCourseEsService {
     PageResponse<CourseSearchLoginVo> searchCourses(CourseSearchRequest request, Long userId);
 
     int syncAllCoursesToEs();
+
+    int syncAllCoursesToEsWithoutStatusFilter();
 }
