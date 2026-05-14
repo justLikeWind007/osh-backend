@@ -10,12 +10,15 @@ import com.backstage.system.domain.assistant.dto.AssistantCourseQaAskDTO;
 import com.backstage.system.domain.assistant.dto.AssistantFeedbackCommentDTO;
 import com.backstage.system.domain.assistant.dto.AssistantFeedbackCreateDTO;
 import com.backstage.system.domain.assistant.dto.AssistantFeedbackPageDTO;
+import com.backstage.system.domain.assistant.dto.AssistantFeedbackTagCreateDTO;
 import com.backstage.system.domain.assistant.dto.AssistantSiteQaAskDTO;
 import com.backstage.system.domain.assistant.vo.AssistantAnswerVO;
+import com.backstage.system.domain.assistant.vo.AssistantFeedbackTagVO;
 import com.backstage.system.domain.assistant.vo.AssistantFeedbackVO;
 import com.backstage.system.domain.assistant.vo.AssistantInitVO;
 import com.backstage.system.service.assistant.IAssistantFeedbackCommentService;
 import com.backstage.system.service.assistant.IAssistantFeedbackService;
+import com.backstage.system.service.assistant.IAssistantFeedbackTagService;
 import com.backstage.system.service.assistant.IAssistantService;
 import com.backstage.system.utils.UserContextUtil;
 import org.springframework.validation.annotation.Validated;
@@ -25,10 +28,11 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/pc/assistant")
 public class AssistantController extends BaseController {
 
-    public AssistantController(IAssistantService assistantService, IAssistantFeedbackService assistantFeedbackService, IAssistantFeedbackCommentService assistantFeedbackCommentService) {
+    public AssistantController(IAssistantService assistantService, IAssistantFeedbackService assistantFeedbackService, IAssistantFeedbackCommentService assistantFeedbackCommentService, IAssistantFeedbackTagService assistantFeedbackTagService) {
         this.assistantService = assistantService;
         this.assistantFeedbackService = assistantFeedbackService;
         this.assistantFeedbackCommentService = assistantFeedbackCommentService;
+        this.assistantFeedbackTagService = assistantFeedbackTagService;
     }
 
     private static final int VIP_LEVEL = 3;
@@ -38,6 +42,8 @@ public class AssistantController extends BaseController {
     private final IAssistantFeedbackService assistantFeedbackService;
 
     private final IAssistantFeedbackCommentService assistantFeedbackCommentService;
+
+    private final IAssistantFeedbackTagService assistantFeedbackTagService;
 
     @Anonymous
     @GetMapping("/init")
@@ -75,6 +81,15 @@ public class AssistantController extends BaseController {
             return R.fail(HttpStatus.UNAUTHORIZED, "请先登录后再提交反馈");
         }
         return R.ok(assistantFeedbackService.createFeedback(userId, dto), "提交成功");
+    }
+
+    @PostMapping("/feedback/tag/create")
+    public R<AssistantFeedbackTagVO> createFeedbackTag(@Validated @RequestBody AssistantFeedbackTagCreateDTO dto) {
+        Long userId = safeCurrentUserId();
+        if (userId == null) {
+            return R.fail(HttpStatus.UNAUTHORIZED, "请先登录后再创建标签");
+        }
+        return R.ok(assistantFeedbackTagService.createOrGetTag(dto, userId), "标签已添加");
     }
 
     @PostMapping("/feedback/page")

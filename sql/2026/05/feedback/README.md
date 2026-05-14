@@ -20,6 +20,7 @@
 | `05_fix_category_icons.sql` | V1.2 | 修复分类图标为 Emoji | 5 |
 | `06_test_data.sql` | Test Data | 测试数据（仅开发/测试环境） | 6 |
 | `07_init_feedback_permissions.sql` | V1.3 | 初始化反馈后台管理入口权限（sys_menu / sys_role_menu） | 7 |
+| `08_add_feedback_tag_tables.sql` | V1.4 | 创建反馈标签表、反馈标签关联表并初始化默认标签 | 8 |
 | `99_rollback.sql` | - | 回滚脚本（删除所有数据） | - |
 
 ---
@@ -54,6 +55,9 @@ mysql -u root -p backstage < 06_test_data.sql
 
 # 7. 初始化反馈后台管理权限
 mysql -u root -p backstage < 07_init_feedback_permissions.sql
+
+# 8. 创建反馈标签表和默认标签
+mysql --default-character-set=utf8mb4 -u root -p backstage < 08_add_feedback_tag_tables.sql
 ```
 
 ### 方式二：一键执行（生产环境）
@@ -62,9 +66,9 @@ mysql -u root -p backstage < 07_init_feedback_permissions.sql
 cd /Users/tianyi/devproj/osh-all/osh-backend/sql/2026/05/feedback
 
 # 仅执行迁移脚本（不包含测试数据）
-for file in $(ls 0[0-5]_*.sql 07_*.sql | sort); do
+for file in $(ls 0[0-5]_*.sql 07_*.sql 08_*.sql | sort); do
     echo "执行: $file"
-    if [[ $file == "05_"* ]]; then
+    if [[ $file == "05_"* || $file == "08_"* ]]; then
         mysql --default-character-set=utf8mb4 -u root -p backstage < "$file"
     else
         mysql -u root -p backstage < "$file"
@@ -78,9 +82,9 @@ done
 cd /Users/tianyi/devproj/osh-all/osh-backend/sql/2026/05/feedback
 
 # 执行所有脚本（包含测试数据）
-for file in $(ls 0[0-6]_*.sql 07_*.sql | sort); do
+for file in $(ls 0[0-6]_*.sql 07_*.sql 08_*.sql | sort); do
     echo "执行: $file"
-    if [[ $file == "05_"* ]]; then
+    if [[ $file == "05_"* || $file == "08_"* ]]; then
         mysql --default-character-set=utf8mb4 -u root -p backstage < "$file"
     else
         mysql -u root -p backstage < "$file"
@@ -101,6 +105,8 @@ DESC assistant_feedback;
 DESC assistant_feedback_like;
 DESC assistant_feedback_favorite;
 DESC assistant_feedback_category;
+DESC assistant_feedback_tag;
+DESC assistant_feedback_tag_rel;
 
 -- 检查索引是否创建成功
 SHOW INDEX FROM assistant_feedback_like;
@@ -126,8 +132,13 @@ ORDER BY sort_order;
 SELECT menu_id, menu_name, menu_type, visible, perms
 FROM sys_menu
 WHERE perms = 'system:feedback:manage'
-   OR path = 'assistant-feedback'
 ORDER BY parent_id, order_num, menu_id;
+
+-- 查看反馈标签
+SELECT id, code, name, sort_order, use_count, is_enabled
+FROM assistant_feedback_tag
+WHERE delete_flag = 0
+ORDER BY sort_order, id;
 ```
 
 ---
@@ -152,11 +163,10 @@ ORDER BY parent_id, order_num, menu_id;
    - 包含约 18 条虚拟评论记录
    - 需要用户ID (1-19) 在系统中存在
 
-7. **权限接入说明**：`07_init_feedback_permissions.sql` 当前会创建“隐藏但启用”的后台菜单资源
-   - 目的：先打通 `sys_menu -> sys_role_menu -> @PreAuthorize` 的统一权限链路
-   - 原因：反馈后台管理页尚未正式接入 `backstage-ui`，提前展示菜单会形成空路由
-   - 前端页面就绪后，可将 `assistant-feedback` 目录和 `system:feedback:manage` 页面菜单的 `visible` 改为 `0`
-   - 当前口径仅保留一个后台管理入口权限 `system:feedback:manage`，不拆按钮权限
+7. **权限接入说明**：`07_init_feedback_permissions.sql` 当前只会创建 `system:feedback:manage` 权限资源
+   - 目的：打通 `sys_menu -> sys_role_menu -> @PreAuthorize` 的统一权限链路
+   - 口径：管理员操作复用现有一体化课程/内容管理入口，不新增独立反馈后台页面
+   - 当前口径仅保留一个后台管理权限 `system:feedback:manage`，不拆按钮权限
 
 ---
 

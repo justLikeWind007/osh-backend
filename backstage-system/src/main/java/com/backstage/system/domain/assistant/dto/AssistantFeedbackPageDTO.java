@@ -1,5 +1,7 @@
 package com.backstage.system.domain.assistant.dto;
 
+import java.util.List;
+
 /**
  * AI 助手反馈分页查询 DTO
  *
@@ -33,9 +35,19 @@ public class AssistantFeedbackPageDTO {
     private String keyword;
 
     /**
+     * 标签 ID 列表
+     */
+    private List<Long> tagIds;
+
+    /**
      * 用户 ID（查询指定用户的反馈）
      */
     private Long userId;
+
+    /**
+     * 查询模式（all-全部 mine-我的 favorite-我的收藏）
+     */
+    private String queryMode;
 
     /**
      * 是否仅查询公告（可选，0-否 1-是）
@@ -97,12 +109,28 @@ public class AssistantFeedbackPageDTO {
         this.keyword = keyword;
     }
 
+    public List<Long> getTagIds() {
+        return tagIds;
+    }
+
+    public void setTagIds(List<Long> tagIds) {
+        this.tagIds = tagIds;
+    }
+
     public Long getUserId() {
         return userId;
     }
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public String getQueryMode() {
+        return queryMode;
+    }
+
+    public void setQueryMode(String queryMode) {
+        this.queryMode = queryMode;
     }
 
     public Integer getIsAnnouncement() {

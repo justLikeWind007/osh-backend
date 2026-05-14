@@ -6,9 +6,9 @@ import com.backstage.common.response.PageResponse;
 import com.backstage.system.domain.dto.info_gap.InfoGapCreateDTO;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.domain.vo.info_gap.InfoGapVO;
+import com.backstage.system.service.info_gap.InfoGapCollectService;
 import com.backstage.system.service.info_gap.InfoGapService;
 import com.backstage.system.utils.UserContextUtil;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.pagehelper.PageInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +21,8 @@ public class InfoGapController {
 
     @Autowired
     private InfoGapService infoGapService;
+    @Autowired
+    private InfoGapCollectService infoGapCollectService;
 
     @GetMapping("/list")
     @Anonymous
@@ -43,8 +45,8 @@ public class InfoGapController {
     public R<Void> save(@RequestBody InfoGapCreateDTO dto) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
-
         infoGapService.createInfoGap(dto, currentUserId);
+
         return R.ok();
     }
 
@@ -82,4 +84,17 @@ public class InfoGapController {
     public R<List> recommend() {
         return R.ok(infoGapService.recommend());
     }
+
+    /**
+     * 收藏/取消收藏信息差
+     */
+    @GetMapping("/collect/{infoGapId}")
+    public R<Void> collect(@PathVariable Long infoGapId) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
+
+        infoGapCollectService.collectInfoGap(currentUserId, infoGapId);
+        return R.ok();
+    }
+
 }

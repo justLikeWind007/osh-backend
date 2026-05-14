@@ -3,6 +3,7 @@ package com.backstage.system.domain.assistant.dto;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+import java.util.List;
 
 /**
  * AI 助手反馈创建请求 DTO
@@ -37,6 +38,12 @@ public class AssistantFeedbackCreateDTO {
     @Size(max = 255, message = "页面路径不能超过255个字符")
     private String pagePath;
 
+    /**
+     * 标签 ID 列表
+     */
+    @Size(max = 3, message = "最多选择3个标签")
+    private List<Long> tagIds;
+
     public Long getCategoryId() {
         return categoryId;
     }
@@ -67,5 +74,13 @@ public class AssistantFeedbackCreateDTO {
 
     public void setPagePath(String pagePath) {
         this.pagePath = pagePath;
+    }
+
+    public List<Long> getTagIds() {
+        return tagIds;
+    }
+
+    public void setTagIds(List<Long> tagIds) {
+        this.tagIds = tagIds;
     }
 }
