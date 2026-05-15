@@ -35,7 +35,7 @@ public class PayServiceImpl implements PayService {
             params.put("pid", payConfig.PID);
             params.put("type", channel);
             params.put("out_trade_no", outTradeNo);
-            params.put("notify_url", PayConfig.NOTIFY_URL);
+            params.put("notify_url", payConfig.NOTIFY_URL);
             params.put("return_url", PayConfig.RETURN_URL);
             params.put("name", name);
             params.put("money", money);
