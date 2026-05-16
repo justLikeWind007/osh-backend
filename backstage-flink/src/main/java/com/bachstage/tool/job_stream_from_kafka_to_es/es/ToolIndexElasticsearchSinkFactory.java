@@ -15,12 +15,19 @@ import org.apache.http.HttpHost;
 import org.apache.http.message.BasicHeader;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.common.xcontent.XContentType;
 
 import java.net.MalformedURLException;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 工具索引 Elasticsearch Sink 工厂
@@ -97,5 +104,80 @@ public class ToolIndexElasticsearchSinkFactory
                     .setConnectTimeout(30000)
                     .setSocketTimeout(60000));
         });
+    }
+
+    /**
+     * 审核状态 partial update sink。
+     * 只更新 status / updateTime / updateBy 三个字段，不覆盖文档其他内容。
+     * 由 ToolSearchIndexSyncJob 在识别到 AUDIT_APPROVED / AUDIT_REJECTED eventType 时调用。
+     */
+    public static ElasticsearchSink<JSONObject> buildAuditPartialUpdateSink(ToolIndexJobConfig config)
+            throws MalformedURLException
+    {
+        final String esIndex = config.getEsIndex();
+        List<HttpHost> httpHosts = ElasticsearchHostParser.parseHosts(config.getEsHosts());
+
+        ElasticsearchSink.Builder<JSONObject> builder = new ElasticsearchSink.Builder<>(
+                httpHosts,
+                new AuditPartialUpdateSinkFunction(esIndex));
+        configureBuilder(builder);
+        return builder.build();
+    }
+
+    private static final class AuditPartialUpdateSinkFunction
+            implements ElasticsearchSinkFunction<JSONObject>
+    {
+        private static final long serialVersionUID = 1L;
+
+        private static final java.time.format.DateTimeFormatter FORMATTER =
+                new DateTimeFormatterBuilder()
+                        .appendPattern("yyyy-MM-dd HH:mm:ss")
+                        .optionalStart()
+                        .appendFraction(ChronoField.MILLI_OF_SECOND, 1, 3, true)
+                        .optionalEnd()
+                        .toFormatter();
+
+        private final String esIndex;
+
+        AuditPartialUpdateSinkFunction(String esIndex)
+        {
+            this.esIndex = esIndex;
+        }
+
+        @Override
+        public void process(JSONObject message, RuntimeContext context, RequestIndexer indexer)
+        {
+            Long toolId = message.getLong("id");
+            Map<String, Object> doc = new HashMap<>();
+            Integer status = message.getInteger("status");
+            if (status != null) {
+                doc.put("status", status);
+            }
+            String updateBy = message.getString("updateBy");
+            if (updateBy != null && !updateBy.trim().isEmpty()) {
+                doc.put("updateBy", updateBy);
+            }
+            Object updateTimeRaw = message.get("updateTime");
+            if (updateTimeRaw != null) {
+                doc.put("updateTime", toEpochMillis(updateTimeRaw));
+            }
+            UpdateRequest request = new UpdateRequest(esIndex, "_doc", String.valueOf(toolId))
+                    .doc(JSONObject.toJSONString(doc), XContentType.JSON)
+                    .retryOnConflict(3);
+            System.out.println("【ES audit partial update】工具ID: " + toolId
+                    + ", status: " + status
+                    + ", eventType: " + message.getString("eventType"));
+            indexer.add(request);
+        }
+
+        private static long toEpochMillis(Object value)
+        {
+            if (value instanceof Number) {
+                return ((Number) value).longValue();
+            }
+            String text = String.valueOf(value).trim();
+            LocalDateTime ldt = LocalDateTime.parse(text, FORMATTER);
+            return ldt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        }
     }
 }

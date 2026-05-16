@@ -127,10 +127,14 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
         // status=0（待支付）时，主动查询易支付确认是否已付款
         if (order.getStatus() == 0) {
             try {
-                String queryUrl = com.backstage.common.config.PayConfig.STATUS
+                String queryUrl =
+//                        com.backstage.common.config.PayConfig.STATUS
+                        ""
                         + "?act=order"
-                        + "&pid=" + com.backstage.common.config.PayConfig.PID
-                        + "&key=" + com.backstage.common.config.PayConfig.KEY
+//                        + "&pid=" + com.backstage.common.config.PayConfig.PID
+                                + ""
+//                        + "&key=" + com.backstage.common.config.PayConfig.KEY
+                                + ""
                         + "&out_trade_no=" + seckillNo;
                 org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
                 java.util.Map<?, ?> res = restTemplate.getForObject(queryUrl, java.util.Map.class);

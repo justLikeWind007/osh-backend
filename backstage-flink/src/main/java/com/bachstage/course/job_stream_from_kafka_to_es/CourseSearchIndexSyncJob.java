@@ -24,6 +24,8 @@ public class CourseSearchIndexSyncJob {
     private static final String EVENT_TYPE_CREATE = "COURSE_INDEX_CREATE";
     private static final String EVENT_TYPE_UPDATE = "COURSE_INDEX_UPDATE";
     private static final String EVENT_TYPE_DELETE = "COURSE_INDEX_DELETE";
+    private static final String EVENT_TYPE_AUDIT_APPROVED = "AUDIT_APPROVED";
+    private static final String EVENT_TYPE_AUDIT_REJECTED = "AUDIT_REJECTED";
     private static final Integer PUBLISHED_STATUS = 4;
 
     public static void main(String[] args) throws Exception {
@@ -49,6 +51,14 @@ public class CourseSearchIndexSyncJob {
         DataStream<JSONObject> eventStream = buildCourseEventStream(
                 env, kafkaProps, config.getTopic(), "course", "课程索引流");
 
+        // 审核状态变更：只做 partial update（status / updateTime / updateBy）
+        eventStream
+                .filter(CourseSearchIndexSyncJob::isAuditEvent)
+                .name("course-index-audit-event-filter")
+                .addSink(CourseIndexElasticsearchSinkFactory.buildAuditPartialUpdateSink(config))
+                .name("course-index-es-audit-partial-update-sink");
+
+        // 常规 upsert：已发布才写入
         eventStream
                 .filter(CourseSearchIndexSyncJob::isUpsertEvent)
                 .name("course-index-upsert-event-filter")
@@ -57,6 +67,7 @@ public class CourseSearchIndexSyncJob {
                 .addSink(CourseIndexElasticsearchSinkFactory.buildUpsertSink(config))
                 .name("course-index-es-upsert-sink");
 
+        // 常规删除：DELETE 事件或未发布的 upsert
         eventStream
                 .filter(message -> isDeleteEvent(message) || isNotPublishedUpsertEvent(message))
                 .name("course-index-es-delete-route-filter")
@@ -110,6 +121,12 @@ public class CourseSearchIndexSyncJob {
     {
         String eventType = message.getString("eventType");
         return EVENT_TYPE_CREATE.equals(eventType) || EVENT_TYPE_UPDATE.equals(eventType);
+    }
+
+    private static boolean isAuditEvent(JSONObject message)
+    {
+        String eventType = message.getString("eventType");
+        return EVENT_TYPE_AUDIT_APPROVED.equals(eventType) || EVENT_TYPE_AUDIT_REJECTED.equals(eventType);
     }
 
     private static boolean isDeleteEvent(JSONObject message)
