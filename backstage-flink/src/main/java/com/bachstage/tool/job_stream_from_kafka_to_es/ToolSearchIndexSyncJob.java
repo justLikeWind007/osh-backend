@@ -32,20 +32,15 @@ public class ToolSearchIndexSyncJob
 
     public static void main(String[] args) throws Exception
     {
-        System.out.println("========================================");
-        System.out.println("ToolSearchIndexSyncJob 启动中...");
-        System.out.println("========================================");
+        log.info("========================================");
+        log.info("ToolSearchIndexSyncJob 启动中...");
+        log.info("========================================");
 
         ToolIndexJobConfig config = ToolIndexJobConfig.fromSystem();
 
-        System.out.println("配置信息:");
-        System.out.println("  Kafka: " + config.getKafkaBootstrapServers());
-        System.out.println("  消费者组: " + config.getKafkaGroupId());
-        System.out.println("  Offset策略: " + config.getKafkaStartMode());
-        System.out.println("  Topic: " + config.getTopic());
-        System.out.println("  ES: " + config.getEsHosts());
-        System.out.println("  ES 索引: " + config.getEsIndex());
-        System.out.println("========================================\n");
+        log.info("配置信息: Kafka={}, 消费者组={}, Offset策略={}, Topic={}, ES={}, ES索引={}",
+                config.getKafkaBootstrapServers(), config.getKafkaGroupId(), config.getKafkaStartMode(),
+                config.getTopic(), config.getEsHosts(), config.getEsIndex());
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
@@ -77,7 +72,7 @@ public class ToolSearchIndexSyncJob
                 .addSink(ToolIndexElasticsearchSinkFactory.buildDeleteSink(config))
                 .name("tool-index-es-delete-sink");
 
-        System.out.println("Flink 任务已启动，正在监听工具索引统一 Topic...\n");
+        log.info("Flink 任务已启动，正在监听工具索引统一 Topic...");
         env.execute("tool-search-index-sync-job");
     }
 
@@ -93,7 +88,7 @@ public class ToolSearchIndexSyncJob
                 .addSource(consumer)
                 .name("tool-index-source")
                 .map((MapFunction<String, JSONObject>) value -> {
-                    log.info("【工具索引】收到消息: {}" , value);
+                    log.info("【工具索引】收到消息: {}", value);
                     try {
                         return JSON.parseObject(value);
                     } catch (Exception ex) {

@@ -12,11 +12,13 @@ import org.apache.flink.streaming.connectors.elasticsearch6.ElasticsearchSink;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.message.BasicHeader;
-import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
 import java.time.LocalDateTime;
@@ -33,6 +35,8 @@ import java.util.Map;
  */
 public class CourseIndexElasticsearchSinkFactory
 {
+    private static final Logger log = LoggerFactory.getLogger(CourseIndexElasticsearchSinkFactory.class);
+
     /**
      * create/update 都写入同一个课程文档 ID。
      * ES 侧看到的是同一份课程索引文档被不断覆盖更新，因此这里统一按 upsert 语义构建 sink。
@@ -54,46 +58,18 @@ public class CourseIndexElasticsearchSinkFactory
                                 .type("_doc")
                                 .id(String.valueOf(message.getLong("id")))
                                 .source(jsonString, XContentType.JSON);
-                        System.out.println("【ES upsert】课程ID: " + message.getLong("id")
-                                + ", 标题: " + message.getString("title"));
+                        log.info("【ES upsert】课程ID: {}, 标题: {}",
+                                message.getLong("id"), message.getString("title"));
                         indexer.add(request);
                     }
                 });
-        builder.setFailureHandler((action, failure, restStatusCode, indexer) -> {
-            System.err.println("【ES写入失败】status=" + restStatusCode
-                    + ", action=" + action
-                    + ", error=" + failure.getMessage());
-            failure.printStackTrace();
-        });
-
-
-        builder.setBulkFlushMaxActions(ApplicationPropertiesConfig.readInt(
-                "elasticsearch.bulk-flush-max-actions", "ES_BULK_FLUSH_MAX_ACTIONS", 200));
-        builder.setBulkFlushInterval(1000);
-        builder.setFailureHandler((action, failure, restStatusCode, indexer) -> {
-            System.err.println("【ES写入失败】status=" + restStatusCode
-                    + ", action=" + action
-                    + ", error=" + failure.getMessage());
-            failure.printStackTrace();
-            throw failure;
-        });
-
-        String auth = ElasticsearchAuthConfig.fromProperties().buildBasicAuth();
-        String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
-        Header[] headers = new Header[]{new BasicHeader("Authorization", "Basic " + encodedAuth)};
-        builder.setRestClientFactory(restClientBuilder -> {
-            restClientBuilder.setDefaultHeaders(headers);
-            restClientBuilder.setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
-                    .setConnectTimeout(30000)
-                    .setSocketTimeout(60000));
-        });
-
+        configureBuilder(builder, "课程upsert");
         return builder.build();
     }
 
     /**
      * 删除消息和 upsert 消息的语义不同。
-     * 这里单独使用 delete request，避免把“删除”伪装成一次普通更新，后续排查链路时也更直观。
+     * 这里单独使用 delete request，避免把"删除"伪装成一次普通更新，后续排查链路时也更直观。
      */
     public static ElasticsearchSink<JSONObject> buildDeleteSink(CourseIndexJobConfig config)
             throws MalformedURLException
@@ -108,31 +84,11 @@ public class CourseIndexElasticsearchSinkFactory
                     public void process(JSONObject message, RuntimeContext context, RequestIndexer indexer) {
                         Long courseId = message.getLong("id");
                         DeleteRequest request = new DeleteRequest(esIndex, "_doc", String.valueOf(courseId));
-                        System.out.println("【ES delete】课程ID: " + courseId);
+                        log.info("【ES delete】课程ID: {}", courseId);
                         indexer.add(request);
                     }
                 });
-        builder.setFailureHandler((action, failure, restStatusCode, indexer) -> {
-            System.err.println("【ES删除失败】status=" + restStatusCode
-                    + ", action=" + action
-                    + ", error=" + failure.getMessage());
-            failure.printStackTrace();
-            throw failure;
-        });
-        builder.setBulkFlushMaxActions(ApplicationPropertiesConfig.readInt(
-                "elasticsearch.bulk-flush-max-actions", "ES_BULK_FLUSH_MAX_ACTIONS", 200));
-        builder.setBulkFlushInterval(1000);
-
-        String auth = ElasticsearchAuthConfig.fromProperties().buildBasicAuth();
-        String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
-        Header[] headers = new Header[]{new BasicHeader("Authorization", "Basic " + encodedAuth)};
-        builder.setRestClientFactory(restClientBuilder -> {
-            restClientBuilder.setDefaultHeaders(headers);
-            restClientBuilder.setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
-                    .setConnectTimeout(30000)
-                    .setSocketTimeout(60000));
-        });
-
+        configureBuilder(builder, "课程delete");
         return builder.build();
     }
 
@@ -150,16 +106,20 @@ public class CourseIndexElasticsearchSinkFactory
         ElasticsearchSink.Builder<JSONObject> builder = new ElasticsearchSink.Builder<>(
                 httpHosts,
                 new AuditPartialUpdateSinkFunction(esIndex));
-        builder.setFailureHandler((action, failure, restStatusCode, indexer) -> {
-            System.err.println("【课程审核 ES partial update 失败】status=" + restStatusCode
-                    + ", action=" + action
-                    + ", error=" + failure.getMessage());
-            failure.printStackTrace();
-            throw failure;
-        });
+        configureBuilder(builder, "课程审核partial-update");
+        return builder.build();
+    }
+
+    private static void configureBuilder(ElasticsearchSink.Builder<JSONObject> builder, String label)
+    {
         builder.setBulkFlushMaxActions(ApplicationPropertiesConfig.readInt(
                 "elasticsearch.bulk-flush-max-actions", "ES_BULK_FLUSH_MAX_ACTIONS", 200));
         builder.setBulkFlushInterval(1000);
+        builder.setFailureHandler((action, failure, restStatusCode, indexer) -> {
+            log.error("【课程ES写入失败】sink={}, status={}, action={}, error={}",
+                    label, restStatusCode, action, failure.getMessage(), failure);
+            throw failure;
+        });
 
         String auth = ElasticsearchAuthConfig.fromProperties().buildBasicAuth();
         String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
@@ -170,14 +130,13 @@ public class CourseIndexElasticsearchSinkFactory
                     .setConnectTimeout(30000)
                     .setSocketTimeout(60000));
         });
-
-        return builder.build();
     }
 
     private static final class AuditPartialUpdateSinkFunction
             implements ElasticsearchSinkFunction<JSONObject>
     {
         private static final long serialVersionUID = 1L;
+        private static final Logger log = LoggerFactory.getLogger(AuditPartialUpdateSinkFunction.class);
 
         private static final java.time.format.DateTimeFormatter FORMATTER =
                 new DateTimeFormatterBuilder()
@@ -214,9 +173,8 @@ public class CourseIndexElasticsearchSinkFactory
             UpdateRequest request = new UpdateRequest(esIndex, "_doc", String.valueOf(courseId))
                     .doc(JSONObject.toJSONString(doc), XContentType.JSON)
                     .retryOnConflict(3);
-            System.out.println("【ES audit partial update】课程ID: " + courseId
-                    + ", status: " + status
-                    + ", eventType: " + message.getString("eventType"));
+            log.info("【ES audit partial update】课程ID: {}, status: {}, eventType: {}",
+                    courseId, status, message.getString("eventType"));
             indexer.add(request);
         }
 

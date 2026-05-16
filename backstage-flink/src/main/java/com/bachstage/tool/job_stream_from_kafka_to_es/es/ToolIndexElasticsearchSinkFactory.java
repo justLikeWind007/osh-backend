@@ -18,6 +18,8 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
 import java.time.LocalDateTime;
@@ -34,6 +36,8 @@ import java.util.Map;
  */
 public class ToolIndexElasticsearchSinkFactory
 {
+    private static final Logger log = LoggerFactory.getLogger(ToolIndexElasticsearchSinkFactory.class);
+
     public static ElasticsearchSink<JSONObject> buildUpsertSink(ToolIndexJobConfig config)
             throws MalformedURLException
     {
@@ -51,13 +55,12 @@ public class ToolIndexElasticsearchSinkFactory
                                 .type("_doc")
                                 .id(String.valueOf(message.getLong("id")))
                                 .source(jsonString, XContentType.JSON);
-                        System.out.println("【ES upsert】工具ID: " + message.getLong("id")
-                                + ", 事件: " + message.getString("eventType")
-                                + ", 名称: " + message.getString("toolName"));
+                        log.info("【ES upsert】工具ID: {}, 事件: {}, 名称: {}",
+                                message.getLong("id"), message.getString("eventType"), message.getString("toolName"));
                         indexer.add(request);
                     }
                 });
-        configureBuilder(builder);
+        configureBuilder(builder, "工具upsert");
         return builder.build();
     }
 
@@ -74,36 +77,12 @@ public class ToolIndexElasticsearchSinkFactory
                     public void process(JSONObject message, RuntimeContext context, RequestIndexer indexer) {
                         Long toolId = message.getLong("id");
                         DeleteRequest request = new DeleteRequest(esIndex, "_doc", String.valueOf(toolId));
-                        System.out.println("【ES delete】工具ID: " + toolId);
+                        log.info("【ES delete】工具ID: {}", toolId);
                         indexer.add(request);
                     }
                 });
-        configureBuilder(builder);
+        configureBuilder(builder, "工具delete");
         return builder.build();
-    }
-
-    private static void configureBuilder(ElasticsearchSink.Builder<JSONObject> builder)
-    {
-        builder.setBulkFlushMaxActions(ApplicationPropertiesConfig.readInt(
-                "elasticsearch.bulk-flush-max-actions", "ES_BULK_FLUSH_MAX_ACTIONS", 200));
-        builder.setBulkFlushInterval(1000);
-        builder.setFailureHandler((action, failure, restStatusCode, indexer) -> {
-            System.err.println("【工具ES写入失败】status=" + restStatusCode
-                    + ", action=" + action
-                    + ", error=" + failure.getMessage());
-            failure.printStackTrace();
-            throw failure;
-        });
-
-        String auth = ElasticsearchAuthConfig.fromProperties().buildBasicAuth();
-        String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
-        Header[] headers = new Header[]{new BasicHeader("Authorization", "Basic " + encodedAuth)};
-        builder.setRestClientFactory(restClientBuilder -> {
-            restClientBuilder.setDefaultHeaders(headers);
-            restClientBuilder.setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
-                    .setConnectTimeout(30000)
-                    .setSocketTimeout(60000));
-        });
     }
 
     /**
@@ -120,14 +99,37 @@ public class ToolIndexElasticsearchSinkFactory
         ElasticsearchSink.Builder<JSONObject> builder = new ElasticsearchSink.Builder<>(
                 httpHosts,
                 new AuditPartialUpdateSinkFunction(esIndex));
-        configureBuilder(builder);
+        configureBuilder(builder, "工具审核partial-update");
         return builder.build();
+    }
+
+    private static void configureBuilder(ElasticsearchSink.Builder<JSONObject> builder, String label)
+    {
+        builder.setBulkFlushMaxActions(ApplicationPropertiesConfig.readInt(
+                "elasticsearch.bulk-flush-max-actions", "ES_BULK_FLUSH_MAX_ACTIONS", 200));
+        builder.setBulkFlushInterval(1000);
+        builder.setFailureHandler((action, failure, restStatusCode, indexer) -> {
+            log.error("【工具ES写入失败】sink={}, status={}, action={}, error={}",
+                    label, restStatusCode, action, failure.getMessage(), failure);
+            throw failure;
+        });
+
+        String auth = ElasticsearchAuthConfig.fromProperties().buildBasicAuth();
+        String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
+        Header[] headers = new Header[]{new BasicHeader("Authorization", "Basic " + encodedAuth)};
+        builder.setRestClientFactory(restClientBuilder -> {
+            restClientBuilder.setDefaultHeaders(headers);
+            restClientBuilder.setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
+                    .setConnectTimeout(30000)
+                    .setSocketTimeout(60000));
+        });
     }
 
     private static final class AuditPartialUpdateSinkFunction
             implements ElasticsearchSinkFunction<JSONObject>
     {
         private static final long serialVersionUID = 1L;
+        private static final Logger log = LoggerFactory.getLogger(AuditPartialUpdateSinkFunction.class);
 
         private static final java.time.format.DateTimeFormatter FORMATTER =
                 new DateTimeFormatterBuilder()
@@ -164,9 +166,8 @@ public class ToolIndexElasticsearchSinkFactory
             UpdateRequest request = new UpdateRequest(esIndex, "_doc", String.valueOf(toolId))
                     .doc(JSONObject.toJSONString(doc), XContentType.JSON)
                     .retryOnConflict(3);
-            System.out.println("【ES audit partial update】工具ID: " + toolId
-                    + ", status: " + status
-                    + ", eventType: " + message.getString("eventType"));
+            log.info("【ES audit partial update】工具ID: {}, status: {}, eventType: {}",
+                    toolId, status, message.getString("eventType"));
             indexer.add(request);
         }
 
