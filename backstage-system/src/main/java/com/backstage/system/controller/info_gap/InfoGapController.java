@@ -5,6 +5,7 @@ import com.backstage.common.core.domain.R;
 import com.backstage.common.response.PageResponse;
 import com.backstage.system.domain.dto.info_gap.InfoGapCreateDTO;
 import com.backstage.system.domain.dto.info_gap.InfoGapSearchReqDTO;
+import com.backstage.system.domain.dto.info_gap.InfoGapUpdateReqDTO;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.domain.vo.info_gap.InfoGapVO;
 import com.backstage.system.service.info_gap.InfoGapCollectService;
@@ -64,19 +65,6 @@ public class InfoGapController {
     }
 
     /**
-     * 关注/取消关注作者 (对应图片中的 +关注 按钮)
-     * @param authorId 被关注的作者ID
-     */
-    @PostMapping("/follow/{authorId}")
-    public R<Void> follow(@PathVariable Long authorId) {
-        OshUser currentOshUser = UserContextUtil.getCurrentUser();
-        Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
-
-        infoGapService.toggleFollow(currentUserId, authorId);
-        return R.ok();
-    }
-
-    /**
      * 精品推荐
      * @return
      */
@@ -125,4 +113,27 @@ public class InfoGapController {
         return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()));
     }
 
+    /**
+     * 修改我发布的信息差
+     */
+    @PostMapping("/update")
+    public R<Void> updateInfoGap(@RequestBody InfoGapUpdateReqDTO dto) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
+        infoGapService.updateInfoGap(dto, currentUserId);
+
+        return R.ok();
+    }
+
+    /**
+     * 删除我发布的信息差
+     */
+    @GetMapping("/delete")
+    public R<Void> deleteInfoGap(@RequestParam("infoGapId") Long infoGapId) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
+        infoGapService.deleteInfoGap(infoGapId);
+
+        return R.ok();
+    }
 }

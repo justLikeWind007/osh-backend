@@ -2,6 +2,7 @@ package com.backstage.system.service.impl.info_gap;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.system.domain.dto.info_gap.InfoGapCreateDTO;
 import com.backstage.system.domain.dto.info_gap.InfoGapSearchReqDTO;
+import com.backstage.system.domain.dto.info_gap.InfoGapUpdateReqDTO;
 import com.backstage.system.domain.info_gap.*;
 import com.backstage.system.domain.user.risk.OshUserRiskProfile;
 import com.backstage.system.domain.vo.info_gap.InfoGapVO;
@@ -18,8 +19,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -230,5 +230,82 @@ public class InfoGapServiceImpl implements InfoGapService {
     public List<InfoGapVO> searchInfoGap(InfoGapSearchReqDTO request) {
         List<InfoGapVO> infoGapVOS = infoGapMapper.searchInfoGap(request.getKeyword(), request.getCategory());
         return infoGapVOS;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateInfoGap(InfoGapUpdateReqDTO dto, Long userId) {
+        if (dto.getContent() == null || dto.getContent().length() > 500) {
+            throw new ServiceException("内容不能为空且不能超过500字");
+        }
+
+        // 手动查询风控信息
+        OshUserRiskProfile risk = riskMapper.selectRiskByUserId(userId);
+        if (risk != null && risk.getIsBanned() == 1) {
+            throw new ServiceException("操作受限：您的账号因违规已被封禁");
+        }
+
+        OshInfoGap oshInfoGap = infoGapMapper.selectById(dto.getId());
+        if (oshInfoGap == null) {
+            throw new ServiceException("信息差不存在！");
+        }
+
+        LambdaUpdateWrapper<OshInfoGap> updateWrapper = Wrappers.lambdaUpdate(OshInfoGap.class)
+                .eq(OshInfoGap::getId, dto.getId())
+                .eq(OshInfoGap::getUserId, userId)
+                .set(OshInfoGap::getTitle, dto.getTitle())
+                .set(OshInfoGap::getContent, dto.getContent())
+                .set(OshInfoGap::getTag, dto.getTag());
+        int updateRows = infoGapMapper.update(null, updateWrapper);
+        if (updateRows <= 0) {
+            throw new ServiceException("更新信息差失败！");
+        }
+
+        // 更新标签关系
+        // 查找更新之前的标签
+        List<OshInfoGapTagRel> oldGapRelList = infoGapTagRelMapper.selectList(
+                Wrappers.lambdaUpdate(OshInfoGapTagRel.class)
+                        .eq(OshInfoGapTagRel::getInfoGapId, dto.getId())
+        );
+
+        Set<Long> oldTagIdSet = oldGapRelList.stream()
+                .map(OshInfoGapTagRel::getGapTagId)
+                .collect(Collectors.toSet());
+
+        List<Long> newTagIds  = dto.getTagIds() == null
+                ? Collections.emptyList()
+                : new ArrayList<>(new LinkedHashSet<>(dto.getTagIds())
+        );
+
+        Set<Long> newTagIdSet = new LinkedHashSet<>(newTagIds);
+
+        Set<Long> removedTagIdSet = oldTagIdSet.stream()
+                .filter(tagId -> !newTagIdSet.contains(tagId))
+                .collect(Collectors.toSet());
+
+        Set<Long> addedTagIdSet = newTagIdSet.stream()
+                .filter(tagId -> !oldTagIdSet.contains(tagId))
+                .collect(Collectors.toSet());
+
+    }
+
+    @Override
+    public void deleteInfoGap(Long infoGapId) {
+        LambdaQueryWrapper<OshInfoGap> queryWrapper = Wrappers.lambdaQuery(OshInfoGap.class)
+                .eq(OshInfoGap::getId, infoGapId)
+                .eq(OshInfoGap::getDeleteFlag, 0);
+        OshInfoGap currentInfoGap = infoGapMapper.selectOne(queryWrapper);
+
+        if (currentInfoGap == null) {
+            throw new ServiceException("信息差不存在！");
+        }
+
+        LambdaUpdateWrapper<OshInfoGap> updateWrapper = Wrappers.lambdaUpdate(OshInfoGap.class)
+                .set(OshInfoGap::getDeleteFlag, 1);
+        int rows = infoGapMapper.update(null, updateWrapper);
+
+        if (rows <= 0) {
+            throw new ServiceException("信息差删除失败！");
+        }
     }
 }

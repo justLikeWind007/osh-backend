@@ -2,6 +2,7 @@ package com.backstage.system.service.info_gap;
 
 import com.backstage.system.domain.dto.info_gap.InfoGapCreateDTO;
 import com.backstage.system.domain.dto.info_gap.InfoGapSearchReqDTO;
+import com.backstage.system.domain.dto.info_gap.InfoGapUpdateReqDTO;
 import com.backstage.system.domain.info_gap.OshInfoGap;
 import com.backstage.system.domain.vo.info_gap.InfoGapVO;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -36,4 +37,10 @@ public interface InfoGapService {
 
     // 搜索查询信息差
     List<InfoGapVO> searchInfoGap(InfoGapSearchReqDTO infoGapSearchReqDTO);
+
+    // 修改已发布的信息差
+    void updateInfoGap(InfoGapUpdateReqDTO dto, Long userId);
+
+    // 删除已发布的信息差
+    void deleteInfoGap(Long infoGapId);
 }
