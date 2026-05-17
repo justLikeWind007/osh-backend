@@ -1,5 +1,7 @@
 package com.backstage.system.service.assistant.impl;
 
+import com.backstage.common.utils.bean.BeanUtils;
+import com.backstage.system.domain.assistant.vo.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,10 +15,6 @@ import com.backstage.system.domain.assistant.dto.AssistantFeedbackCreateDTO;
 import com.backstage.system.domain.assistant.dto.AssistantFeedbackPageDTO;
 import com.backstage.system.domain.assistant.dto.AssistantTicketQueryDTO;
 import com.backstage.system.domain.assistant.dto.AssistantTicketStatusUpdateDTO;
-import com.backstage.system.domain.assistant.vo.AssistantFeedbackDetailVO;
-import com.backstage.system.domain.assistant.vo.AssistantFeedbackProcessRecordVO;
-import com.backstage.system.domain.assistant.vo.AssistantFeedbackTagVO;
-import com.backstage.system.domain.assistant.vo.AssistantFeedbackVO;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.mapper.assistant.AssistantFeedbackMapper;
 import com.backstage.system.mapper.user.OshUserMapper;
@@ -39,10 +37,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -290,7 +286,7 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         if (feedback == null) {
             throw new ServiceException("反馈不存在");
         }
-        return listProcessRecordsSafely(feedbackId);
+        return feedbackViewAssembler.listProcessRecordsSafely(feedbackId);
     }
 
     private void fillUserInfo(AssistantFeedbackVO feedbackVO, Long userId) {
