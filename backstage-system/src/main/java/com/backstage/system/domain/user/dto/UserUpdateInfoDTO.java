@@ -8,24 +8,16 @@ package com.backstage.system.domain.user.dto;
  * Time: 19:42
  */
 public class UserUpdateInfoDTO {
-    private String avatar;
-    private String nickname;
+    private String username;
     private String sex;
+    private String introduction;
 
-    public String getAvatar() {
-        return avatar;
+    public String getUsername() {
+        return username;
     }
 
-    public void setAvatar(String avatar) {
-        this.avatar = avatar;
-    }
-
-    public String getNickname() {
-        return nickname;
-    }
-
-    public void setNickname(String nickname) {
-        this.nickname = nickname;
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getSex() {
@@ -36,12 +28,20 @@ public class UserUpdateInfoDTO {
         this.sex = sex;
     }
 
+    public String getIntroduction() {
+        return introduction;
+    }
+
+    public void setIntroduction(String introduction) {
+        this.introduction = introduction;
+    }
+
     @Override
     public String toString() {
         return "UserUpdateInfoDTO{" +
-                "avatar='" + avatar + '\'' +
-                ", nickname='" + nickname + '\'' +
+                "username='" + username + '\'' +
                 ", sex='" + sex + '\'' +
+                ", introduction='" + introduction + '\'' +
                 '}';
     }
 }

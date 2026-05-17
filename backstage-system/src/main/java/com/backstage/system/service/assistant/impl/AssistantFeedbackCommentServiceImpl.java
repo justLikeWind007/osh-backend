@@ -64,12 +64,12 @@ public class AssistantFeedbackCommentServiceImpl
         comment.setContent(dto.getContent().trim());
         comment.setIsAdminReply(Boolean.TRUE.equals(dto.getIsAdminReply()) ? 1 : 0);
 
-        // 判断是一级评论还是二级评论
+        // 判断是一级评论还是二级评�?
         Long parentId = ObjectUtil.defaultIfNull(dto.getParentId(), 0L);
         comment.setParentId(parentId);
 
         if (parentId == 0) {
-            // 一级评论
+            // 一级评�?
             comment.setRootId(0L);
             comment.setCommentLevel(1);
         } else {
@@ -82,7 +82,7 @@ public class AssistantFeedbackCommentServiceImpl
                 throw new ServiceException("父评论与当前反馈不匹配");
             }
 
-            // 确定根评论 ID
+            // 确定根评�?ID
             Long rootId = parentComment.getCommentLevel() == 1 ? parentId : parentComment.getRootId();
             comment.setRootId(rootId);
             comment.setCommentLevel(2);
@@ -93,7 +93,7 @@ public class AssistantFeedbackCommentServiceImpl
         // 保存评论
         save(comment);
 
-        // 更新反馈的评论数量
+        // 更新反馈的评论数�?
         feedbackService.incrementCommentCount(dto.getFeedbackId());
 
         return comment.getId();
@@ -150,7 +150,7 @@ public class AssistantFeedbackCommentServiceImpl
 
         OshUser user = userMap.get(comment.getUserId());
         if (user != null) {
-            commentVO.setUserName(user.getNickname() != null && !user.getNickname().isEmpty() ? user.getNickname() : user.getUsername());
+            commentVO.setUserName(user.getUsername() != null && !user.getUsername().isEmpty() ? user.getUsername() : user.getUsername());
             commentVO.setUserAvatar(user.getAvatar());
         }
         return commentVO;
@@ -205,7 +205,7 @@ public class AssistantFeedbackCommentServiceImpl
             throw new ServiceException("评论不存在");
         }
 
-        // 只能删除自己的评论
+        // 只能删除自己的评�?
         if (!comment.getUserId().equals(userId)) {
             throw new ServiceException("无权删除他人评论");
         }
@@ -214,7 +214,7 @@ public class AssistantFeedbackCommentServiceImpl
         boolean success = removeById(commentId);
 
         if (success) {
-            // 更新反馈的评论数量
+            // 更新反馈的评论数�?
             feedbackService.decrementCommentCount(comment.getFeedbackId());
         }
 
