@@ -1,5 +1,6 @@
 package com.backstage.system.service.impl.seckill;
 
+import com.backstage.common.constant.SeckillCacheConstants;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.system.domain.dto.seckill.SeckillActivityAddDTO;
 import com.backstage.system.domain.dto.seckill.SeckillActivityItemAddDTO;
@@ -41,10 +42,10 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
 
     private static final Logger logger = LoggerFactory.getLogger(OshSeckillActivityServiceImpl.class);
 
-    private static final String SECKILL_ACTIVITY_KEY = "seckill:activity:";
-    private static final String SECKILL_ITEM_KEY     = "seckill:item:";
-    private static final String SECKILL_STOCK_KEY    = "seckill:stock:";
-    private static final long   CACHE_EXPIRE         = 7200L;
+    private static final String SECKILL_ACTIVITY_KEY = SeckillCacheConstants.SECKILL_ACTIVITY_KEY;
+    private static final String SECKILL_ITEM_KEY     = SeckillCacheConstants.SECKILL_ITEM_KEY;
+    private static final String SECKILL_STOCK_KEY    = SeckillCacheConstants.SECKILL_STOCK_KEY;
+    private static final String SECKILL_BOUGHT_KEY   = SeckillCacheConstants.SECKILL_BOUGHT_KEY;
 
     @Autowired
     private OshSeckillActivityMapper activityMapper;
@@ -252,6 +253,11 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
             dto.getIds().forEach(this::warmUpCache);
         }
 
+        // 下架活动时清理 Redis 缓存，释放内存
+        if (targetStatus == 4) {
+            dto.getIds().forEach(this::cleanUpCache);
+        }
+
         return result;
     }
 
@@ -264,22 +270,51 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
         OshSeckillActivity activity = activityMapper.selectActivityById(activityId);
         if (activity == null) return;
 
-        // 写入活动缓存（此时 status=1，定时任务改成 2 后会覆盖）
+        Date endTime = activity.getEndTime();
+
+        // 活动/明细信息缓存：活动结束后保留 24 小时
+        long activityExpire = SeckillCacheConstants.calcExpireSeconds(endTime, SeckillCacheConstants.ACTIVITY_EXPIRE_BUFFER);
+        // 库存 Key：活动结束后保留 2 小时
+        long stockExpire = SeckillCacheConstants.calcExpireSeconds(endTime, SeckillCacheConstants.STOCK_EXPIRE_BUFFER);
+
+        // 写入活动缓存
         redisTemplate.opsForValue().set(
-                SECKILL_ACTIVITY_KEY + activityId, activity, CACHE_EXPIRE, TimeUnit.SECONDS);
+                SECKILL_ACTIVITY_KEY + activityId, activity,
+                activityExpire, TimeUnit.SECONDS);
 
         // 写入明细缓存 + 库存 Key
         List<OshSeckillActivityItem> items = itemMapper.selectItemsByActivityId(activityId);
         for (OshSeckillActivityItem item : items) {
             redisTemplate.opsForValue().set(
-                    SECKILL_ITEM_KEY + item.getId(), item, CACHE_EXPIRE, TimeUnit.SECONDS);
+                    SECKILL_ITEM_KEY + item.getId(), item,
+                    activityExpire, TimeUnit.SECONDS);
 
             String stockKey = SECKILL_STOCK_KEY + activityId + ":" + item.getId();
             // 只在 Key 不存在时写入，避免覆盖已有库存（防止重复发布）
             stringRedisTemplate.opsForValue().setIfAbsent(
-                    stockKey, String.valueOf(item.getAvailableStock()), CACHE_EXPIRE, TimeUnit.SECONDS);
+                    stockKey, String.valueOf(item.getAvailableStock()),
+                    stockExpire, TimeUnit.SECONDS);
         }
-        logger.info("【活动发布】活动{}缓存预热完成，明细数量：{}", activityId, items.size());
+        logger.info("【活动发布】活动{}缓存预热完成，明细数量：{}，活动缓存过期：{}s，库存缓存过期：{}s",
+                activityId, items.size(), activityExpire, stockExpire);
+    }
+
+    /**
+     * 活动下架/结束时清理 Redis 缓存，释放内存
+     * 清理范围：活动缓存、明细缓存、库存 Key、已购用户 Set
+     */
+    private void cleanUpCache(Long activityId) {
+        // 删除活动缓存
+        redisTemplate.delete(SECKILL_ACTIVITY_KEY + activityId);
+
+        // 遍历明细，删除明细缓存、库存 Key、已购 Set
+        List<OshSeckillActivityItem> items = itemMapper.selectItemsByActivityId(activityId);
+        for (OshSeckillActivityItem item : items) {
+            redisTemplate.delete(SECKILL_ITEM_KEY + item.getId());
+            stringRedisTemplate.delete(SECKILL_STOCK_KEY + activityId + ":" + item.getId());
+            stringRedisTemplate.delete(SECKILL_BOUGHT_KEY + activityId + ":" + item.getId());
+        }
+        logger.info("【活动下架】活动{}缓存已清理，明细数量：{}", activityId, items.size());
     }
 
     /**
