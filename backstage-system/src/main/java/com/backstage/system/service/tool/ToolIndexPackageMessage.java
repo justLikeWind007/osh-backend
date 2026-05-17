@@ -8,6 +8,8 @@ public class ToolIndexPackageMessage {
     private String packageName;
     private Integer useCount;
     private BigDecimal price;
+    private Integer pointCost;
+    private Integer payType;
     private Integer status;
     private Integer sortOrder;
 
@@ -49,6 +51,22 @@ public class ToolIndexPackageMessage {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public Integer getPointCost() {
+        return pointCost;
+    }
+
+    public void setPointCost(Integer pointCost) {
+        this.pointCost = pointCost;
+    }
+
+    public Integer getPayType() {
+        return payType;
+    }
+
+    public void setPayType(Integer payType) {
+        this.payType = payType;
     }
 
     public Integer getSortOrder() {

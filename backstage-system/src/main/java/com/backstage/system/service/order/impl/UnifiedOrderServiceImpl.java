@@ -25,6 +25,7 @@ import com.backstage.system.service.order.OrderNoGenerator;
 import com.backstage.system.service.order.PayService;
 import com.backstage.system.service.order.OrderPaidHandlerRegistry;
 import com.backstage.system.service.order.UnifiedOrderService;
+import com.backstage.system.service.tool.ToolPurchaseService;
 import com.backstage.system.utils.SignUtil;
 import org.springframework.context.annotation.Lazy;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -67,6 +68,7 @@ public class UnifiedOrderServiceImpl implements UnifiedOrderService {
     private static final int CHANNEL_FREE = PayChannelEnum.FREE.getCode();
     private static final String TRADE_SUCCESS = "TRADE_SUCCESS";
     private static final String PAY_CREATE_FAILED_MESSAGE = "发起支付失败";
+    private static final int DEFAULT_PAY_EXPIRE_MINUTES = 30;
 
     @Resource
     private PayConfig payConfig;
@@ -94,6 +96,9 @@ public class UnifiedOrderServiceImpl implements UnifiedOrderService {
 
     @Resource
     private OrderPaidHandlerRegistry paidHandlerRegistry;
+
+    @Resource
+    private ToolPurchaseService toolPurchaseService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -213,6 +218,7 @@ public class UnifiedOrderServiceImpl implements UnifiedOrderService {
             paymentMapper.updatePendingToClosed(paymentNo);
             orderMapper.updatePendingToClosed(payment.getOrderNo(),LocalDateTime.now());
         });
+        toolPurchaseService.cancelPendingPurchase(paymentNo);
     }
 
     /**
@@ -315,6 +321,7 @@ public class UnifiedOrderServiceImpl implements UnifiedOrderService {
         payment.setAmount(amount);
         payment.setStatus(PAYMENT_PENDING);
         payment.setRequestPayload(toJson(payRequestSnapshot(paymentNo, param, clientIp, channelCode)));
+        payment.setExpireTime(LocalDateTime.now().plusMinutes(resolvePayExpireMinutes()));
         payment.setCreatedTime(LocalDateTime.now());
         payment.setUpdatedTime(LocalDateTime.now());
         payment.setDeleteFlag(0);
@@ -746,6 +753,13 @@ public class UnifiedOrderServiceImpl implements UnifiedOrderService {
      */
     private boolean isPayCreateSuccess(PayResponse payResponse) {
         return payResponse.getCode() == PAY_CREATE_SUCCESS_CODE;
+    }
+
+    private long resolvePayExpireMinutes() {
+        if (payConfig.EXPIRE_MINUTES == null || payConfig.EXPIRE_MINUTES <= 0) {
+            return DEFAULT_PAY_EXPIRE_MINUTES;
+        }
+        return payConfig.EXPIRE_MINUTES;
     }
 
     /**
