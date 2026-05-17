@@ -2,6 +2,7 @@ package com.backstage.system.service.site.impl;
 
 import com.alibaba.fastjson2.JSON;
 import com.backstage.common.async.AsyncExecutorNames;
+import com.backstage.common.enums.SiteTypeEnum;
 import com.backstage.system.domain.site.OshSiteInfo;
 import com.backstage.system.domain.site.OshSiteMaintainer;
 import com.backstage.system.domain.site.OshSiteUsage;
@@ -18,10 +19,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
@@ -35,6 +38,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -70,6 +74,10 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
     @Autowired
     private JavaMailSender javaMailSender;
 
+    @Autowired
+    @Qualifier(value = AsyncExecutorNames.DEFAULT)
+    ThreadPoolTaskExecutor executor;
+
     /**
      * 新增网站使用记录
      *
@@ -97,7 +105,8 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
     public boolean updateSiteInfo(OshSiteInfo siteInfo) {
         updateById(siteInfo);
         removeAllMaintainers(siteInfo.getId());
-        return saveMaintainers(siteInfo.getId(), siteInfo.getMaintainerUserIds());
+        saveMaintainers(siteInfo.getId(), siteInfo.getMaintainerUserIds());
+        return true;
     }
 
     private void removeAllMaintainers(Long siteId) {
@@ -121,7 +130,24 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
 
     @Override
     public List<OshSiteInfo> listSites(OshSiteInfo siteInfo) {
-        List<OshSiteInfo> list = this.lambdaQuery().select(OshSiteInfo::getId, OshSiteInfo::getSiteName, OshSiteInfo::getCover, OshSiteInfo::getDescription, OshSiteInfo::getStatus, OshSiteInfo::getLastCheckTime).like(StringUtils.isNoneBlank(siteInfo.getSiteName()), OshSiteInfo::getSiteName, siteInfo.getSiteName()).eq(siteInfo.getStatus() != null, OshSiteInfo::getStatus, siteInfo.getStatus()).list();
+        List<OshSiteInfo> list = this.lambdaQuery().select(
+                        OshSiteInfo::getId,
+                        OshSiteInfo::getSiteName,
+                        OshSiteInfo::getCover,
+                        OshSiteInfo::getDescription,
+                        OshSiteInfo::getStatus,
+                        OshSiteInfo::getLastCheckTime,
+                        OshSiteInfo::getSiteType,
+                        OshSiteInfo::getSiteConfig
+                ).like(StringUtils.isNoneBlank(siteInfo.getSiteName()), OshSiteInfo::getSiteName, siteInfo.getSiteName())
+                .eq(siteInfo.getStatus() != null, OshSiteInfo::getStatus, siteInfo.getStatus())
+                .eq(StringUtils.isNoneBlank(siteInfo.getSiteType()), OshSiteInfo::getSiteType, siteInfo.getSiteType())
+                .list();
+        // 填充网站类型名称
+        for (OshSiteInfo info : list) {
+            SiteTypeEnum siteTypeEnum = SiteTypeEnum.fromCode(info.getSiteType());
+            info.setSiteTypeName(siteTypeEnum != null ? siteTypeEnum.getName() : null);
+        }
         setMaintainers(list);
         return list;
     }
@@ -286,4 +312,124 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
             }
         }
     }
+
+    // ==================== 异步启动演示站点 ====================
+
+    private static final org.slf4j.Logger demoStartLogger =
+            LoggerFactory.getLogger(OshSiteInfoServiceImpl.class);
+
+    private final ConcurrentHashMap<Long, DemoStartTask> demoStartTasks = new ConcurrentHashMap<>();
+
+    @Override
+    public Map<String, Object> startDemoAsync(Long siteId) {
+        OshSiteInfo siteInfo = getById(siteId);
+        if (siteInfo == null || !"demo".equals(siteInfo.getSiteType())) {
+            throw new IllegalArgumentException(siteInfo == null ? "网站不存在" : "该网站不是演示站点");
+        }
+        Map<String, Object> config = siteInfo.getSiteConfig();
+        if (config == null || config.isEmpty()) {
+            throw new IllegalArgumentException("演示站点未配置");
+        }
+
+        // 已有进行中的任务 → 直接返回当前状态
+        DemoStartTask existing = demoStartTasks.get(siteId);
+        if (existing != null && existing.isInProgress()) {
+            return existing.toResultMap();
+        }
+
+        String backendHost = (String) config.get("backendHost");
+        int backendPort = config.containsKey("backendPort") ? ((Number) config.get("backendPort")).intValue() : 22;
+        String backendUser = (String) config.get("backendUser");
+        String backendPassword = (String) config.get("backendPassword");
+        String startupScript = (String) config.get("startupScript");
+        String healthCheckScript = (String) config.get("healthCheckScript");
+        String frontendUrl = (String) config.get("frontendUrl");
+        String loginUsername = (String) config.get("loginUsername");
+        String loginPassword = (String) config.get("loginPassword");
+
+        // SSH 登录方式
+        String loginMethod = (String) config.getOrDefault("loginMethod", "password");
+        String privateKey = (String) config.get("privateKey");
+        RemoteShellExecutor.AuthMethod authMethod = "privateKey".equals(loginMethod)
+                ? RemoteShellExecutor.AuthMethod.PRIVATE_KEY
+                : RemoteShellExecutor.AuthMethod.PASSWORD;
+        String sshCredential = authMethod == RemoteShellExecutor.AuthMethod.PRIVATE_KEY ? privateKey : backendPassword;
+
+        if (backendHost == null || backendUser == null) {
+            throw new IllegalArgumentException("SSH配置不完整");
+        }
+        if (authMethod == RemoteShellExecutor.AuthMethod.PRIVATE_KEY && (privateKey == null || privateKey.isEmpty())) {
+            throw new IllegalArgumentException("登录方式为私钥，但私钥未配置");
+        }
+        if (authMethod == RemoteShellExecutor.AuthMethod.PASSWORD && (backendPassword == null || backendPassword.isEmpty())) {
+            throw new IllegalArgumentException("登录方式为密码，但密码未配置");
+        }
+        if (startupScript == null || startupScript.isEmpty()) {
+            throw new IllegalArgumentException("启动脚本未配置");
+        }
+        if (healthCheckScript == null || healthCheckScript.isEmpty()) {
+            throw new IllegalArgumentException("健康检查脚本未配置");
+        }
+
+        DemoStartTask task = new DemoStartTask(siteId, frontendUrl, loginUsername, loginPassword);
+        demoStartTasks.put(siteId, task);
+
+        CompletableFuture.runAsync(() -> {
+            executeAsyncStart(task, backendHost, backendPort, backendUser,
+                    authMethod, sshCredential, startupScript, healthCheckScript);
+        }, executor);
+        return task.toResultMap();
+    }
+
+    private void executeAsyncStart(DemoStartTask task, String host, int port, String user,
+                                   RemoteShellExecutor.AuthMethod authMethod, String sshCredential,
+                                   String startupScript, String healthCheckScript) {
+        try {
+            String pid = RemoteShellExecutor.executeScriptBackground(
+                    host, port, user, authMethod, sshCredential, startupScript);
+            task.updateStarting(pid);
+            demoStartLogger.info("Async demo startup: script submitted, PID: {}, siteId: {}", pid, task.siteId);
+
+            int maxRetries = 100;
+            int intervalSeconds = 3;
+            for (int i = 0; i < maxRetries; i++) {
+                Thread.sleep(intervalSeconds * 1000L);
+                try {
+                    ScriptResult checkResult = RemoteShellExecutor.executeScript(
+                            host, port, user, authMethod, sshCredential, healthCheckScript, 15);
+                    task.updateCheck(i + 1, checkResult.getOutput());
+
+                    if (checkResult.isSuccess()) {
+                        task.updateRunning(checkResult.getOutput());
+                        demoStartLogger.info("Async demo startup SUCCESS after {} checks, siteId: {}", i + 1, task.siteId);
+                        scheduleTaskCleanup(task.siteId, 10 * 60 * 1000L);
+                        return;
+                    }
+                } catch (Exception e) {
+                    demoStartLogger.warn("Async demo check {} error for siteId {}: {}", i + 1, task.siteId, e.getMessage());
+                }
+            }
+
+            task.updateTimeout(maxRetries, intervalSeconds);
+            demoStartLogger.warn("Async demo startup TIMEOUT after {} attempts, siteId: {}", maxRetries, task.siteId);
+            scheduleTaskCleanup(task.siteId, 10 * 60 * 1000L);
+
+        } catch (Exception e) {
+            task.updateFailed("启动异常：" + e.getMessage());
+            demoStartLogger.error("Async demo startup FAILED for siteId: {}", task.siteId, e);
+            scheduleTaskCleanup(task.siteId, 10 * 60 * 1000L);
+        }
+    }
+
+    private void scheduleTaskCleanup(Long siteId, long delayMs) {
+        new Thread(() -> {
+            try {
+                Thread.sleep(delayMs);
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+            }
+            demoStartTasks.remove(siteId);
+        }, "demo-cleanup-" + siteId).start();
+    }
+
 }
