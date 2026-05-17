@@ -1,6 +1,7 @@
 package com.backstage.system.service.impl.info_gap;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.system.domain.dto.info_gap.InfoGapCreateDTO;
+import com.backstage.system.domain.dto.info_gap.InfoGapSearchReqDTO;
 import com.backstage.system.domain.info_gap.*;
 import com.backstage.system.domain.user.risk.OshUserRiskProfile;
 import com.backstage.system.domain.vo.info_gap.InfoGapVO;
@@ -17,6 +18,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -56,9 +58,15 @@ public class InfoGapServiceImpl implements InfoGapService {
     @Override
     public List<InfoGapVO> getInfoGapList(Integer pageNum, Integer pageSize, String type, Long currentUserId) {
         if (type != null && type.equals("follow")) {
+            // 我收藏的信息差列表
             PageHelper.startPage(pageNum, pageSize);
             return infoGapMapper.selectInfoGapPageForFollow(currentUserId);
+        } else if (type != null && type.equals("myself")) {
+            // 我发布的信息差列表
+            PageHelper.startPage(pageNum, pageSize);
+            return infoGapMapper.selectInfoGapPageForMySelf(currentUserId);
         } else {
+            // 热门/最新发布信息差列表
             PageHelper.startPage(pageNum, pageSize);
             return infoGapMapper.selectInfoGapPage(type, currentUserId);
         }
@@ -123,7 +131,7 @@ public class InfoGapServiceImpl implements InfoGapService {
             OshInfoGapVote vote = new OshInfoGapVote();
             vote.setUserId(userId);
             vote.setInfoGapId(infoId);
-            vote.setType(type);
+            vote.setVoteType(type);
             voteMapper.insertVoteRecord(vote);
 
             if (!type.equals(0)) {
@@ -133,7 +141,7 @@ public class InfoGapServiceImpl implements InfoGapService {
             return;
         }
 
-        Integer oldType = existVote.getType();
+        Integer oldType = existVote.getVoteType();
         if (oldType.equals(type)) {
             // 重复点击同一评价（取消评价）
             voteMapper.cancelVoteRecord(userId, infoId);
@@ -143,7 +151,7 @@ public class InfoGapServiceImpl implements InfoGapService {
 
         if (oldType.equals(0)) {
             // 从 0 → 新评价（恢复/重新评价）
-            existVote.setType(type);
+            existVote.setVoteType(type);
             voteMapper.updateVoteRecord(existVote);
         } else {
             // 切换评价（如 1 → 2 / 2 → 3）
@@ -153,7 +161,7 @@ public class InfoGapServiceImpl implements InfoGapService {
             infoGapMapper.decrementCountAtomically(infoId, oldColumn);
 
             // 2. 更新评价记录的类型
-            existVote.setType(type);
+            existVote.setVoteType(type);
             voteMapper.updateVoteRecord(existVote);
 
             // 3. 增加新类型的计数
@@ -164,9 +172,10 @@ public class InfoGapServiceImpl implements InfoGapService {
     @Override
     public List<InfoGapVO> recommend() {
         LambdaQueryWrapper<OshInfoGap> queryWrapper = Wrappers.lambdaQuery(OshInfoGap.class)
-                .eq(OshInfoGap::getIsDeleted, 0)
+                .eq(OshInfoGap::getDeleteFlag, 0)
                 .orderByDesc(OshInfoGap::getGoodCount)
-                .orderByDesc(OshInfoGap::getFollowCount)
+                .orderByDesc(OshInfoGap::getCollectCount)
+                .orderByDesc(OshInfoGap::getViewCount)
                 .last("Limit 3");
 
         List<OshInfoGap> infoGapList = infoGapMapper.selectList(queryWrapper);
@@ -206,5 +215,20 @@ public class InfoGapServiceImpl implements InfoGapService {
     @Override
     public void infoGapCollectRemove(Long userId, String username, Long infoGapId) {
 
+    }
+
+    @Override
+    public void viewCount(Long infoGapId) {
+        LambdaUpdateWrapper<OshInfoGap> updateWrapper = Wrappers.lambdaUpdate(OshInfoGap.class)
+                .eq(OshInfoGap::getId, infoGapId)
+                .setSql("view_count = view_count + 1");
+
+        infoGapMapper.update(null, updateWrapper);
+    }
+
+    @Override
+    public List<InfoGapVO> searchInfoGap(InfoGapSearchReqDTO request) {
+        List<InfoGapVO> infoGapVOS = infoGapMapper.searchInfoGap(request.getKeyword(), request.getCategory());
+        return infoGapVOS;
     }
 }

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.resource.ResourceLinkMapper">
+
+    <resultMap type="com.backstage.system.domain.vo.resource.ResourceLinkVO" id="ResourceLinkVOResult">
+        <result property="id" column="id" />
+        <result property="name" column="name" />
+        <result property="url" column="url" />
+        <result property="remark" column="remark" />
+    </resultMap>
+
+    <select id="selectVOByIds" resultMap="ResourceLinkVOResult">
+        SELECT id, name, url, remark
+        FROM osh_link
+        WHERE delete_flag = 0
+        <if test="ids != null and ids.size() > 0">
+            AND id IN
+            <foreach collection="ids" item="lid" open="(" separator="," close=")">
+                #{lid}
+            </foreach>
+        </if>
+        ORDER BY id DESC
+    </select>
+
+    <select id="selectVOByGroupId" resultMap="ResourceLinkVOResult">
+        SELECT 
+            l.id,
+            l.name,
+            l.url,
+            l.remark
+        FROM osh_resource_group_link rel
+        INNER JOIN osh_link l ON rel.link_id = l.id
+        WHERE rel.group_id = #{groupId}
+          AND rel.delete_flag = 0
+          AND l.delete_flag = 0
+        ORDER BY rel.sort_no ASC, l.id DESC
+    </select>
+
+</mapper>
