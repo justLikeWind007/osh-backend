@@ -9,9 +9,12 @@ import com.backstage.system.domain.assistant.vo.AssistantFeedbackCategoryVO;
 import com.backstage.system.domain.assistant.vo.AssistantFeedbackCommentVO;
 import com.backstage.system.domain.assistant.vo.AssistantFeedbackDetailVO;
 import com.backstage.system.domain.assistant.vo.AssistantFeedbackProcessRecordVO;
+import com.backstage.system.domain.assistant.vo.AssistantFeedbackTagVO;
 import com.backstage.system.service.assistant.IAssistantFeedbackCategoryService;
 import com.backstage.system.service.assistant.IAssistantFeedbackCommentService;
 import com.backstage.system.service.assistant.IAssistantFeedbackService;
+import com.backstage.system.service.assistant.IAssistantFeedbackTagService;
+import com.backstage.system.utils.UserContextUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.web.bind.annotation.*;
@@ -29,15 +32,17 @@ import java.util.List;
 @RequestMapping("/pc/public/feedback")
 public class AssistantFeedbackPublicController extends BaseController {
 
-    public AssistantFeedbackPublicController(IAssistantFeedbackCategoryService categoryService, IAssistantFeedbackService feedbackService, IAssistantFeedbackCommentService commentService) {
+    public AssistantFeedbackPublicController(IAssistantFeedbackCategoryService categoryService, IAssistantFeedbackService feedbackService, IAssistantFeedbackCommentService commentService, IAssistantFeedbackTagService feedbackTagService) {
         this.categoryService = categoryService;
         this.feedbackService = feedbackService;
         this.commentService = commentService;
+        this.feedbackTagService = feedbackTagService;
     }
 
     private final IAssistantFeedbackCategoryService categoryService;
     private final IAssistantFeedbackService feedbackService;
     private final IAssistantFeedbackCommentService commentService;
+    private final IAssistantFeedbackTagService feedbackTagService;
 
     /**
      * 获取反馈分类列表（用户可见）
@@ -50,11 +55,21 @@ public class AssistantFeedbackPublicController extends BaseController {
     }
 
     /**
+     * 获取反馈标签列表
+     */
+    @ApiOperation("获取反馈标签列表")
+    @GetMapping("/tag/list")
+    public R<List<AssistantFeedbackTagVO>> listTags(@RequestParam(required = false) String keyword) {
+        return R.ok(feedbackTagService.listEnabledTags(keyword));
+    }
+
+    /**
      * 分页查询反馈列表
      */
     @ApiOperation("分页查询反馈列表")
     @PostMapping("/page")
     public TableDataInfo pageFeedback(@RequestBody AssistantFeedbackPageDTO dto) {
+        dto.setUserId(safeCurrentUserId());
         return feedbackService.pageFeedbackList(dto);
     }
 
@@ -88,5 +103,13 @@ public class AssistantFeedbackPublicController extends BaseController {
             @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
         List<AssistantFeedbackCommentVO> comments = commentService.listCommentsByFeedbackId(feedbackId, pageNum, pageSize);
         return R.ok(comments);
+    }
+
+    private Long safeCurrentUserId() {
+        try {
+            return UserContextUtil.getCurrentUserId();
+        } catch (Exception ignore) {
+            return null;
+        }
     }
 }

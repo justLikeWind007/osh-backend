@@ -90,91 +90,57 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
         return buildPagedResponse(orderedRows, request.getPageNum(), request.getPageSize());
     }
 
-    /**
-     * 全量同步课程数据到Elasticsearch索引
-     * <p>
-     * 功能说明：
-     * 1. 清空ES索引中的所有课程文档（保留索引结构）
-     * 2. 分页从MySQL数据库查询课程信息（每页200条）
-     * 3. 将MySQL数据转换为ES文档格式（包括标签、搜索文本等增强字段）
-     * 4. 使用Bulk API批量写入ES，提高同步效率
-     * 5. 返回成功同步的课程总数
-     * <p>
-     * 使用场景：
-     * - 系统初始化时建立ES索引
-     * - ES数据丢失或损坏时的数据修复
-     * - 手动触发的全量同步任务（通常由管理员操作）
-     * - 定时任务（如每日凌晨全量同步一次）
-     * <p>
-     * 技术要点：
-     * - 分页同步：避免一次性加载全部数据导致内存溢出
-     * - 批量写入：使用ES Bulk API减少网络往返次数
-     * - 错误处理：任何一步失败都会抛出异常终止同步
-     * - 事务安全：先删除后写入，确保数据一致性
-     * <p>
-     * 性能指标（预估）：
-     * - 单次同步万级课程数据约需1-3分钟
-     * - Bulk批量写入可达到1000条/秒的写入速度
-     *
-     * @return int 成功同步的课程总数
-     * @throws IllegalStateException 清空索引失败或写入ES失败时抛出
-     */
     @Override
     public int syncAllCoursesToEs() {
+        return syncCoursesToEs(false);
+    }
+
+    @Override
+    public int syncAllCoursesToEsWithoutStatusFilter() {
+        return syncCoursesToEs(true);
+    }
+
+    private int syncCoursesToEs(boolean includeAllStatuses) {
         int pageNum = 1;
         int pageSize = 200;
         int total = 0;
 
-        // 步骤1：清空ES索引中的所有课程文档
-        // 使用Delete By Query API删除所有文档，保留索引结构以便重新写入
         try {
             oshCourseEsMapper.deleteAllCourses();
         } catch (Exception ex) {
             throw new IllegalStateException("clear courses in es failed", ex);
         }
 
-        // 步骤2：分页从MySQL查询课程数据并同步到ES
-        // 使用while循环实现游标分页，每页200条，避免一次性加载全部数据
         while (true) {
-            // 构建分页查询请求
             CourseSearchRequest request = new CourseSearchRequest();
             request.setPageNum(pageNum);
             request.setPageSize(pageSize);
 
-            // 使用PageHelper分页插件进行MySQL分页查询
             PageHelper.startPage(pageNum, pageSize);
-            CurrentUser currentUser = new CurrentUser();
-            List<CourseSearchLoginVo> rows = oshCourseMapper.pageQuerySearchCourse(request, currentUser.getId());
-            
-            // 无数据时退出循环，同步完成
+            List<CourseSearchLoginVo> rows = includeAllStatuses
+                    ? oshCourseMapper.pageQueryAllCoursesForEsSync(request)
+                    : oshCourseMapper.pageQuerySearchCourse(request, new CurrentUser().getId());
             if (StringUtils.isEmpty(rows)) {
                 break;
             }
 
-            // 步骤3：将MySQL查询结果转换为ES文档格式
-            // 转换过程中会补充标签信息、构建搜索文本等增强字段
             List<OshCourseEsDocument> documents = new ArrayList<>(rows.size());
             for (CourseSearchLoginVo row : rows) {
                 documents.add(buildEsDocument(row));
             }
 
-            // 步骤4：使用ES Bulk API批量写入文档
-            // Bulk API可以显著减少网络往返次数，提高写入效率
             try {
                 total += oshCourseEsMapper.bulkUpsertCourses(documents);
             } catch (Exception ex) {
                 throw new IllegalStateException("sync courses to es failed", ex);
             }
 
-            // 步骤5：判断是否为最后一页
-            // 如果返回的数据量小于pageSize，说明已经是最后一页，可以结束循环
             if (rows.size() < pageSize) {
                 break;
             }
             pageNum++;
         }
 
-        // 返回成功同步的课程总数
         return total;
     }
 
@@ -342,7 +308,7 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
         document.setLevel(row.getLevel());
         document.setStatus(row.getStatus());
         document.setExamId(row.getExamId());
-        document.setDeleteFlag(0);
+        document.setDeleteFlag(row.getDeleteFlag() == null ? 0 : row.getDeleteFlag());
         document.setCreateTime(row.getCreateTime());
         document.setUpdateTime(row.getUpdateTime());
 

@@ -11,12 +11,18 @@ public interface ResourceAuditMapper {
 
     List<ResourceAuditItemVO> selectPendingList(@Param("tableName") String tableName,
                                                 @Param("offset") Integer offset,
-                                                @Param("pageSize") Integer pageSize);
+                                                @Param("pageSize") Integer pageSize,
+                                                @Param("keyword") String keyword);
 
-    Long countPending(@Param("tableName") String tableName);
+    Long countPending(@Param("tableName") String tableName,
+                      @Param("keyword") String keyword);
 
-    int approvePending(@Param("tableName") String tableName,
-                       @Param("resourceId") Long resourceId,
-                       @Param("operator") String operator,
-                       @Param("operatorId") Long operatorId);
+    ResourceAuditItemVO selectAuditNotifyItem(@Param("tableName") String tableName,
+                                              @Param("resourceId") Long resourceId);
+
+    int updateAuditStatus(@Param("tableName") String tableName,
+                          @Param("resourceId") Long resourceId,
+                          @Param("status") Integer status,
+                          @Param("operator") String operator,
+                          @Param("operatorId") Long operatorId);
 }

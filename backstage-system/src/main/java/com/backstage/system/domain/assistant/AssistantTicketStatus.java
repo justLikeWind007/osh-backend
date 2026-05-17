@@ -60,8 +60,8 @@ public enum AssistantTicketStatus {
         Map<String, Set<String>> transitionMap = new HashMap<>();
         transitionMap.put(PENDING.getCode(), new HashSet<>(Arrays.asList(PROCESSING.getCode(), CLOSED.getCode())));
         transitionMap.put(PROCESSING.getCode(), new HashSet<>(Arrays.asList(RESOLVED.getCode(), CLOSED.getCode())));
-        transitionMap.put(RESOLVED.getCode(), Collections.emptySet());
-        transitionMap.put(CLOSED.getCode(), Collections.emptySet());
+        transitionMap.put(RESOLVED.getCode(), new HashSet<>(Arrays.asList(PROCESSING.getCode())));
+        transitionMap.put(CLOSED.getCode(), new HashSet<>(Arrays.asList(PROCESSING.getCode())));
         TRANSITION_MAP = Collections.unmodifiableMap(transitionMap);
     }
 

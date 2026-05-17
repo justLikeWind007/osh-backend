@@ -37,17 +37,17 @@ public class ResourceAuditController {
         }
     }
 
-    @ApiOperation("审核通过资源")
-    @PostMapping("/approve")
-    @PreAuthorize("hasAuthority('audit:approve')")
-    public R<String> approve(@Validated @RequestBody ResourceAuditApproveRequest request) {
+    @ApiOperation("审核资源")
+    @PostMapping("/auditResource")
+    @PreAuthorize("hasAuthority('audit:auditResource')")
+    public R<String> audit(@Validated @RequestBody ResourceAuditApproveRequest request) {
         OshUser currentUser = UserContextUtil.getCurrentUser();
         if (currentUser == null) {
             return R.fail("请先登录");
         }
         try {
-            resourceAuditService.approve(request.getResourceType(), request.getResourceId(), currentUser.getUsername(), currentUser.getId());
-            return R.ok("审核通过");
+            resourceAuditService.audit(request.getResourceType(), request.getResourceId(), request.getStatus(), currentUser.getUsername(), currentUser.getId());
+            return R.ok(Integer.valueOf(1).equals(request.getStatus()) ? "审核通过" : "已拒绝");
         } catch (IllegalArgumentException | ServiceException ex) {
             return R.fail(ex.getMessage());
         }

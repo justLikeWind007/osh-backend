@@ -8,6 +8,7 @@ import java.util.List;
 
 public class CourseIndexUpsertMessage {
 
+    private String eventType;
     private Long id;
     private String title;
     private String intro;
@@ -63,6 +64,14 @@ public class CourseIndexUpsertMessage {
     @JSONField(serialize = false, deserialize = false)
     public void setCourseId(Long courseId) {
         this.id = courseId;
+    }
+
+    public String getEventType() {
+        return eventType;
+    }
+
+    public void setEventType(String eventType) {
+        this.eventType = eventType;
     }
 
     public String getTitle() {

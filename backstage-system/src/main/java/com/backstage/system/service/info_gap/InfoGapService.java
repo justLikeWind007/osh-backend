@@ -1,6 +1,7 @@
 package com.backstage.system.service.info_gap;
 
 import com.backstage.system.domain.dto.info_gap.InfoGapCreateDTO;
+import com.backstage.system.domain.dto.info_gap.InfoGapSearchReqDTO;
 import com.backstage.system.domain.info_gap.OshInfoGap;
 import com.backstage.system.domain.vo.info_gap.InfoGapVO;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -23,4 +24,16 @@ public interface InfoGapService {
 
     // 精品推荐列表
     List<InfoGapVO> recommend();
+
+    // 收藏信息差
+    void infoGapCollectAdd(Long userId, String username, Long infoGapId);
+
+    // 取消收藏信息差
+    void infoGapCollectRemove(Long userId, String username, Long infoGapId);
+
+    // 统计点击观看信息差的次数
+    void viewCount(Long infoGapId);
+
+    // 搜索查询信息差
+    List<InfoGapVO> searchInfoGap(InfoGapSearchReqDTO infoGapSearchReqDTO);
 }
