@@ -412,7 +412,7 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         if (user == null) {
             return;
         }
-        feedbackVO.setUserName(StrUtil.isNotBlank(user.getNickname()) ? user.getNickname() : user.getUsername());
+        feedbackVO.setUserName(StrUtil.isNotBlank(user.getUsername()) ? user.getUsername() : "匿名用户");
         feedbackVO.setUserAvatar(user.getAvatar());
     }
 
@@ -442,7 +442,7 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         if (user == null) {
             return;
         }
-        feedbackVO.setUserName(StrUtil.isNotBlank(user.getNickname()) ? user.getNickname() : user.getUsername());
+        feedbackVO.setUserName(StrUtil.isNotBlank(user.getUsername()) ? user.getUsername() : "匿名用户");
         feedbackVO.setUserAvatar(user.getAvatar());
     }
 
@@ -580,7 +580,7 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         if (user == null) {
             return fallbackName;
         }
-        return StrUtil.isNotBlank(user.getNickname()) ? user.getNickname() : user.getUsername();
+        return StrUtil.isNotBlank(user.getUsername()) ? user.getUsername() : "匿名用户";
     }
 
     private void safeCreateProcessRecord(Long feedbackId, String fromStatus, String toStatus,

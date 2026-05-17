@@ -50,12 +50,12 @@ public class AssistantFeedbackCommentServiceImpl
         comment.setUserId(userId);
         comment.setContent(dto.getContent());
 
-        // 判断是一级评论还是二级评论
+        // 判断是一级评论还是二级评�?
         Long parentId = ObjectUtil.defaultIfNull(dto.getParentId(), 0L);
         comment.setParentId(parentId);
 
         if (parentId == 0) {
-            // 一级评论
+            // 一级评�?
             comment.setRootId(0L);
             comment.setCommentLevel(1);
         } else {
@@ -65,7 +65,7 @@ public class AssistantFeedbackCommentServiceImpl
                 throw new ServiceException("父评论不存在");
             }
 
-            // 确定根评论 ID
+            // 确定根评�?ID
             Long rootId = parentComment.getCommentLevel() == 1 ? parentId : parentComment.getRootId();
             comment.setRootId(rootId);
             comment.setCommentLevel(2);
@@ -76,7 +76,7 @@ public class AssistantFeedbackCommentServiceImpl
         // 保存评论
         save(comment);
 
-        // 更新反馈的评论数量
+        // 更新反馈的评论数�?
         feedbackService.incrementCommentCount(dto.getFeedbackId());
 
         return comment.getId();
@@ -84,7 +84,7 @@ public class AssistantFeedbackCommentServiceImpl
 
     @Override
     public List<AssistantFeedbackCommentVO> listCommentsByFeedbackId(Long feedbackId, Integer pageNum, Integer pageSize) {
-        // 查询一级评论（分页）
+        // 查询一级评论（分页�?
         Page<AssistantFeedbackComment> page = lambdaQuery()
                 .eq(AssistantFeedbackComment::getFeedbackId, feedbackId)
                 .eq(AssistantFeedbackComment::getCommentLevel, 1)
@@ -130,7 +130,7 @@ public class AssistantFeedbackCommentServiceImpl
 
         OshUser user = userMap.get(comment.getUserId());
         if (user != null) {
-            commentVO.setUserName(user.getNickname() != null && !user.getNickname().isEmpty() ? user.getNickname() : user.getUsername());
+            commentVO.setUserName(user.getUsername() != null && !user.getUsername().isEmpty() ? user.getUsername() : user.getUsername());
             commentVO.setUserAvatar(user.getAvatar());
         }
         return commentVO;
@@ -167,7 +167,7 @@ public class AssistantFeedbackCommentServiceImpl
             throw new ServiceException("评论不存在");
         }
 
-        // 只能删除自己的评论
+        // 只能删除自己的评�?
         if (!comment.getUserId().equals(userId)) {
             throw new ServiceException("无权删除他人评论");
         }
@@ -176,7 +176,7 @@ public class AssistantFeedbackCommentServiceImpl
         boolean success = removeById(commentId);
 
         if (success) {
-            // 更新反馈的评论数量
+            // 更新反馈的评论数�?
             feedbackService.decrementCommentCount(comment.getFeedbackId());
         }
 
