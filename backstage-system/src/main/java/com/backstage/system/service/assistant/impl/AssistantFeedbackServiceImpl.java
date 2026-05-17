@@ -3,12 +3,10 @@ package com.backstage.system.service.assistant.impl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.system.domain.assistant.AssistantFeedbackCategory;
-import com.backstage.system.domain.assistant.vo.AssistantFeedbackTagVO;
 import com.backstage.system.domain.assistant.AssistantTicketStatus;
 import com.backstage.system.domain.assistant.AssistantFeedback;
 import com.backstage.system.domain.assistant.dto.AssistantFeedbackCreateDTO;
@@ -16,8 +14,8 @@ import com.backstage.system.domain.assistant.dto.AssistantFeedbackPageDTO;
 import com.backstage.system.domain.assistant.dto.AssistantTicketQueryDTO;
 import com.backstage.system.domain.assistant.dto.AssistantTicketStatusUpdateDTO;
 import com.backstage.system.domain.assistant.vo.AssistantFeedbackDetailVO;
-import com.backstage.system.domain.assistant.vo.AssistantFeedbackListVO;
 import com.backstage.system.domain.assistant.vo.AssistantFeedbackProcessRecordVO;
+import com.backstage.system.domain.assistant.vo.AssistantFeedbackTagVO;
 import com.backstage.system.domain.assistant.vo.AssistantFeedbackVO;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.mapper.assistant.AssistantFeedbackMapper;
@@ -28,12 +26,13 @@ import com.backstage.system.service.assistant.IAssistantFeedbackLikeService;
 import com.backstage.system.service.assistant.IAssistantFeedbackProcessRecordService;
 import com.backstage.system.service.assistant.IAssistantFeedbackService;
 import com.backstage.system.service.assistant.IAssistantFeedbackTagService;
+import com.backstage.system.service.assistant.support.AssistantFeedbackQuerySupport;
+import com.backstage.system.service.assistant.support.AssistantFeedbackViewAssembler;
 import com.backstage.system.util.FeedbackHotScoreCalculator;
 import com.backstage.system.utils.UserContextUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.pagehelper.PageInfo;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,13 +40,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -61,13 +56,22 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
 
     private static final Logger log = LoggerFactory.getLogger(AssistantFeedbackServiceImpl.class);
 
-    public AssistantFeedbackServiceImpl(IAssistantFeedbackCategoryService categoryService, IAssistantFeedbackLikeService likeService, IAssistantFeedbackFavoriteService favoriteService, IAssistantFeedbackProcessRecordService processRecordService, IAssistantFeedbackTagService feedbackTagService, OshUserMapper oshUserMapper) {
+    public AssistantFeedbackServiceImpl(IAssistantFeedbackCategoryService categoryService,
+                                        IAssistantFeedbackLikeService likeService,
+                                        IAssistantFeedbackFavoriteService favoriteService,
+                                        IAssistantFeedbackProcessRecordService processRecordService,
+                                        IAssistantFeedbackTagService feedbackTagService,
+                                        OshUserMapper oshUserMapper,
+                                        AssistantFeedbackQuerySupport feedbackQuerySupport,
+                                        AssistantFeedbackViewAssembler feedbackViewAssembler) {
         this.categoryService = categoryService;
         this.likeService = likeService;
         this.favoriteService = favoriteService;
         this.processRecordService = processRecordService;
         this.feedbackTagService = feedbackTagService;
         this.oshUserMapper = oshUserMapper;
+        this.feedbackQuerySupport = feedbackQuerySupport;
+        this.feedbackViewAssembler = feedbackViewAssembler;
     }
 
     private final IAssistantFeedbackCategoryService categoryService;
@@ -76,6 +80,8 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
     private final IAssistantFeedbackProcessRecordService processRecordService;
     private final IAssistantFeedbackTagService feedbackTagService;
     private final OshUserMapper oshUserMapper;
+    private final AssistantFeedbackQuerySupport feedbackQuerySupport;
+    private final AssistantFeedbackViewAssembler feedbackViewAssembler;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -125,7 +131,7 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         feedbackTagService.bindFeedbackTags(feedback.getId(), dto.getTagIds(), userId);
         safeCreateProcessRecord(feedback.getId(), null, AssistantTicketStatus.PENDING.getCode(),
                 userId, getUserDisplayName(getUserById(userId), "匿名用户"), "用户提交反馈");
-        return toVO(feedback);
+        return feedbackViewAssembler.toFeedbackVO(feedback);
     }
 
     @Override
@@ -136,7 +142,9 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
                 .orderByDesc(AssistantFeedback::getCreateTime)
                 .list();
 
-        List<AssistantFeedbackVO> rows = list.stream().map(this::toVO).collect(Collectors.toList());
+        List<AssistantFeedbackVO> rows = list.stream()
+                .map(feedbackViewAssembler::toFeedbackVO)
+                .collect(Collectors.toList());
         return new TableDataInfo(rows, new PageInfo<>(list).getTotal());
     }
 
@@ -155,7 +163,9 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
                 .orderByDesc(AssistantFeedback::getCreateTime)
                 .list();
 
-        List<AssistantFeedbackVO> rows = list.stream().map(this::toVO).collect(Collectors.toList());
+        List<AssistantFeedbackVO> rows = list.stream()
+                .map(feedbackViewAssembler::toFeedbackVO)
+                .collect(Collectors.toList());
         return new TableDataInfo(rows, new PageInfo<>(list).getTotal());
     }
 
@@ -167,8 +177,8 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
             throw new ServiceException("不支持的工单状态");
         }
 
-        AssistantFeedback feedback = this.getById(ticketId);
-        if (feedback == null || feedback.getDeleteFlag() == 1) {
+        AssistantFeedback feedback = getActiveFeedback(ticketId);
+        if (feedback == null) {
             throw new ServiceException("工单不存在");
         }
 
@@ -191,35 +201,7 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         safeCreateProcessRecord(ticketId, currentStatus, targetStatus, handlerId, handlerName, remark);
         feedback.setHandledTime(handledTime);
         feedback.setCloseReason(AssistantTicketStatus.CLOSED.getCode().equals(targetStatus) ? StrUtil.blankToDefault(remark, "") : null);
-        return toVO(feedback);
-    }
-
-    /**
-     * 实体转 VO
-     */
-    private AssistantFeedbackVO toVO(AssistantFeedback feedback) {
-        return toVO(feedback, null);
-    }
-
-    private AssistantFeedbackVO toVO(AssistantFeedback feedback, Map<Long, List<AssistantFeedbackTagVO>> feedbackTagMap) {
-        AssistantFeedbackVO vo = new AssistantFeedbackVO();
-        BeanUtils.copyProperties(feedback, vo);
-        fillUserInfo(vo, feedback.getUserId());
-        fillHandlerInfo(vo, feedback.getHandlerId(), feedback.getHandlerName());
-        vo.setStatus(AssistantTicketStatus.normalize(feedback.getStatus()));
-        vo.setResult(StrUtil.blankToDefault(feedback.getResult(), ""));
-        fillProcessSummary(vo, listProcessRecordsSafely(feedback.getId()));
-
-        // 补充分类信息
-        AssistantFeedbackCategory category = categoryService.getById(feedback.getCategoryId());
-        if (category != null) {
-            vo.setCategoryCode(category.getCode());
-            vo.setCategoryName(category.getName());
-            vo.setCategoryIcon(category.getIcon());
-        }
-        vo.setTags(resolveFeedbackTags(feedback.getId(), feedbackTagMap));
-
-        return vo;
+        return feedbackViewAssembler.toFeedbackVO(feedback);
     }
 
     /**
@@ -235,11 +217,12 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
 
     @Override
     public TableDataInfo pageFeedback(AssistantFeedbackPageDTO dto) {
-        Page<AssistantFeedback> page = queryFeedbackPage(dto);
-        Map<Long, List<AssistantFeedbackTagVO>> feedbackTagMap = buildFeedbackTagMap(page.getRecords());
+        Page<AssistantFeedback> page = feedbackQuerySupport.pageFeedback(dto);
+        Map<Long, List<AssistantFeedbackTagVO>> feedbackTagMap =
+                feedbackViewAssembler.buildFeedbackTagMap(page.getRecords());
 
         List<AssistantFeedbackVO> rows = page.getRecords().stream()
-                .map(feedback -> toVO(feedback, feedbackTagMap))
+                .map(feedback -> feedbackViewAssembler.toFeedbackVO(feedback, feedbackTagMap))
                 .collect(Collectors.toList());
 
         return new TableDataInfo(rows, page.getTotal());
@@ -247,132 +230,35 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
 
     @Override
     public TableDataInfo pageFeedbackList(AssistantFeedbackPageDTO dto) {
-        Page<AssistantFeedback> page = queryFeedbackPage(dto);
-        Map<Long, OshUser> userMap = buildUserMap(page.getRecords());
-        Map<Long, AssistantFeedbackCategory> categoryMap = buildCategoryMap(page.getRecords());
-        Map<Long, List<AssistantFeedbackTagVO>> feedbackTagMap = buildFeedbackTagMap(page.getRecords());
+        Page<AssistantFeedback> page = feedbackQuerySupport.pageFeedback(dto);
+        Map<Long, OshUser> userMap = feedbackViewAssembler.buildUserMap(page.getRecords());
+        Map<Long, AssistantFeedbackCategory> categoryMap = feedbackViewAssembler.buildCategoryMap(page.getRecords());
+        Map<Long, List<AssistantFeedbackTagVO>> feedbackTagMap =
+                feedbackViewAssembler.buildFeedbackTagMap(page.getRecords());
 
-        List<AssistantFeedbackListVO> rows = page.getRecords().stream()
-                .map(feedback -> toListVO(feedback, userMap, categoryMap, feedbackTagMap))
+        List<?> rows = page.getRecords().stream()
+                .map(feedback -> feedbackViewAssembler.toFeedbackListVO(feedback, userMap, categoryMap, feedbackTagMap))
                 .collect(Collectors.toList());
 
         return new TableDataInfo(rows, page.getTotal());
     }
 
-    private Page<AssistantFeedback> queryFeedbackPage(AssistantFeedbackPageDTO dto) {
-        Set<Long> tagFilteredFeedbackIds = filterFeedbackIdsByTags(dto.getTagIds());
-        Set<Long> scopedFeedbackIds = filterFeedbackIdsByQueryMode(dto);
-        Set<Long> filteredFeedbackIds = intersectFeedbackIds(tagFilteredFeedbackIds, scopedFeedbackIds);
-        if (shouldReturnEmptyPage(tagFilteredFeedbackIds, scopedFeedbackIds, filteredFeedbackIds)) {
-            return new Page<>(dto.getPageNum(), dto.getPageSize(), 0);
-        }
-        // 处理 isAnnouncement 参数：转换为分类查询
-        Long categoryIdToQuery = dto.getCategoryId();
-        if (dto.getIsAnnouncement() != null) {
-            if (dto.getIsAnnouncement() == 1) {
-                // 查询公告：使用 announcement 分类
-                AssistantFeedbackCategory announcementCategory = categoryService.lambdaQuery()
-                        .eq(AssistantFeedbackCategory::getCode, "announcement")
-                        .one();
-                if (announcementCategory != null) {
-                    categoryIdToQuery = announcementCategory.getId();
-                }
-            } else if (dto.getIsAnnouncement() == 0) {
-                // 查询非公告：排除 announcement 分类
-                AssistantFeedbackCategory announcementCategory = categoryService.lambdaQuery()
-                        .eq(AssistantFeedbackCategory::getCode, "announcement")
-                        .one();
-                if (announcementCategory != null) {
-                    Long announcementCategoryId = announcementCategory.getId();
-                    Page<AssistantFeedback> page = lambdaQuery()
-                            .ne(AssistantFeedback::getCategoryId, announcementCategoryId)
-                            .in(filteredFeedbackIds != null && !filteredFeedbackIds.isEmpty(), AssistantFeedback::getId, filteredFeedbackIds)
-                            .eq(dto.getCategoryId() != null, AssistantFeedback::getCategoryId, dto.getCategoryId())
-                            .eq(StrUtil.isNotBlank(dto.getStatus()), AssistantFeedback::getStatus, AssistantTicketStatus.normalize(dto.getStatus()))
-                            .eq(dto.getIsPinned() != null, AssistantFeedback::getIsPinned, dto.getIsPinned())
-                            .eq(dto.getUserId() != null, AssistantFeedback::getUserId, dto.getUserId())
-                            .and(StrUtil.isNotBlank(dto.getKeyword()), wrapper -> wrapper
-                                    .like(AssistantFeedback::getTitle, dto.getKeyword())
-                                    .or()
-                                    .like(AssistantFeedback::getContent, dto.getKeyword()))
-                            .last(buildOrderBySql(dto.getSortType()))
-                            .page(new Page<>(dto.getPageNum(), dto.getPageSize()));
-                    return page;
-                }
-            }
-        }
-
-        return lambdaQuery()
-                .in(filteredFeedbackIds != null && !filteredFeedbackIds.isEmpty(), AssistantFeedback::getId, filteredFeedbackIds)
-                .eq(categoryIdToQuery != null, AssistantFeedback::getCategoryId, categoryIdToQuery)
-                .eq(StrUtil.isNotBlank(dto.getStatus()), AssistantFeedback::getStatus, AssistantTicketStatus.normalize(dto.getStatus()))
-                .eq(dto.getIsPinned() != null, AssistantFeedback::getIsPinned, dto.getIsPinned())
-                .eq(dto.getUserId() != null, AssistantFeedback::getUserId, dto.getUserId())
-                .and(StrUtil.isNotBlank(dto.getKeyword()), wrapper -> wrapper
-                        .like(AssistantFeedback::getTitle, dto.getKeyword())
-                        .or()
-                        .like(AssistantFeedback::getContent, dto.getKeyword()))
-                .last(buildOrderBySql(dto.getSortType()))
-                .page(new Page<>(dto.getPageNum(), dto.getPageSize()));
-    }
-
-    /**
-     * 构建排序 SQL
-     */
-    private String buildOrderBySql(String sortType) {
-        if (StrUtil.isBlank(sortType)) {
-            sortType = "hot"; // 默认按最热排序
-        }
-
-        // 置顶排序始终在最前面
-        String pinOrderSql = "ORDER BY is_pinned DESC, pin_order ASC, ";
-
-        if ("hot".equals(sortType)) {
-            // 热度排序：使用预计算的热度分字段
-            // 热度分计算规则见 FeedbackHotScoreCalculator
-            return pinOrderSql + "hot_score DESC, create_time DESC";
-        } else if ("comment".equals(sortType)) {
-            // 最多评论
-            return pinOrderSql + "comment_count DESC, create_time DESC";
-        } else if ("latest".equals(sortType)) {
-            // 最新
-            return pinOrderSql + "create_time DESC";
-        } else {
-            // 默认最热
-            return pinOrderSql + "hot_score DESC, create_time DESC";
-        }
-    }
-
     @Override
     public AssistantFeedbackDetailVO getFeedbackDetail(Long feedbackId) {
-        AssistantFeedback feedback = getById(feedbackId);
-        if (feedback == null || feedback.getDeleteFlag() == 1) {
+        AssistantFeedback feedback = getActiveFeedback(feedbackId);
+        if (feedback == null) {
             throw new ServiceException("反馈不存在");
         }
 
         // 增加浏览次数
         incrementViewCount(feedbackId);
 
-        // 转换为详情 VO
-        AssistantFeedbackDetailVO detailVO = BeanUtil.copyProperties(feedback, AssistantFeedbackDetailVO.class);
-        fillUserInfo(detailVO, feedback.getUserId());
-        fillHandlerInfo(detailVO, feedback.getHandlerId(), feedback.getHandlerName());
-        detailVO.setStatus(AssistantTicketStatus.normalize(feedback.getStatus()));
-        detailVO.setStatusText(AssistantTicketStatus.getDescriptionByCode(detailVO.getStatus()));
-        List<AssistantFeedbackProcessRecordVO> processRecords = listProcessRecordsSafely(feedbackId);
-        detailVO.setProcessRecords(processRecords);
-        fillProcessSummary(detailVO, processRecords);
-
-        // 填充分类信息
-        AssistantFeedbackCategory category = categoryService.getById(feedback.getCategoryId());
-        if (category != null) {
-            detailVO.setCategoryCode(category.getCode());
-            detailVO.setCategoryName(category.getName());
-            detailVO.setCategoryIcon(category.getIcon());
-            detailVO.setAllowComment(category.getAllowComment());
-        }
-        detailVO.setTags(buildFeedbackTagMap(Collections.singletonList(feedback)).getOrDefault(feedbackId, Collections.emptyList()));
-        detailVO.setViewCount((feedback.getViewCount() == null ? 0 : feedback.getViewCount()) + 1);
+        List<AssistantFeedbackProcessRecordVO> processRecords = feedbackViewAssembler.listProcessRecordsSafely(feedbackId);
+        AssistantFeedbackDetailVO detailVO = feedbackViewAssembler.toFeedbackDetailVO(
+                feedback,
+                processRecords,
+                (feedback.getViewCount() == null ? 0 : feedback.getViewCount()) + 1
+        );
 
         // 填充当前用户的互动状态（点赞、收藏）
         try {
@@ -400,8 +286,8 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
 
     @Override
     public List<AssistantFeedbackProcessRecordVO> listFeedbackProcessRecords(Long feedbackId) {
-        AssistantFeedback feedback = getById(feedbackId);
-        if (feedback == null || feedback.getDeleteFlag() == 1) {
+        AssistantFeedback feedback = getActiveFeedback(feedbackId);
+        if (feedback == null) {
             throw new ServiceException("反馈不存在");
         }
         return listProcessRecordsSafely(feedbackId);
@@ -576,6 +462,13 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         return userId == null ? null : oshUserMapper.selectById(userId);
     }
 
+    private AssistantFeedback getActiveFeedback(Long feedbackId) {
+        return lambdaQuery()
+                .eq(AssistantFeedback::getId, feedbackId)
+                .eq(AssistantFeedback::getDeleteFlag, (byte) 0)
+                .one();
+    }
+
     private String getUserDisplayName(OshUser user, String fallbackName) {
         if (user == null) {
             return fallbackName;
@@ -592,58 +485,19 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         }
     }
 
-    private List<AssistantFeedbackProcessRecordVO> listProcessRecordsSafely(Long feedbackId) {
-        try {
-            return processRecordService.listByFeedbackId(feedbackId);
-        } catch (Exception exception) {
-            log.warn("查询反馈处理记录失败，feedbackId={}, message={}", feedbackId, exception.getMessage());
-            return Collections.emptyList();
-        }
-    }
-
-    private void fillProcessSummary(AssistantFeedbackVO feedbackVO, List<AssistantFeedbackProcessRecordVO> processRecords) {
-        if (processRecords == null || processRecords.isEmpty()) {
-            return;
-        }
-        AssistantFeedbackProcessRecordVO latestRecord = processRecords.stream()
-                .filter(record -> record.getCreateTime() != null)
-                .max(Comparator.comparing(AssistantFeedbackProcessRecordVO::getCreateTime))
-                .orElse(processRecords.get(processRecords.size() - 1));
-        feedbackVO.setHandledTime(latestRecord.getCreateTime());
-        if (AssistantTicketStatus.CLOSED.getCode().equals(latestRecord.getToStatus())) {
-            feedbackVO.setCloseReason(latestRecord.getRemark());
-        }
-        if (StrUtil.isBlank(feedbackVO.getHandlerName())) {
-            feedbackVO.setHandlerName(latestRecord.getOperatorName());
-        }
-    }
-
-    private void fillProcessSummary(AssistantFeedbackDetailVO detailVO, List<AssistantFeedbackProcessRecordVO> processRecords) {
-        if (processRecords == null || processRecords.isEmpty()) {
-            return;
-        }
-        AssistantFeedbackProcessRecordVO latestRecord = processRecords.stream()
-                .filter(record -> record.getCreateTime() != null)
-                .max(Comparator.comparing(AssistantFeedbackProcessRecordVO::getCreateTime))
-                .orElse(processRecords.get(processRecords.size() - 1));
-        detailVO.setHandledTime(latestRecord.getCreateTime());
-        if (AssistantTicketStatus.CLOSED.getCode().equals(latestRecord.getToStatus())) {
-            detailVO.setCloseReason(latestRecord.getRemark());
-        }
-        if (StrUtil.isBlank(detailVO.getHandlerName())) {
-            detailVO.setHandlerName(latestRecord.getOperatorName());
-        }
-    }
-
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean pinFeedback(Long feedbackId, Integer pinOrder) {
         if (pinOrder < 1 || pinOrder > 3) {
             throw new ServiceException("置顶排序必须在 1-3 之间");
         }
+        if (getActiveFeedback(feedbackId) == null) {
+            throw new ServiceException("反馈不存在");
+        }
 
         // 检查该排序位置是否已被占用
         Long count = lambdaQuery()
+                .eq(AssistantFeedback::getDeleteFlag, (byte) 0)
                 .eq(AssistantFeedback::getIsPinned, 1)
                 .eq(AssistantFeedback::getPinOrder, pinOrder)
                 .ne(AssistantFeedback::getId, feedbackId)
@@ -663,6 +517,9 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean unpinFeedback(Long feedbackId) {
+        if (getActiveFeedback(feedbackId) == null) {
+            throw new ServiceException("反馈不存在");
+        }
         AssistantFeedback feedback = new AssistantFeedback();
         feedback.setId(feedbackId);
         feedback.setIsPinned(0);
@@ -674,7 +531,7 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
     @Transactional(rollbackFor = Exception.class)
     public void incrementCommentCount(Long feedbackId) {
         // 先查询当前数据
-        AssistantFeedback feedback = getById(feedbackId);
+        AssistantFeedback feedback = getActiveFeedback(feedbackId);
         if (feedback == null) {
             return;
         }
@@ -695,7 +552,7 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
     @Transactional(rollbackFor = Exception.class)
     public void decrementCommentCount(Long feedbackId) {
         // 先查询当前数据
-        AssistantFeedback feedback = getById(feedbackId);
+        AssistantFeedback feedback = getActiveFeedback(feedbackId);
         if (feedback == null || feedback.getCommentCount() == null || feedback.getCommentCount() <= 0) {
             return;
         }
@@ -716,7 +573,7 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
     @Transactional(rollbackFor = Exception.class)
     public void incrementViewCount(Long feedbackId) {
         // 先查询当前数据
-        AssistantFeedback feedback = getById(feedbackId);
+        AssistantFeedback feedback = getActiveFeedback(feedbackId);
         if (feedback == null) {
             return;
         }
@@ -756,8 +613,11 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean deleteFeedback(Long feedbackId) {
-        AssistantFeedback feedback = new AssistantFeedback();
-        feedback.setId(feedbackId);
-        return removeById(feedback);
+        AssistantFeedback feedback = getActiveFeedback(feedbackId);
+        if (feedback == null) {
+            throw new ServiceException("反馈不存在");
+        }
+        feedback.setDeleted(true);
+        return updateById(feedback);
     }
 }

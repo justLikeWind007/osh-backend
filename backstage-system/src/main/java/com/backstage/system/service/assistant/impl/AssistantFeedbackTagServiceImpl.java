@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -24,6 +26,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * 反馈标签服务实现
@@ -42,6 +45,47 @@ public class AssistantFeedbackTagServiceImpl extends ServiceImpl<AssistantFeedba
     private static final int DEFAULT_ENABLED_STATUS = 1;
     private static final int DEFAULT_SORT_ORDER = 0;
     private static final int DEFAULT_USE_COUNT = 0;
+    private static final List<String> DEFAULT_FEEDBACK_TAG_CODES = Arrays.asList(
+            "course-content",
+            "ui-experience",
+            "course-design",
+            "course-player",
+            "exam-module",
+            "community-module",
+            "learning-path",
+            "resource-material",
+            "account-login",
+            "performance-stability"
+    );
+    private static final List<String> DEFAULT_FEEDBACK_TAG_NAMES = Arrays.asList(
+            "课程内容",
+            "界面体验",
+            "课程设计",
+            "课程播放器",
+            "考试模块",
+            "社区互动",
+            "学习路径",
+            "资料资源",
+            "账号登录",
+            "性能稳定"
+    );
+    private static final Map<String, Integer> DEFAULT_FEEDBACK_TAG_CODE_PRIORITY = IntStream.range(0, DEFAULT_FEEDBACK_TAG_CODES.size())
+            .boxed()
+            .collect(Collectors.toMap(DEFAULT_FEEDBACK_TAG_CODES::get, Function.identity()));
+    private static final Map<String, Integer> DEFAULT_FEEDBACK_TAG_NAME_PRIORITY = IntStream.range(0, DEFAULT_FEEDBACK_TAG_NAMES.size())
+            .boxed()
+            .collect(Collectors.toMap(DEFAULT_FEEDBACK_TAG_NAMES::get, Function.identity()));
+    private static final int CUSTOM_FEEDBACK_TAG_PRIORITY = DEFAULT_FEEDBACK_TAG_CODES.size() + 100;
+    private static final Comparator<AssistantFeedbackTag> ASSISTANT_FEEDBACK_TAG_COMPARATOR = Comparator
+            .comparingInt((AssistantFeedbackTag tag) -> resolveFeedbackTagPriority(tag.getCode(), tag.getName()))
+            .thenComparing((AssistantFeedbackTag tag) -> tag.getSortOrder(), Comparator.nullsLast(Integer::compareTo))
+            .thenComparing((AssistantFeedbackTag tag) -> tag.getUseCount(), Comparator.nullsLast(Comparator.reverseOrder()))
+            .thenComparing((AssistantFeedbackTag tag) -> tag.getId(), Comparator.nullsLast(Long::compareTo));
+    private static final Comparator<AssistantFeedbackTagVO> ASSISTANT_FEEDBACK_TAG_VO_COMPARATOR = Comparator
+            .comparingInt((AssistantFeedbackTagVO tag) -> resolveFeedbackTagPriority(tag.getCode(), tag.getName()))
+            .thenComparing((AssistantFeedbackTagVO tag) -> tag.getSortOrder(), Comparator.nullsLast(Integer::compareTo))
+            .thenComparing((AssistantFeedbackTagVO tag) -> tag.getUseCount(), Comparator.nullsLast(Comparator.reverseOrder()))
+            .thenComparing((AssistantFeedbackTagVO tag) -> tag.getId(), Comparator.nullsLast(Long::compareTo));
 
     private final AssistantFeedbackTagRelMapper feedbackTagRelMapper;
 
@@ -56,11 +100,9 @@ public class AssistantFeedbackTagServiceImpl extends ServiceImpl<AssistantFeedba
                         .like(AssistantFeedbackTag::getCode, keyword.trim())
                         .or()
                         .like(AssistantFeedbackTag::getRemark, keyword.trim()))
-                .orderByAsc(AssistantFeedbackTag::getSortOrder)
-                .orderByDesc(AssistantFeedbackTag::getUseCount)
-                .orderByAsc(AssistantFeedbackTag::getId)
                 .list()
                 .stream()
+                .sorted(ASSISTANT_FEEDBACK_TAG_COMPARATOR)
                 .map(tag -> BeanUtil.copyProperties(tag, AssistantFeedbackTagVO.class))
                 .collect(Collectors.toList());
     }
@@ -170,7 +212,13 @@ public class AssistantFeedbackTagServiceImpl extends ServiceImpl<AssistantFeedba
         relations.stream()
                 .filter(rel -> tagMap.containsKey(rel.getTagId()))
                 .forEach(rel -> feedbackTagMap.computeIfAbsent(rel.getFeedbackId(), key -> new ArrayList<>()).add(tagMap.get(rel.getTagId())));
-        return feedbackTagMap;
+        return feedbackTagMap.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> entry.getValue().stream().sorted(ASSISTANT_FEEDBACK_TAG_VO_COMPARATOR).collect(Collectors.toList()),
+                        (left, right) -> left,
+                        LinkedHashMap::new
+                ));
     }
 
     @Override
@@ -262,5 +310,17 @@ public class AssistantFeedbackTagServiceImpl extends ServiceImpl<AssistantFeedba
             return normalizedName;
         }
         return "feedback-tag-" + System.currentTimeMillis() + "-" + Math.abs(tagName.hashCode());
+    }
+
+    private static int resolveFeedbackTagPriority(String tagCode, String tagName) {
+        Integer tagCodePriority = DEFAULT_FEEDBACK_TAG_CODE_PRIORITY.get(StrUtil.blankToDefault(tagCode, ""));
+        if (tagCodePriority != null) {
+            return tagCodePriority;
+        }
+        Integer tagNamePriority = DEFAULT_FEEDBACK_TAG_NAME_PRIORITY.get(StrUtil.blankToDefault(tagName, ""));
+        if (tagNamePriority != null) {
+            return tagNamePriority;
+        }
+        return CUSTOM_FEEDBACK_TAG_PRIORITY;
     }
 }
