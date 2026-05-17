@@ -11,6 +11,8 @@ public interface OshToolPackageMapper {
 
     List<OshToolPackage> selectPackagesByToolId(@Param("toolId") Long toolId);
 
+    OshToolPackage selectPackageById(@Param("id") Long id);
+
     List<OshToolPackage> selectPackagesByToolIds(@Param("toolIds") List<Long> toolIds);
 
     int insertToolPackage(OshToolPackage toolPackage);

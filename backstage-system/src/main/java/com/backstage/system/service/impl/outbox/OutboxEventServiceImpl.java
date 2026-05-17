@@ -2,11 +2,13 @@ package com.backstage.system.service.impl.outbox;
 
 import com.alibaba.fastjson2.JSON;
 import com.backstage.common.constant.KafkaConstants;
+import com.backstage.common.enums.ResourceTypeEnum;
 import com.backstage.system.domain.outbox.OshOutboxEvent;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.enums.outbox.OutboxEventStatusEnum;
 import com.backstage.system.mapper.outbox.OshOutboxEventMapper;
 import com.backstage.system.service.OutboxEventService;
+import com.backstage.system.service.audit.AuditIndexMessage;
 import com.backstage.system.service.course.CourseIndexDeleteMessage;
 import com.backstage.system.service.course.CourseIndexUpsertMessage;
 import com.backstage.system.service.tool.ToolIndexDeleteMessage;
@@ -85,6 +87,37 @@ public class OutboxEventServiceImpl implements OutboxEventService {
         }
         saveEvent(AGGREGATE_TYPE_TOOL, toolId, message.getEventType(), KafkaConstants.TOOL_INDEX_TOPIC,
                 JSON.toJSONString(message), "tool:" + toolId, operatorName);
+    }
+
+    @Override
+    public void saveAuditIndexEvent(ResourceTypeEnum resourceType, AuditIndexMessage message, String operator) {
+        if (message == null || StringUtils.isBlank(message.getEventType())) {
+            log.warn("审核索引消息为空或事件类型为空，跳过outbox写入, resourceType={}, id={}", resourceType, message == null ? null : message.getId());
+            return;
+        }
+        String topic = resolveTopicByResourceType(resourceType);
+        if (topic == null) {
+            log.warn("审核索引消息无对应topic，跳过outbox写入, resourceType={}, id={}", resourceType, message.getId());
+            return;
+        }
+        String aggregateType = resourceType.name();
+        String messageKey = resourceType.getType() + ":" + message.getId();
+        saveEvent(aggregateType, message.getId(), message.getEventType(), topic,
+                JSON.toJSONString(message), messageKey, operator);
+    }
+
+    /**
+     * 根据资源类型路由到对应模块的 Kafka topic，复用已有 topic，不新增。
+     */
+    private String resolveTopicByResourceType(ResourceTypeEnum resourceType) {
+        switch (resourceType) {
+            case COURSE:
+                return KafkaConstants.COURSE_INDEX_TOPIC;
+            case TOOL:
+                return KafkaConstants.TOOL_INDEX_TOPIC;
+            default:
+                return null;
+        }
     }
 
     private void saveEvent(String aggregateType, Long aggregateId, String eventType, String topic,
