@@ -421,7 +421,7 @@ public class AssistantFeedbackViewAssembler {
         if (user == null) {
             return fallbackName;
         }
-        return StrUtil.isNotBlank(user.getNickname()) ? user.getNickname() : user.getUsername();
+        return StrUtil.isNotBlank(user.getUsername()) ? user.getUsername() : "匿名用户";
     }
 
     /**

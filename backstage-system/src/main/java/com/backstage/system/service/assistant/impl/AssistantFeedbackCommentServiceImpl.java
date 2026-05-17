@@ -182,7 +182,7 @@ public class AssistantFeedbackCommentServiceImpl
     private String resolveReplyToUserName(AssistantFeedbackComment parentComment) {
         OshUser replyToUser = parentComment.getUserId() == null ? null : oshUserMapper.selectById(parentComment.getUserId());
         if (replyToUser != null) {
-            return StrUtil.isNotBlank(replyToUser.getNickname()) ? replyToUser.getNickname() : replyToUser.getUsername();
+            return StrUtil.isNotBlank(replyToUser.getUsername()) ? replyToUser.getUsername() : "匿名用户";
         }
         return StrUtil.blankToDefault(parentComment.getReplyToUserName(), "用户");
     }
