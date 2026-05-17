@@ -59,6 +59,8 @@ public class OshUser extends OSHBaseEntity {
      */
     private Integer status;
 
+    private String nickname;
+
     public Long getId() {
         return id;
     }
@@ -144,5 +146,13 @@ public class OshUser extends OSHBaseEntity {
                 ", violationCount=" + violationCount +
                 ", status=" + status +
                 '}';
+    }
+
+    public String getNickname() {
+        return nickname;
+    }
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
     }
 }

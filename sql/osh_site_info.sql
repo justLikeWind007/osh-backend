@@ -10,6 +10,8 @@ CREATE TABLE `osh_site_info`
     `site_url`          varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '网站访问路径',
     `description`       varchar(2000) COLLATE utf8mb4_unicode_ci         DEFAULT NULL COMMENT '网站描述信息',
     `status`            tinyint                                          DEFAULT '1' COMMENT '状态：1=正常，0=异常',
+    `site_type`         varchar(50) COLLATE utf8mb4_unicode_ci          DEFAULT '{}' COMMENT '网站类型：demo=演示站点',
+    `site_config`       text COLLATE utf8mb4_unicode_ci                 DEFAULT NULL COMMENT '站点配置 JSON（按类型约定结构）',
     `create_by`        bigint unsigned                         NOT NULL COMMENT '创建人ID/账号',
     `create_time`       timestamp                               NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `last_check_time`   timestamp                               DEFAULT NULL COMMENT '上次检查时间',

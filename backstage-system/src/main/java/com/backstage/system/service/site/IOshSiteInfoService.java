@@ -8,6 +8,7 @@ import org.springframework.util.MultiValueMap;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -38,4 +39,13 @@ public interface IOshSiteInfoService extends IService<OshSiteInfo> {
     boolean testConnection(List<OshSiteInfo> oshSiteInfos, int timeout);
 
     List<OshSiteInfo> checkConnectionStatus(List<OshSiteInfo> oshSiteInfos, int timeout);
+
+    /**
+     * 异步启动演示站点（供外部轮询）。
+     * 首次调用提交后台启动任务；后续调用返回当前任务状态。
+     *
+     * @param siteId 站点ID
+     * @return 当前任务状态（含 status, statusName, message, checkCount 等字段）
+     */
+    Map<String, Object> startDemoAsync(Long siteId);
 }
