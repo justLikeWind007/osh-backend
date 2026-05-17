@@ -39,13 +39,13 @@ public class PayConfig {
     /**
      * 支付超时时间（分钟）
      */
-    @Value("${pay.expire-minutes:30}")
+    @Value("${pay.expire-minutes:5}")
     public Integer EXPIRE_MINUTES;
 
     /**
      * 回调地址 需要回调到后端的话，内网无法进来
      */
-    @Value("${pay.notify-url}")
+    @Value("${pay.notify-url:}")
     public String NOTIFY_URL;
 
     // 支付成功的跳转地址 (感觉没必要，前端直接轮询自己跳转就好了)
