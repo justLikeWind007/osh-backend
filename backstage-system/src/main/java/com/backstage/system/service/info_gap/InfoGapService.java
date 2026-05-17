@@ -36,7 +36,7 @@ public interface InfoGapService {
     void viewCount(Long infoGapId);
 
     // 搜索查询信息差
-    List<InfoGapVO> searchInfoGap(InfoGapSearchReqDTO infoGapSearchReqDTO);
+    List<InfoGapVO> searchInfoGap(InfoGapSearchReqDTO infoGapSearchReqDTO, Long currentUserId);
 
     // 修改已发布的信息差
     void updateInfoGap(InfoGapUpdateReqDTO dto, Long userId);

@@ -2,6 +2,7 @@ package com.backstage.system.controller.info_gap;
 
 import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.R;
+import com.backstage.common.exception.ServiceException;
 import com.backstage.common.response.PageResponse;
 import com.backstage.system.domain.dto.info_gap.InfoGapCreateDTO;
 import com.backstage.system.domain.dto.info_gap.InfoGapSearchReqDTO;
@@ -90,7 +91,6 @@ public class InfoGapController {
      * 统计信息差观看次数
      */
     @GetMapping("/view")
-    @Anonymous
     public R<Void> view(@RequestParam("infoGapId") Long infoGapId) {
         infoGapService.viewCount(infoGapId);
 
@@ -103,11 +103,25 @@ public class InfoGapController {
     @PostMapping("/search")
     @Anonymous
     public R<PageResponse<InfoGapVO>> search(@RequestBody InfoGapSearchReqDTO request) {
-        if (request.getCategory() != null && request.getCategory().trim().isEmpty()) {
-            request.setCategory(null);
+        if (request.getKeyword() != null) {
+            request.setKeyword(request.getKeyword().trim());
+            if (request.getKeyword().isEmpty()) {
+                request.setKeyword(null);
+            }
         }
 
-        List<InfoGapVO> infoGapSearchList = infoGapService.searchInfoGap(request);
+        if (request.getKeyword() != null && request.getTagId() != null) {
+            throw new ServiceException("关键字搜索和标签搜索不能同时传");
+        }
+
+        if (request.getKeyword() == null && request.getTagId() == null) {
+            throw new ServiceException("关键字搜索和标签搜索不能同时为空");
+        }
+
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
+
+        List<InfoGapVO> infoGapSearchList = infoGapService.searchInfoGap(request, currentUserId);
 
         PageInfo<InfoGapVO> pageInfo = new PageInfo<>(infoGapSearchList);
         return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()));

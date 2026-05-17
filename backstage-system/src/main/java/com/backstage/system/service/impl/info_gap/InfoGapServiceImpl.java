@@ -227,9 +227,9 @@ public class InfoGapServiceImpl implements InfoGapService {
     }
 
     @Override
-    public List<InfoGapVO> searchInfoGap(InfoGapSearchReqDTO request) {
-        List<InfoGapVO> infoGapVOS = infoGapMapper.searchInfoGap(request.getKeyword(), request.getCategory());
-        return infoGapVOS;
+    public List<InfoGapVO> searchInfoGap(InfoGapSearchReqDTO request, Long currentUserId) {
+        PageHelper.startPage(request.getPageNum(), request.getPageSize());
+        return infoGapMapper.searchInfoGap(request.getKeyword(), request.getTagId(), currentUserId);
     }
 
     @Override
@@ -256,36 +256,77 @@ public class InfoGapServiceImpl implements InfoGapService {
                 .set(OshInfoGap::getTitle, dto.getTitle())
                 .set(OshInfoGap::getContent, dto.getContent())
                 .set(OshInfoGap::getTag, dto.getTag());
+
         int updateRows = infoGapMapper.update(null, updateWrapper);
         if (updateRows <= 0) {
-            throw new ServiceException("更新信息差失败！");
+            throw new RuntimeException("修改信息差失败");
         }
 
-        // 更新标签关系
-        // 查找更新之前的标签
-        List<OshInfoGapTagRel> oldGapRelList = infoGapTagRelMapper.selectList(
-                Wrappers.lambdaUpdate(OshInfoGapTagRel.class)
+        List<OshInfoGapTagRel> oldRelList = infoGapTagRelMapper.selectList(
+                Wrappers.lambdaQuery(OshInfoGapTagRel.class)
                         .eq(OshInfoGapTagRel::getInfoGapId, dto.getId())
         );
 
-        Set<Long> oldTagIdSet = oldGapRelList.stream()
+        Set<Long> oldTagIdSet = oldRelList.stream()
                 .map(OshInfoGapTagRel::getGapTagId)
                 .collect(Collectors.toSet());
 
-        List<Long> newTagIds  = dto.getTagIds() == null
+        List<Long> newTagIds = dto.getTagIds() == null
                 ? Collections.emptyList()
-                : new ArrayList<>(new LinkedHashSet<>(dto.getTagIds())
-        );
+                : dto.getTagIds();
 
-        Set<Long> newTagIdSet = new LinkedHashSet<>(newTagIds);
+        List<Long> removedTagIds = oldTagIdSet.stream()
+                .filter(tagId -> !newTagIds.contains(tagId))
+                .collect(Collectors.toList());
 
-        Set<Long> removedTagIdSet = oldTagIdSet.stream()
-                .filter(tagId -> !newTagIdSet.contains(tagId))
-                .collect(Collectors.toSet());
-
-        Set<Long> addedTagIdSet = newTagIdSet.stream()
+        List<Long> addedTagIds = newTagIds.stream()
                 .filter(tagId -> !oldTagIdSet.contains(tagId))
-                .collect(Collectors.toSet());
+                .collect(Collectors.toList());
+
+        if (!removedTagIds.isEmpty()) {
+            LambdaUpdateWrapper<OshInfoGapTagRel> relDeleteWrapper = Wrappers.lambdaUpdate(OshInfoGapTagRel.class)
+                    .eq(OshInfoGapTagRel::getInfoGapId, dto.getId())
+                    .in(OshInfoGapTagRel::getGapTagId, removedTagIds)
+                    .eq(OshInfoGapTagRel::getDeleteFlag, 0)
+                    .set(OshInfoGapTagRel::getDeleteFlag, 1);
+
+            infoGapTagRelMapper.update(null, relDeleteWrapper);
+        }
+
+        for (int i = 0; i < newTagIds.size(); i++) {
+            Long tagId = newTagIds.get(i);
+            int sortNo = i + 1;
+
+            if (oldTagIdSet.contains(tagId)) {
+                LambdaUpdateWrapper<OshInfoGapTagRel> relUpdateWrapper = Wrappers.lambdaUpdate(OshInfoGapTagRel.class)
+                        .eq(OshInfoGapTagRel::getInfoGapId, dto.getId())
+                        .eq(OshInfoGapTagRel::getGapTagId, tagId)
+                        .eq(OshInfoGapTagRel::getDeleteFlag, 0)
+                        .set(OshInfoGapTagRel::getSortNo, sortNo);
+
+                infoGapTagRelMapper.update(null, relUpdateWrapper);
+            } else {
+                OshInfoGapTagRel rel = new OshInfoGapTagRel();
+                rel.setInfoGapId(dto.getId());
+                rel.setGapTagId(tagId);
+                rel.setSortNo(sortNo);
+                infoGapTagRelMapper.insert(rel);
+            }
+        }
+
+        for (Long tagId : removedTagIds) {
+            LambdaUpdateWrapper<OshInfoGapTag> tagUpdateWrapper = Wrappers.lambdaUpdate(OshInfoGapTag.class)
+                    .eq(OshInfoGapTag::getId, tagId)
+                    .setSql("tag_use_count = GREATEST(tag_use_count - 1, 0)");
+            infoGapTagMapper.update(null, tagUpdateWrapper);
+        }
+
+        for (Long tagId : addedTagIds) {
+            LambdaUpdateWrapper<OshInfoGapTag> tagUpdateWrapper = Wrappers.lambdaUpdate(OshInfoGapTag.class)
+                    .eq(OshInfoGapTag::getId, tagId)
+                    .setSql("tag_use_count = tag_use_count + 1");
+            infoGapTagMapper.update(null, tagUpdateWrapper);
+        }
 
     }
 
@@ -301,6 +342,7 @@ public class InfoGapServiceImpl implements InfoGapService {
         }
 
         LambdaUpdateWrapper<OshInfoGap> updateWrapper = Wrappers.lambdaUpdate(OshInfoGap.class)
+                .eq(OshInfoGap::getId, infoGapId)
                 .set(OshInfoGap::getDeleteFlag, 1);
         int rows = infoGapMapper.update(null, updateWrapper);
 
