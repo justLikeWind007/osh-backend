@@ -30,5 +30,13 @@ spring:
             refresh: true
           - data-id: osh-backend-jasypt-dev.yaml
             refresh: true
-          - data-id: osh-backend-xxljob-dev.yaml
-            refresh: true
+#          - data-id: osh-backend-xxljob-dev.yaml
+#            refresh: true
+
+xxl:
+  job:
+    admin:
+      addresses: http://localhost:8080/xxl-job-admin
+    accessToken: default_token
+    executor:
+      appname: osh-backend-githubsync
