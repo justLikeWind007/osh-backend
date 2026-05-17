@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.tool.OshToolMapper">
+
+    <resultMap id="OshToolResult" type="com.backstage.system.domain.tool.OshTool">
+        <id property="id" column="id"/>
+        <result property="toolName" column="tool_name"/>
+        <result property="description" column="description"/>
+        <result property="logoUrl" column="logo_url"/>
+        <result property="accessType" column="access_type"/>
+        <result property="routePath" column="route_path"/>
+        <result property="iframeUrl" column="iframe_url"/>
+        <result property="githubUrl" column="github_url"/>
+        <result property="price" column="price"/>
+        <result property="originalPrice" column="original_price"/>
+        <result property="pointCost" column="point_cost"/>
+        <result property="status" column="status"/>
+        <result property="goodCount" column="good_count"/>
+        <result property="neutralCount" column="neutral_count"/>
+        <result property="badCount" column="bad_count"/>
+        <result property="viewCount" column="view_count"/>
+        <result property="totalUsage" column="total_usage"/>
+        <result property="collectionCount" column="collection_count"/>
+        <result property="remark" column="remark"/>
+        <result property="resourceType" column="resource_type"/>
+        <result property="level" column="level"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="deleteFlag" column="delete_flag"/>
+        <result property="collectionFlag" column="collection_flag"/>
+        <result property="remainingCount" column="remaining_count"/>
+        <result property="purchasedFlag" column="purchased_flag"/>
+        <result property="voteType" column="vote_type"/>
+    </resultMap>
+
+    <select id="pageQuerySearchTool" resultMap="OshToolResult">
+        select distinct
+               t.id, t.tool_name, t.description, t.logo_url, t.access_type, t.route_path, t.iframe_url, t.github_url,
+               t.price, t.original_price, t.point_cost, t.status, t.good_count, t.neutral_count, t.bad_count,
+               t.view_count, t.total_usage, t.collection_count, t.remark, t.resource_type, t.level, t.create_by,
+               t.create_time, t.update_by, t.update_time, t.delete_flag,
+               case when c.id is null then 0 else 1 end as collection_flag,
+               coalesce(q.remaining_count, 0) as remaining_count,
+               case when coalesce(q.remaining_count, 0) > 0 then 1 else 0 end as purchased_flag,
+               coalesce(v.type, 0) as vote_type
+        from osh_tool t
+        <if test="request.tags != null and request.tags.size() > 0">
+            inner join osh_tool_tag_rel tr on tr.tool_id = t.id
+                and tr.delete_flag = 0
+                and tr.tag_id in
+            <foreach collection="request.tags" item="tagId" open="(" separator="," close=")">
+                #{tagId}
+            </foreach>
+        </if>
+        <if test="userId != null">
+            left join osh_tool_collection c on c.tool_id = t.id
+                and c.user_id = #{userId}
+                and c.delete_flag = 0
+            left join osh_user_tool_quota q on q.tool_id = t.id
+                and q.user_id = #{userId}
+                and q.delete_flag = 0
+            left join osh_tool_vote v on v.tool_id = t.id
+                and v.user_id = #{userId}
+                and v.delete_flag = 0
+        </if>
+        <if test="userId == null">
+            left join osh_tool_collection c on 1 = 0
+            left join osh_user_tool_quota q on 1 = 0
+            left join osh_tool_vote v on 1 = 0
+        </if>
+        where t.delete_flag = 0
+          and t.status = 1
+        <if test="request.toolId != null">
+          and t.id = #{request.toolId}
+        </if>
+        <if test="request.keyword != null and request.keyword != ''">
+          and (
+              t.tool_name like concat('%', #{request.keyword}, '%')
+              or t.description like concat('%', #{request.keyword}, '%')
+              or exists (
+                  select 1
+                  from osh_tool_tag_rel r2
+                  inner join osh_tool_tag tg2 on tg2.id = r2.tag_id
+                  where r2.tool_id = t.id
+                    and r2.delete_flag = 0
+                    and tg2.delete_flag = 0
+                    and tg2.name like concat('%', #{request.keyword}, '%')
+              )
+          )
+        </if>
+        <if test="request.resourceType != null and request.resourceType != ''">
+          and t.resource_type = #{request.resourceType}
+        </if>
+        <if test="request.collectionFlag != null and request.collectionFlag == 1">
+          and c.id is not null
+        </if>
+        order by purchased_flag desc, t.total_usage desc, t.collection_count desc, t.id desc
+    </select>
+
+    <select id="selectRecommendTools" resultMap="OshToolResult">
+        select
+               t.id, t.tool_name, t.description, t.logo_url, t.access_type, t.route_path, t.iframe_url, t.github_url,
+               t.price, t.original_price, t.point_cost, t.status, t.good_count, t.neutral_count, t.bad_count,
+               t.view_count, t.total_usage, t.collection_count, t.remark, t.resource_type, t.level, t.create_by,
+               t.create_time, t.update_by, t.update_time, t.delete_flag,
+               case when c.id is null then 0 else 1 end as collection_flag,
+               coalesce(q.remaining_count, 0) as remaining_count,
+               case when coalesce(q.remaining_count, 0) > 0 then 1 else 0 end as purchased_flag,
+               coalesce(v.type, 0) as vote_type
+        from osh_tool t
+        <if test="userId != null">
+            left join osh_tool_collection c on c.tool_id = t.id
+                and c.user_id = #{userId}
+                and c.delete_flag = 0
+            left join osh_user_tool_quota q on q.tool_id = t.id
+                and q.user_id = #{userId}
+                and q.delete_flag = 0
+            left join osh_tool_vote v on v.tool_id = t.id
+                and v.user_id = #{userId}
+                and v.delete_flag = 0
+        </if>
+        <if test="userId == null">
+            left join osh_tool_collection c on 1 = 0
+            left join osh_user_tool_quota q on 1 = 0
+            left join osh_tool_vote v on 1 = 0
+        </if>
+        where t.delete_flag = 0
+          and t.status = 1
+        <choose>
+            <when test="request.type == 'LATEST'">
+                order by t.create_time desc, t.id desc
+            </when>
+            <otherwise>
+                order by t.collection_count desc, t.total_usage desc, t.id desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="selectToolById" resultMap="OshToolResult">
+        select id, tool_name, description, logo_url, access_type, route_path, iframe_url, github_url,
+               price, original_price, point_cost, status, good_count, neutral_count, bad_count,
+               view_count, total_usage, collection_count, remark, resource_type, level, create_by, create_time,
+               update_by, update_time, delete_flag,
+               0 as remaining_count,
+               0 as purchased_flag,
+               0 as vote_type
+        from osh_tool
+        where id = #{id}
+          and delete_flag = 0
+        limit 1
+    </select>
+
+    <select id="selectUserRemainingCount" resultType="java.lang.Integer">
+        select coalesce(remaining_count, 0)
+        from osh_user_tool_quota
+        where tool_id = #{toolId}
+          and user_id = #{userId}
+          and delete_flag = 0
+        limit 1
+    </select>
+
+    <update id="consumeUserToolQuota">
+        update osh_user_tool_quota
+        set remaining_count = remaining_count - 1,
+            used_count = used_count + 1,
+            last_use_time = now(),
+            update_by = #{operator},
+            update_time = now()
+        where tool_id = #{toolId}
+          and user_id = #{userId}
+          and remaining_count > 0
+          and delete_flag = 0
+    </update>
+
+    <update id="increaseTotalUsage">
+        update osh_tool
+        set total_usage = total_usage + 1
+        where id = #{toolId}
+          and delete_flag = 0
+    </update>
+
+    <update id="increaseViewCount">
+        update osh_tool
+        set view_count = view_count + 1
+        where id = #{toolId}
+          and delete_flag = 0
+    </update>
+
+    <update id="increaseGoodCount">
+        update osh_tool
+        set good_count = good_count + 1
+        where id = #{toolId}
+          and delete_flag = 0
+    </update>
+
+    <update id="decreaseGoodCount">
+        update osh_tool
+        set good_count = case when good_count > 0 then good_count - 1 else 0 end
+        where id = #{toolId}
+          and delete_flag = 0
+    </update>
+
+    <update id="increaseBadCount">
+        update osh_tool
+        set bad_count = bad_count + 1
+        where id = #{toolId}
+          and delete_flag = 0
+    </update>
+
+    <update id="decreaseBadCount">
+        update osh_tool
+        set bad_count = case when bad_count > 0 then bad_count - 1 else 0 end
+        where id = #{toolId}
+          and delete_flag = 0
+    </update>
+
+    <insert id="insertTool" parameterType="com.backstage.system.domain.tool.OshTool"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into osh_tool (
+            tool_name, description, logo_url, access_type, route_path, iframe_url, github_url,
+            price, original_price, point_cost, status, remark, resource_type, level,
+            create_by, create_time, update_by, update_time, delete_flag
+        ) values (
+            #{toolName}, #{description}, #{logoUrl}, #{accessType}, #{routePath}, #{iframeUrl}, #{githubUrl},
+            #{price}, #{originalPrice}, #{pointCost}, #{status}, #{remark}, #{resourceType}, #{level},
+            #{createBy}, now(), #{updateBy}, now(), 0
+        )
+    </insert>
+
+    <update id="updateTool" parameterType="com.backstage.system.domain.tool.OshTool">
+        update osh_tool
+        <set>
+            <if test="toolName != null">tool_name = #{toolName},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="logoUrl != null">logo_url = #{logoUrl},</if>
+            <if test="accessType != null">access_type = #{accessType}, route_path = #{routePath}, iframe_url = #{iframeUrl},</if>
+            <if test="githubUrl != null">github_url = #{githubUrl},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="originalPrice != null">original_price = #{originalPrice},</if>
+            <if test="pointCost != null">point_cost = #{pointCost},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="resourceType != null">resource_type = #{resourceType},</if>
+            <if test="level != null">level = #{level},</if>
+            update_by = #{updateBy},
+            update_time = now()
+        </set>
+        where id = #{id}
+          and delete_flag = 0
+    </update>
+
+    <update id="deleteToolsByIds">
+        update osh_tool
+        set delete_flag = 1,
+            update_by = #{operator},
+            update_time = now()
+        where delete_flag = 0
+          and id in
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <update id="increaseCollectionCount">
+        update osh_tool
+        set collection_count = collection_count + 1
+        where id = #{toolId}
+          and delete_flag = 0
+    </update>
+
+    <update id="decreaseCollectionCount">
+        update osh_tool
+        set collection_count = case when collection_count > 0 then collection_count - 1 else 0 end
+        where id = #{toolId}
+          and delete_flag = 0
+    </update>
+
+</mapper>

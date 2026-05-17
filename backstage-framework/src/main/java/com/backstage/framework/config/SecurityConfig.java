@@ -117,6 +117,8 @@ public class SecurityConfig
                 // 对于登录login 注册register 验证码captchaImage 允许匿名访问
                 requests.antMatchers("/login", "/register", "/captchaImage").permitAll()
                         .antMatchers("/pc/user/login", "/pc/user/register/submit", "/pc/user/register/verity", "/pc/user/forget").permitAll()
+                    // WebSocket 握手端点，认证在 WebSocketAuthInterceptor 中单独处理
+                    .antMatchers("/ws/**").permitAll()
                     // 静态资源，可匿名访问
                     .antMatchers(HttpMethod.GET, "/", "/*.html", "/**/*.html", "/**/*.css", "/**/*.js", "/profile/**").permitAll()
                     .antMatchers("/swagger-ui.html", "/swagger-resources/**", "/webjars/**", "/*/api-docs", "/druid/**").permitAll()

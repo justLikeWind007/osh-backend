@@ -1,6 +1,7 @@
 package com.backstage.system.domain.exam;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -40,8 +41,9 @@ public class OshUserExamRecord implements Serializable {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date create_time;
 
-    /** 删除标志：0-代表存在，2-代表删除 */
-    private Integer is_delete;
+    /** 删除标志：0-未删除，1-已删除 */
+    @TableField("delete_flag")
+    private Integer delete_flag;
 
     // --- Getters and Setters ---
 
@@ -69,6 +71,6 @@ public class OshUserExamRecord implements Serializable {
     public Date getCreate_time() { return create_time; }
     public void setCreate_time(Date create_time) { this.create_time = create_time; }
 
-    public Integer getIs_delete() { return is_delete; }
-    public void setIs_delete(Integer is_delete) { this.is_delete = is_delete; }
+    public Integer getDelete_flag() { return delete_flag; }
+    public void setDelete_flag(Integer delete_flag) { this.delete_flag = delete_flag; }
 }

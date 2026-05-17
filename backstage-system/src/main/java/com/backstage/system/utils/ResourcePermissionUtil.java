@@ -1,6 +1,6 @@
 package com.backstage.system.utils;
 
-import com.backstage.common.enums.ResourceType;
+import com.backstage.common.enums.ResourceTypeEnum;
 import com.backstage.common.utils.spring.SpringUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -19,12 +19,11 @@ public class ResourcePermissionUtil {
     /**
      * 公共方法：校验用户是否有权限访问指定资源
      *
-     * @param resourceType 资源类型（course / qa / book ...）
+     * @param resourceTypeEnum 资源类型（course / qa / book ...）
      * @param resourceId   资源ID
      * @return true-有权限，false-无权限
      */
-    public static Integer getResourceLevel(String resourceType, Long resourceId) {
-        ResourceType resourceTypeEnum = ResourceType.fromTypeCode(resourceType);
+    public static Integer getResourceLevel(ResourceTypeEnum resourceTypeEnum, Long resourceId) {
         String tableName = resourceTypeEnum.getTableName();
         Integer requiredLevel = getRequiredLevelFromTable(tableName, resourceId);
         if (requiredLevel == null) {
@@ -44,5 +43,10 @@ public class ResourcePermissionUtil {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public static Boolean hasPermission(ResourceTypeEnum resourceTypeEnum, Long resourceId) {
+        Integer resourceLevel = ResourcePermissionUtil.getResourceLevel(resourceTypeEnum, resourceId);
+        return UserContextUtil.getCurrentLevel() >= resourceLevel;
     }
 }

@@ -20,10 +20,10 @@ import com.backstage.common.utils.StringUtils;
 @Configuration
 public class FilterConfig
 {
-    @Value("${xss.excludes}")
+    @Value("${xss.excludes:/system/notice}")
     private String excludes;
 
-    @Value("${xss.urlPatterns}")
+    @Value("${xss.urlPatterns:/system/*,/monitor/*,/tool/*}")
     private String urlPatterns;
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -37,7 +37,7 @@ public class FilterConfig
         registration.addUrlPatterns(StringUtils.split(urlPatterns, ","));
         registration.setName("xssFilter");
         registration.setOrder(FilterRegistrationBean.HIGHEST_PRECEDENCE);
-        Map<String, String> initParameters = new HashMap<String, String>();
+        Map<String, String> initParameters = new HashMap<>();
         initParameters.put("excludes", excludes);
         registration.setInitParameters(initParameters);
         return registration;

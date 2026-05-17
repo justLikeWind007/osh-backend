@@ -24,7 +24,7 @@ public class OutboxEventPublishTask {
     @Autowired
     private OshOutboxEventMapper outboxEventMapper;
 
-    @Scheduled(fixedDelay = 3000)
+    @Scheduled(fixedDelay = 1000 * 60 * 10)
     public void publishPendingEvents() {
         recoverTimeoutSendingEvents();
         List<OshOutboxEvent> events = outboxEventMapper.selectPendingEvents(BATCH_SIZE);
@@ -32,6 +32,15 @@ public class OutboxEventPublishTask {
         for (OshOutboxEvent event : events) {
             publishEvent(event);
         }
+    }
+
+    public void publishEventById(Long eventId) {
+        OshOutboxEvent event = outboxEventMapper.selectEventById(eventId);
+        if (event == null) {
+            log.warn("未找到待立即投递outbox事件, id={}", eventId);
+            return;
+        }
+        publishEvent(event);
     }
 
     private void recoverTimeoutSendingEvents() {
@@ -43,18 +52,18 @@ public class OutboxEventPublishTask {
     }
 
     private void publishEvent(OshOutboxEvent event) {
-        log.info("准备投递outbox事件, id={}, eventId={}, eventType={}, aggregateType={}, aggregateId={}, topic={}, messageKey={}, retryCount={}",
+        log.debug("准备投递outbox事件, id={}, eventId={}, eventType={}, aggregateType={}, aggregateId={}, topic={}, messageKey={}, retryCount={}",
                 event.getId(), event.getEventId(), event.getEventType(), event.getAggregateType(), event.getAggregateId(), event.getTopic(), event.getMessageKey(), event.getRetryCount());
         int locked = outboxEventMapper.markSending(event.getId());
         if (locked <= 0) {
-            log.info("outbox事件抢占失败，跳过投递, id={}, eventId={}", event.getId(), event.getEventId());
+            log.debug("outbox事件抢占失败，跳过投递, id={}, eventId={}", event.getId(), event.getEventId());
             return;
         }
         try {
-            log.info("开始发送outbox事件到Kafka, id={}, eventId={}, topic={}, messageKey={}", event.getId(), event.getEventId(), event.getTopic(), event.getMessageKey());
-            KafkaMessageUtil.sendMessage(event.getTopic(), event.getMessageKey(), event.getPayload());
+            log.debug("开始发送outbox事件到Kafka, id={}, eventId={}, topic={}, messageKey={}", event.getId(), event.getEventId(), event.getTopic(), event.getMessageKey());
+            KafkaMessageUtil.sendMessageSync(event.getTopic(), event.getMessageKey(), event.getPayload());
             outboxEventMapper.markSent(event.getId());
-            log.info("outbox事件发送Kafka成功并标记SENT, id={}, eventId={}, topic={}, messageKey={}", event.getId(), event.getEventId(), event.getTopic(), event.getMessageKey());
+            log.debug("outbox事件发送Kafka成功并标记SENT, id={}, eventId={}, topic={}, messageKey={}", event.getId(), event.getEventId(), event.getTopic(), event.getMessageKey());
         } catch (Exception ex) {
             log.warn("outbox事件发送Kafka异常, id={}, eventId={}, topic={}, messageKey={}, error={}", event.getId(), event.getEventId(), event.getTopic(), event.getMessageKey(), ex.getMessage(), ex);
             handlePublishFailure(event, ex);
