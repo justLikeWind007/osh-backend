@@ -5,7 +5,6 @@ import com.backstage.common.exception.ServiceException;
 import com.backstage.common.response.PageResponse;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.system.config.properties.SearchEsProperties;
-import com.backstage.system.controller.course.OshCourseController;
 import com.backstage.system.domain.audit.ResourceAuditItemVO;
 import com.backstage.system.domain.audit.ResourceAuditPageVO;
 import com.backstage.system.domain.audit.ResourceAuditRequest;
@@ -15,13 +14,9 @@ import com.backstage.system.mapper.audit.ResourceAuditEsMapper;
 import com.backstage.system.mapper.audit.ResourceAuditMapper;
 import com.backstage.system.mapper.user.OshUserMapper;
 import com.backstage.system.service.OutboxEventService;
+import com.backstage.system.service.audit.AuditIndexEventType;
+import com.backstage.system.service.audit.AuditIndexMessage;
 import com.backstage.system.service.audit.IResourceAuditService;
-import com.backstage.system.service.course.CourseIndexEventType;
-import com.backstage.system.service.course.CourseIndexUpsertMessage;
-import com.backstage.system.service.IOshCourseService;
-import com.backstage.system.service.tool.IOshToolEsService;
-import com.backstage.system.service.tool.ToolIndexEventType;
-import com.backstage.system.service.tool.ToolIndexMessage;
 import com.backstage.system.service.websocket.WebSocketNotifyService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,13 +43,7 @@ public class ResourceAuditServiceImpl implements IResourceAuditService {
     private SearchEsProperties searchEsProperties;
 
     @Autowired
-    private IOshToolEsService oshToolEsService;
-
-    @Autowired
     private OutboxEventService outboxEventService;
-
-    @Autowired
-    private IOshCourseService oshCourseService;
 
     @Autowired
     private WebSocketNotifyService webSocketNotifyService;
@@ -77,8 +66,8 @@ public class ResourceAuditServiceImpl implements IResourceAuditService {
             page.setTotal(esPage.getTotal());
             log.debug("ES 搜索命中，共 {} 条", esPage.getTotal());
         } else {
-            page.setRows(resourceAuditMapper.selectPendingList(resourceType.getTableName(), offset, pageSize, keyword));
-            page.setTotal(resourceAuditMapper.countPending(resourceType.getTableName(), keyword));
+            page.setRows(resourceAuditMapper.selectPendingList(resourceType.getMysqlTableName(), offset, pageSize, keyword));
+            page.setTotal(resourceAuditMapper.countPending(resourceType.getMysqlTableName(), keyword));
         }
         page.setPendingTotal(resolvePendingTotal(resourceType));
         page.setPageNum(pageNum);
@@ -97,11 +86,11 @@ public class ResourceAuditServiceImpl implements IResourceAuditService {
         }
         ResourceTypeEnum typeEnum = parseResourceType(resourceType);
         int resourceStatus = Integer.valueOf(1).equals(status) ? 4 : 6;
-        int rows = resourceAuditMapper.updateAuditStatus(typeEnum.getTableName(), resourceId, resourceStatus, operator, operatorId);
+        int rows = resourceAuditMapper.updateAuditStatus(typeEnum.getMysqlTableName(), resourceId, resourceStatus, operator, operatorId);
         if (rows <= 0) {
             throw new ServiceException("待审核资源不存在或已处理");
         }
-        syncAuditResourceToEs(typeEnum, resourceId, operator);
+        syncAuditResourceToEs(typeEnum, resourceId, resourceStatus, operator);
         notifyResourceCreator(typeEnum, resourceId, resourceStatus);
         return rows;
     }
@@ -145,71 +134,28 @@ public class ResourceAuditServiceImpl implements IResourceAuditService {
     }
 
     private Long resolvePendingTotal(ResourceTypeEnum resourceType) {
-        return resourceAuditMapper.countPending(resourceType.getTableName(), null);
+        return resourceAuditMapper.countPending(resourceType.getMysqlTableName(), null);
     }
 
-    private void syncAuditResourceToEs(ResourceTypeEnum resourceType, Long resourceId, String operator) {
-        if (resourceType == ResourceTypeEnum.COURSE) {
-            syncCourseAuditResourceToEs(resourceId, operator);
+    private void syncAuditResourceToEs(ResourceTypeEnum resourceType, Long resourceId, int resourceStatus, String operator) {
+        if (StringUtils.isEmpty(resourceType.getEsIndexName())) {
+            // 该资源类型暂无 ES 索引，跳过同步
             return;
         }
-        if (resourceType != ResourceTypeEnum.TOOL) {
-            return;
-        }
-        ToolIndexMessage message = oshToolEsService.buildIndexMessage(resourceId, ToolIndexEventType.TOOL_INDEX_UPDATE);
-        outboxEventService.saveToolIndexEvent(resourceId, message, operator);
-    }
-
-    private void syncCourseAuditResourceToEs(Long courseId, String operator) {
-        com.backstage.system.domain.course.OshCourse course = oshCourseService.selectCourseById(courseId);
-        if (course == null) {
-            return;
-        }
-        CourseIndexUpsertMessage message = new CourseIndexUpsertMessage();
-        message.setEventType(CourseIndexEventType.COURSE_INDEX_UPDATE);
-        message.setId(course.getId());
-        message.setTitle(course.getTitle());
-        message.setIntro(course.getIntro());
-        message.setServiceContent(course.getServiceContent());
-        message.setCover(course.getCover());
-        message.setPrice(course.getPrice());
-        message.setTPrice(course.getTPrice());
-        message.setType(course.getType());
-        message.setSubCount(course.getSubCount());
-        message.setRemark(course.getRemark());
-        message.setCreateBy(course.getCreateBy());
-        message.setCreateTime(course.getCreateTime());
-        message.setUpdateBy(course.getUpdateBy());
-        message.setUpdateTime(course.getUpdateTime());
-        message.setTotalDuration(course.getTotalDuration());
-        message.setFreeLessonCount(course.getFreeLessonCount());
-        message.setVideoCount(course.getVideoCount());
-        message.setSalesCount(course.getSalesCount());
-        message.setViewCount(course.getViewCount());
-        message.setLikeCount(course.getLikeCount());
-        message.setCommentCount(course.getCommentCount());
-        message.setQuestionCount(course.getQuestionCount());
-        message.setCollectionCount(course.getCollectionCount());
-        message.setRatingScore(course.getRatingScore());
-        message.setFreeType(course.getFreeType());
-        message.setAfterServiceDays(course.getAfterServiceDays());
-        message.setResourceType(course.getResourceType());
-        message.setLevel(course.getLevel());
-        message.setStatus(course.getStatus());
-        message.setExamId(course.getExamId());
-        message.setDeleteFlag(course.getDeleteFlag());
-        outboxEventService.saveCourseIndexEvent(courseId, message, buildAuditOperator(operator));
-    }
-
-    private com.backstage.system.domain.user.OshUser buildAuditOperator(String operator) {
-        com.backstage.system.domain.user.OshUser user = new com.backstage.system.domain.user.OshUser();
-        user.setUsername(operator);
-        return user;
+        String eventType = resourceStatus == 4 ? AuditIndexEventType.AUDIT_APPROVED : AuditIndexEventType.AUDIT_REJECTED;
+        AuditIndexMessage message = new AuditIndexMessage();
+        message.setEventType(eventType);
+        message.setResourceType(resourceType.getType());
+        message.setId(resourceId);
+        message.setStatus(resourceStatus);
+        message.setUpdateBy(operator);
+        message.setUpdateTime(java.time.LocalDateTime.now());
+        outboxEventService.saveAuditIndexEvent(resourceType, message, operator);
     }
 
     private void notifyResourceCreator(ResourceTypeEnum resourceType, Long resourceId, Integer resourceStatus) {
         try {
-            ResourceAuditItemVO resource = resourceAuditMapper.selectAuditNotifyItem(resourceType.getTableName(), resourceId);
+            ResourceAuditItemVO resource = resourceAuditMapper.selectAuditNotifyItem(resourceType.getMysqlTableName(), resourceId);
             if (resource == null || StringUtils.isEmpty(resource.getCreateBy())) {
                 return;
             }

@@ -11,6 +11,6 @@ public class ResourceTypeEnumTest {
         ResourceTypeEnum tool = ResourceTypeEnum.fromTypeCode("tool");
 
         assertEquals(ResourceTypeEnum.TOOL, tool);
-        assertEquals("osh_tool", tool.getTableName());
+        assertEquals("osh_tool", tool.getMysqlTableName());
     }
 }

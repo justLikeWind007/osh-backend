@@ -11,7 +11,6 @@
         <result property="email"     column="email"      />
         <result property="password"     column="password"      />
         <result property="avatar"     column="avatar"      />
-        <result property="weixinUnionid"     column="weixin_unionid"      />
         <result property="sex"     column="sex"      />
         <result property="introduction"     column="introduction"      />
         <result property="status"     column="status"      />
@@ -23,7 +22,7 @@
     </resultMap>
 
     <sql id="selectUser">
-        select id, username, nickname, email, password, avatar, weixin_unionid, sex, `introduction`, `status`, create_time, create_by, update_time, update_by, delete_flag from osh_user
+        select id, username, nickname, email, password, avatar, sex, `introduction`, `status`, create_time, create_by, update_time, update_by, delete_flag from osh_user
     </sql>
 
     <select id="getUserByUsername" resultMap="UserResult">

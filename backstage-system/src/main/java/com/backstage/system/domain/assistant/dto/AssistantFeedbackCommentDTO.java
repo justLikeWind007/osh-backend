@@ -37,6 +37,11 @@ public class AssistantFeedbackCommentDTO {
      */
     private String replyToUserName;
 
+    /**
+     * 是否管理员回复（仅管理员场景生效）
+     */
+    private Boolean isAdminReply;
+
     public Long getFeedbackId() {
         return feedbackId;
     }
@@ -75,5 +80,13 @@ public class AssistantFeedbackCommentDTO {
 
     public void setReplyToUserName(String replyToUserName) {
         this.replyToUserName = replyToUserName;
+    }
+
+    public Boolean getIsAdminReply() {
+        return isAdminReply;
+    }
+
+    public void setIsAdminReply(Boolean isAdminReply) {
+        this.isAdminReply = isAdminReply;
     }
 }
