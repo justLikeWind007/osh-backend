@@ -1,6 +1,7 @@
 package com.backstage.system.service.servergroup;
 
 import com.backstage.system.domain.dto.GroupCreateDTO;
+import com.backstage.system.domain.servergroup.OshGroupOrder;
 import com.backstage.system.domain.vo.GroupActivityListVO;
 import com.backstage.system.domain.vo.GroupCreateVO;
 import com.backstage.system.domain.vo.GroupDetailVO;
@@ -8,7 +9,11 @@ import com.backstage.system.domain.vo.GroupWorkListVO;
 import com.backstage.system.domain.vo.InitiableActivityVO;
 import com.backstage.system.domain.vo.MyGroupListVO;
 import com.backstage.system.domain.vo.UserInitiatedActivityListVO;
+import com.backstage.system.domain.vo.UserSearchVO;
+import com.backstage.system.domain.vo.group.JoinGroupVO;
+import com.backstage.system.domain.vo.group.ServerTutorialVO;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -32,9 +37,10 @@ public interface IOshGroupServerService {
      * 查询用户发起拼团活动列表（C端）
      * 
      * @param status 状态筛选（可选）
+     * @param type 类型筛选（可选）
      * @return 用户发起拼团活动列表
      */
-    List<UserInitiatedActivityListVO> selectUserInitiatedActivityList(Integer status);
+    List<UserInitiatedActivityListVO> selectUserInitiatedActivityList(Integer status, String type);
     
     /**
      * 查询可发起的拼团活动列表
@@ -62,14 +68,23 @@ public interface IOshGroupServerService {
     GroupDetailVO selectGroupDetail(Long activityId, Long userId);
     
     /**
+     * 根据用户发起记录ID查询拼团详情
+     * 
+     * @param initiatedId 用户发起记录ID
+     * @param userId 当前用户ID（可为null）
+     * @return 拼团详情
+     */
+    GroupDetailVO selectGroupDetailByInitiatedId(Long initiatedId, Long userId);
+    
+    /**
      * 参与拼团
      * 
-     * @param activityId 拼团活动ID
+     * @param activityId 拼团活动ID或用户发起记录ID
      * @param userId 用户ID
      * @param payMethod 支付方式
-     * @return 订单号
+     * @return 参团结果（包含订单号、支付状态等）
      */
-    String joinGroup(Long activityId, Long userId, String payMethod);
+    JoinGroupVO joinGroup(Long activityId, Long userId, String payMethod);
     
     /**
      * 发起拼团（创建组团）
@@ -95,7 +110,7 @@ public interface IOshGroupServerService {
      * @param limit 返回数量限制（默认20）
      * @return 用户信息列表
      */
-    List<Map<String, Object>> searchUsernames(String keyword, Integer limit);
+    List<UserSearchVO> searchUsernames(String keyword, Integer limit);
     
     /**
      * 手动添加用户到拼团（管理员操作）
@@ -107,4 +122,29 @@ public interface IOshGroupServerService {
      * @return 添加结果
      */
     Map<String, Object> addUserToGroup(Long activityId, Long userId, String remark, Long operatorId);
+    
+    /**
+     * 根据订单号查询订单（用于支付接口获取金额）
+     * 
+     * @param orderNo 订单号
+     * @return 订单
+     */
+    OshGroupOrder selectGroupOrderByOrderNo(String orderNo);
+    
+    /**
+     * 获取服务器教程
+     * 
+     * @param activityId 拼团活动ID（osh_group_user_initiated表ID或osh_group_activity表ID）
+     * @return 服务器教程VO
+     */
+    ServerTutorialVO getServerTutorial(Long activityId);
+    
+    /**
+     * 获取服务器SSH连接信息
+     * 
+     * @param activityId 拼团活动ID（osh_group_user_initiated表ID或osh_group_activity表ID）
+     * @param userId 用户ID
+     * @return 服务器SSH信息VO
+     */
+    com.backstage.system.domain.vo.group.ServerSshInfoVO getServerSshInfo(Long activityId, Long userId);
 }

@@ -16,7 +16,10 @@ import com.backstage.system.domain.vo.GroupWorkListVO;
 import com.backstage.system.domain.vo.InitiableActivityVO;
 import com.backstage.system.domain.vo.MyGroupListVO;
 import com.backstage.system.domain.vo.UserInitiatedActivityListVO;
+import com.backstage.system.domain.vo.UserSearchVO;
+import com.backstage.system.domain.vo.order.PayResponse;
 import com.backstage.system.service.servergroup.IOshGroupServerService;
+import com.backstage.system.service.order.PayService;
 import com.backstage.system.utils.UserContextUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -27,6 +30,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -45,6 +50,9 @@ public class OshGroupServerController extends BaseController {
     
     @Autowired
     private IOshGroupServerService groupServerService;
+    
+    @Autowired
+    private PayService payService;
     
     /**
      * 查询拼团列表
@@ -71,6 +79,7 @@ public class OshGroupServerController extends BaseController {
      * GET /pc/group/activity/initiated/list
      * 
      * @param status 状态筛选（可选）
+     * @param type 类型筛选（可选）
      * @return 用户发起拼团活动列表
      */
     @Anonymous
@@ -78,9 +87,11 @@ public class OshGroupServerController extends BaseController {
     @GetMapping("/activity/initiated/list")
     public TableDataInfo initiatedList(
             @ApiParam("状态筛选：1-进行中 2-拼团成功 3-已结束") 
-            @RequestParam(value = "status", required = false) Integer status) {
+            @RequestParam(value = "status", required = false) Integer status,
+            @ApiParam("类型筛选（可选）")
+            @RequestParam(value = "type", required = false) String type) {
         startPage();
-        List<UserInitiatedActivityListVO> list = groupServerService.selectUserInitiatedActivityList(status);
+        List<UserInitiatedActivityListVO> list = groupServerService.selectUserInitiatedActivityList(status, type);
         return getDataTable(list);
     }
     
@@ -111,17 +122,20 @@ public class OshGroupServerController extends BaseController {
     
     /**
      * 接口3：拼团详情
+     * 支持两种查询方式：
+     * 1. 从用户发起列表进入：传入 initiatedId（osh_group_user_initiated表ID）
+     * 2. 从活动模板进入：传入 activityId（osh_group_activity表ID）
      * 
      * GET /pc/group/work/detail
-     * 
-     * @param activityId 拼团活动ID
+     *
+     * @param activityId 拼团记录ID（可选）
      * @return 拼团详情
      */
     @Anonymous
     @ApiOperation("拼团详情")
     @GetMapping("/work/detail")
     public R<GroupDetailVO> detail(
-            @ApiParam("拼团活动ID") @RequestParam(value = "activityId") Long activityId) {
+            @ApiParam("拼团发起记录ID（可选）") @RequestParam(value = "activityId", required = false) Long activityId) {
         // 尝试获取当前用户ID（如果已登录）
         Long userId = null;
         try {
@@ -131,24 +145,33 @@ public class OshGroupServerController extends BaseController {
             logger.debug("用户未登录，将以匿名身份查看拼团详情");
         }
         
-        GroupDetailVO detail = groupServerService.selectGroupDetail(activityId, userId);
+        GroupDetailVO detail;
+        if (activityId != null) {
+            // 从用户发起记录查询
+            detail = groupServerService.selectGroupDetailByInitiatedId(activityId, userId);
+        }  else {
+            return R.fail("拼团id为空");
+        }
         return R.ok(detail);
     }
     
     /**
      * 接口4：参与拼团
+     * 支持两种参团方式：
+     * 1. 参与用户发起的拼团：传入 activityId（实际为 osh_group_user_initiated 表ID）
+     * 2. 参与系统活动模板拼团：传入 activityId（osh_group_activity 表ID）
      * 权限要求：登录用户都可参与拼团
      * 
      * POST /pc/group/work/join
      * 
-     * @param activityId 拼团活动ID
+     * @param activityId 拼团记录ID或活动模板ID
      * @param payMethod 支付方式：wechat-微信支付 alipay-支付宝
-     * @return 订单号
+     * @return 参团结果（包含订单号、支付状态等）
      */
     @ApiOperation("参与拼团")
     @PostMapping("/work/join")
-    public R<String> join(
-            @ApiParam("拼团活动ID") @RequestParam(value = "activityId") Long activityId,
+    public R<com.backstage.system.domain.vo.group.JoinGroupVO> join(
+            @ApiParam("拼团记录ID或活动模板ID") @RequestParam(value = "activityId") Long activityId,
             @ApiParam("支付方式：wechat-微信支付 alipay-支付宝") 
             @RequestParam(value = "payMethod", defaultValue = "wechat") String payMethod) {
         // 从 ThreadLocal 获取网校用户ID（OshAuthenticationFilter 已写入）
@@ -157,17 +180,20 @@ public class OshGroupServerController extends BaseController {
             return R.fail("请先登录");
         }
         
-        // 参与拼团无需额外权限检查，登录用户均可参与
-        String orderNo = groupServerService.joinGroup(activityId, userId, payMethod);
-        return R.ok(orderNo, "参团成功");
+        try {
+            // 参与拼团无需额外权限检查，登录用户均可参与
+            com.backstage.system.domain.vo.group.JoinGroupVO result = groupServerService.joinGroup(activityId, userId, payMethod);
+            return R.ok(result, result.getMessage());
+        } catch (Exception e) {
+            logger.error("参与拼团失败", e);
+            return R.fail(e.getMessage());
+        }
     }
     
     /**
      * 接口5：获取可发起的拼团活动列表
      * 权限要求：只有管理员（level <= 2）可查看可发起的拼团活动
-     * 
      * GET /pc/group/activity/initiable
-     * 
      * @return 可发起的拼团活动列表
      */
     @ApiOperation("获取可发起的拼团活动列表")
@@ -247,12 +273,12 @@ public class OshGroupServerController extends BaseController {
      */
     @ApiOperation("模糊查询用户名列表")
     @GetMapping("/user/search")
-    public R<List<Map<String, Object>>> searchUsers(
+    public R<List<UserSearchVO>> searchUsers(
             @ApiParam("搜索关键词（支持用户名、昵称模糊匹配）")
             @RequestParam(value = "keyword", required = true) String keyword,
             @ApiParam("返回数量限制（可选，默认20）")
             @RequestParam(value = "limit", required = false, defaultValue = "20") Integer limit) {
-        List<Map<String, Object>> users = groupServerService.searchUsernames(keyword, limit);
+        List<UserSearchVO> users = groupServerService.searchUsernames(keyword, limit);
         return R.ok(users, "查询成功");
     }
     
@@ -291,6 +317,136 @@ public class OshGroupServerController extends BaseController {
             return R.ok(result, result.get("message").toString());
         } catch (Exception e) {
             logger.error("手动添加用户到拼团失败", e);
+            return R.fail(e.getMessage());
+        }
+    }
+    
+    /**
+     * 接口10：拼团订单支付
+     * 权限要求：登录用户可支付自己的拼团订单
+     * 
+     * POST /pc/group/work/pay
+     * 
+     * @param orderNo 订单号
+     * @param payMethod 支付方式：wechat-微信支付 alipay-支付宝
+     * @param name 商品名称
+     * @return 支付二维码链接
+     */
+    @ApiOperation("拼团订单支付")
+    @PostMapping("/work/pay")
+    public R<PayResponse> pay(
+            @ApiParam("订单号") @RequestParam(value = "orderNo") String orderNo,
+            @ApiParam("支付方式：wechat-微信支付 alipay-支付宝") @RequestParam(value = "payMethod", defaultValue = "wechat") String payMethod,
+            @ApiParam("商品名称") @RequestParam(value = "name") String name,
+            HttpServletRequest request) {
+        // 从 ThreadLocal 获取网校用户ID（验证登录状态）
+        Long userId = ThreadLocalUtil.get(OshUserConstants.USER_ID, Long.class);
+        if (userId == null) {
+            return R.fail("请先登录");
+        }
+        
+        try {
+            // 1. 从订单表查询实际金额
+            com.backstage.system.domain.servergroup.OshGroupOrder order = groupServerService.selectGroupOrderByOrderNo(orderNo);
+            if (order == null) {
+                return R.fail("订单不存在");
+            }
+            
+            // 2. 校验订单状态（必须是待支付）
+            if (!"pending".equals(order.getStatus())) {
+                return R.fail("订单状态不允许支付");
+            }
+            
+            // 3. 获取客户端IP
+            String clientIp = getClientIp(request);
+            
+            // 4. 获取实际支付金额
+            String money = order.getPrice() != null ? order.getPrice().toString() : "0";
+            
+            // 5. 调用支付服务创建支付
+            PayResponse response = payService.createPay(orderNo, name, money, clientIp);
+            
+            if (response.getCode() == 1) {
+                return R.ok(response, "获取支付链接成功");
+            } else {
+                return R.fail(response.getMsg());
+            }
+        } catch (Exception e) {
+            logger.error("拼团订单支付失败", e);
+            return R.fail("支付请求失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取客户端真实IP
+     */
+    private String getClientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("WL-Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        // 多级代理时取第一个IP
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        return ip;
+    }
+    
+    /**
+     * 接口11：获取服务器教程
+     * 权限要求：匿名可访问
+     * 
+     * GET /api/group/server/tutorial
+     * 
+     * @param activityId 拼团活动ID
+     * @return 服务器使用教程
+     */
+    @Anonymous
+    @ApiOperation("获取服务器教程")
+    @GetMapping("/server/tutorial")
+    public R<com.backstage.system.domain.vo.group.ServerTutorialVO> getServerTutorial(
+            @ApiParam("拼团活动ID") @RequestParam(value = "activityId") Long activityId) {
+        try {
+            com.backstage.system.domain.vo.group.ServerTutorialVO tutorial = 
+                groupServerService.getServerTutorial(activityId);
+            return R.ok(tutorial, "查询成功");
+        } catch (Exception e) {
+            logger.error("获取服务器教程失败", e);
+            return R.fail(e.getMessage());
+        }
+    }
+    
+    /**
+     * 接口12：获取服务器SSH信息
+     * 权限要求：需用户登录
+     * 
+     * GET /api/group/server/ssh-info
+     * 
+     * @param activityId 拼团活动ID
+     * @return 服务器SSH连接信息
+     */
+    @ApiOperation("获取服务器SSH信息")
+    @GetMapping("/server/ssh-info")
+    public R<com.backstage.system.domain.vo.group.ServerSshInfoVO> getServerSshInfo(
+            @ApiParam("拼团活动ID") @RequestParam(value = "activityId") Long activityId) {
+        try {
+            // 从 ThreadLocal 获取网校用户ID
+            Long userId = ThreadLocalUtil.get(OshUserConstants.USER_ID, Long.class);
+            if (userId == null) {
+                return R.fail("请先登录");
+            }
+            
+            com.backstage.system.domain.vo.group.ServerSshInfoVO sshInfo = 
+                groupServerService.getServerSshInfo(activityId, userId);
+            return R.ok(sshInfo, "查询成功");
+        } catch (Exception e) {
+            logger.error("获取服务器SSH信息失败", e);
             return R.fail(e.getMessage());
         }
     }

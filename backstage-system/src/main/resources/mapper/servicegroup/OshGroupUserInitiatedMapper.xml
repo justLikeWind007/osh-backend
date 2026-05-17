@@ -63,7 +63,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         - 修复后: gui.activity_id → ga.id (一次JOIN,性能提升50%+)
         - 前提: 需要执行 fix_group_table_structure.sql 添加 activity_id 字段
     -->
-    <select id="selectUserInitiatedActivityList" parameterType="java.lang.Integer" resultMap="UserInitiatedActivityListVOResult">
+    <select id="selectUserInitiatedActivityList" resultMap="UserInitiatedActivityListVOResult">
         SELECT 
             gui.id,
             COALESCE(ga.title, '未知活动') AS title,
@@ -88,8 +88,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             ga.cover
         FROM osh_group_user_initiated gui
         LEFT JOIN osh_group_activity ga ON gui.activity_id = ga.id
-        <where>20250528
+        <where>
             gui.delete_flag = 0
+            <if test="type != null and type != ''">
+                AND gui.user_id IS NOT NULL
+            </if>
             <if test="status != null">
                 AND (
                     CASE 
@@ -191,6 +194,15 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <update id="updateGroupStatus">
         UPDATE osh_group_user_initiated
         SET group_status = #{groupStatus},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 更新服务器时间 -->
+    <update id="updateServerTime">
+        UPDATE osh_group_user_initiated
+        SET server_start_time = #{serverStartTime},
+            server_expire_time = #{serverExpireTime},
             update_time = NOW()
         WHERE id = #{id}
     </update>

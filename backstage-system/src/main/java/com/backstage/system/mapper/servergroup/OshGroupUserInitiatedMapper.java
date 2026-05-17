@@ -3,8 +3,10 @@ package com.backstage.system.mapper.servergroup;
 import com.backstage.system.domain.servergroup.OshGroupUserInitiated;
 import com.backstage.system.domain.vo.UserInitiatedActivityListVO;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.MapKey;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -47,7 +49,7 @@ public interface OshGroupUserInitiatedMapper {
      * @param status 状态筛选（可选）
      * @return 用户发起拼团活动列表
      */
-    List<UserInitiatedActivityListVO> selectUserInitiatedActivityList(@Param("status") Integer status);
+    List<UserInitiatedActivityListVO> selectUserInitiatedActivityList(@Param("status") Integer status, @Param("type") String type);
     
     /**
      * 更新发起拼团记录
@@ -76,6 +78,16 @@ public interface OshGroupUserInitiatedMapper {
     int updateGroupStatus(@Param("id") Long id, @Param("groupStatus") Integer groupStatus);
     
     /**
+     * 更新服务器时间
+     * 
+     * @param id 发起记录ID
+     * @param serverStartTime 服务器开始时间
+     * @param serverExpireTime 服务器到期时间
+     * @return 影响行数
+     */
+    int updateServerTime(@Param("id") Long id, @Param("serverStartTime") LocalDateTime serverStartTime, @Param("serverExpireTime") LocalDateTime serverExpireTime);
+    
+    /**
      * 检查用户是否已参与该拼团
      * 
      * @param activityId 拼团活动ID
@@ -90,6 +102,7 @@ public interface OshGroupUserInitiatedMapper {
      * @param activityId 拼团活动ID
      * @return 拼团活动信息（包含当前人数、最大人数、状态等）
      */
+    @MapKey("id")
     java.util.Map<String, Object> selectActivityDetail(@Param("activityId") Long activityId);
 }
 

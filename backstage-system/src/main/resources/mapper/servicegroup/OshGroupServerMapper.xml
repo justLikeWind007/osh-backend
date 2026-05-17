@@ -227,6 +227,50 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
           AND user_id = #{userId}
     </select>
 
+    <!-- 根据用户发起拼团ID查询参团用户列表 -->
+    <select id="selectGroupUsersByInitiatedId" parameterType="java.lang.Long" resultMap="ServerGroupUserVoResult">
+        SELECT 
+            u.id AS user_id,
+            u.username,
+            u.nickname,
+            u.avatar,
+            gw.join_time
+        FROM osh_group_user_initiated gui
+        INNER JOIN osh_group_activity ga ON gui.activity_id = ga.id
+        INNER JOIN osh_group_work gw ON gw.group_activity_id = ga.id
+        INNER JOIN osh_user u ON gw.user_id = u.id
+        WHERE gui.id = #{initiatedId}
+        ORDER BY gw.join_time ASC
+    </select>
+
+    <!-- 检查用户是否已参团（用户发起拼团） -->
+    <select id="checkUserJoinedByInitiatedId" resultType="int">
+        SELECT COUNT(*)
+        FROM osh_group_user_initiated gui
+        INNER JOIN osh_group_activity ga ON gui.activity_id = ga.id
+        INNER JOIN osh_group_work gw ON gw.group_activity_id = ga.id
+        WHERE gui.id = #{initiatedId}
+          AND gw.user_id = #{userId}
+    </select>
+
+    <!-- 更新参团记录服务器时间 -->
+    <update id="updateGroupWorkServerTime">
+        UPDATE osh_group_work
+        SET server_start_time = #{serverStartTime},
+            server_expire_time = #{serverExpireTime},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据活动和用户查询参团记录 -->
+    <select id="selectGroupWorkByActivityAndUser" parameterType="java.lang.Long" resultType="com.backstage.system.domain.servergroup.OshGroupWork">
+        SELECT *
+        FROM osh_group_work
+        WHERE group_activity_id = #{activityId}
+          AND user_id = #{userId}
+        LIMIT 1
+    </select>
+
     <!-- 插入参团记录 -->
     <insert id="insertGroupWork" parameterType="com.backstage.system.domain.servergroup.OshGroupWork" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO osh_group_work (
@@ -314,15 +358,31 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         )
     </insert>
 
+    <!-- 更新参团记录状态 -->
+    <update id="updateGroupWorkStatus">
+        UPDATE osh_group_work
+        SET group_status = #{groupStatus},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
     <!-- 根据订单号查询订单 -->
     <select id="selectGroupOrderByOrderNo" parameterType="java.lang.String" resultType="com.backstage.system.domain.servergroup.OshGroupOrder">
         SELECT 
             id, user_id, group_activity_id, group_work_id, order_no,
             price, base_price, remaining_months, status, pay_method,
-            pay_time, created_time, updated_time
+            pay_time, remark, created_time, updated_time
         FROM osh_group_order
         WHERE order_no = #{orderNo}
     </select>
+
+    <!-- 更新订单状态 -->
+    <update id="updateOrderStatus">
+        UPDATE osh_group_order
+        SET status = #{status},
+            update_time = #{updateTime}
+        WHERE id = #{id}
+    </update>
 
     <!-- 计算动态价格（SQL实现） -->
     <select id="calculateDynamicPrice" resultType="java.math.BigDecimal">
@@ -399,14 +459,25 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         ORDER BY join_time DESC
     </select>
 
+    <!-- 查询超时未支付订单 -->
+    <select id="selectTimeoutOrders" parameterType="java.time.LocalDateTime" resultType="com.backstage.system.domain.servergroup.OshGroupOrder">
+        SELECT 
+            id, user_id, group_activity_id, group_work_id, order_no,
+            price, base_price, remaining_months, status, pay_method,
+            pay_time, remark, created_time, updated_time
+        FROM osh_group_order
+        WHERE status = 'pending'
+          AND created_time &lt; #{timeoutTime}
+    </select>
+
+
     <!-- 模糊查询用户名列表（用于手动添加参团用户） -->
-    <select id="selectUsernamesByKeyword" resultType="java.util.HashMap">
+    <select id="selectUsernamesByKeyword" resultType="com.backstage.system.domain.vo.UserSearchVO">
         SELECT 
             id AS userId,
             username,
             nickname,
-            avatar,
-            status
+            avatar
         FROM osh_user
         <where>
             delete_flag = 0

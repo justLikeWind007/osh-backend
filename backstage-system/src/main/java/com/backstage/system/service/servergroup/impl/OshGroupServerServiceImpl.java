@@ -17,6 +17,10 @@ import com.backstage.system.domain.vo.InitiableActivityVO;
 import com.backstage.system.domain.vo.ServerGroupUserVo;
 import com.backstage.system.domain.vo.MyGroupListVO;
 import com.backstage.system.domain.vo.UserInitiatedActivityListVO;
+import com.backstage.system.domain.vo.UserSearchVO;
+import com.backstage.system.domain.vo.group.JoinGroupVO;
+import com.backstage.system.domain.vo.group.ServerTutorialVO;
+import com.backstage.system.domain.vo.group.ServerSshInfoVO;
 import com.backstage.system.mapper.servergroup.OshGroupServerMapper;
 import com.backstage.system.mapper.servergroup.OshGroupUserInitiatedMapper;
 import com.backstage.system.service.servergroup.IOshGroupServerService;
@@ -88,9 +92,9 @@ public class OshGroupServerServiceImpl implements IOshGroupServerService {
      * 查询用户发起拼团活动列表
      */
     @Override
-    public List<UserInitiatedActivityListVO> selectUserInitiatedActivityList(Integer status) {
+    public List<UserInitiatedActivityListVO> selectUserInitiatedActivityList(Integer status, String type) {
         // 查询数据
-        List<UserInitiatedActivityListVO> list = userInitiatedMapper.selectUserInitiatedActivityList(status);
+        List<UserInitiatedActivityListVO> list = userInitiatedMapper.selectUserInitiatedActivityList(status, type);
         
         // 处理计算字段
         for (UserInitiatedActivityListVO vo : list) {
@@ -204,19 +208,293 @@ public class OshGroupServerServiceImpl implements IOshGroupServerService {
     }
     
     /**
-     * 参与拼团
+     * 根据用户发起记录ID查询拼团详情
+     */
+    @Override
+    public GroupDetailVO selectGroupDetailByInitiatedId(Long initiatedId, Long userId) {
+        // 查询用户发起记录
+        OshGroupUserInitiated initiated = userInitiatedMapper.selectById(initiatedId);
+        if (initiated == null) {
+            throw new ServiceException("拼团记录不存在");
+        }
+        
+        // 通过 activity_id 查询拼团活动模板
+        OshGroupActivity activity = groupServerMapper.selectGroupActivityById(initiated.getActivityId());
+        if (activity == null) {
+            throw new ServiceException("拼团活动模板不存在");
+        }
+        
+        // 构建详情VO（优先使用用户发起记录的数据）
+        GroupDetailVO vo = new GroupDetailVO();
+        vo.setId(initiated.getId()); // 使用用户发起记录的ID
+        vo.setTitle(activity.getTitle());
+        vo.setCpu(activity.getCpu());
+        vo.setMemory(activity.getMemory());
+        vo.setStorage(activity.getStorage());
+        vo.setBasePrice(initiated.getCustomPrice() != null ? initiated.getCustomPrice() : activity.getBasePrice());
+        vo.setTotalDuration(initiated.getDuration() != null ? initiated.getDuration() : activity.getTotalDuration());
+        vo.setCurrentNum(initiated.getCurrentNum());
+        vo.setGroupMinNum(initiated.getMinNum());
+        vo.setGroupMaxNum(initiated.getMaxNum());
+        vo.setRemainNum(initiated.getMaxNum() - initiated.getCurrentNum());
+        
+        // 状态映射：group_status -> status
+        // 0-招募中 -> 1-进行中
+        // 1-已成团 -> 2-拼团成功
+        // 2-已取消/过期 -> 3-已结束
+        int status;
+        if (initiated.getGroupStatus() == 0) {
+            status = 1; // 进行中
+        } else if (initiated.getGroupStatus() == 1) {
+            status = 2; // 拼团成功
+        } else {
+            status = 3; // 已结束
+        }
+        vo.setStatus(status);
+        vo.setGroupStatus(initiated.getGroupStatus());
+        vo.setGroupStatusText(getGroupStatusText(initiated.getGroupStatus()));
+        
+        vo.setStartTime(initiated.getInitiateTime());
+        vo.setServerStartTime(initiated.getServerStartTime());
+        vo.setServerExpireTime(initiated.getServerExpireTime());
+        vo.setAdminContact(activity.getAdminContact());
+        vo.setServerTutorialUrl(activity.getServerTutorialUrl());
+        
+        // 设置封面完整URL
+        String cover = activity.getCover();
+        if (StringUtils.isNotEmpty(cover)) {
+            vo.setCover(ossUtil.getFullFilePath(cover));
+        }
+        
+        // 计算价格和剩余时间
+        if (initiated.getGroupStatus() == 1) {
+            // 已成团：按实际剩余时间计算
+            if (initiated.getServerExpireTime() != null) {
+                LocalDateTime now = LocalDateTime.now();
+                long days = ChronoUnit.DAYS.between(now, initiated.getServerExpireTime());
+                long remainingMonthsLong = (days + 29) / 30; // 向上取整
+                BigDecimal remaining = new BigDecimal(remainingMonthsLong);
+                vo.setRemainingMonths(remaining.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : remaining);
+                
+                // 计算当前价格
+                BigDecimal currentPrice = vo.getBasePrice()
+                        .multiply(vo.getRemainingMonths())
+                        .divide(new BigDecimal(vo.getTotalDuration()), 2, RoundingMode.HALF_UP);
+                vo.setCurrentPrice(currentPrice);
+                
+                // 会员价格（八折）
+                vo.setMemberPrice(currentPrice.multiply(new BigDecimal("0.8")));
+            } else {
+                // 已成团但无到期时间，使用基础价格
+                vo.setRemainingMonths(new BigDecimal(initiated.getDuration()));
+                vo.setCurrentPrice(vo.getBasePrice());
+                vo.setMemberPrice(vo.getBasePrice().multiply(new BigDecimal("0.8")));
+            }
+        } else {
+            // 未成团：显示基础价格
+            vo.setRemainingMonths(null);
+            vo.setCurrentPrice(vo.getBasePrice());
+            vo.setMemberPrice(vo.getBasePrice().multiply(new BigDecimal("0.8")));
+        }
+        
+        // 兜底：如果 currentPrice 仍为空，使用 basePrice
+        if (vo.getCurrentPrice() == null && vo.getBasePrice() != null) {
+            vo.setCurrentPrice(vo.getBasePrice());
+            vo.setMemberPrice(vo.getBasePrice().multiply(new BigDecimal("0.8")));
+        }
+        
+        // 查询参团用户列表（根据发起记录ID查询）
+        List<ServerGroupUserVo> users = groupServerMapper.selectGroupUsersByInitiatedId(initiatedId);
+        // 转换用户头像URL
+        if (users != null && !users.isEmpty()) {
+            for (ServerGroupUserVo user : users) {
+                if (StringUtils.isNotEmpty(user.getAvatar())) {
+                    user.setAvatar(ossUtil.getFullFilePath(user.getAvatar()));
+                }
+            }
+        }
+        vo.setUsers(users);
+        
+        // 判断当前用户是否已参团
+        if (userId != null) {
+            int count = groupServerMapper.checkUserJoinedByInitiatedId(initiatedId, userId);
+            vo.setCurrentUserJoined(count > 0);
+        } else {
+            vo.setCurrentUserJoined(false);
+        }
+        
+        // 计算是否可以参团
+        vo.setCanJoin(initiated.getGroupStatus() == 0 || initiated.getGroupStatus() == 1);
+        
+        return vo;
+    }
+    
+    /**
+     * 参与拼团（支持双数据源）
+     * 1. 参与用户发起的拼团：activityId 实际为 osh_group_user_initiated 表ID
+     * 2. 参与系统活动模板拼团：activityId 为 osh_group_activity 表ID
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public String joinGroup(Long activityId, Long userId, String payMethod) {
+    public JoinGroupVO joinGroup(Long activityId, Long userId, String payMethod) {
         // 参数校验
         if (activityId == null) {
-            throw new ServiceException("拼团活动ID不能为空");
+            throw new ServiceException("拼团ID不能为空");
         }
         if (userId == null) {
             throw new ServiceException("用户ID不能为空");
         }
         
+        // 尝试从用户发起记录表查询
+        OshGroupUserInitiated initiated = userInitiatedMapper.selectById(activityId);
+        
+        if (initiated != null) {
+            // 数据源1：用户发起的拼团记录
+            logger.info("用户 {} 参与用户发起的拼团，记录ID: {}", userId, activityId);
+            return joinUserInitiatedGroup(initiated, userId, payMethod);
+        } else {
+            // 数据源2：系统活动模板
+            logger.info("拼团记录不存在，活动ID: {}",  activityId);
+            return joinSystemActivity(activityId, userId, payMethod);
+        }
+    }
+    
+    /**
+     * 参与用户发起的拼团
+     */
+    private JoinGroupVO joinUserInitiatedGroup(OshGroupUserInitiated initiated, Long userId, String payMethod) {
+        Long initiatedId = initiated.getId();
+        
+        // 1. 校验拼团状态
+        if (initiated.getGroupStatus() == 2) {
+            throw new ServiceException("该拼团已结束，请关注新一期拼团活动");
+        }
+        
+        // 2. 校验是否已过期
+        if (initiated.getExpireTime() != null && LocalDateTime.now().isAfter(initiated.getExpireTime())) {
+            throw new ServiceException("该拼团招募已过期");
+        }
+        
+        // 3. 校验人数上限
+        if (initiated.getCurrentNum() >= initiated.getMaxNum()) {
+            throw new ServiceException("该拼团人数已满");
+        }
+        
+        // 4. 校验用户是否已参团
+        int joinedCount = groupServerMapper.checkUserJoinedByInitiatedId(initiatedId, userId);
+        if (joinedCount > 0) {
+            throw new ServiceException("您已参与该拼团活动");
+        }
+        
+        // 5. 计算实际价格和剩余时间
+        BigDecimal actualPrice;
+        BigDecimal remainingMonths;
+        LocalDateTime serverStartTime = null;
+        LocalDateTime serverExpireTime = null;
+        int newCurrentNum = initiated.getCurrentNum() + 1;
+        
+        // 判断是否达到最低人数（触发成团）
+        boolean willSuccess = newCurrentNum >= initiated.getMinNum();
+        
+        if (willSuccess) {
+            // 成团：计算服务器使用时间
+            serverStartTime = LocalDateTime.now();
+            serverExpireTime = serverStartTime.plusMonths(initiated.getDuration());
+            remainingMonths = new BigDecimal(initiated.getDuration());
+        } else {
+            // 未成团：按预计时间计算
+            remainingMonths = new BigDecimal(initiated.getDuration());
+        }
+        
+        // 计算实际价格
+        actualPrice = initiated.getCustomPrice()
+                .multiply(remainingMonths)
+                .divide(new BigDecimal(initiated.getDuration()), 2, RoundingMode.HALF_UP);
+        
+        // 6. 生成订单号
+        String orderNo = "GP" + DateUtils.dateTime() + IdUtils.fastSimpleUUID().substring(0, 8);
+        
+        // 7. 创建订单
+        OshGroupOrder order = new OshGroupOrder();
+        order.setUserId(userId);
+        order.setGroupActivityId(initiated.getActivityId()); // 关联活动模板ID
+        order.setOrderNo(orderNo);
+        order.setPrice(actualPrice);
+        order.setBasePrice(initiated.getCustomPrice());
+        order.setRemainingMonths(remainingMonths);
+        order.setStatus("pending"); // 待支付
+        order.setPayMethod(StringUtils.isEmpty(payMethod) ? "wechat" : payMethod);
+        
+        int orderResult = groupServerMapper.insertGroupOrder(order);
+        if (orderResult <= 0) {
+            throw new ServiceException("创建订单失败");
+        }
+        
+        // 8. 创建参团记录
+        OshGroupWork work = new OshGroupWork();
+        work.setGroupActivityId(initiatedId); // 关联用户发起记录ID
+        work.setUserId(userId);
+        work.setOrderId(order.getId());
+        work.setActualPrice(actualPrice);
+        work.setRemainingMonths(remainingMonths);
+        work.setJoinTime(LocalDateTime.now());
+        
+        if (willSuccess) {
+            work.setGroupStatus(1); // 已成团
+            work.setServerStartTime(serverStartTime);
+            work.setServerExpireTime(serverExpireTime);
+        } else {
+            work.setGroupStatus(0); // 进行中
+        }
+        
+        int workResult = groupServerMapper.insertGroupWork(work);
+        if (workResult <= 0) {
+            throw new ServiceException("创建参团记录失败");
+        }
+        
+        // 9. 更新订单关联的参团ID
+        order.setGroupWorkId(work.getId());
+        
+        // 10. 更新用户发起拼团记录的人数
+        int updateResult = userInitiatedMapper.updateCurrentNum(initiatedId, newCurrentNum);
+        if (updateResult <= 0) {
+            throw new ServiceException("更新拼团记录失败，可能是并发冲突");
+        }
+        
+        // 11. 如果达到人数，更新状态为已成团
+        if (willSuccess) {
+            userInitiatedMapper.updateGroupStatus(initiatedId, 1);
+            logger.info("用户发起的拼团 {} 已成团，触发后续业务流程", initiatedId);
+            
+            // 更新 osh_group_user_initiated 表的服务器开始、到期时间
+            userInitiatedMapper.updateServerTime(initiatedId, serverStartTime, serverExpireTime);
+            logger.info("更新用户发起拼团 {} 的服务器时间: startTime={}, expireTime={}", 
+                    initiatedId, serverStartTime, serverExpireTime);
+            
+            // 更新本次创建的 osh_group_work 记录的服务器时间
+            // 注意：由于插入时已经设置了时间，这里主要是确保数据一致性
+            if (work.getId() != null) {
+                groupServerMapper.updateGroupWorkServerTime(work.getId(), serverStartTime, serverExpireTime);
+                logger.info("更新本次参团记录 {} 的服务器时间: startTime={}, expireTime={}", 
+                        work.getId(), serverStartTime, serverExpireTime);
+            }
+        }
+        
+        // 12. 如果达到人数上限，更新状态为已结束
+        if (newCurrentNum >= initiated.getMaxNum()) {
+            userInitiatedMapper.updateGroupStatus(initiatedId, 2);
+        }
+        
+        logger.info("用户{}成功参与用户发起的拼团{}，订单号：{}", userId, initiatedId, orderNo);
+        
+        // 返回待支付状态
+        return JoinGroupVO.pendingPayment(orderNo, actualPrice);
+    }
+    
+    /**
+     * 参与系统活动模板拼团
+     */
+    private JoinGroupVO joinSystemActivity(Long activityId, Long userId, String payMethod) {
         // 查询拼团活动
         OshGroupActivity activity = groupServerMapper.selectGroupActivityById(activityId);
         if (activity == null) {
@@ -339,9 +617,10 @@ public class OshGroupServerServiceImpl implements IOshGroupServerService {
             groupServerMapper.updateGroupActivityStatusEnded(activityId, LocalDateTime.now());
         }
         
-        logger.info("用户{}成功参与拼团活动{}，订单号：{}", userId, activityId, orderNo);
+        logger.info("用户{}成功参与系统活动拼团{}，订单号：{}", userId, activityId, orderNo);
         
-        return orderNo;
+        // 返回待支付状态
+        return JoinGroupVO.pendingPayment(orderNo, actualPrice);
     }
     
     /**
@@ -428,6 +707,11 @@ public class OshGroupServerServiceImpl implements IOshGroupServerService {
                 BigDecimal memberPrice = currentPrice.multiply(new BigDecimal("0.8"))
                         .setScale(2, RoundingMode.HALF_UP);
                 vo.setMemberPrice(memberPrice);
+            } else {
+                // 已成团但无到期时间，使用基础价格
+                vo.setRemainingMonths(new BigDecimal(activity.getTotalDuration()));
+                vo.setCurrentPrice(vo.getBasePrice());
+                vo.setMemberPrice(vo.getBasePrice().multiply(new BigDecimal("0.8")).setScale(2, RoundingMode.HALF_UP));
             }
         } else {
             // 未成团
@@ -438,6 +722,12 @@ public class OshGroupServerServiceImpl implements IOshGroupServerService {
             BigDecimal memberPrice = vo.getBasePrice().multiply(new BigDecimal("0.8"))
                     .setScale(2, RoundingMode.HALF_UP);
             vo.setMemberPrice(memberPrice);
+        }
+        
+        // 兜底：如果 currentPrice 仍为空，使用 basePrice
+        if (vo.getCurrentPrice() == null && vo.getBasePrice() != null) {
+            vo.setCurrentPrice(vo.getBasePrice());
+            vo.setMemberPrice(vo.getBasePrice().multiply(new BigDecimal("0.8")).setScale(2, RoundingMode.HALF_UP));
         }
     }
     
@@ -632,7 +922,7 @@ public class OshGroupServerServiceImpl implements IOshGroupServerService {
      * 模糊查询用户名列表（用于手动添加参团用户）
      */
     @Override
-    public List<Map<String, Object>> searchUsernames(String keyword, Integer limit) {
+    public List<UserSearchVO> searchUsernames(String keyword, Integer limit) {
         // 默认限制20条
         if (limit == null || limit <= 0) {
             limit = 20;
@@ -644,14 +934,14 @@ public class OshGroupServerServiceImpl implements IOshGroupServerService {
         }
         
         // 查询用户
-        List<Map<String, Object>> users = groupServerMapper.selectUsernamesByKeyword(keyword.trim(), limit);
+        List<UserSearchVO> users = groupServerMapper.selectUsernamesByKeyword(keyword.trim(), limit);
         
         // 处理用户头像URL
         if (users != null && !users.isEmpty()) {
-            for (Map<String, Object> user : users) {
-                Object avatar = user.get("avatar");
-                if (avatar != null && StringUtils.isNotEmpty(avatar.toString())) {
-                    user.put("avatar", ossUtil.getFullFilePath(avatar.toString()));
+            for (UserSearchVO user : users) {
+                String avatar = user.getAvatar();
+                if (StringUtils.isNotEmpty(avatar)) {
+                    user.setAvatar(ossUtil.getFullFilePath(avatar));
                 }
             }
         }
@@ -771,5 +1061,204 @@ public class OshGroupServerServiceImpl implements IOshGroupServerService {
         logger.info("管理员 {} 手动添加用户 {} 到拼团活动 {}", operatorId, userId, activityId);
         
         return result;
+    }
+    
+    /**
+     * 根据订单号查询订单
+     */
+    @Override
+    public OshGroupOrder selectGroupOrderByOrderNo(String orderNo) {
+        return groupServerMapper.selectGroupOrderByOrderNo(orderNo);
+    }
+    
+    /**
+     * 获取服务器教程
+     */
+    @Override
+    public ServerTutorialVO getServerTutorial(Long activityId) {
+        if (activityId == null) {
+            throw new ServiceException("拼团活动ID不能为空");
+        }
+        
+        ServerTutorialVO tutorial = new ServerTutorialVO();
+        
+        // 尝试从用户发起记录表查询
+        OshGroupUserInitiated initiated = userInitiatedMapper.selectById(activityId);
+        
+        if (initiated != null) {
+            // 数据源1：用户发起的拼团记录
+            // 获取关联的活动模板信息
+            OshGroupActivity activity = groupServerMapper.selectGroupActivityById(initiated.getActivityId());
+            if (activity != null) {
+                buildTutorialVO(tutorial, activity);
+            }
+        } else {
+            // 数据源2：系统活动模板
+            OshGroupActivity activity = groupServerMapper.selectGroupActivityById(activityId);
+            if (activity != null) {
+                buildTutorialVO(tutorial, activity);
+            } else {
+                throw new ServiceException("拼团活动不存在");
+            }
+        }
+        
+        return tutorial;
+    }
+    
+    /**
+     * 构建教程VO
+     */
+    private void buildTutorialVO(ServerTutorialVO tutorial, OshGroupActivity activity) {
+        // 设置教程内容（从server_tutorial_url获取完整URL）
+        if (StringUtils.isNotEmpty(activity.getServerTutorialUrl())) {
+            tutorial.setTutorial(ossUtil.getFullFilePath(activity.getServerTutorialUrl()));
+        }
+        
+        // 构建教程步骤
+        List<ServerTutorialVO.TutorialStep> steps = new ArrayList<>();
+        steps.add(new ServerTutorialVO.TutorialStep(1, "连接服务器", 
+            "使用SSH工具（如PuTTY、Xshell）连接到服务器。服务器IP和端口请联系管理员获取。\n\n" +
+            "SSH连接命令：\n```\nssh username@server_ip -p port\n```"));
+        steps.add(new ServerTutorialVO.TutorialStep(2, "初始化配置", 
+            "首次登录后，请修改默认密码并配置SSH密钥以提高安全性。\n\n" +
+            "修改密码命令：\n```\npasswd\n```"));
+        steps.add(new ServerTutorialVO.TutorialStep(3, "环境检查", 
+            "检查服务器环境配置，确认开发工具和依赖已安装。\n\n" +
+            "常用检查命令：\n```\ncat /etc/os-release  # 查看系统信息\njava -version        # 查看Java版本\npython --version     # 查看Python版本\n```"));
+        steps.add(new ServerTutorialVO.TutorialStep(4, "开始使用", 
+            "完成以上步骤后，即可开始使用服务器进行开发、测试或部署。\n\n" +
+            "如遇问题，请联系管理员：" + (StringUtils.isNotEmpty(activity.getAdminContact()) ? activity.getAdminContact() : "联系方式见拼团详情")));
+        tutorial.setSteps(steps);
+        
+        // 构建服务器配置信息
+        ServerTutorialVO.ServerConfig serverConfig = new ServerTutorialVO.ServerConfig();
+        serverConfig.setSshPort(22);
+        serverConfig.setDefaultUsername("root");
+        serverConfig.setPasswordResetGuide("请联系管理员重置密码");
+        tutorial.setServerConfig(serverConfig);
+        
+        // 构建FAQ
+        List<ServerTutorialVO.FaqItem> faq = new ArrayList<>();
+        faq.add(new ServerTutorialVO.FaqItem("如何连接服务器？", 
+            "使用SSH客户端连接，服务器IP和登录信息将在成团后通过系统消息发送给您。"));
+        faq.add(new ServerTutorialVO.FaqItem("服务器到期后数据会保留多久？", 
+            "服务器到期后，数据会保留7天，请在到期前及时续费或导出重要数据。"));
+        faq.add(new ServerTutorialVO.FaqItem("如何续费服务器？", 
+            "您可以在个人中心的'我的拼团'页面查看并续费您的服务器。"));
+        faq.add(new ServerTutorialVO.FaqItem("遇到技术问题怎么办？", 
+            "请联系管理员 " + (StringUtils.isNotEmpty(activity.getAdminContact()) ? activity.getAdminContact() : "获取帮助")));
+        tutorial.setFaq(faq);
+    }
+    
+    /**
+     * 获取服务器SSH连接信息
+     * 
+     * 说明：当前实现为模拟数据，实际项目中应从服务器分配表中查询
+     * 建议后续扩展：在 osh_group_work 表增加 server_ip、ssh_port、ssh_username、ssh_password 字段
+     * 或创建独立的 osh_server_allocation 表存储分配给用户的服务器信息
+     */
+    @Override
+    public ServerSshInfoVO getServerSshInfo(Long activityId, Long userId) {
+        if (activityId == null) {
+            throw new ServiceException("拼团活动ID不能为空");
+        }
+        if (userId == null) {
+            throw new ServiceException("用户ID不能为空");
+        }
+        
+        ServerSshInfoVO sshInfo = new ServerSshInfoVO();
+        
+        // 优先从用户发起记录查询
+        OshGroupUserInitiated initiated = userInitiatedMapper.selectById(activityId);
+        
+        if (initiated != null) {
+            // 用户发起的拼团记录
+            Long actualActivityId = initiated.getActivityId();
+            OshGroupActivity activity = groupServerMapper.selectGroupActivityById(actualActivityId);
+            
+            if (activity != null) {
+                buildSshInfoFromActivity(sshInfo, activity, userId);
+            }
+        } else {
+            // 直接查询拼团活动
+            OshGroupActivity activity = groupServerMapper.selectGroupActivityById(activityId);
+            if (activity != null) {
+                buildSshInfoFromActivity(sshInfo, activity, userId);
+            }
+        }
+        
+        // 检查用户是否参与了该拼团
+        OshGroupWork work = groupServerMapper.selectGroupWorkByActivityAndUser(activityId, userId);
+        
+        if (work == null) {
+            throw new ServiceException("您尚未参与该拼团活动");
+        }
+        
+        // 检查拼团状态
+        if (work.getGroupStatus() != null && work.getGroupStatus() != 1) {
+            throw new ServiceException("拼团尚未成功，暂无法获取服务器信息");
+        }
+        
+        // 设置到期时间（从参团记录获取）
+        if (work.getServerExpireTime() != null) {
+            sshInfo.setExpireTime(work.getServerExpireTime().toString().replace("T", " "));
+        }
+        
+        // 设置状态
+        if (work.getServerExpireTime() != null && work.getServerExpireTime().isBefore(LocalDateTime.now())) {
+            sshInfo.setStatus("expired");
+        } else {
+            sshInfo.setStatus("running");
+        }
+        
+        return sshInfo;
+    }
+    
+    /**
+     * 根据活动信息构建SSH信息（真实数据存储）
+     */
+    private void buildSshInfoFromActivity(ServerSshInfoVO sshInfo, OshGroupActivity activity, Long userId) {
+        // 从 OshGroupWork 表中获取真实的服务器分配信息
+        OshGroupWork work = groupServerMapper.selectGroupWorkByActivityAndUser(activity.getId(), userId);
+        
+        if (work != null && work.getServerIp() != null) {
+            // 真实数据：使用数据库中存储的服务器信息
+            sshInfo.setIp(work.getServerIp());
+            sshInfo.setPort(work.getSshPort() != null ? work.getSshPort() : 22);
+            sshInfo.setUsername(work.getSshUsername() != null ? work.getSshUsername() : "root");
+            sshInfo.setPassword(work.getSshPassword() != null ? work.getSshPassword() : "");
+        } else {
+            // 无数据时的默认提示
+            sshInfo.setIp("待分配");
+            sshInfo.setPort(22);
+            sshInfo.setUsername("root");
+            sshInfo.setPassword("拼团成功后自动分配");
+        }
+        
+        // 协议
+        sshInfo.setProtocol("SSH");
+        
+        // 连接指南
+        StringBuilder guide = new StringBuilder();
+        if (work != null && work.getServerIp() != null) {
+            guide.append("【SSH连接指南】\n");
+            guide.append("1. 使用SSH客户端（如PuTTY、Xshell）\n");
+            guide.append("2. 主机地址：").append(work.getServerIp()).append("\n");
+            guide.append("3. 端口：").append(work.getSshPort() != null ? work.getSshPort() : 22).append("\n");
+            guide.append("4. 用户名：").append(work.getSshUsername() != null ? work.getSshUsername() : "root").append("\n");
+            guide.append("5. 密码：").append(work.getSshPassword() != null ? "（已分配）" : "待分配").append("\n\n");
+            guide.append("【首次连接建议】\n");
+            guide.append("- 首次登录后请立即修改密码\n");
+            guide.append("- 建议使用密钥认证替代密码登录\n");
+            guide.append("- 详细教程请查看服务器教程页面");
+        } else {
+            guide.append("【服务器分配中】\n");
+            guide.append("您的服务器正在准备中，请稍后查看。\n");
+            guide.append("成团后服务器信息将自动显示在此处。");
+        }
+        sshInfo.setConnectGuide(guide.toString());
+        
+        // 备注
+        sshInfo.setRemark("本服务器由拼团活动 '" + activity.getTitle() + "' 分配");
     }
 }

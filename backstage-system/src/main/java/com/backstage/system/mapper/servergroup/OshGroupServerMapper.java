@@ -7,13 +7,14 @@ import com.backstage.system.domain.vo.GroupActivityListVO;
 import com.backstage.system.domain.vo.GroupWorkListVO;
 import com.backstage.system.domain.vo.ServerGroupUserVo;
 import com.backstage.system.domain.vo.MyGroupListVO;
+import com.backstage.system.domain.vo.UserSearchVO;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.MapKey;
 import org.apache.ibatis.annotations.Param;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 服务器拼团Mapper接口
@@ -75,6 +76,42 @@ public interface OshGroupServerMapper {
     int checkUserJoined(@Param("groupActivityId") Long groupActivityId, @Param("userId") Long userId);
     
     /**
+     * 根据用户发起拼团ID查询参团用户列表
+     * 
+     * @param initiatedId 用户发起拼团ID
+     * @return 参团用户列表
+     */
+    List<ServerGroupUserVo> selectGroupUsersByInitiatedId(@Param("initiatedId") Long initiatedId);
+    
+    /**
+     * 检查用户是否已参团（用户发起拼团）
+     * 
+     * @param initiatedId 用户发起拼团ID
+     * @param userId 用户ID
+     * @return 参团记录数
+     */
+    int checkUserJoinedByInitiatedId(@Param("initiatedId") Long initiatedId, @Param("userId") Long userId);
+    
+    /**
+     * 更新参团记录服务器时间
+     * 
+     * @param id 参团记录ID
+     * @param serverStartTime 服务器开始时间
+     * @param serverExpireTime 服务器到期时间
+     * @return 影响行数
+     */
+    int updateGroupWorkServerTime(@Param("id") Long id, @Param("serverStartTime") LocalDateTime serverStartTime, @Param("serverExpireTime") LocalDateTime serverExpireTime);
+    
+    /**
+     * 根据活动和用户查询参团记录
+     * 
+     * @param activityId 活动ID
+     * @param userId 用户ID
+     * @return 参团记录
+     */
+    OshGroupWork selectGroupWorkByActivityAndUser(@Param("activityId") Long activityId, @Param("userId") Long userId);
+    
+    /**
      * 插入参团记录
      * 
      * @param work 参团记录
@@ -134,6 +171,15 @@ public interface OshGroupServerMapper {
     int updateGroupActivityStatusEnded(@Param("id") Long id, @Param("updateTime") LocalDateTime updateTime);
     
     /**
+     * 更新参团记录状态
+     * 
+     * @param id 参团记录ID
+     * @param groupStatus 组团状态
+     * @return 影响行数
+     */
+    int updateGroupWorkStatus(@Param("id") Long id, @Param("groupStatus") Integer groupStatus);
+    
+    /**
      * 插入拼团订单
      * 
      * @param order 拼团订单
@@ -150,6 +196,16 @@ public interface OshGroupServerMapper {
     OshGroupOrder selectGroupOrderByOrderNo(@Param("orderNo") String orderNo);
     
     /**
+     * 更新订单状态
+     * 
+     * @param id 订单ID
+     * @param status 订单状态
+     * @param updateTime 更新时间
+     * @return 影响行数
+     */
+    int updateOrderStatus(@Param("id") Long id, @Param("status") String status, @Param("updateTime") LocalDateTime updateTime);
+    
+    /**
      * 计算动态价格
      * 
      * @param basePrice 基础价格
@@ -163,13 +219,21 @@ public interface OshGroupServerMapper {
             @Param("remainingMonths") BigDecimal remainingMonths);
     
     /**
+     * 查询超时未支付订单
+     * 
+     * @param timeoutTime 超时时间
+     * @return 超时订单列表
+     */
+    List<OshGroupOrder> selectTimeoutOrders(@Param("timeoutTime") LocalDateTime timeoutTime);
+    
+    /**
      * 模糊查询用户名列表（用于手动添加参团用户）
      * 
      * @param keyword 搜索关键词（支持用户名、昵称模糊匹配）
      * @param limit 返回数量限制
      * @return 用户信息列表
      */
-    List<Map<String, Object>> selectUsernamesByKeyword(
+    List<UserSearchVO> selectUsernamesByKeyword(
             @Param("keyword") String keyword,
             @Param("limit") Integer limit);
 }

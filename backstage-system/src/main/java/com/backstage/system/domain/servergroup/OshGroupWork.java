@@ -41,6 +41,18 @@ public class OshGroupWork {
     /** 服务器到期时间（成团后有值） */
     private LocalDateTime serverExpireTime;
     
+    /** SSH连接服务器IP */
+    private String serverIp;
+    
+    /** SSH连接端口 */
+    private Integer sshPort;
+    
+    /** SSH连接用户名 */
+    private String sshUsername;
+    
+    /** SSH连接密码 */
+    private String sshPassword;
+    
     /** 创建时间 */
     private LocalDateTime createTime;
     
@@ -127,6 +139,38 @@ public class OshGroupWork {
     
     public void setServerExpireTime(LocalDateTime serverExpireTime) {
         this.serverExpireTime = serverExpireTime;
+    }
+    
+    public String getServerIp() {
+        return serverIp;
+    }
+    
+    public void setServerIp(String serverIp) {
+        this.serverIp = serverIp;
+    }
+    
+    public Integer getSshPort() {
+        return sshPort;
+    }
+    
+    public void setSshPort(Integer sshPort) {
+        this.sshPort = sshPort;
+    }
+    
+    public String getSshUsername() {
+        return sshUsername;
+    }
+    
+    public void setSshUsername(String sshUsername) {
+        this.sshUsername = sshUsername;
+    }
+    
+    public String getSshPassword() {
+        return sshPassword;
+    }
+    
+    public void setSshPassword(String sshPassword) {
+        this.sshPassword = sshPassword;
     }
     
     public LocalDateTime getCreateTime() {

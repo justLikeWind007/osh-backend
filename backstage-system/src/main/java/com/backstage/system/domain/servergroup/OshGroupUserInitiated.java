@@ -20,6 +20,12 @@ public class OshGroupUserInitiated {
     /** 关联活动模板ID */
     private Long activityId;
     
+    /** 活动标题（可选，用于自定义标题） */
+    private String title;
+    
+    /** 活动封面（可选） */
+    private String cover;
+    
     /** 关联订单ID */
     private Long orderId;
     
@@ -95,6 +101,22 @@ public class OshGroupUserInitiated {
     
     public void setActivityId(Long activityId) {
         this.activityId = activityId;
+    }
+    
+    public String getTitle() {
+        return title;
+    }
+    
+    public void setTitle(String title) {
+        this.title = title;
+    }
+    
+    public String getCover() {
+        return cover;
+    }
+    
+    public void setCover(String cover) {
+        this.cover = cover;
     }
     
     public Long getOrderId() {
