@@ -82,9 +82,11 @@ public class CourseSearchIndexSyncJob {
                 .name("course-index-" + streamCode + "-source")
                 .map((MapFunction<String, JSONObject>) value -> {
                     System.out.println("【" + streamLabel + "】收到消息: " + value);
-                    return JSON.parseObject(value);
+                    return parseJsonSafely(value, streamLabel);
                 })
                 .name("course-index-" + streamCode + "-parse")
+                .filter(message -> message != null)
+                .name("course-index-" + streamCode + "-valid-json-filter")
                 .filter(message -> {
                     Integer status = message.getInteger("status");
                     boolean pass = status != null && PUBLISHED_STATUS.equals(status);
@@ -114,9 +116,11 @@ public class CourseSearchIndexSyncJob {
                 .name("course-index-" + streamCode + "-source")
                 .map((MapFunction<String, JSONObject>) value -> {
                     System.out.println("【" + streamLabel + "】收到消息: " + value);
-                    return JSON.parseObject(value);
+                    return parseJsonSafely(value, streamLabel);
                 })
                 .name("course-index-" + streamCode + "-parse")
+                .filter(message -> message != null)
+                .name("course-index-" + streamCode + "-valid-json-filter")
                 .filter(message -> {
                     Long courseId = message.getLong("id");
                     boolean pass = courseId != null;
@@ -125,5 +129,14 @@ public class CourseSearchIndexSyncJob {
                     return pass;
                 })
                 .name("course-index-" + streamCode + "-filter");
+    }
+
+    private static JSONObject parseJsonSafely(String value, String streamLabel) {
+        try {
+            return JSON.parseObject(value);
+        } catch (Exception ex) {
+            log.warn("【{}】跳过非法JSON消息: {}", streamLabel, value, ex);
+            return null;
+        }
     }
 }
