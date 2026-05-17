@@ -74,14 +74,16 @@ public class SeckillUserController extends BaseController {
     /**
      * 接口10：执行秒杀（核心接口）
      * userId 从登录 Token 中获取，无需前端传参
+     * quantity 为本次购买数量，可选，默认为 1
      */
     @RateLimiter(key = "seckill:doSeckill:", time = 5, count = 3, limitType = LimitType.IP)
     @PostMapping("/do/{activityId}/{itemId}")
     public R<SeckillResultVO> doSeckill(@PathVariable Long activityId,
-                                         @PathVariable Long itemId) {
+                                         @PathVariable Long itemId,
+                                         @RequestParam(defaultValue = "1") int quantity) {
         try {
             Long userId = getCurrentUser().getId();
-            SeckillResultVO result = orderService.doSeckill(activityId, itemId, userId);
+            SeckillResultVO result = orderService.doSeckill(activityId, itemId, userId, quantity);
             return R.ok(result);
         } catch (ServiceException e) {
             return R.fail(e.getMessage());
@@ -147,7 +149,7 @@ public class SeckillUserController extends BaseController {
         String clientIp = IpUtils.getIpAddr();
         String money = order.getSeckillPrice().toString();
         String name = order.getGoodsTitle();
-        PayResponse resp = payService.createPay(seckillNo, name, money, clientIp);
+        PayResponse resp = payService.createPay(seckillNo, name, money, clientIp,"");
 
         if (resp.getCode() != 1) {
             return R.fail("发起支付失败：" + resp.getMsg());

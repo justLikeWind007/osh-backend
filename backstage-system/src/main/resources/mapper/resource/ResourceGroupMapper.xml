@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.resource.ResourceGroupMapper">
+
+    <resultMap type="com.backstage.system.domain.resource.ResourceGroup" id="ResourceGroupResult">
+        <id property="id" column="id" />
+        <result property="name" column="name" />
+        <result property="description" column="description" />
+        <result property="remark" column="remark" />
+        <result property="deleteFlag" column="delete_flag" />
+        <result property="createBy" column="create_by" />
+        <result property="createTime" column="create_time" />
+        <result property="updateBy" column="update_by" />
+        <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <select id="selectPageByCursor" resultMap="ResourceGroupResult">
+        SELECT id, name, description, remark, delete_flag,
+               create_by, create_time, update_by, update_time
+        FROM osh_resource_group
+        <where>
+            delete_flag = 0
+            <if test="reqVO.keyword != null and reqVO.keyword != ''">
+                AND name LIKE CONCAT('%', #{reqVO.keyword}, '%')
+            </if>
+            <if test="reqVO.lastId != null">
+                AND id &lt; #{reqVO.lastId}
+            </if>
+        </where>
+        ORDER BY id DESC
+        LIMIT #{reqVO.pageSize}
+    </select>
+
+</mapper>

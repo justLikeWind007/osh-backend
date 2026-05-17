@@ -117,6 +117,7 @@ public class AssistantFeedbackLikeServiceImpl implements IAssistantFeedbackLikeS
         LambdaUpdateWrapper<AssistantFeedback> updateWrapper = Wrappers.lambdaUpdate(AssistantFeedback.class)
                 .setSql("like_count = " + likeCountSql)
                 .setSql("hot_score = " + hotScoreSql)
+                .eq(AssistantFeedback::getDeleteFlag, (byte) 0)
                 .eq(AssistantFeedback::getId, feedbackId);
         return assistantFeedbackMapper.update(new AssistantFeedback(), updateWrapper) > 0;
     }
