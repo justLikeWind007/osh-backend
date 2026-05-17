@@ -10,7 +10,7 @@ public enum ProductTypeEnum {
     COURSE(1, "课程"),
     BOOK(2, "书籍"),
     COLUMN(3, "专栏"),
-    DEMO(4, "演示"),
+    SECKILL(4, "秒杀"),
     TOOL(5, "工具");
 
     private final int code;
