@@ -67,8 +67,8 @@ public class CoursePayController {
 
             Map<String, Object> data = new LinkedHashMap<>();
             data.put("qrcode", gatewayResp.getQrcode());
-            data.put("payurl", gatewayResp.getPayurl());
-            data.put("out_trade_no", gatewayResp.getOut_trade_no());
+            data.put("payurl", gatewayResp.getPayUrl());
+            data.put("out_trade_no", gatewayResp.getOutTradeNo());
             data.put("pay_type", payType);
             return R.ok(data);
         } catch (ServiceException e) {

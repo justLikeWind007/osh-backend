@@ -45,6 +45,9 @@ public class CoursePayServiceImpl implements ICoursePayService {
     @Autowired
     private CourseBuyMapper courseBuyMapper;
 
+    @Autowired
+    private PayConfig payConfig;
+
     @Override
     public PayResponse createCoursePay(Long courseId, String payType, String clientIp, Long userId) {
         if (courseId == null || courseId <= 0) {
@@ -74,10 +77,10 @@ public class CoursePayServiceImpl implements ICoursePayService {
         String title = course.getTitle() == null ? ("课程#" + courseId) : course.getTitle();
 
         Map<String, String> params = new HashMap<>();
-        params.put("pid", PayConfig.PID);
+        params.put("pid", payConfig.PID);
         params.put("type", channel);
         params.put("out_trade_no", outTradeNo);
-        params.put("notify_url", PayConfig.NOTIFY_URL);
+        params.put("notify_url", payConfig.NOTIFY_URL);
         params.put("return_url", PayConfig.RETURN_URL);
         params.put("name", title);
         params.put("money", moneyStr);
@@ -85,17 +88,17 @@ public class CoursePayServiceImpl implements ICoursePayService {
         params.put("device", "pc");
         params.put("sign_type", "MD5");
 
-        String sign = SignUtil.createSign(params);
+        String sign = SignUtil.createSign(params, payConfig.KEY);
         params.put("sign", sign);
 
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.setAll(params);
 
         try {
-            String result = restTemplate.postForObject(PayConfig.API_URL, form, String.class);
+            String result = restTemplate.postForObject(payConfig.API_URL, form, String.class);
 
             PayResponse response = objectMapper.readValue(result, PayResponse.class);
-            response.setOut_trade_no(outTradeNo);
+            response.setOutTradeNo(outTradeNo);
             if (response.getCode() == 1) {
                 courseBuyMapper.upsertPendingOrder(userId, courseId, outTradeNo, channel, price, price);
             }
@@ -117,10 +120,10 @@ public class CoursePayServiceImpl implements ICoursePayService {
         }
 
         // The gateway documents `act=order` as the per-order lookup endpoint.
-        String queryUrl = PayConfig.STATUS
+        String queryUrl = payConfig.STATUS_URL
                 + "?act=order"
-                + "&pid=" + PayConfig.PID
-                + "&key=" + PayConfig.KEY
+                + "&pid=" + payConfig.PID
+                + "&key=" + payConfig.KEY
                 + "&out_trade_no=" + outTradeNo;
 
         try {
