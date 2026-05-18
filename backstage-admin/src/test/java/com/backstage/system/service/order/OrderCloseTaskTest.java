@@ -27,7 +27,7 @@ public class OrderCloseTaskTest {
     private OshPaymentMapper oshPaymentMapper;
 
     @Mock
-    private UnifiedOrderService unifiedOrderService;
+    private OrderService orderService;
 
     @Test
     public void shouldCloseExpiredPendingPaymentsEveryScan() {
@@ -40,8 +40,8 @@ public class OrderCloseTaskTest {
 
         orderCloseTask.closeExpiredPendingPayments();
 
-        verify(unifiedOrderService).cancelPayment("P20260517010");
-        verify(unifiedOrderService).cancelPayment("P20260517011");
+        verify(orderService).cancelPayment("P20260517010");
+        verify(orderService).cancelPayment("P20260517011");
     }
 
     @Test
@@ -50,6 +50,6 @@ public class OrderCloseTaskTest {
 
         orderCloseTask.closeExpiredPendingPayments();
 
-        verify(unifiedOrderService, never()).cancelPayment(any());
+        verify(orderService, never()).cancelPayment(any());
     }
 }

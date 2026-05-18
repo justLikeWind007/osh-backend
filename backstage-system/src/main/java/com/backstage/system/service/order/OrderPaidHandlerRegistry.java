@@ -26,7 +26,7 @@ public class OrderPaidHandlerRegistry {
         for (OrderPaidHandler handler : handlers) {
             String bizType = handler.bizType();
             try {
-                ProductTypeEnum.valueOf(bizType);
+                ProductTypeEnum.fromName(bizType);
             } catch (IllegalArgumentException e) {
                 throw new ServiceException("支付后置处理器业务类型非法, bizType=" + bizType);
             }

@@ -1,7 +1,6 @@
 package com.backstage.system.controller.common;
 
 
-import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.R;
 import com.backstage.system.domain.vo.pay.OrderCheckoutReqVO;
 import com.backstage.system.domain.vo.pay.OrderCheckoutRespVO;
@@ -9,7 +8,7 @@ import com.backstage.system.domain.vo.pay.PayCreateRespVO;
 import com.backstage.system.domain.order.OrderPaymentInfo;
 import com.backstage.system.domain.order.OrderStatusResult;
 import com.backstage.system.service.order.OrderCheckoutService;
-import com.backstage.system.service.order.UnifiedOrderService;
+import com.backstage.system.service.order.OrderService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,7 +21,7 @@ import javax.validation.Valid;
 public class PayController {
 
     @Autowired
-    private UnifiedOrderService unifiedOrderService;
+    private OrderService orderService;
 
     @Autowired
     private OrderCheckoutService orderCheckoutService;
@@ -52,7 +51,7 @@ public class PayController {
     @GetMapping("/status")
     @PreAuthorize("hasAuthority('pay:status')")
     public OrderStatusResult status(@RequestParam String outTradeNo) {
-        return unifiedOrderService.getPaymentStatus(outTradeNo);
+        return orderService.getPaymentStatus(outTradeNo);
     }
 
     /**
@@ -62,7 +61,7 @@ public class PayController {
     @PostMapping("/cancel")
     @PreAuthorize("hasAuthority('pay:cancel')")
     public R cancel(@RequestParam String outTradeNo) {
-        unifiedOrderService.cancelPayment(outTradeNo);
+        orderService.cancelPayment(outTradeNo);
         return R.ok();
     }
 }
