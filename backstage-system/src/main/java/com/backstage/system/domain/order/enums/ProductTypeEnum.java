@@ -58,4 +58,16 @@ public enum ProductTypeEnum {
         }
         return null;
     }
+
+    public static ProductTypeEnum fromName(String name) {
+        if (Objects.isNull(name)) {
+            return null;
+        }
+        for (ProductTypeEnum value : values()) {
+            if (value.name.equals(name)) {
+                return value;
+            }
+        }
+        return null;
+    }
 }

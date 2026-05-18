@@ -1,5 +1,6 @@
 package com.backstage.system.handler.seckill;
 
+import com.backstage.system.domain.order.enums.ProductTypeEnum;
 import com.backstage.system.domain.seckill.OshSeckillOrder;
 import com.backstage.system.mapper.seckill.OshSeckillOrderMapper;
 import com.backstage.system.service.order.OrderPaidHandler;
@@ -31,7 +32,7 @@ public class SeckillPaidHandler implements OrderPaidHandler {
      */
     @Override
     public String bizType() {
-        return "seckill";
+        return ProductTypeEnum.SECKILL.getName();
     }
 
     /**
