@@ -147,7 +147,7 @@ public class SeckillUserController extends BaseController {
         String clientIp = IpUtils.getIpAddr();
         String money = order.getSeckillPrice().toString();
         String name = order.getGoodsTitle();
-        PayResponse resp = payService.createPay(seckillNo, name, money, clientIp);
+        PayResponse resp = payService.createPay(seckillNo, name, money, clientIp,"wxpay");
 
         if (resp.getCode() != 1) {
             return R.fail("发起支付失败：" + resp.getMsg());

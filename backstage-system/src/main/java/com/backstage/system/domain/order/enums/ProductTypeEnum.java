@@ -7,18 +7,21 @@ import java.util.Objects;
  */
 public enum ProductTypeEnum {
 
-    COURSE(1, "课程"),
-    BOOK(2, "书籍"),
-    COLUMN(3, "专栏"),
-    SECKILL(4, "秒杀")
+    COURSE(1, "course","课程"),
+    BOOK(2, "book","书籍"),
+    COLUMN(3, "column","专栏"),
+    SECKILL(4, "seckill","秒杀")
 
     ;
 
     private final int code;
+
+    private final String name;
     private final String desc;
 
-    ProductTypeEnum(int code, String desc) {
+    ProductTypeEnum(int code, String name, String desc) {
         this.code = code;
+        this.name = name;
         this.desc = desc;
     }
 
@@ -28,6 +31,10 @@ public enum ProductTypeEnum {
 
     public String getDesc() {
         return desc;
+    }
+
+    public String getName() {
+        return name;
     }
 
     /**

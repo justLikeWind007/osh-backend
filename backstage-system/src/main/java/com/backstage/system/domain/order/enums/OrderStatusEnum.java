@@ -6,9 +6,13 @@ package com.backstage.system.domain.order.enums;
 public enum OrderStatusEnum {
 
     PENDING(0, "待支付"),
+
     PAID(1, "已支付"),
-    CLOSED(2, "已关闭"),
-    REFUNDED(3, "已退款");
+
+    CANCELED(2, "已取消"),
+
+    CLOSED(3, "已关闭")
+    ;
 
     private final int code;
     private final String desc;

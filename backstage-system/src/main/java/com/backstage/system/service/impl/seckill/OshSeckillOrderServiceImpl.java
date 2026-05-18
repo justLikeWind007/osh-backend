@@ -1,6 +1,7 @@
 package com.backstage.system.service.impl.seckill;
 
 import com.alibaba.fastjson2.JSON;
+import com.backstage.common.config.PayConfig;
 import com.backstage.common.constant.KafkaConstants;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.common.utils.kafka.KafkaMessageUtil;
@@ -21,6 +22,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
@@ -94,6 +96,9 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
     @Autowired
     private OshSeckillOrderMapper orderMapper;
 
+    @Resource
+    private PayConfig payConfig;
+
     /**
      * 接口7：管理端查询秒杀订单列表
      */
@@ -127,10 +132,10 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
         // status=0（待支付）时，主动查询易支付确认是否已付款
         if (order.getStatus() == 0) {
             try {
-                String queryUrl = com.backstage.common.config.PayConfig.STATUS
+                String queryUrl = payConfig.STATUS_URL
                         + "?act=order"
-                        + "&pid=" + com.backstage.common.config.PayConfig.PID
-                        + "&key=" + com.backstage.common.config.PayConfig.KEY
+                        + "&pid=" + payConfig.PID
+                        + "&key=" + payConfig.KEY
                         + "&out_trade_no=" + seckillNo;
                 org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
                 java.util.Map<?, ?> res = restTemplate.getForObject(queryUrl, java.util.Map.class);

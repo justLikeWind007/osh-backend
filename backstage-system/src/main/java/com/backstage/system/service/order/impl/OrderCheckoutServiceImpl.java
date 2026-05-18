@@ -3,7 +3,7 @@ package com.backstage.system.service.order.impl;
 import com.backstage.system.domain.vo.pay.OrderCheckoutReqVO;
 import com.backstage.system.domain.vo.pay.OrderCheckoutRespVO;
 import com.backstage.system.service.order.OrderCheckoutService;
-import com.backstage.system.service.order.UnifiedOrderService;
+import com.backstage.system.service.order.OrderService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +16,7 @@ import javax.annotation.Resource;
 public class OrderCheckoutServiceImpl implements OrderCheckoutService {
 
     @Resource
-    private UnifiedOrderService unifiedOrderService;
+    private OrderService orderService;
 
     /**
      * 创建业务商品订单并发起支付。
@@ -26,7 +26,7 @@ public class OrderCheckoutServiceImpl implements OrderCheckoutService {
      */
     @Override
     public OrderCheckoutRespVO checkout(OrderCheckoutReqVO reqVO) {
-        OrderCheckoutRespVO checkoutRespVO = unifiedOrderService.checkout(reqVO);
+        OrderCheckoutRespVO checkoutRespVO = orderService.checkout(reqVO);
         OrderCheckoutRespVO respVO = new OrderCheckoutRespVO();
         BeanUtils.copyProperties(checkoutRespVO, respVO);
         return respVO;

@@ -25,7 +25,7 @@ public class BookPaidHandler implements OrderPaidHandler {
      */
     @Override
     public String bizType() {
-        return ProductTypeEnum.BOOK.name();
+        return ProductTypeEnum.BOOK.getName();
     }
 
     /**
