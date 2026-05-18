@@ -322,14 +322,11 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
 
     @Override
     public Map<String, Object> startDemoAsync(Long siteId) {
-        OshSiteInfo siteInfo = getById(siteId);
-        if (siteInfo == null || !"demo".equals(siteInfo.getSiteType())) {
-            throw new IllegalArgumentException(siteInfo == null ? "网站不存在" : "该网站不是演示站点");
-        }
-        Map<String, Object> config = siteInfo.getSiteConfig();
-        if (config == null || config.isEmpty()) {
-            throw new IllegalArgumentException("演示站点未配置");
-        }
+        DemoSiteConfig cfg = loadDemoSiteConfig(siteId);
+
+        // already validated by loadDemoSiteConfig — just check scripts
+        requireConfigField("启动脚本", cfg.getStartupScript());
+        requireConfigField("健康检查脚本", cfg.getHealthCheckScript());
 
         // 已有进行中的任务 → 直接返回当前状态
         DemoStartTask existing = demoStartTasks.get(siteId);
@@ -337,46 +334,14 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
             return existing.toResultMap();
         }
 
-        String backendHost = (String) config.get("backendHost");
-        int backendPort = config.containsKey("backendPort") ? ((Number) config.get("backendPort")).intValue() : 22;
-        String backendUser = (String) config.get("backendUser");
-        String backendPassword = (String) config.get("backendPassword");
-        String startupScript = (String) config.get("startupScript");
-        String healthCheckScript = (String) config.get("healthCheckScript");
-        String frontendUrl = (String) config.get("frontendUrl");
-        String loginUsername = (String) config.get("loginUsername");
-        String loginPassword = (String) config.get("loginPassword");
-
-        // SSH 登录方式
-        String loginMethod = (String) config.getOrDefault("loginMethod", "password");
-        String privateKey = (String) config.get("privateKey");
-        RemoteShellExecutor.AuthMethod authMethod = "privateKey".equals(loginMethod)
-                ? RemoteShellExecutor.AuthMethod.PRIVATE_KEY
-                : RemoteShellExecutor.AuthMethod.PASSWORD;
-        String sshCredential = authMethod == RemoteShellExecutor.AuthMethod.PRIVATE_KEY ? privateKey : backendPassword;
-
-        if (backendHost == null || backendUser == null) {
-            throw new IllegalArgumentException("SSH配置不完整");
-        }
-        if (authMethod == RemoteShellExecutor.AuthMethod.PRIVATE_KEY && (privateKey == null || privateKey.isEmpty())) {
-            throw new IllegalArgumentException("登录方式为私钥，但私钥未配置");
-        }
-        if (authMethod == RemoteShellExecutor.AuthMethod.PASSWORD && (backendPassword == null || backendPassword.isEmpty())) {
-            throw new IllegalArgumentException("登录方式为密码，但密码未配置");
-        }
-        if (startupScript == null || startupScript.isEmpty()) {
-            throw new IllegalArgumentException("启动脚本未配置");
-        }
-        if (healthCheckScript == null || healthCheckScript.isEmpty()) {
-            throw new IllegalArgumentException("健康检查脚本未配置");
-        }
-
-        DemoStartTask task = new DemoStartTask(siteId, frontendUrl, loginUsername, loginPassword);
+        DemoStartTask task = new DemoStartTask(
+                cfg.getSiteId(), cfg.getFrontendUrl(), cfg.getLoginUsername(), cfg.getLoginPassword());
         demoStartTasks.put(siteId, task);
 
         CompletableFuture.runAsync(() -> {
-            executeAsyncStart(task, backendHost, backendPort, backendUser,
-                    authMethod, sshCredential, startupScript, healthCheckScript);
+            executeAsyncStart(task, cfg.getBackendHost(), cfg.getBackendPort(), cfg.getBackendUser(),
+                    cfg.getAuthMethod(), cfg.getSshCredential(),
+                    cfg.getStartupScript(), cfg.getHealthCheckScript());
         }, executor);
         return task.toResultMap();
     }
@@ -430,6 +395,151 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
             }
             demoStartTasks.remove(siteId);
         }, "demo-cleanup-" + siteId).start();
+    }
+
+    // ==================== 演示站点公共方法 ====================
+
+    @Override
+    public DemoSiteConfig loadDemoSiteConfig(Long siteId) {
+        OshSiteInfo siteInfo = getById(siteId);
+        if (siteInfo == null) {
+            throw new IllegalArgumentException("网站不存在");
+        }
+        if (!SiteTypeEnum.DEMO.getCode().equals(siteInfo.getSiteType())) {
+            throw new IllegalArgumentException("该网站不是演示站点");
+        }
+        Map<String, Object> config = siteInfo.getSiteConfig();
+        if (config == null || config.isEmpty()) {
+            throw new IllegalArgumentException("演示站点未配置");
+        }
+
+        DemoSiteConfig cfg = DemoSiteConfig.from(siteInfo);
+
+        // validate SSH connection params
+        if (cfg.getBackendHost() == null || cfg.getBackendUser() == null) {
+            throw new IllegalArgumentException("SSH配置不完整，请检查后端服务器IP、用户名");
+        }
+        if (cfg.getAuthMethod() == RemoteShellExecutor.AuthMethod.PRIVATE_KEY
+                && (cfg.getPrivateKey() == null || cfg.getPrivateKey().isEmpty())) {
+            throw new IllegalArgumentException("登录方式为私钥，但私钥未配置");
+        }
+        if (cfg.getAuthMethod() == RemoteShellExecutor.AuthMethod.PASSWORD
+                && (cfg.getBackendPassword() == null || cfg.getBackendPassword().isEmpty())) {
+            throw new IllegalArgumentException("登录方式为密码，但密码未配置");
+        }
+        return cfg;
+    }
+
+    @Override
+    public void requireConfigField(String fieldName, String fieldValue) {
+        if (fieldValue == null || fieldValue.isEmpty()) {
+            throw new IllegalArgumentException(fieldName + "未配置");
+        }
+    }
+
+    @Override
+    public Map<String, Object> startDemo(DemoSiteConfig cfg) {
+        String pid;
+        try {
+            pid = RemoteShellExecutor.executeScriptBackground(
+                    cfg.getBackendHost(), cfg.getBackendPort(), cfg.getBackendUser(),
+                    cfg.getAuthMethod(), cfg.getSshCredential(), cfg.getStartupScript());
+        } catch (Exception e) {
+            throw new RuntimeException("SSH执行启动脚本失败：" + e.getMessage(), e);
+        }
+        LOG.info("Demo startup script started, PID: {}, siteId: {}", pid, cfg.getSiteId());
+
+        int maxRetries = 60;
+        int retryIntervalSeconds = 5;
+        for (int i = 0; i < maxRetries; i++) {
+            try {
+                Thread.sleep(retryIntervalSeconds * 1000L);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+
+            try {
+                ScriptResult checkResult = RemoteShellExecutor.executeScript(
+                        cfg.getBackendHost(), cfg.getBackendPort(), cfg.getBackendUser(),
+                        cfg.getAuthMethod(), cfg.getSshCredential(),
+                        cfg.getHealthCheckScript(), 15);
+
+                if (checkResult.isSuccess()) {
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("started", true);
+                    result.put("frontendUrl", cfg.getFrontendUrl());
+                    result.put("loginUsername", cfg.getLoginUsername());
+                    result.put("loginPassword", cfg.getLoginPassword());
+                    result.put("retries", i + 1);
+                    result.put("healthCheckOutput", checkResult.getOutput());
+                    LOG.info("Demo service started successfully after {} retries, siteId: {}", i + 1, cfg.getSiteId());
+                    return result;
+                }
+
+                LOG.debug("Health check attempt {} failed, exitCode: {}, siteId: {}",
+                        i + 1, checkResult.getExitCode(), cfg.getSiteId());
+            } catch (Exception e) {
+                LOG.warn("Health check attempt {} error: {}, siteId: {}", i + 1, e.getMessage(), cfg.getSiteId());
+            }
+        }
+
+        // timeout
+        Map<String, Object> result = new HashMap<>();
+        result.put("started", false);
+        result.put("message", "服务启动超时（已等待 " + (maxRetries * retryIntervalSeconds) + " 秒），请手动检查");
+        result.put("frontendUrl", cfg.getFrontendUrl());
+        result.put("loginUsername", cfg.getLoginUsername());
+        result.put("loginPassword", cfg.getLoginPassword());
+        return result;
+    }
+
+    @Override
+    public Map<String, Object> checkDemo(DemoSiteConfig cfg) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("siteId", cfg.getSiteId());
+        result.put("frontendUrl", cfg.getFrontendUrl());
+        result.put("loginUsername", cfg.getLoginUsername());
+        result.put("loginPassword", cfg.getLoginPassword());
+
+        try {
+            ScriptResult checkResult = RemoteShellExecutor.executeScript(
+                    cfg.getBackendHost(), cfg.getBackendPort(), cfg.getBackendUser(),
+                    cfg.getAuthMethod(), cfg.getSshCredential(),
+                    cfg.getHealthCheckScript(), 15);
+            result.put("healthy", checkResult.isSuccess());
+            result.put("exitCode", checkResult.getExitCode());
+            result.put("output", checkResult.getOutput());
+        } catch (Exception e) {
+            result.put("healthy", false);
+            result.put("error", e.getMessage());
+        }
+        return result;
+    }
+
+    @Override
+    public Map<String, Object> stopDemo(DemoSiteConfig cfg) {
+        ScriptResult stopResult;
+        try {
+            stopResult = RemoteShellExecutor.executeScript(
+                    cfg.getBackendHost(), cfg.getBackendPort(), cfg.getBackendUser(),
+                    cfg.getAuthMethod(), cfg.getSshCredential(),
+                    cfg.getStopScript(), 30);
+        } catch (Exception e) {
+            throw new RuntimeException("SSH执行停止脚本失败：" + e.getMessage(), e);
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("stopped", stopResult.isSuccess());
+        result.put("exitCode", stopResult.getExitCode());
+        result.put("output", stopResult.getOutput());
+
+        if (stopResult.isSuccess()) {
+            LOG.info("Demo service stopped successfully, siteId: {}", cfg.getSiteId());
+        } else {
+            LOG.warn("Demo stop script exited with non-zero code: {}, siteId: {}", stopResult.getExitCode(), cfg.getSiteId());
+        }
+        return result;
     }
 
 }
