@@ -14,13 +14,16 @@ public class InfoGapVO {
     private Integer goodCount;
     private Integer middleCount;
     private Integer badCount;
+    private Integer viewCount;
+    private Integer collectCount;
     private java.time.LocalDateTime createTime;
     private java.time.LocalDateTime updateTime;
+
     // 发布者信息 (从 OshUser 表关联)
     private String nickname;
     private String avatar;
     // 扩展功能：当前登录用户是否已关注该作者
-    private Boolean isFollowed;
+    private Integer isFollowed;
     private Integer isVoted;
 
     private String tag1;
@@ -58,8 +61,8 @@ public class InfoGapVO {
     public void setNickname(String nickname) { this.nickname = nickname; }
     public String getAvatar() { return avatar; }
     public void setAvatar(String avatar) { this.avatar = avatar; }
-    public Boolean getIsFollowed() { return isFollowed; }
-    public void setIsFollowed(Boolean isFollowed) { this.isFollowed = isFollowed; }
+    public Integer getIsFollowed() { return isFollowed; }
+    public void setIsFollowed(Integer isFollowed) { this.isFollowed = isFollowed; }
 
     public String getTag1() {
         return tag1;
@@ -83,5 +86,21 @@ public class InfoGapVO {
 
     public void setTag3(String tag3) {
         this.tag3 = tag3;
+    }
+
+    public Integer getViewCount() {
+        return viewCount;
+    }
+
+    public void setViewCount(Integer viewCount) {
+        this.viewCount = viewCount;
+    }
+
+    public Integer getCollectCount() {
+        return collectCount;
+    }
+
+    public void setCollectCount(Integer collectCount) {
+        this.collectCount = collectCount;
     }
 }

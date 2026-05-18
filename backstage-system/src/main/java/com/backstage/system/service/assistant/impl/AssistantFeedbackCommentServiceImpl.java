@@ -2,13 +2,16 @@ package com.backstage.system.service.assistant.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.StrUtil;
 import com.backstage.common.exception.ServiceException;
+import com.backstage.system.domain.assistant.AssistantFeedback;
 import com.backstage.system.domain.assistant.AssistantFeedbackComment;
 import com.backstage.system.domain.assistant.dto.AssistantFeedbackCommentDTO;
 import com.backstage.system.domain.assistant.vo.AssistantFeedbackCommentVO;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.mapper.assistant.AssistantFeedbackCommentMapper;
 import com.backstage.system.mapper.user.OshUserMapper;
+import com.backstage.system.service.assistant.IAssistantFeedbackCategoryService;
 import com.backstage.system.service.assistant.IAssistantFeedbackCommentService;
 import com.backstage.system.service.assistant.IAssistantFeedbackService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -33,29 +36,40 @@ public class AssistantFeedbackCommentServiceImpl
         extends ServiceImpl<AssistantFeedbackCommentMapper, AssistantFeedbackComment>
         implements IAssistantFeedbackCommentService {
 
-    public AssistantFeedbackCommentServiceImpl(IAssistantFeedbackService feedbackService, OshUserMapper oshUserMapper) {
+    public AssistantFeedbackCommentServiceImpl(IAssistantFeedbackService feedbackService, IAssistantFeedbackCategoryService categoryService, OshUserMapper oshUserMapper) {
         this.feedbackService = feedbackService;
+        this.categoryService = categoryService;
         this.oshUserMapper = oshUserMapper;
     }
 
     private final IAssistantFeedbackService feedbackService;
+    private final IAssistantFeedbackCategoryService categoryService;
     private final OshUserMapper oshUserMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createComment(AssistantFeedbackCommentDTO dto, Long userId) {
+        AssistantFeedback feedback = getActiveFeedback(dto.getFeedbackId());
+        if (feedback == null) {
+            throw new ServiceException("反馈不存在");
+        }
+        if (!categoryService.isCommentAllowed(feedback.getCategoryId())) {
+            throw new ServiceException("当前反馈不允许评论");
+        }
+
         // 构建评论实体
         AssistantFeedbackComment comment = new AssistantFeedbackComment();
         comment.setFeedbackId(dto.getFeedbackId());
         comment.setUserId(userId);
-        comment.setContent(dto.getContent());
+        comment.setContent(dto.getContent().trim());
+        comment.setIsAdminReply(Boolean.TRUE.equals(dto.getIsAdminReply()) ? 1 : 0);
 
-        // 判断是一级评论还是二级评论
+        // 判断是一级评论还是二级评�?
         Long parentId = ObjectUtil.defaultIfNull(dto.getParentId(), 0L);
         comment.setParentId(parentId);
 
         if (parentId == 0) {
-            // 一级评论
+            // 一级评�?
             comment.setRootId(0L);
             comment.setCommentLevel(1);
         } else {
@@ -64,19 +78,22 @@ public class AssistantFeedbackCommentServiceImpl
             if (parentComment == null) {
                 throw new ServiceException("父评论不存在");
             }
+            if (!dto.getFeedbackId().equals(parentComment.getFeedbackId())) {
+                throw new ServiceException("父评论与当前反馈不匹配");
+            }
 
-            // 确定根评论 ID
+            // 确定根评�?ID
             Long rootId = parentComment.getCommentLevel() == 1 ? parentId : parentComment.getRootId();
             comment.setRootId(rootId);
             comment.setCommentLevel(2);
-            comment.setReplyToUserId(dto.getReplyToUserId());
-            comment.setReplyToUserName(dto.getReplyToUserName());
+            comment.setReplyToUserId(parentComment.getUserId());
+            comment.setReplyToUserName(resolveReplyToUserName(parentComment));
         }
 
         // 保存评论
         save(comment);
 
-        // 更新反馈的评论数量
+        // 更新反馈的评论数�?
         feedbackService.incrementCommentCount(dto.getFeedbackId());
 
         return comment.getId();
@@ -84,6 +101,9 @@ public class AssistantFeedbackCommentServiceImpl
 
     @Override
     public List<AssistantFeedbackCommentVO> listCommentsByFeedbackId(Long feedbackId, Integer pageNum, Integer pageSize) {
+        if (getActiveFeedback(feedbackId) == null) {
+            throw new ServiceException("反馈不存在");
+        }
         // 查询一级评论（分页）
         Page<AssistantFeedbackComment> page = lambdaQuery()
                 .eq(AssistantFeedbackComment::getFeedbackId, feedbackId)
@@ -130,7 +150,7 @@ public class AssistantFeedbackCommentServiceImpl
 
         OshUser user = userMap.get(comment.getUserId());
         if (user != null) {
-            commentVO.setUserName(user.getNickname() != null && !user.getNickname().isEmpty() ? user.getNickname() : user.getUsername());
+            commentVO.setUserName(user.getUsername() != null && !user.getUsername().isEmpty() ? user.getUsername() : user.getUsername());
             commentVO.setUserAvatar(user.getAvatar());
         }
         return commentVO;
@@ -152,8 +172,26 @@ public class AssistantFeedbackCommentServiceImpl
                 .collect(Collectors.toMap(OshUser::getId, Function.identity()));
     }
 
+    private AssistantFeedback getActiveFeedback(Long feedbackId) {
+        return feedbackService.lambdaQuery()
+                .eq(AssistantFeedback::getId, feedbackId)
+                .eq(AssistantFeedback::getDeleteFlag, (byte) 0)
+                .one();
+    }
+
+    private String resolveReplyToUserName(AssistantFeedbackComment parentComment) {
+        OshUser replyToUser = parentComment.getUserId() == null ? null : oshUserMapper.selectById(parentComment.getUserId());
+        if (replyToUser != null) {
+            return StrUtil.isNotBlank(replyToUser.getUsername()) ? replyToUser.getUsername() : "匿名用户";
+        }
+        return StrUtil.blankToDefault(parentComment.getReplyToUserName(), "用户");
+    }
+
     @Override
     public Long countByFeedbackId(Long feedbackId) {
+        if (getActiveFeedback(feedbackId) == null) {
+            return 0L;
+        }
         return lambdaQuery()
                 .eq(AssistantFeedbackComment::getFeedbackId, feedbackId)
                 .count();
@@ -167,7 +205,7 @@ public class AssistantFeedbackCommentServiceImpl
             throw new ServiceException("评论不存在");
         }
 
-        // 只能删除自己的评论
+        // 只能删除自己的评�?
         if (!comment.getUserId().equals(userId)) {
             throw new ServiceException("无权删除他人评论");
         }
@@ -176,7 +214,7 @@ public class AssistantFeedbackCommentServiceImpl
         boolean success = removeById(commentId);
 
         if (success) {
-            // 更新反馈的评论数量
+            // 更新反馈的评论数�?
             feedbackService.decrementCommentCount(comment.getFeedbackId());
         }
 

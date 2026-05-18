@@ -16,12 +16,14 @@ import org.springframework.web.client.RestTemplate;
 import javax.annotation.Resource;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
 
 
 @Service
 public class PayServiceImpl implements PayService {
 
     private static final Logger log = LoggerFactory.getLogger(PayServiceImpl.class);
+    private static final String DEFAULT_NOTIFY_URL = "https://example.com/pay/notify-placeholder";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -36,6 +38,7 @@ public class PayServiceImpl implements PayService {
             params.put("type", channel);
             params.put("out_trade_no", outTradeNo);
             params.put("notify_url", payConfig.NOTIFY_URL);
+            params.put("notify_url", resolveNotifyUrl());
             params.put("return_url", PayConfig.RETURN_URL);
             params.put("name", name);
             params.put("money", money);
@@ -65,6 +68,13 @@ public class PayServiceImpl implements PayService {
             resp.setMsg("请求失败");
             return resp;
         }
+    }
+
+    private String resolveNotifyUrl() {
+        if (StringUtils.isNotBlank(payConfig.NOTIFY_URL)) {
+            return payConfig.NOTIFY_URL;
+        }
+        return DEFAULT_NOTIFY_URL;
     }
 
     /**

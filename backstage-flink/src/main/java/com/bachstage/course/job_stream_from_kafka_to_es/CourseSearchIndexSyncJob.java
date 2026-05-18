@@ -24,22 +24,20 @@ public class CourseSearchIndexSyncJob {
     private static final String EVENT_TYPE_CREATE = "COURSE_INDEX_CREATE";
     private static final String EVENT_TYPE_UPDATE = "COURSE_INDEX_UPDATE";
     private static final String EVENT_TYPE_DELETE = "COURSE_INDEX_DELETE";
+    private static final String EVENT_TYPE_AUDIT_APPROVED = "AUDIT_APPROVED";
+    private static final String EVENT_TYPE_AUDIT_REJECTED = "AUDIT_REJECTED";
     private static final Integer PUBLISHED_STATUS = 4;
 
     public static void main(String[] args) throws Exception {
-        System.out.println("========================================");
-        System.out.println("CourseSearchIndexSyncJob 启动中...");
-        System.out.println("========================================");
+        log.info("========================================");
+        log.info("CourseSearchIndexSyncJob 启动中...");
+        log.info("========================================");
 
         CourseIndexJobConfig config = CourseIndexJobConfig.fromSystem();
 
-        System.out.println("配置信息:");
-        System.out.println("  Kafka: " + config.getKafkaBootstrapServers());
-        System.out.println("  消费者组: " + config.getKafkaGroupId());
-        System.out.println("  Topic: " + config.getTopic());
-        System.out.println("  ES: " + config.getEsHosts());
-        System.out.println("  ES 索引: " + config.getEsIndex());
-        System.out.println("========================================\n");
+        log.info("配置信息: Kafka={}, 消费者组={}, Topic={}, ES={}, ES索引={}",
+                config.getKafkaBootstrapServers(), config.getKafkaGroupId(),
+                config.getTopic(), config.getEsHosts(), config.getEsIndex());
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
@@ -49,6 +47,14 @@ public class CourseSearchIndexSyncJob {
         DataStream<JSONObject> eventStream = buildCourseEventStream(
                 env, kafkaProps, config.getTopic(), "course", "课程索引流");
 
+        // 审核状态变更：只做 partial update（status / updateTime / updateBy）
+        eventStream
+                .filter(CourseSearchIndexSyncJob::isAuditEvent)
+                .name("course-index-audit-event-filter")
+                .addSink(CourseIndexElasticsearchSinkFactory.buildAuditPartialUpdateSink(config))
+                .name("course-index-es-audit-partial-update-sink");
+
+        // 常规 upsert：已发布才写入
         eventStream
                 .filter(CourseSearchIndexSyncJob::isUpsertEvent)
                 .name("course-index-upsert-event-filter")
@@ -57,13 +63,14 @@ public class CourseSearchIndexSyncJob {
                 .addSink(CourseIndexElasticsearchSinkFactory.buildUpsertSink(config))
                 .name("course-index-es-upsert-sink");
 
+        // 常规删除：DELETE 事件或未发布的 upsert
         eventStream
                 .filter(message -> isDeleteEvent(message) || isNotPublishedUpsertEvent(message))
                 .name("course-index-es-delete-route-filter")
                 .addSink(CourseIndexElasticsearchSinkFactory.buildDeleteSink(config))
                 .name("course-index-es-delete-sink");
 
-        System.out.println("Flink 任务已启动，正在监听课程索引统一 Topic...\n");
+        log.info("Flink 任务已启动，正在监听课程索引统一 Topic...");
         env.execute("course-search-index-sync-job");
     }
 
@@ -84,7 +91,7 @@ public class CourseSearchIndexSyncJob {
                 .addSource(consumer)
                 .name("course-index-" + streamCode + "-source")
                 .map((MapFunction<String, JSONObject>) value -> {
-                    System.out.println("【" + streamLabel + "】收到消息: " + value);
+                    log.info("【{}】收到消息: {}", streamLabel, value);
                     try {
                         return JSON.parseObject(value);
                     } catch (Exception ex) {
@@ -110,6 +117,12 @@ public class CourseSearchIndexSyncJob {
     {
         String eventType = message.getString("eventType");
         return EVENT_TYPE_CREATE.equals(eventType) || EVENT_TYPE_UPDATE.equals(eventType);
+    }
+
+    private static boolean isAuditEvent(JSONObject message)
+    {
+        String eventType = message.getString("eventType");
+        return EVENT_TYPE_AUDIT_APPROVED.equals(eventType) || EVENT_TYPE_AUDIT_REJECTED.equals(eventType);
     }
 
     private static boolean isDeleteEvent(JSONObject message)

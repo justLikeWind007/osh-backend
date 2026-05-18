@@ -22,6 +22,8 @@ public enum UploadPathEnum {
 
         INNER_SITE("site/"),
 
+        RESOURCE("resource/"),
+
         DEFAULT("common/");
 
 

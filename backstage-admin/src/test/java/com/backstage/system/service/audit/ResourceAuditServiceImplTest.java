@@ -6,21 +6,14 @@ import com.backstage.system.config.properties.SearchEsProperties;
 import com.backstage.system.domain.audit.ResourceAuditItemVO;
 import com.backstage.system.domain.audit.ResourceAuditPageVO;
 import com.backstage.system.domain.audit.ResourceAuditRequest;
-import com.backstage.system.domain.course.OshCourse;
-import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.mapper.audit.ResourceAuditEsMapper;
 import com.backstage.system.mapper.audit.ResourceAuditMapper;
 import com.backstage.system.mapper.user.OshUserMapper;
 import com.backstage.system.service.OutboxEventService;
 import com.backstage.system.service.impl.audit.ResourceAuditServiceImpl;
 import com.backstage.system.service.IOshCourseService;
-import com.backstage.system.service.course.CourseIndexEventType;
-import com.backstage.system.service.course.CourseIndexUpsertMessage;
 import com.backstage.system.service.tool.IOshToolEsService;
-import com.backstage.system.service.tool.ToolIndexEventType;
-import com.backstage.system.service.tool.ToolIndexMessage;
 import com.backstage.system.service.websocket.WebSocketNotifyService;
-import com.backstage.system.domain.websocket.WsNotifyMessage;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -79,9 +72,9 @@ public class ResourceAuditServiceImplTest {
         request.setPageNum(1);
         request.setPageSize(10);
 
-        when(resourceAuditMapper.selectPendingList(ResourceTypeEnum.OPEN_PROJECT.getTableName(), 0, 10, null))
+        when(resourceAuditMapper.selectPendingList(ResourceTypeEnum.OPEN_PROJECT.getMysqlTableName(), 0, 10, null))
                 .thenReturn(Collections.emptyList());
-        when(resourceAuditMapper.countPending(ResourceTypeEnum.OPEN_PROJECT.getTableName(), null))
+        when(resourceAuditMapper.countPending(ResourceTypeEnum.OPEN_PROJECT.getMysqlTableName(), null))
                 .thenReturn(0L);
 
         resourceAuditService.pagePending(request);
@@ -102,7 +95,7 @@ public class ResourceAuditServiceImplTest {
         when(resourceAuditEsMapper.supports(ResourceTypeEnum.COURSE)).thenReturn(true);
         when(resourceAuditEsMapper.searchPending(ResourceTypeEnum.COURSE, "Vue", 2, 10))
                 .thenReturn(PageResponse.of(Collections.singletonList(new ResourceAuditItemVO()), 1L, 2, 10));
-        when(resourceAuditMapper.countPending(ResourceTypeEnum.COURSE.getTableName(), null)).thenReturn(5L);
+        when(resourceAuditMapper.countPending(ResourceTypeEnum.COURSE.getMysqlTableName(), null)).thenReturn(5L);
 
         ResourceAuditPageVO page = resourceAuditService.pagePending(request);
 
@@ -121,11 +114,11 @@ public class ResourceAuditServiceImplTest {
         request.setPageSize(20);
         request.setKeyword("计算器");
 
-        when(resourceAuditMapper.selectPendingList(ResourceTypeEnum.TOOL.getTableName(), 0, 20, "计算器"))
+        when(resourceAuditMapper.selectPendingList(ResourceTypeEnum.TOOL.getMysqlTableName(), 0, 20, "计算器"))
                 .thenReturn(Collections.emptyList());
-        when(resourceAuditMapper.countPending(ResourceTypeEnum.TOOL.getTableName(), "计算器"))
+        when(resourceAuditMapper.countPending(ResourceTypeEnum.TOOL.getMysqlTableName(), "计算器"))
                 .thenReturn(0L);
-        when(resourceAuditMapper.countPending(ResourceTypeEnum.TOOL.getTableName(), null))
+        when(resourceAuditMapper.countPending(ResourceTypeEnum.TOOL.getMysqlTableName(), null))
                 .thenReturn(3L);
 
         resourceAuditService.pagePending(request);

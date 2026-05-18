@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.backstage.system.mapper.homepage.OshHomePageCarouselMapper">
+
+
+    <resultMap id="CarouselResult" type="com.backstage.system.domain.homepage.OshHomePageCarousel">
+
+        <result property="id"         column="id"          />
+        <result property="sort"       column="sort"        />
+        <result property="emoji"      column="emoji"       />
+        <result property="iconBg"     column="icon_bg"     />
+        <result property="cardBg"     column="card_bg"     />
+        <result property="title"      column="title"       />
+        <result property="subtitle"   column="subtitle"    />
+        <result property="btnText"    column="btn_text"    />
+        <result property="path"       column="path"        />
+        <result property="feature1"      column="feature1"       />
+        <result property="feature1Icon"  column="feature1_icon"  />
+        <result property="feature2"      column="feature2"       />
+        <result property="feature2Icon"  column="feature2_icon"  />
+        <result property="feature3"      column="feature3"       />
+        <result property="feature3Icon"  column="feature3_icon"  />
+        <result property="isVisible"  column="is_visible"  />
+        <result property="deleteFlag" column="delete_flag" />
+        <result property="createBy"   column="create_by"   />
+        <result property="createTime" column="create_time" />
+        <result property="updateBy"   column="update_by"   />
+        <result property="updateTime" column="update_time" />
+
+    </resultMap>
+
+
+    <sql id="selectCarouselVo">
+        select id, sort, emoji, icon_bg, card_bg, title, subtitle, btn_text, path,
+               feature1, feature1_icon, feature2, feature2_icon, feature3, feature3_icon,
+               is_visible, delete_flag,
+               create_by, create_time, update_by, update_time
+        from osh_home_page_carousel
+    </sql>
+    <!-- 前台查询：只查可见且未删除的，按 sort 升序 -->
+    <select id="selectVisibleCarouselList" resultMap="CarouselResult">
+        <include refid="selectCarouselVo"/>
+        where is_visible = 1 and delete_flag = 0
+        order by sort asc, id asc
+    </select>
+
+    <!--后台查询：支持条件筛选，排除已经删除的-->
+    <select id="selectCarouselList" parameterType="com.backstage.system.domain.homepage.OshHomePageCarousel" resultMap="CarouselResult">
+
+        <include refid="selectCarouselVo"/>
+        <where>
+            delete_flag=0
+            <if test="title != null and title != ''"> and title like concat('%', #{title}, '%')</if>
+            <if test="isVisible != null"> and is_visible = #{isVisible}</if>
+            <if test="path != null and path != ''"> and path like concat('%', #{path}, '%')</if>
+        </where>
+        order by sort asc,id asc
+    </select>
+
+    <!-- 查询所有未删除的卡片ID -->
+    <select id="selectAllCarouselIds" resultType="Long">
+        select id from osh_home_page_carousel where delete_flag = 0
+    </select>
+
+
+
+
+    <!-- 根据 ID 查询 -->
+    <select id="selectCarouselById" parameterType="Long" resultMap="CarouselResult">
+        <include refid="selectCarouselVo"/>
+        where id =#{id} and delete_flag = 0
+    </select>
+
+
+    <!-- 新增 -->
+    <insert id="insertCarousel" parameterType="com.backstage.system.domain.homepage.OshHomePageCarousel" useGeneratedKeys="true" keyProperty="id">
+        insert into osh_home_page_carousel
+
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="sort != null">sort,</if>
+            <if test="emoji != null">emoji,</if>
+            <if test="iconBg != null">icon_bg,</if>
+            <if test="cardBg != null">card_bg,</if>
+            <if test="title != null">title,</if>
+            <if test="subtitle != null">subtitle,</if>
+            <if test="btnText != null">btn_text,</if>
+            <if test="path != null">path,</if>
+            <if test="feature1 != null">feature1,</if>
+            <if test="feature1Icon != null">feature1_icon,</if>
+            <if test="feature2 != null">feature2,</if>
+            <if test="feature2Icon != null">feature2_icon,</if>
+            <if test="feature3 != null">feature3,</if>
+            <if test="feature3Icon != null">feature3_icon,</if>
+            <if test="isVisible != null">is_visible,</if>
+            <if test="createBy != null">create_by,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="sort != null">#{sort},</if>
+            <if test="emoji != null">#{emoji},</if>
+            <if test="iconBg != null">#{iconBg},</if>
+            <if test="cardBg != null">#{cardBg},</if>
+            <if test="title != null">#{title},</if>
+            <if test="subtitle != null">#{subtitle},</if>
+            <if test="btnText != null">#{btnText},</if>
+            <if test="path != null">#{path},</if>
+            <if test="feature1 != null">#{feature1},</if>
+            <if test="feature1Icon != null">#{feature1Icon},</if>
+            <if test="feature2 != null">#{feature2},</if>
+            <if test="feature2Icon != null">#{feature2Icon},</if>
+            <if test="feature3 != null">#{feature3},</if>
+            <if test="feature3Icon != null">#{feature3Icon},</if>
+            <if test="isVisible != null">#{isVisible},</if>
+            <if test="createBy != null">#{createBy},</if>
+        </trim>
+    </insert>
+
+
+    <update id="deleteCarouselById" parameterType="Long">
+        update osh_home_page_carousel set delete_flag = 1 where id = #{id}
+
+    </update>
+
+    <!--批量逻辑删除-->
+    <update id="deleteCarouselByIds" parameterType="String">
+        update  osh_home_page_carousel  set delete_flag=1 where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+
+    </update>
+
+    <update id="updateCarousel" parameterType="com.backstage.system.domain.homepage.OshHomePageCarousel">
+        update osh_home_page_carousel
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="sort != null">sort = #{sort},</if>
+            <if test="emoji != null">emoji = #{emoji},</if>
+            <if test="iconBg != null">icon_bg = #{iconBg},</if>
+            <if test="cardBg != null">card_bg = #{cardBg},</if>
+            <if test="title != null">title = #{title},</if>
+            <if test="subtitle != null">subtitle = #{subtitle},</if>
+            <if test="btnText != null">btn_text = #{btnText},</if>
+            <if test="path != null">path = #{path},</if>
+            <if test="feature1 != null">feature1 = #{feature1},</if>
+            <if test="feature1Icon != null">feature1_icon = #{feature1Icon},</if>
+            <if test="feature2 != null">feature2 = #{feature2},</if>
+            <if test="feature2Icon != null">feature2_icon = #{feature2Icon},</if>
+            <if test="feature3 != null">feature3 = #{feature3},</if>
+            <if test="feature3Icon != null">feature3_icon = #{feature3Icon},</if>
+            <if test="isVisible != null">is_visible = #{isVisible},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+        </trim>
+        where id = #{id} and delete_flag = 0
+    </update>
+
+
+
+
+
+</mapper>

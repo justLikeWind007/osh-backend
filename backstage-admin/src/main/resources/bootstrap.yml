@@ -30,3 +30,5 @@ spring:
             refresh: true
           - data-id: osh-backend-jasypt-dev.yaml
             refresh: true
+          - data-id: osh-backend-xxljob-dev.yaml
+            refresh: true

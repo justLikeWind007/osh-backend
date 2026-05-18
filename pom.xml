@@ -41,6 +41,7 @@
         <lombok.version>1.18.32</lombok.version>
         <spring-cloud.version>2020.0.6</spring-cloud.version>
         <spring-cloud-alibaba.version>2021.1</spring-cloud-alibaba.version>
+        <xxl-job.version>2.4.0</xxl-job.version>
     </properties>
 
     <!-- 依赖声明 -->
@@ -321,6 +322,7 @@
         <module>backstage-generator</module>
         <module>backstage-common</module>
         <module>backstage-flink</module>
+        <module>backstage-hbase</module>
     </modules>
     <packaging>pom</packaging>
 

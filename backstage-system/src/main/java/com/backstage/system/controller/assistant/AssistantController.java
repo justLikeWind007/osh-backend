@@ -109,10 +109,11 @@ public class AssistantController extends BaseController {
         if (userId == null) {
             return R.fail(HttpStatus.UNAUTHORIZED, "请先登录后再发表评论");
         }
-        
+
         // 从路径参数设置反馈ID
         dto.setFeedbackId(feedbackId);
-        
+        dto.setIsAdminReply(Boolean.TRUE.equals(dto.getIsAdminReply()) && safeCurrentUserLevel() >= 4);
+
         Long commentId = assistantFeedbackCommentService.createComment(dto, userId);
         return R.ok(commentId, "评论成功");
     }

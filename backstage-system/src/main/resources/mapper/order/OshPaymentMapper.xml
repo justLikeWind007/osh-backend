@@ -57,6 +57,15 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         limit 1
     </select>
 
+    <select id="selectExpiredPendingPayments" resultMap="OshPaymentResult">
+        <include refid="selectOshPaymentColumns"/>
+        where status = 0
+          and delete_flag = 0
+          and expire_time is not null
+          and expire_time &lt;= #{expireTime}
+        order by expire_time asc, id asc
+    </select>
+
     <update id="updatePayResponse">
         update osh_payment
         set platform_trade_no = #{platformTradeNo},

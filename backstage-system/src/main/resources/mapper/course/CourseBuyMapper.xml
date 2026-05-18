@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.course.CourseBuyMapper">
+
+    <select id="countPaidByUserAndCourse" resultType="int">
+        select count(1)
+        from osh_course_buy
+        where user_id = #{userId}
+          and course_id = #{courseId}
+          and pay_status = 'paid'
+          and delete_flag = 0
+    </select>
+
+    <select id="countPaidByOrderNoAndUserId" resultType="int">
+        select count(1)
+        from osh_course_buy
+        where order_no = #{orderNo}
+          and user_id = #{userId}
+          and pay_status = 'paid'
+          and delete_flag = 0
+    </select>
+
+    <insert id="upsertPendingOrder">
+        insert into osh_course_buy
+            (user_id, course_id, order_no, pay_status, pay_method, pay_price, origin_price,
+             delete_flag, create_by, create_time, update_by, update_time)
+        values
+            (#{userId}, #{courseId}, #{orderNo}, 'pending', #{payMethod}, #{payPrice}, #{originPrice},
+             0, 'system', now(), 'system', now())
+        on duplicate key update
+            order_no = values(order_no),
+            pay_status = 'pending',
+            pay_method = values(pay_method),
+            pay_price = values(pay_price),
+            origin_price = values(origin_price),
+            delete_flag = 0,
+            update_by = 'system',
+            update_time = now()
+    </insert>
+
+    <update id="markPaidByOrderNoAndUserId">
+        update osh_course_buy
+        set pay_status = 'paid',
+            pay_time = now(),
+            delete_flag = 0,
+            update_by = 'system',
+            update_time = now()
+        where order_no = #{orderNo}
+          and user_id = #{userId}
+    </update>
+</mapper>
+

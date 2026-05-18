@@ -30,6 +30,15 @@
         order by sort_order desc, id asc
     </select>
 
+    <select id="selectPackageById" resultMap="OshToolPackageResult">
+        select id, tool_id, package_name, use_count, price, point_cost, pay_type, status, sort_order,
+               create_by, create_time, update_by, update_time, delete_flag
+        from osh_tool_package
+        where id = #{id}
+          and delete_flag = 0
+        limit 1
+    </select>
+
     <select id="selectPackagesByToolIds" resultMap="OshToolPackageResult">
         select id, tool_id, package_name, use_count, price, point_cost, pay_type, status, sort_order,
                create_by, create_time, update_by, update_time, delete_flag

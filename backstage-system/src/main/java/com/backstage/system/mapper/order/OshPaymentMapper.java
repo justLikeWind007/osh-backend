@@ -14,6 +14,8 @@ public interface OshPaymentMapper {
 
     OshPayment selectByOrderNo(@Param("orderNo") String orderNo);
 
+    java.util.List<OshPayment> selectExpiredPendingPayments(@Param("expireTime") LocalDateTime expireTime);
+
     int updatePayResponse(@Param("paymentNo") String paymentNo,
                           @Param("platformTradeNo") String platformTradeNo,
                           @Param("payUrl") String payUrl,

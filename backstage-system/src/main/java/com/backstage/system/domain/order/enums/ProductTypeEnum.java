@@ -8,10 +8,14 @@ import java.util.Objects;
 public enum ProductTypeEnum {
 
     COURSE(1, "course","课程"),
-    BOOK(2, "book","书籍"),
-    COLUMN(3, "column","专栏"),
-    SECKILL(4, "seckill","秒杀")
 
+    BOOK(2, "book","书籍"),
+
+    COLUMN(3, "column","专栏"),
+
+    SECKILL(4, "seckill","秒杀"),
+
+    TOOL(5, "tool","工具");
     ;
 
     private final int code;

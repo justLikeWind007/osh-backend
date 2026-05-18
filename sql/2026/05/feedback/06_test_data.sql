@@ -14,16 +14,21 @@
 
 USE backstage;
 
+-- 设置字符集支持 emoji
+SET NAMES utf8mb4;
+SET CHARACTER_SET_CLIENT = utf8mb4;
+SET CHARACTER_SET_CONNECTION = utf8mb4;
+SET CHARACTER_SET_RESULTS = utf8mb4;
+
 -- 临时禁用外键检查（避免反馈ID引用问题）
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- 清空旧测试数据（如存在）
+DELETE FROM `assistant_feedback_process_record` WHERE `feedback_id` <= 22;
 DELETE FROM `assistant_feedback_comment` WHERE `feedback_id` <= 22;
 DELETE FROM `assistant_feedback` WHERE `id` <= 22;
 
--- 重置自增ID（确保ID从1开始，与评论引用一致）
-ALTER TABLE `assistant_feedback` AUTO_INCREMENT = 1;
-ALTER TABLE `assistant_feedback_comment` AUTO_INCREMENT = 1;
+-- 注意：不重置自增ID，因为 id 字段不是 AUTO_INCREMENT，需要手动指定
 
 -- ============================================
 -- 1. 插入测试用户（如果不存在）
@@ -34,13 +39,13 @@ ALTER TABLE `assistant_feedback_comment` AUTO_INCREMENT = 1;
 -- 2. 插入公告（管理员发布）
 -- ============================================
 INSERT INTO `assistant_feedback`
-(`category_id`, `user_id`, `ticket_no`, `title`, `content`, `page_path`, `status`, `is_pinned`, `pin_order`, `comment_count`, `view_count`, `create_time`, `update_time`)
+(`id`, `category_id`, `user_id`, `ticket_no`, `title`, `content`, `page_path`, `status`, `is_pinned`, `pin_order`, `comment_count`, `view_count`, `create_time`, `update_time`)
 VALUES
-((SELECT `id` FROM `assistant_feedback_category` WHERE `code` = 'announcement'), 1, CONCAT('TK', DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 7 DAY), '%Y%m%d'), '000001'), '🎉 反馈系统正式上线！', '亲爱的用户们，我们的反馈系统已经正式上线了！现在您可以：\n\n1. 提交各类反馈（建议、错误、提问等）\n2. 查看其他用户的反馈\n3. 参与评论和讨论\n4. 关注反馈处理进度\n\n感谢大家的支持！', '/', 'resolved', 1, 1, 5, 128, DATE_SUB(NOW(), INTERVAL 7 DAY), NOW()),
+(1, (SELECT `id` FROM `assistant_feedback_category` WHERE `code` = 'announcement'), 1, CONCAT('TK', DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 7 DAY), '%Y%m%d'), '000001'), '🎉 反馈系统正式上线！', '亲爱的用户们，我们的反馈系统已经正式上线了！现在您可以：\n\n1. 提交各类反馈（建议、错误、提问等）\n2. 查看其他用户的反馈\n3. 参与评论和讨论\n4. 关注反馈处理进度\n\n感谢大家的支持！', '/', 'resolved', 1, 1, 5, 128, DATE_SUB(NOW(), INTERVAL 7 DAY), NOW()),
 
-((SELECT `id` FROM `assistant_feedback_category` WHERE `code` = 'announcement'), 1, CONCAT('TK', DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 3 DAY), '%Y%m%d'), '000002'), '📢 系统维护通知', '系统将于本周六（2026-05-10）凌晨 2:00-4:00 进行例行维护，期间可能无法访问。请大家提前做好准备，给您带来的不便敬请谅解。', '/', 'resolved', 1, 2, 3, 89, DATE_SUB(NOW(), INTERVAL 3 DAY), NOW()),
+(2, (SELECT `id` FROM `assistant_feedback_category` WHERE `code` = 'announcement'), 1, CONCAT('TK', DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 3 DAY), '%Y%m%d'), '000002'), '📢 系统维护通知', '系统将于本周六（2026-05-10）凌晨 2:00-4:00 进行例行维护，期间可能无法访问。请大家提前做好准备，给您带来的不便敬请谅解。', '/', 'resolved', 1, 2, 3, 89, DATE_SUB(NOW(), INTERVAL 3 DAY), NOW()),
 
-((SELECT `id` FROM `assistant_feedback_category` WHERE `code` = 'announcement'), 1, CONCAT('TK', DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 1 DAY), '%Y%m%d'), '000003'), '🆕 新功能预告', '下周我们将推出以下新功能：\n\n1. 课程笔记功能\n2. 学习进度统计\n3. 个性化推荐\n\n敬请期待！', '/', 'in_progress', 1, 3, 8, 156, DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+(3, (SELECT `id` FROM `assistant_feedback_category` WHERE `code` = 'announcement'), 1, CONCAT('TK', DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 1 DAY), '%Y%m%d'), '000003'), '🆕 新功能预告', '下周我们将推出以下新功能：\n\n1. 课程笔记功能\n2. 学习进度统计\n3. 个性化推荐\n\n敬请期待！', '/', 'in_progress', 1, 3, 8, 156, DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
 
 -- ============================================
 -- 3. 插入建议类反馈
@@ -199,9 +204,80 @@ FROM assistant_feedback_comment
 WHERE delete_flag = 0;
 
 -- ============================================
+-- 11. 插入处理记录（状态流转历史）
+-- ============================================
+
+-- 为所有反馈插入初始提交记录
+INSERT INTO `assistant_feedback_process_record`
+(`id`, `feedback_id`, `from_status`, `to_status`, `operator_id`, `operator_name`, `remark`, `create_time`, `update_time`, `create_by`, `update_by`, `delete_flag`)
+SELECT
+    (`id` * 100) + 1,
+    `id`,
+    NULL,
+    'PENDING',
+    `user_id`,
+    CONCAT('用户', `user_id`),
+    '用户提交反馈',
+    `create_time`,
+    `create_time`,
+    `user_id`,
+    `user_id`,
+    0
+FROM `assistant_feedback`
+WHERE `id` <= 22 AND `delete_flag` = 0;
+
+-- 为已处理的反馈插入状态流转记录
+INSERT INTO `assistant_feedback_process_record`
+(`id`, `feedback_id`, `from_status`, `to_status`, `operator_id`, `operator_name`, `remark`, `create_time`, `update_time`, `create_by`, `update_by`, `delete_flag`)
+SELECT
+    (`id` * 100) + 2,
+    `id`,
+    'PENDING',
+    CASE
+        WHEN `status` = 'in_progress' THEN 'PROCESSING'
+        WHEN `status` = 'resolved' THEN 'RESOLVED'
+        WHEN `status` = 'closed' THEN 'CLOSED'
+        ELSE `status`
+    END,
+    1,
+    '管理员',
+    CASE
+        WHEN `status` = 'in_progress' THEN '管理员已开始处理'
+        WHEN `status` = 'resolved' THEN '问题已解决'
+        WHEN `status` = 'closed' THEN '反馈已关闭'
+        ELSE CONCAT('状态更新为', `status`)
+    END,
+    DATE_ADD(`create_time`, INTERVAL 2 HOUR),
+    DATE_ADD(`create_time`, INTERVAL 2 HOUR),
+    1,
+    1,
+    0
+FROM `assistant_feedback`
+WHERE `id` <= 22
+  AND `delete_flag` = 0
+  AND `status` IN ('in_progress', 'resolved', 'closed');
+
+-- 为部分已解决的反馈增加中间处理记录（模拟完整流转）
+INSERT INTO `assistant_feedback_process_record`
+(`id`, `feedback_id`, `from_status`, `to_status`, `operator_id`, `operator_name`, `remark`, `create_time`, `update_time`, `create_by`, `update_by`, `delete_flag`)
+VALUES
+-- 公告 1：待处理 -> 处理中 -> 已解决
+(103, 1, 'PENDING', 'PROCESSING', 1, '管理员', '开始处理反馈', DATE_SUB(NOW(), INTERVAL 6 DAY), DATE_SUB(NOW(), INTERVAL 6 DAY), 1, 1, 0),
+(104, 1, 'PROCESSING', 'RESOLVED', 1, '管理员', '反馈已处理完成', DATE_SUB(NOW(), INTERVAL 5 DAY), DATE_SUB(NOW(), INTERVAL 5 DAY), 1, 1, 0),
+
+-- 视频卡顿问题：待处理 -> 处理中 -> 已解决
+(803, 8, 'PENDING', 'PROCESSING', 1, '管理员', '已定位问题，正在优化 CDN 配置', DATE_SUB(NOW(), INTERVAL 5 DAY), DATE_SUB(NOW(), INTERVAL 5 DAY), 1, 1, 0),
+(804, 8, 'PROCESSING', 'RESOLVED', 1, '管理员', 'CDN 节点已扩容，问题已解决', DATE_SUB(NOW(), INTERVAL 4 DAY), DATE_SUB(NOW(), INTERVAL 4 DAY), 1, 1, 0),
+
+-- 登录空白问题：待处理 -> 处理中 -> 已解决
+(903, 9, 'PENDING', 'PROCESSING', 1, '管理员', '正在排查前端缓存问题', DATE_SUB(NOW(), INTERVAL 4 DAY), DATE_SUB(NOW(), INTERVAL 4 DAY), 1, 1, 0),
+(904, 9, 'PROCESSING', 'RESOLVED', 1, '管理员', '已修复缓存策略，问题解决', DATE_SUB(NOW(), INTERVAL 3 DAY), DATE_SUB(NOW(), INTERVAL 3 DAY), 1, 1, 0);
+
+-- ============================================
 -- 执行完成
 -- ============================================
 
 SELECT '✅ 测试数据插入完成！' AS message;
 SELECT CONCAT('共插入 ', COUNT(*), ' 条反馈记录') AS feedback_summary FROM assistant_feedback WHERE delete_flag = 0;
 SELECT CONCAT('共插入 ', COUNT(*), ' 条评论记录') AS comment_summary FROM assistant_feedback_comment WHERE delete_flag = 0;
+SELECT CONCAT('共插入 ', COUNT(*), ' 条处理记录') AS process_record_summary FROM assistant_feedback_process_record WHERE delete_flag = 0;
