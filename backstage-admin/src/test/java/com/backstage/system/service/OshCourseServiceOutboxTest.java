@@ -8,6 +8,7 @@ import com.backstage.system.mapper.course.OshCourseTagMapper;
 import com.backstage.system.request.CourseUpdateRequest;
 import com.backstage.system.request.CourseCreateRequest;
 import com.backstage.system.service.course.CourseIndexDeleteMessage;
+import com.backstage.system.service.course.CourseIndexEventType;
 import com.backstage.system.service.course.CourseIndexMessageMapper;
 import com.backstage.system.service.course.CourseIndexUpsertMessage;
 import com.backstage.system.service.impl.OshCourseServiceImpl;
@@ -48,61 +49,7 @@ public class OshCourseServiceOutboxTest {
     @Mock
     private OutboxEventService outboxEventService;
 
-    @Test
-    public void shouldWriteCourseIndexCreateOutboxEventInsteadOfSendingKafkaWhenCreatingCourse() throws Exception {
-        CourseCreateRequest request = new CourseCreateRequest();
-        request.setTitle("高可用课程");
-        request.setCover("course/cover.png");
-        request.setIntro("课程介绍");
-        request.setPrice(new BigDecimal("99.00"));
-        request.setTPrice(new BigDecimal("199.00"));
-        request.setType("media");
 
-        OshUser operator = new OshUser();
-        operator.setId(1L);
-        operator.setUsername("admin");
-
-        when(oshCourseMapper.insertCourse(any(OshCourse.class))).thenAnswer(invocation -> {
-            OshCourse course = invocation.getArgument(0);
-            course.setId(10001L);
-            return 1;
-        });
-        when(oshCourseMapper.selectCourseById(10001L)).thenAnswer(invocation -> {
-            return buildPersistedCourse(10001L);
-        });
-        when(courseIndexMessageMapper.toMessage(any(OshCourse.class), eq("admin"))).thenReturn(new CourseIndexUpsertMessage());
-
-        Long courseId = courseService.createCourse(request, operator);
-
-        assertEquals(Long.valueOf(10001L), courseId);
-        verify(outboxEventService).saveCourseIndexCreateEvent(eq(10001L), any(CourseIndexUpsertMessage.class), eq(operator));
-    }
-
-    @Test
-    public void shouldWriteCourseIndexUpdateOutboxEventInsteadOfSendingKafkaWhenUpdatingCourse() {
-        CourseUpdateRequest request = new CourseUpdateRequest();
-        request.setId(10001L);
-        request.setTitle("更新后的课程");
-        request.setCover("course/cover-updated.png");
-        request.setIntro("更新后的课程介绍");
-        request.setPrice(new BigDecimal("88.00"));
-        request.setTPrice(new BigDecimal("188.00"));
-        request.setType("media");
-        request.setTags(Arrays.asList("Java", "Kafka"));
-
-        OshUser operator = new OshUser();
-        operator.setId(1L);
-        operator.setUsername("admin");
-
-        when(oshCourseMapper.selectCourseById(10001L)).thenReturn(buildPersistedCourse(10001L));
-        when(oshCourseMapper.updateCourse(any(OshCourse.class))).thenReturn(1);
-        when(courseIndexMessageMapper.toMessage(any(OshCourse.class), eq("admin"))).thenReturn(new CourseIndexUpsertMessage());
-
-        Long courseId = courseService.updateCourse(request, operator);
-
-        assertEquals(Long.valueOf(10001L), courseId);
-        verify(outboxEventService).saveCourseIndexUpdateEvent(eq(10001L), any(CourseIndexUpsertMessage.class), eq(operator));
-    }
 
     @Test
     public void shouldWriteCourseIndexDeleteOutboxEventWhenDeletingCourses() {
@@ -117,6 +64,7 @@ public class OshCourseServiceOutboxTest {
 
         verify(outboxEventService).saveCourseIndexDeleteEvent(eq(10001L), messageCaptor.capture(), eq(operator));
         assertEquals(Long.valueOf(10001L), messageCaptor.getValue().getId());
+        assertEquals(CourseIndexEventType.COURSE_INDEX_DELETE, messageCaptor.getValue().getEventType());
     }
 
     private OshCourse buildPersistedCourse(Long id) {

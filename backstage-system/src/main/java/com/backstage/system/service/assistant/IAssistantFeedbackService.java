@@ -31,6 +31,16 @@ public interface IAssistantFeedbackService extends IService<AssistantFeedback> {
     AssistantFeedbackVO createFeedback(Long userId, AssistantFeedbackCreateDTO dto);
 
     /**
+     * 创建反馈工单
+     *
+     * @param userId 用户 ID
+     * @param dto 反馈创建 DTO
+     * @param allowAdminOnly 是否允许管理员专用分类
+     * @return 创建的反馈工单
+     */
+    AssistantFeedbackVO createFeedback(Long userId, AssistantFeedbackCreateDTO dto, boolean allowAdminOnly);
+
+    /**
      * 获取我的反馈列表（分页）
      *
      * @param userId 用户 ID

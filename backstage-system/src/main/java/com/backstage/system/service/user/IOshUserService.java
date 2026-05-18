@@ -4,6 +4,7 @@ import com.backstage.common.core.domain.R;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.domain.user.vo.OshUserLoginVO;
 import com.backstage.system.request.UserListRequest;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.mail.MessagingException;
 import java.util.List;
@@ -30,7 +31,9 @@ public interface IOshUserService {
 
     R<String> forget(String uniqueId, String password, String repassword);
 
-    R<String> updateInfo(String avatar, String nickname, String sex);
+    R<String> updateInfo(String username, String sex, String introduction);
+
+    R<String> uploadAvatar(MultipartFile file);
 
     R<String> updatePassword(String opassword, String password, String repassword);
 

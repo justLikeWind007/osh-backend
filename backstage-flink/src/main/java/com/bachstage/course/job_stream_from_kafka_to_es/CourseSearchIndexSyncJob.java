@@ -21,51 +21,61 @@ import java.util.Properties;
  */
 public class CourseSearchIndexSyncJob {
     private static final Logger log = LoggerFactory.getLogger(CourseSearchIndexSyncJob.class);
-    private static final Integer PUBLISHED_STATUS = 2;
+    private static final String EVENT_TYPE_CREATE = "COURSE_INDEX_CREATE";
+    private static final String EVENT_TYPE_UPDATE = "COURSE_INDEX_UPDATE";
+    private static final String EVENT_TYPE_DELETE = "COURSE_INDEX_DELETE";
+    private static final String EVENT_TYPE_AUDIT_APPROVED = "AUDIT_APPROVED";
+    private static final String EVENT_TYPE_AUDIT_REJECTED = "AUDIT_REJECTED";
+    private static final Integer PUBLISHED_STATUS = 4;
 
     public static void main(String[] args) throws Exception {
-        System.out.println("========================================");
-        System.out.println("CourseSearchIndexSyncJob 启动中...");
-        System.out.println("========================================");
+        log.info("========================================");
+        log.info("CourseSearchIndexSyncJob 启动中...");
+        log.info("========================================");
 
         CourseIndexJobConfig config = CourseIndexJobConfig.fromSystem();
 
-        System.out.println("配置信息:");
-        System.out.println("  Kafka: " + config.getKafkaBootstrapServers());
-        System.out.println("  消费者组: " + config.getKafkaGroupId());
-        System.out.println("  创建 Topic: " + config.getCreateTopic());
-        System.out.println("  更新 Topic: " + config.getUpdateTopic());
-        System.out.println("  删除 Topic: " + config.getDeleteTopic());
-        System.out.println("  ES: " + config.getEsHosts());
-        System.out.println("  ES 索引: " + config.getEsIndex());
-        System.out.println("========================================\n");
+        log.info("配置信息: Kafka={}, 消费者组={}, Topic={}, ES={}, ES索引={}",
+                config.getKafkaBootstrapServers(), config.getKafkaGroupId(),
+                config.getTopic(), config.getEsHosts(), config.getEsIndex());
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
         env.enableCheckpointing(60000, CheckpointingMode.AT_LEAST_ONCE);
 
         Properties kafkaProps = KafkaPropertiesFactory.create(config);
-        DataStream<JSONObject> createStream = buildCourseEventStream(
-                env, kafkaProps, config.getCreateTopic(), "create", "创建流");
-        DataStream<JSONObject> updateStream = buildCourseEventStream(
-                env, kafkaProps, config.getUpdateTopic(), "update", "更新流");
-        DataStream<JSONObject> deleteStream = buildDeleteEventStream(
-                env, kafkaProps, config.getDeleteTopic(), "delete", "删除流");
+        DataStream<JSONObject> eventStream = buildCourseEventStream(
+                env, kafkaProps, config.getTopic(), "course", "课程索引流");
 
-        createStream.addSink(CourseIndexElasticsearchSinkFactory.buildUpsertSink(config))
-                .name("course-index-create-es-upsert-sink");
-        updateStream.addSink(CourseIndexElasticsearchSinkFactory.buildUpsertSink(config))
-                .name("course-index-update-es-upsert-sink");
-        deleteStream.addSink(CourseIndexElasticsearchSinkFactory.buildDeleteSink(config))
-                .name("course-index-delete-es-delete-sink");
+        // 审核状态变更：只做 partial update（status / updateTime / updateBy）
+        eventStream
+                .filter(CourseSearchIndexSyncJob::isAuditEvent)
+                .name("course-index-audit-event-filter")
+                .addSink(CourseIndexElasticsearchSinkFactory.buildAuditPartialUpdateSink(config))
+                .name("course-index-es-audit-partial-update-sink");
 
-        System.out.println("Flink 任务已启动，正在同时监听课程创建、更新与删除消息...\n");
+        // 常规 upsert：已发布才写入
+        eventStream
+                .filter(CourseSearchIndexSyncJob::isUpsertEvent)
+                .name("course-index-upsert-event-filter")
+                .filter(CourseSearchIndexSyncJob::isPublished)
+                .name("course-index-published-filter")
+                .addSink(CourseIndexElasticsearchSinkFactory.buildUpsertSink(config))
+                .name("course-index-es-upsert-sink");
+
+        // 常规删除：DELETE 事件或未发布的 upsert
+        eventStream
+                .filter(message -> isDeleteEvent(message) || isNotPublishedUpsertEvent(message))
+                .name("course-index-es-delete-route-filter")
+                .addSink(CourseIndexElasticsearchSinkFactory.buildDeleteSink(config))
+                .name("course-index-es-delete-sink");
+
+        log.info("Flink 任务已启动，正在监听课程索引统一 Topic...");
         env.execute("course-search-index-sync-job");
     }
 
     /**
-     * 每种事件类型都保持一条独立链路，便于后续单独插入补数、转换、监控或失败处理逻辑。
-     * 当前 create/update 的过滤规则一致，所以复用同一个构建方法，只通过 streamCode/streamLabel 区分日志与节点名。
+     * 课程索引统一消费单 topic，通过 eventType 分流。
      */
     private static DataStream<JSONObject> buildCourseEventStream(
             StreamExecutionEnvironment env,
@@ -81,62 +91,56 @@ public class CourseSearchIndexSyncJob {
                 .addSource(consumer)
                 .name("course-index-" + streamCode + "-source")
                 .map((MapFunction<String, JSONObject>) value -> {
-                    System.out.println("【" + streamLabel + "】收到消息: " + value);
-                    return parseJsonSafely(value, streamLabel);
+                    log.info("【{}】收到消息: {}", streamLabel, value);
+                    try {
+                        return JSON.parseObject(value);
+                    } catch (Exception ex) {
+                        log.error("【{}】解析消息失败，跳过该条非JSON数据: {}", streamLabel, value, ex);
+                        return null;
+                    }
                 })
                 .name("course-index-" + streamCode + "-parse")
                 .filter(message -> message != null)
-                .name("course-index-" + streamCode + "-valid-json-filter")
-                .filter(message -> {
-                    Integer status = message.getInteger("status");
-                    boolean pass = status != null && PUBLISHED_STATUS.equals(status);
-                    log.info("【{}】过滤检查 - 课程ID: {}, 状态: {}, 是否通过: {}",
-                            streamLabel, message.getLong("id"), status, pass);
-                    return pass;
-                })
-                .name("course-index-" + streamCode + "-filter");
-    }
-
-    /**
-     * 删除流只负责把“删除哪门课程”这件事传递到 ES。
-     * 这里不再关心课程状态，只要求消息里必须包含课程 ID；具体删除语义由业务端发送 delete topic 来表达。
-     */
-    private static DataStream<JSONObject> buildDeleteEventStream(StreamExecutionEnvironment env,
-                                                                 Properties kafkaProps,
-                                                                 String topic,
-                                                                 String streamCode,
-                                                                 String streamLabel)
-    {
-        FlinkKafkaConsumer<String> consumer = new FlinkKafkaConsumer<>(
-                topic, new SimpleStringSchema(), kafkaProps);
-        consumer.setCommitOffsetsOnCheckpoints(true);
-
-        return env
-                .addSource(consumer)
-                .name("course-index-" + streamCode + "-source")
-                .map((MapFunction<String, JSONObject>) value -> {
-                    System.out.println("【" + streamLabel + "】收到消息: " + value);
-                    return parseJsonSafely(value, streamLabel);
-                })
-                .name("course-index-" + streamCode + "-parse")
-                .filter(message -> message != null)
-                .name("course-index-" + streamCode + "-valid-json-filter")
+                .name("course-index-" + streamCode + "-json-filter")
                 .filter(message -> {
                     Long courseId = message.getLong("id");
-                    boolean pass = courseId != null;
-                    log.info("【{}】过滤检查 - 课程ID: {}, 是否通过: {}",
-                            streamLabel, courseId, pass);
+                    String eventType = message.getString("eventType");
+                    boolean pass = courseId != null && eventType != null && !eventType.trim().isEmpty();
+                    log.info("【{}】基础过滤 - 课程ID: {}, eventType: {}, 是否通过: {}",
+                            streamLabel, courseId, eventType, pass);
                     return pass;
                 })
                 .name("course-index-" + streamCode + "-filter");
     }
 
-    private static JSONObject parseJsonSafely(String value, String streamLabel) {
-        try {
-            return JSON.parseObject(value);
-        } catch (Exception ex) {
-            log.warn("【{}】跳过非法JSON消息: {}", streamLabel, value, ex);
-            return null;
-        }
+    private static boolean isUpsertEvent(JSONObject message)
+    {
+        String eventType = message.getString("eventType");
+        return EVENT_TYPE_CREATE.equals(eventType) || EVENT_TYPE_UPDATE.equals(eventType);
+    }
+
+    private static boolean isAuditEvent(JSONObject message)
+    {
+        String eventType = message.getString("eventType");
+        return EVENT_TYPE_AUDIT_APPROVED.equals(eventType) || EVENT_TYPE_AUDIT_REJECTED.equals(eventType);
+    }
+
+    private static boolean isDeleteEvent(JSONObject message)
+    {
+        return EVENT_TYPE_DELETE.equals(message.getString("eventType"));
+    }
+
+    private static boolean isNotPublishedUpsertEvent(JSONObject message)
+    {
+        return isUpsertEvent(message) && !isPublished(message);
+    }
+
+    private static boolean isPublished(JSONObject message)
+    {
+        Integer status = message.getInteger("status");
+        boolean pass = status != null && PUBLISHED_STATUS.equals(status);
+        log.info("【课程索引】上架过滤 - 课程ID: {}, 状态: {}, 是否通过: {}",
+                message.getLong("id"), status, pass);
+        return pass;
     }
 }

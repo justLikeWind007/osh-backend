@@ -52,6 +52,11 @@ public class AssistantFeedbackDetailVO {
     private String categoryIcon;
 
     /**
+     * 标签列表
+     */
+    private List<AssistantFeedbackTagVO> tags;
+
+    /**
      * 是否允许评论（0-否 1-是）
      */
     private Integer allowComment;
@@ -228,6 +233,14 @@ public class AssistantFeedbackDetailVO {
 
     public void setCategoryIcon(String categoryIcon) {
         this.categoryIcon = categoryIcon;
+    }
+
+    public List<AssistantFeedbackTagVO> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<AssistantFeedbackTagVO> tags) {
+        this.tags = tags;
     }
 
     public Integer getAllowComment() {

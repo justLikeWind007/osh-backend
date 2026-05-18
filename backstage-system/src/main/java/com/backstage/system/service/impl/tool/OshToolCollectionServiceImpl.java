@@ -5,7 +5,11 @@ import com.backstage.system.domain.tool.OshTool;
 import com.backstage.system.domain.tool.OshToolCollection;
 import com.backstage.system.mapper.tool.OshToolCollectionMapper;
 import com.backstage.system.mapper.tool.OshToolMapper;
+import com.backstage.system.service.OutboxEventService;
 import com.backstage.system.service.tool.IOshToolCollectionService;
+import com.backstage.system.service.tool.IOshToolEsService;
+import com.backstage.system.service.tool.ToolIndexEventType;
+import com.backstage.system.service.tool.ToolIndexMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +22,12 @@ public class OshToolCollectionServiceImpl implements IOshToolCollectionService {
 
     @Autowired
     private OshToolMapper oshToolMapper;
+
+    @Autowired
+    private IOshToolEsService oshToolEsService;
+
+    @Autowired
+    private OutboxEventService outboxEventService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -35,6 +45,7 @@ public class OshToolCollectionServiceImpl implements IOshToolCollectionService {
                 throw new ServiceException("收藏工具失败");
             }
             oshToolMapper.increaseCollectionCount(toolId);
+            saveToolCounterEvent(toolId, operator);
             return;
         }
         if (Integer.valueOf(1).equals(collection.getDeleteFlag())) {
@@ -42,6 +53,7 @@ public class OshToolCollectionServiceImpl implements IOshToolCollectionService {
                 throw new ServiceException("恢复工具收藏失败");
             }
             oshToolMapper.increaseCollectionCount(toolId);
+            saveToolCounterEvent(toolId, operator);
         }
     }
 
@@ -56,6 +68,7 @@ public class OshToolCollectionServiceImpl implements IOshToolCollectionService {
             throw new ServiceException("取消收藏工具失败");
         }
         oshToolMapper.decreaseCollectionCount(toolId);
+        saveToolCounterEvent(toolId, operator);
     }
 
     private void validateToolExists(Long toolId) {
@@ -63,5 +76,10 @@ public class OshToolCollectionServiceImpl implements IOshToolCollectionService {
         if (tool == null) {
             throw new ServiceException("工具不存在");
         }
+    }
+
+    private void saveToolCounterEvent(Long toolId, String operator) {
+        ToolIndexMessage message = oshToolEsService.buildIndexMessage(toolId, ToolIndexEventType.TOOL_INDEX_COUNTER);
+        outboxEventService.saveToolIndexEvent(toolId, message, operator);
     }
 }

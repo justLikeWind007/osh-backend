@@ -3,11 +3,13 @@ package com.backstage.system.service.site;
 import com.backstage.system.domain.site.OshSiteInfo;
 import com.backstage.system.domain.site.OshSiteMaintainer;
 import com.backstage.system.domain.user.OshUser;
+import com.backstage.system.service.site.impl.DemoSiteConfig;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.springframework.util.MultiValueMap;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -38,4 +40,58 @@ public interface IOshSiteInfoService extends IService<OshSiteInfo> {
     boolean testConnection(List<OshSiteInfo> oshSiteInfos, int timeout);
 
     List<OshSiteInfo> checkConnectionStatus(List<OshSiteInfo> oshSiteInfos, int timeout);
+
+    /**
+     * 异步启动演示站点（供外部轮询）。
+     * 首次调用提交后台启动任务；后续调用返回当前任务状态。
+     *
+     * @param siteId 站点ID
+     * @return 当前任务状态（含 status, statusName, message, checkCount 等字段）
+     */
+    Map<String, Object> startDemoAsync(Long siteId);
+
+    // ==================== 演示站点公共方法 ====================
+
+    /**
+     * 加载并校验演示站点配置。
+     * 校验：站点存在、类型为 demo、配置非空、SSH 连接参数完整、登录凭证完整。
+     *
+     * @param siteId 站点ID
+     * @return 解析后的演示站点配置
+     * @throws IllegalArgumentException 校验失败时抛出
+     */
+    DemoSiteConfig loadDemoSiteConfig(Long siteId);
+
+    /**
+     * 校验必需的配置字段不为空。
+     *
+     * @param fieldName 字段中文名（用于错误提示）
+     * @param fieldValue 字段值
+     * @throws IllegalArgumentException 字段为空时抛出
+     */
+    void requireConfigField(String fieldName, String fieldValue);
+
+    /**
+     * 同步启动演示站点（阻塞等待健康检查）。
+     *
+     * @param config 演示站点配置
+     * @return 启动结果（started, frontendUrl, loginUsername, healthCheckOutput 等）
+     */
+    Map<String, Object> startDemo(DemoSiteConfig config);
+
+    /**
+     * 检查演示站点服务状态。
+     *
+     * @param config 演示站点配置
+     * @return 检查结果（healthy, exitCode, output, frontendUrl 等）
+     */
+    Map<String, Object> checkDemo(DemoSiteConfig config);
+
+    /**
+     * 停止演示站点服务。
+     *
+     * @param config 演示站点配置
+     * @return 停止结果（stopped, exitCode, output）
+     */
+    Map<String, Object> stopDemo(DemoSiteConfig config);
 }
