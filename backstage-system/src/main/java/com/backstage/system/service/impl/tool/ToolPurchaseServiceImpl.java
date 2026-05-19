@@ -52,7 +52,6 @@ public class ToolPurchaseServiceImpl implements ToolPurchaseService {
     private static final int ORDER_STATUS_CANCELLED = 2;
     private static final int GRANT_STATUS_PENDING = 0;
     private static final int GRANT_STATUS_SUCCESS = 1;
-    private static final int POINT_ASSET_TYPE = 1;
     private static final int ASSET_CHANGE_TYPE_INCOME = 0;
     private static final int ASSET_CHANGE_TYPE_EXPENSE = 1;
     private static final int ASSET_CHANGE_SOURCE_BUY_PRODUCT = 3;
@@ -230,7 +229,6 @@ public class ToolPurchaseServiceImpl implements ToolPurchaseService {
         assetRecord.setUserId(userId);
         assetRecord.setChangeType(ASSET_CHANGE_TYPE_EXPENSE);
         assetRecord.setChangeSource(ASSET_CHANGE_SOURCE_BUY_PRODUCT);
-        assetRecord.setAssetType(POINT_ASSET_TYPE);
         assetRecord.setChangeAmount((long) pointCost);
         assetRecord.setBeforeBalance(beforeBalance);
         assetRecord.setAfterBalance(userAsset.getPoints());
@@ -254,7 +252,6 @@ public class ToolPurchaseServiceImpl implements ToolPurchaseService {
         assetRecord.setUserId(record.getUserId());
         assetRecord.setChangeType(ASSET_CHANGE_TYPE_INCOME);
         assetRecord.setChangeSource(ASSET_CHANGE_SOURCE_BUY_PRODUCT);
-        assetRecord.setAssetType(POINT_ASSET_TYPE);
         assetRecord.setChangeAmount(refundPoint);
         assetRecord.setBeforeBalance(beforeBalance);
         assetRecord.setAfterBalance(userAsset.getPoints());
