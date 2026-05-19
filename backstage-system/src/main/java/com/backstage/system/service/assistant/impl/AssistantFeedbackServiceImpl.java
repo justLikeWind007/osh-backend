@@ -1,5 +1,7 @@
 package com.backstage.system.service.assistant.impl;
 
+import com.backstage.common.utils.bean.BeanUtils;
+import com.backstage.system.domain.assistant.vo.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,10 +15,6 @@ import com.backstage.system.domain.assistant.dto.AssistantFeedbackCreateDTO;
 import com.backstage.system.domain.assistant.dto.AssistantFeedbackPageDTO;
 import com.backstage.system.domain.assistant.dto.AssistantTicketQueryDTO;
 import com.backstage.system.domain.assistant.dto.AssistantTicketStatusUpdateDTO;
-import com.backstage.system.domain.assistant.vo.AssistantFeedbackDetailVO;
-import com.backstage.system.domain.assistant.vo.AssistantFeedbackProcessRecordVO;
-import com.backstage.system.domain.assistant.vo.AssistantFeedbackTagVO;
-import com.backstage.system.domain.assistant.vo.AssistantFeedbackVO;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.mapper.assistant.AssistantFeedbackMapper;
 import com.backstage.system.mapper.user.OshUserMapper;
@@ -39,10 +37,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -293,6 +289,171 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         return feedbackViewAssembler.listProcessRecordsSafely(feedbackId);
     }
 
+    private void fillUserInfo(AssistantFeedbackVO feedbackVO, Long userId) {
+        OshUser user = getUserById(userId);
+        if (user == null) {
+            return;
+        }
+        feedbackVO.setUserName(StrUtil.isNotBlank(user.getUsername()) ? user.getUsername() : "匿名用户");
+        feedbackVO.setUserAvatar(user.getAvatar());
+    }
+
+    private AssistantFeedbackListVO toListVO(AssistantFeedback feedback,
+                                             Map<Long, OshUser> userMap,
+                                             Map<Long, AssistantFeedbackCategory> categoryMap,
+                                             Map<Long, List<AssistantFeedbackTagVO>> feedbackTagMap) {
+        AssistantFeedbackListVO vo = new AssistantFeedbackListVO();
+        BeanUtils.copyProperties(feedback, vo);
+        vo.setStatus(AssistantTicketStatus.normalize(feedback.getStatus()));
+        vo.setStatusText(AssistantTicketStatus.getDescriptionByCode(vo.getStatus()));
+        fillUserInfo(vo, userMap.get(feedback.getUserId()));
+
+        AssistantFeedbackCategory category = categoryMap.get(feedback.getCategoryId());
+        if (category != null) {
+            vo.setCategoryCode(category.getCode());
+            vo.setCategoryName(category.getName());
+            vo.setCategoryIcon(category.getIcon());
+        }
+
+        vo.setContentPreview(buildContentPreview(feedback.getContent()));
+        vo.setTags(feedbackTagMap.getOrDefault(feedback.getId(), Collections.emptyList()));
+        return vo;
+    }
+
+    private void fillUserInfo(AssistantFeedbackListVO feedbackVO, OshUser user) {
+        if (user == null) {
+            return;
+        }
+        feedbackVO.setUserName(StrUtil.isNotBlank(user.getUsername()) ? user.getUsername() : "匿名用户");
+        feedbackVO.setUserAvatar(user.getAvatar());
+    }
+
+    private void fillUserInfo(AssistantFeedbackDetailVO detailVO, Long userId) {
+        OshUser user = getUserById(userId);
+        if (user == null) {
+            return;
+        }
+        detailVO.setUserName(getUserDisplayName(user, detailVO.getUserName()));
+        detailVO.setUserAvatar(user.getAvatar());
+    }
+
+    private void fillHandlerInfo(AssistantFeedbackDetailVO detailVO, Long handlerId, String fallbackHandlerName) {
+        OshUser handler = getUserById(handlerId);
+        detailVO.setHandlerName(getUserDisplayName(handler, fallbackHandlerName));
+    }
+
+    private void fillHandlerInfo(AssistantFeedbackVO feedbackVO, Long handlerId, String fallbackHandlerName) {
+        OshUser handler = getUserById(handlerId);
+        feedbackVO.setHandlerName(getUserDisplayName(handler, fallbackHandlerName));
+    }
+
+    private String buildContentPreview(String content) {
+        if (StrUtil.isBlank(content)) {
+            return "";
+        }
+        String normalizedContent = StrUtil.replace(content.trim(), "\n", " ");
+        return normalizedContent.length() <= 100 ? normalizedContent : normalizedContent.substring(0, 100);
+    }
+
+    private Map<Long, OshUser> buildUserMap(List<AssistantFeedback> feedbackList) {
+        Set<Long> userIds = feedbackList.stream()
+                .map(AssistantFeedback::getUserId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+        if (userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return oshUserMapper.selectBatchIds(userIds).stream()
+                .collect(Collectors.toMap(OshUser::getId, Function.identity()));
+    }
+
+    private Map<Long, AssistantFeedbackCategory> buildCategoryMap(List<AssistantFeedback> feedbackList) {
+        Set<Long> categoryIds = feedbackList.stream()
+                .map(AssistantFeedback::getCategoryId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+        if (categoryIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return categoryService.lambdaQuery()
+                .in(AssistantFeedbackCategory::getId, categoryIds)
+                .list()
+                .stream()
+                .collect(Collectors.toMap(AssistantFeedbackCategory::getId, Function.identity()));
+    }
+
+    private Map<Long, List<AssistantFeedbackTagVO>> buildFeedbackTagMap(List<AssistantFeedback> feedbackList) {
+        Set<Long> feedbackIds = feedbackList.stream()
+                .map(AssistantFeedback::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        return feedbackTagService.mapFeedbackTags(feedbackIds);
+    }
+
+    private Set<Long> filterFeedbackIdsByTags(List<Long> tagIds) {
+        if (tagIds == null || tagIds.isEmpty()) {
+            return null;
+        }
+        return feedbackTagService.listFeedbackIdsByTagIds(tagIds);
+    }
+
+    private Set<Long> filterFeedbackIdsByQueryMode(AssistantFeedbackPageDTO dto) {
+        String queryMode = normalizeQueryMode(dto.getQueryMode());
+        if ("all".equals(queryMode)) {
+            return null;
+        }
+        Long userId = dto.getUserId();
+        if (userId == null) {
+            return Collections.emptySet();
+        }
+        if ("mine".equals(queryMode)) {
+            return lambdaQuery()
+                    .select(AssistantFeedback::getId)
+                    .eq(AssistantFeedback::getUserId, userId)
+                    .eq(AssistantFeedback::getDeleteFlag, (byte) 0)
+                    .list()
+                    .stream()
+                    .map(AssistantFeedback::getId)
+                    .collect(Collectors.toSet());
+        }
+        if ("favorite".equals(queryMode)) {
+            return favoriteService.listFavoriteFeedbackIds(userId);
+        }
+        return null;
+    }
+
+    private String normalizeQueryMode(String queryMode) {
+        if (StrUtil.isBlank(queryMode)) {
+            return "all";
+        }
+        return queryMode.trim().toLowerCase();
+    }
+
+    private Set<Long> intersectFeedbackIds(Set<Long> leftIds, Set<Long> rightIds) {
+        if (leftIds == null) {
+            return rightIds;
+        }
+        if (rightIds == null) {
+            return leftIds;
+        }
+        return leftIds.stream().filter(rightIds::contains).collect(Collectors.toSet());
+    }
+
+    private boolean shouldReturnEmptyPage(Set<Long> tagFilteredFeedbackIds, Set<Long> scopedFeedbackIds, Set<Long> filteredFeedbackIds) {
+        boolean tagFilterEmpty = tagFilteredFeedbackIds != null && tagFilteredFeedbackIds.isEmpty();
+        boolean scopeFilterEmpty = scopedFeedbackIds != null && scopedFeedbackIds.isEmpty();
+        boolean intersectionEmpty = filteredFeedbackIds != null && filteredFeedbackIds.isEmpty();
+        return tagFilterEmpty || scopeFilterEmpty || intersectionEmpty;
+    }
+
+    private List<AssistantFeedbackTagVO> resolveFeedbackTags(Long feedbackId, Map<Long, List<AssistantFeedbackTagVO>> feedbackTagMap) {
+        if (feedbackTagMap != null) {
+            return feedbackTagMap.getOrDefault(feedbackId, Collections.emptyList());
+        }
+        return feedbackTagService.mapFeedbackTags(Collections.singleton(feedbackId))
+                .getOrDefault(feedbackId, Collections.emptyList());
+    }
+
     private OshUser getUserById(Long userId) {
         return userId == null ? null : oshUserMapper.selectById(userId);
     }
@@ -308,7 +469,7 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         if (user == null) {
             return fallbackName;
         }
-        return StrUtil.isNotBlank(user.getNickname()) ? user.getNickname() : user.getUsername();
+        return StrUtil.isNotBlank(user.getUsername()) ? user.getUsername() : "匿名用户";
     }
 
     private void safeCreateProcessRecord(Long feedbackId, String fromStatus, String toStatus,

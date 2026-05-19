@@ -36,23 +36,32 @@ public class KafkaMessageUtil {
      * @param value 消息内容
      */
     public static void sendMessage(String topic, String value) {
-        try {
-            kafkaTemplate.send(topic, value);
-            logger.info("成功发送消息到topic: {}, 消息内容: {}", topic, value);
-        } catch (Exception e) {
-            logger.error("发送消息失败, topic: {}, 消息内容: {}, 错误信息: {}", topic, value, e.getMessage(), e);
-            throw new RuntimeException("发送Kafka消息失败", e);
-        }
+        kafkaTemplate.send(topic, value).addCallback(new ListenableFutureCallback<SendResult<String, String>>() {
+            @Override
+            public void onSuccess(SendResult<String, String> result) {
+                logger.info("成功发送消息到topic: {}, offset: {}, 消息内容: {}",
+                        topic, result.getRecordMetadata().offset(), value);
+            }
+            @Override
+            public void onFailure(Throwable ex) {
+                logger.error("发送消息失败, topic: {}, 消息内容: {}, 错误信息: {}", topic, value, ex.getMessage(), ex);
+            }
+        });
     }
 
     public static void sendMessage(String topic, String key, String value) {
-        try {
-            kafkaTemplate.send(topic, key, value);
-            logger.info("成功发送消息到topic: {}, key: {}, 消息内容: {}", topic, key, value);
-        } catch (Exception e) {
-            logger.error("发送消息失败, topic: {}, key: {}, 消息内容: {}, 错误信息: {}", topic, key, value, e.getMessage(), e);
-            throw new RuntimeException("发送Kafka消息失败", e);
-        }
+        kafkaTemplate.send(topic, key, value).addCallback(new ListenableFutureCallback<SendResult<String, String>>() {
+            @Override
+            public void onSuccess(SendResult<String, String> result) {
+                logger.info("成功发送消息到topic: {}, key: {}, offset: {}, 消息内容: {}",
+                        topic, key, result.getRecordMetadata().offset(), value);
+            }
+
+            @Override
+            public void onFailure(Throwable ex) {
+                logger.error("发送消息失败, topic: {}, key: {}, 消息内容: {}, 错误信息: {}", topic, key, value, ex.getMessage(), ex);
+            }
+        });
     }
 
     public static void sendMessageSync(String topic, String key, String value) {

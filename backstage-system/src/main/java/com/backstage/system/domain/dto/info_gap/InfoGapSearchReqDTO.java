@@ -4,7 +4,7 @@ public class InfoGapSearchReqDTO {
     private Integer pageNum = 1;
     private Integer pageSize = 10;
     private String keyword;
-    private Integer tagId;
+    private Long tagId;
     private String category;
 
     public Integer getPageNum() {
@@ -31,11 +31,11 @@ public class InfoGapSearchReqDTO {
         this.keyword = keyword;
     }
 
-    public Integer getTagId() {
+    public Long getTagId() {
         return tagId;
     }
 
-    public void setTagId(Integer tagId) {
+    public void setTagId(Long tagId) {
         this.tagId = tagId;
     }
 

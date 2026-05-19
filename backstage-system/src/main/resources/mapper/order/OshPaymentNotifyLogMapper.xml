@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.order.OshPaymentNotifyLogMapper">
+
+    <insert id="insertOshPaymentNotifyLog" parameterType="com.backstage.system.domain.order.OshPaymentNotifyLogDO" useGeneratedKeys="true" keyProperty="id">
+        insert into osh_payment_notify_log (
+            payment_no, order_no, platform_trade_no, notify_payload,
+            sign_valid, process_status, error_msg, created_time
+        ) values (
+            #{paymentNo}, #{orderNo}, #{platformTradeNo}, #{notifyPayload},
+            #{signValid}, #{processStatus}, #{errorMsg}, #{createdTime}
+        )
+    </insert>
+
+    <update id="updateProcessResult">
+        update osh_payment_notify_log
+        set order_no = #{orderNo},
+            sign_valid = #{signValid},
+            process_status = #{processStatus},
+            error_msg = #{errorMsg}
+        where id = #{id}
+    </update>
+</mapper>

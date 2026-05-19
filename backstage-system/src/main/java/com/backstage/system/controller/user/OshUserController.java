@@ -1,5 +1,6 @@
 package com.backstage.system.controller.user;
 
+import com.backstage.common.annotation.OshUserEvent;
 import com.backstage.common.annotation.OshUserLevel;
 import com.backstage.common.core.controller.BaseController;
 import com.backstage.common.core.domain.R;
@@ -14,6 +15,7 @@ import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.mail.MessagingException;
 import java.util.List;
@@ -38,6 +40,7 @@ public class OshUserController extends BaseController {
 
     @ApiOperation("账号登录")
     @PostMapping("/login")
+    @OshUserEvent(module = "用户模块", actionType = "登录", description = "用户登录")
     public R<OshUserLoginVO> login(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserLoginDTO userLoginDTO) {
@@ -46,6 +49,7 @@ public class OshUserController extends BaseController {
 
     @ApiOperation("注册请求")
     @PostMapping("/register/submit")
+    @OshUserEvent(module = "用户模块", actionType = "注册", description = "用户提交注册请求")
     public R<String> registerSubmit(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserRegisterDTO userRegisterDTO) throws MessagingException {
@@ -54,6 +58,7 @@ public class OshUserController extends BaseController {
 
     @ApiOperation("账号注册")
     @PostMapping("/register/verity")
+    @OshUserEvent(module = "用户模块", actionType = "注册", description = "验证用户注册")
     public R<String> registerVerity(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @ApiParam("用户的唯一标识") @RequestBody VerityRequestDTO verityRequestDTO) {
@@ -63,6 +68,7 @@ public class OshUserController extends BaseController {
     @ApiOperation("退出登录")
     @PostMapping("/logout")
     @PreAuthorize("hasAuthority('user:logout')")
+    @OshUserEvent(module = "用户模块", actionType = "登出", description = "用户登出")
     public R<String> logout(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid) {
         return userService.logout();
@@ -71,6 +77,7 @@ public class OshUserController extends BaseController {
     @ApiOperation("改绑邮箱请求 根据唯一标识改绑邮箱")
     @PostMapping("/changeEmail/submit")
     @PreAuthorize("hasAuthority('user:email:change:submit')")
+    @OshUserEvent(module = "用户模块", actionType = "修改邮箱", description = "用户提交修改邮箱请求")
     public R<String> changeEmailSubmit(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserChangeEmailDTO userChangeEmailDTO) throws MessagingException {
@@ -80,6 +87,7 @@ public class OshUserController extends BaseController {
     @ApiOperation("改绑邮箱验证")
     @PostMapping("/changeEmail/verity")
     @PreAuthorize("hasAuthority('user:email:change:verity')")
+    @OshUserEvent(module = "用户模块", actionType = "修改邮箱", description = "用户验证修改邮箱")
     public R<String> changeEmailVerity(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @ApiParam("用户的唯一标识") @RequestBody VerityRequestDTO verityRequestDTO) {
@@ -88,7 +96,7 @@ public class OshUserController extends BaseController {
 
     @ApiOperation("找回密码")
     @PostMapping("/forget")
-    @PreAuthorize("hasAuthority('user:password:forget')")
+    @OshUserEvent(module = "用户模块", actionType = "找回密码", description = "用户找回密码")
     public R<String> forget(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserForgetDTO userForgetDTO) {
@@ -98,15 +106,26 @@ public class OshUserController extends BaseController {
     @ApiOperation("修改资料")
     @PostMapping("/update_info")
     @PreAuthorize("hasAuthority('user:info:update')")
+    @OshUserEvent(module = "用户模块", actionType = "修改资料", description = "用户修改资料")
     public R<String> updateInfo(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserUpdateInfoDTO userUpdateInfoDTO) {
-        return userService.updateInfo(userUpdateInfoDTO.getAvatar(),userUpdateInfoDTO.getNickname(),userUpdateInfoDTO.getSex());
+        return userService.updateInfo(userUpdateInfoDTO.getUsername(),userUpdateInfoDTO.getSex(),userUpdateInfoDTO.getIntroduction());
+    }
+
+    @ApiOperation("上传头像")
+    @PostMapping("/upload_avatar")
+    @PreAuthorize("hasAuthority('user:info:update')")
+    public R<String> uploadAvatar(
+            @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
+            @RequestParam("file") MultipartFile file) {
+        return userService.uploadAvatar(file);
     }
 
     @ApiOperation("修改密码")
     @PostMapping("/update_password")
     @PreAuthorize("hasAuthority('user:password:update')")
+    @OshUserEvent(module = "用户模块", actionType = "修改密码", description = "用户修改密码")
     public R<String> updatePassword(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserPasswordDTO userPasswordDTO) {
@@ -115,6 +134,7 @@ public class OshUserController extends BaseController {
 
     @ApiOperation("获取用户信息")
     @GetMapping("/getinfo")
+    @OshUserEvent(module = "用户模块", actionType = "查询", description = "获取用户信息")
     public R<OshUser> getUserInfo(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid) {
         return userService.getUserInfo();
@@ -123,6 +143,7 @@ public class OshUserController extends BaseController {
     @ApiOperation("注销用户")
     @PostMapping("/deleteUser")
     @PreAuthorize("hasAuthority('user:delete')")
+    @OshUserEvent(module = "用户模块", actionType = "注销用户", description = "注销用户")
     public R<String> deleteUser(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid) {
         return userService.deleteUser();
@@ -130,6 +151,7 @@ public class OshUserController extends BaseController {
 
     @PostMapping("/violation/record")
     @PreAuthorize("hasAuthority('user:violation:record')")
+    @OshUserEvent(module = "用户模块", actionType = "违规记录", description = "用户违规记录")
     public R<String> record(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserRecordDTO userRecordDTO) {
@@ -138,6 +160,7 @@ public class OshUserController extends BaseController {
 
     @PostMapping("/violation/record/cancel")
     @PreAuthorize("hasAuthority('user:violation:record:cancel')")
+    @OshUserEvent(module = "用户模块", actionType = "取消违规记录", description = "用户取消违规记录")
     public R<String> cancelRecord(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserCancelRecordDTO userCancelRecordDTO) {
@@ -146,6 +169,7 @@ public class OshUserController extends BaseController {
 
     @PostMapping("/asset/update")
     @PreAuthorize("hasAuthority('user:asset:update')")
+    @OshUserEvent(module = "用户模块", actionType = "更新资产", description = "用户更新资产")
     public R<String> updateAsset(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserAssetDTO userAssetDTO) {
@@ -158,6 +182,7 @@ public class OshUserController extends BaseController {
     @GetMapping("/all")
     @PreAuthorize("hasAuthority('user:list')")
     @OshUserLevel(value = 5)
+    @OshUserEvent(module = "用户模块", actionType = "查询", description = "查询用户列表")
     public R<List<OshUser>> list(UserListRequest req) {
         return R.ok(userService.selectUserList(req));
     }

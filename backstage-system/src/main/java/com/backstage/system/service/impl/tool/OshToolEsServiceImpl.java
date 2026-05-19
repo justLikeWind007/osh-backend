@@ -214,6 +214,8 @@ public class OshToolEsServiceImpl implements IOshToolEsService {
             message.setPackageName(item.getPackageName());
             message.setUseCount(item.getUseCount());
             message.setPrice(item.getPrice());
+            message.setPointCost(item.getPointCost());
+            message.setPayType(item.getPayType());
             message.setStatus(item.getStatus());
             message.setSortOrder(item.getSortOrder());
             messages.add(message);

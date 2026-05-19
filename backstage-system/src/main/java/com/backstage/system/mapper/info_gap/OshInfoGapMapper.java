@@ -28,5 +28,7 @@ public interface OshInfoGapMapper extends BaseMapper<OshInfoGap> {
     // 查询当前用户发布的信息差
     List<InfoGapVO> selectInfoGapPageForMySelf(@Param("currentUserId") Long currentUserId);
 
-    List<InfoGapVO> searchInfoGap(@Param("keyword") String keyword, @Param("categoryId") String categoryId);
+    List<InfoGapVO> searchInfoGap(@Param("keyword") String keyword,
+                                  @Param("tagId") Long tagId,
+                                  @Param("currentUserId") Long currentUserId);
 }
