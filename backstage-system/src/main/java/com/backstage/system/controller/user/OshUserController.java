@@ -173,7 +173,7 @@ public class OshUserController extends BaseController {
     public R<String> updateAsset(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserAssetDTO userAssetDTO) {
-        return userService.updateAsset(userAssetDTO.getChangeType(), userAssetDTO.getChangeSource(), userAssetDTO.getAssetType(), userAssetDTO.getChangeAmount(), userAssetDTO.getRemark());
+        return userService.updateAsset(userAssetDTO.getChangeType(), userAssetDTO.getChangeSource(), userAssetDTO.getChangeAmount(), userAssetDTO.getRemark());
     }
 
     /**

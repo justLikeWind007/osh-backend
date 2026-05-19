@@ -16,7 +16,6 @@ import com.baomidou.mybatisplus.annotation.TableName;
 public class OshUserAsset extends OSHBaseEntity {
     @TableId(type = IdType.ASSIGN_ID)
     private Long userId;
-    private Long goldCoin;
     private Long points;
 
     public Long getUserId() {
@@ -25,14 +24,6 @@ public class OshUserAsset extends OSHBaseEntity {
 
     public void setUserId(Long userId) {
         this.userId = userId;
-    }
-
-    public Long getGoldCoin() {
-        return goldCoin;
-    }
-
-    public void setGoldCoin(Long goldCoin) {
-        this.goldCoin = goldCoin;
     }
 
     public Long getPoints() {
@@ -47,7 +38,6 @@ public class OshUserAsset extends OSHBaseEntity {
     public String toString() {
         return "OshUserAsset{" +
                 "userId=" + userId +
-                ", goldCoin=" + goldCoin +
                 ", points=" + points +
                 '}';
     }
