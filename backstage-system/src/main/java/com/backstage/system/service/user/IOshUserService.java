@@ -45,7 +45,7 @@ public interface IOshUserService {
 
     R<String> cancelRecord(Long userId, OshUser currentOshUser);
 
-    R<String> updateAsset(Integer changeType, Integer changeSource, Integer assetType, Long changeAmount, String remark);
+    R<String> updateAsset(Integer changeType, Integer changeSource, Long changeAmount, String remark);
 
 //    /**
 //     * 查询用户
