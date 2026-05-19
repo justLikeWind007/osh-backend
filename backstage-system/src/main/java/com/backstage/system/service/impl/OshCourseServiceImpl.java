@@ -346,8 +346,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long updateCourse(CourseUpdateRequest request, OshUser operator) {
-        OshCourse existingCourse = ensureCourseExists(request.getId());
-        ensureCourseEditableByOperator(existingCourse, operator);
+        ensureCourseExists(request.getId());
         OshCourse course = buildCourseForUpdate(request, operator);
         int rows = oshCourseMapper.updateCourse(course);
         if (rows <= 0) {
@@ -923,14 +922,6 @@ public class OshCourseServiceImpl implements IOshCourseService {
             throw new IllegalArgumentException("课程不存在");
         }
         return course;
-    }
-
-    private void ensureCourseEditableByOperator(OshCourse course, OshUser operator) {
-        String creator = course == null ? null : StringUtils.trimToNull(course.getCreateBy());
-        String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
-        if (!StringUtils.equals(creator, operatorName)) {
-            throw new IllegalArgumentException("只有课程创建人可以修改课程");
-        }
     }
 
     private void ensureParentChapter(Long courseId, Long parentId) {
