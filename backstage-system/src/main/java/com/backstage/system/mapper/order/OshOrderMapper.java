@@ -1,11 +1,12 @@
 package com.backstage.system.mapper.order;
 
 import com.backstage.system.domain.order.OshOrder;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.time.LocalDateTime;
 
-public interface OshOrderMapper {
+public interface OshOrderMapper extends BaseMapper<OshOrder> {
 
     int insertOshOrder(OshOrder order);
 

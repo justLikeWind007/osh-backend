@@ -11,8 +11,8 @@ public class OrderNoGenerator {
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS");
 
-    public String nextOrderNo() {
-        return "O" + timestamp() + randomSuffix();
+    public String nextOrderNo(String productType) {
+        return "O" + productType +  timestamp() + randomSuffix();
     }
 
     public String nextPaymentNo() {

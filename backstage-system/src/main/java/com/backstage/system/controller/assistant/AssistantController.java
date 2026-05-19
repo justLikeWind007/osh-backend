@@ -6,12 +6,7 @@ import com.backstage.common.core.controller.BaseController;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.exception.ServiceException;
-import com.backstage.system.domain.assistant.dto.AssistantCourseQaAskDTO;
-import com.backstage.system.domain.assistant.dto.AssistantFeedbackCommentDTO;
-import com.backstage.system.domain.assistant.dto.AssistantFeedbackCreateDTO;
-import com.backstage.system.domain.assistant.dto.AssistantFeedbackPageDTO;
-import com.backstage.system.domain.assistant.dto.AssistantFeedbackTagCreateDTO;
-import com.backstage.system.domain.assistant.dto.AssistantSiteQaAskDTO;
+import com.backstage.system.domain.assistant.dto.*;
 import com.backstage.system.domain.assistant.vo.AssistantAnswerVO;
 import com.backstage.system.domain.assistant.vo.AssistantFeedbackTagVO;
 import com.backstage.system.domain.assistant.vo.AssistantFeedbackVO;
@@ -102,6 +97,15 @@ public class AssistantController extends BaseController {
         return assistantFeedbackService.pageFeedbackList(dto);
     }
 
+    @GetMapping("/feedback/pending-confirm/count")
+    public R<Long> getPendingConfirmCount() {
+        Long userId = safeCurrentUserId();
+        if (userId == null) {
+            return R.fail(HttpStatus.UNAUTHORIZED, "请先登录后查看待确认工单");
+        }
+        return R.ok(assistantFeedbackService.countPendingConfirmTickets(userId));
+    }
+
     @PostMapping("/feedback/{id}/comment")
     public R<Long> createComment(@PathVariable("id") Long feedbackId,
                                   @Validated @RequestBody AssistantFeedbackCommentDTO dto) {
@@ -116,6 +120,16 @@ public class AssistantController extends BaseController {
 
         Long commentId = assistantFeedbackCommentService.createComment(dto, userId);
         return R.ok(commentId, "评论成功");
+    }
+
+    @PostMapping("/feedback/{id}/confirm")
+    public R<AssistantFeedbackVO> confirmFeedbackStatus(@PathVariable("id") Long feedbackId,
+                                                        @Validated @RequestBody AssistantTicketStatusUpdateDTO dto) {
+        Long userId = safeCurrentUserId();
+        if (userId == null) {
+            return R.fail(HttpStatus.UNAUTHORIZED, "请先登录后再确认工单结果");
+        }
+        return R.ok(assistantFeedbackService.confirmTicketStatus(feedbackId, userId, dto), "操作成功");
     }
 
     private Long safeCurrentUserId() {
