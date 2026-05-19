@@ -2,19 +2,21 @@ package com.backstage.system.domain.site;
 
 import com.backstage.common.core.domain.entity.OSHBaseEntity;
 import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import javax.validation.constraints.NotBlank;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 内部网站信息对象 osh_site_info
  *
  * @author backstage
  */
-@TableName("osh_site_info")
+@TableName(value = "osh_site_info", autoResultMap = true)
 public class OshSiteInfo extends OSHBaseEntity implements Serializable {
 
     private static final long serialVersionUID = 4936551355109148940L;
@@ -63,6 +65,24 @@ public class OshSiteInfo extends OSHBaseEntity implements Serializable {
      */
     @TableField(value = "status", updateStrategy = FieldStrategy.NOT_NULL)
     private Integer status;
+
+    /**
+     * 网站类型：demo=演示站点
+     */
+    @TableField(value = "site_type", updateStrategy = FieldStrategy.NOT_EMPTY)
+    private String siteType;
+
+    /**
+     * 网站类型名称（非数据库字段，由枚举映射）
+     */
+    @TableField(exist = false)
+    private String siteTypeName;
+
+    /**
+     * 站点配置 JSON（按类型约定结构）
+     */
+    @TableField(value = "site_config", updateStrategy = FieldStrategy.NOT_EMPTY, typeHandler = JacksonTypeHandler.class)
+    private Map<String, Object> siteConfig;
 
     /**
      * 最后检查时间
@@ -157,6 +177,30 @@ public class OshSiteInfo extends OSHBaseEntity implements Serializable {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public String getSiteType() {
+        return siteType;
+    }
+
+    public void setSiteType(String siteType) {
+        this.siteType = siteType;
+    }
+
+    public String getSiteTypeName() {
+        return siteTypeName;
+    }
+
+    public void setSiteTypeName(String siteTypeName) {
+        this.siteTypeName = siteTypeName;
+    }
+
+    public Map<String, Object> getSiteConfig() {
+        return siteConfig;
+    }
+
+    public void setSiteConfig(Map<String, Object> siteConfig) {
+        this.siteConfig = siteConfig;
     }
 
     public Date getLastCheckTime() {

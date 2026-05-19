@@ -2,7 +2,7 @@ package com.backstage.system.service.order.impl;
 
 import com.backstage.system.domain.order.OshPayment;
 import com.backstage.system.mapper.order.OshPaymentMapper;
-import com.backstage.system.service.order.UnifiedOrderService;
+import com.backstage.system.service.order.OrderService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -21,7 +21,7 @@ public class OrderCloseTask {
     private OshPaymentMapper oshPaymentMapper;
 
     @Resource
-    private UnifiedOrderService unifiedOrderService;
+    private OrderService orderService;
 
     @Scheduled(cron = "0 * * * * ?")
     public void closeExpiredPendingPayments() {
@@ -35,7 +35,7 @@ public class OrderCloseTask {
                 continue;
             }
             try {
-                unifiedOrderService.cancelPayment(payment.getPaymentNo());
+                orderService.cancelPayment(payment.getPaymentNo());
             } catch (Exception ex) {
                 log.warn("关闭超时支付订单失败, paymentNo={}, error={}", payment.getPaymentNo(), ex.getMessage(), ex);
             }

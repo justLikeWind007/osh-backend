@@ -31,14 +31,15 @@ public interface IOshSeckillOrderService {
 
     /**
      * 接口10：执行秒杀
-     * 流程：校验活动 → 校验明细 → Lua 脚本扣减库存 → 发 Kafka 消息
+     * 流程：校验活动 → 校验明细 → Lua 脚本扣减库存 → 写订单
      *
      * @param activityId 活动ID
      * @param itemId     活动商品明细ID（一个活动可含多个商品，需指定抢哪个）
      * @param userId     当前用户ID
+     * @param quantity   本次购买数量（不得超过 limitPerUser 限制）
      * @return 秒杀结果VO（含订单号和支付截止时间）
      */
-    SeckillResultVO doSeckill(Long activityId, Long itemId, Long userId);
+    SeckillResultVO doSeckill(Long activityId, Long itemId, Long userId, int quantity);
 
     /**
      * 接口11：查询秒杀结果（前端轮询）

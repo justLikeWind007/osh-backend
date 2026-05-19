@@ -133,6 +133,7 @@ public class AssistantFeedbackFavoriteServiceImpl implements IAssistantFeedbackF
         LambdaUpdateWrapper<AssistantFeedback> updateWrapper = Wrappers.lambdaUpdate(AssistantFeedback.class)
                 .setSql("favorite_count = " + favoriteCountSql)
                 .setSql("hot_score = " + hotScoreSql)
+                .eq(AssistantFeedback::getDeleteFlag, (byte) 0)
                 .eq(AssistantFeedback::getId, feedbackId);
         return assistantFeedbackMapper.update(new AssistantFeedback(), updateWrapper) > 0;
     }
