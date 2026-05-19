@@ -126,4 +126,13 @@
           and available_stock >= #{quantity}
     </update>
 
+    <!-- 归还库存 + 减少已售（归还后不超过 total_stock，sold_count 不低于 0） -->
+    <update id="incrStock">
+        update osh_seckill_activity_item
+        set available_stock = LEAST(available_stock + #{quantity}, total_stock),
+            sold_count      = GREATEST(sold_count - #{quantity}, 0),
+            update_time     = CURRENT_TIMESTAMP
+        where id = #{id}
+    </update>
+
 </mapper>

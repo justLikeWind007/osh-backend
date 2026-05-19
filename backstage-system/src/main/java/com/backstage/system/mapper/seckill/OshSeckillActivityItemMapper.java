@@ -40,4 +40,7 @@ public interface OshSeckillActivityItemMapper {
 
     /** 扣减库存 + 增加已售（原子更新，乐观锁兜底） */
     int decrStock(@Param("id") Long id, @Param("quantity") int quantity);
+
+    /** 归还库存 + 减少已售（归还后 available_stock 不超过 total_stock，sold_count 不低于 0） */
+    int incrStock(@Param("id") Long id, @Param("quantity") int quantity);
 }
