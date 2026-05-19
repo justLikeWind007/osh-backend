@@ -5,6 +5,7 @@
     <resultMap id="InfoGapVOResult" type="com.backstage.system.domain.vo.info_gap.InfoGapVO">
         <id column="id" property="id" />
         <result column="user_id" property="userId" />
+        <result column="status" property="status" />
         <result column="title" property="title" />
         <result column="tag" property="tag" />
         <result column="content" property="content" />
@@ -28,6 +29,7 @@
         select
             oig.id,
             oig.user_id,
+            oig.status,
             oig.title,
             oig.tag,
             oig.content,
@@ -68,7 +70,7 @@
             on oig.id = oigtr.info_gap_id and oigtr.rn &lt;= 3
         left join osh_info_gap_tag oigt
             on oigtr.gap_tag_id = oigt.id and oigt.delete_flag = 0
-        where oig.status = 0 and oig.delete_flag = 0
+        where oig.status = 2 and oig.delete_flag = 0
         group by oig.id
         <choose>
             <when test="type == 'hot'">
@@ -102,6 +104,7 @@
         select
             oig.id,
             oig.user_id,
+            oig.status,
             oig.title,
             oig.tag,
             oig.content,
@@ -141,7 +144,8 @@
             on oig.id = oigtr.info_gap_id and oigtr.rn &lt;= 3
         left join osh_info_gap_tag oigt
             on oigtr.gap_tag_id = oigt.id and oigt.delete_flag = 0
-        where oig.delete_flag = 0
+        where oig.status = 2
+          and oig.delete_flag = 0
         group by oig.id
         order by oig.create_time desc
     </select>
@@ -152,6 +156,7 @@
         select
             oig.id,
             oig.user_id,
+            oig.status,
             oig.title,
             oig.tag,
             oig.content,
@@ -203,6 +208,7 @@
         select
         oig.id,
         oig.user_id,
+        oig.status,
         oig.title,
         oig.tag,
         oig.content,
@@ -247,7 +253,7 @@
         on oig.id = oigtr.info_gap_id and oigtr.rn &lt;= 3
         left join osh_info_gap_tag oigt
         on oigtr.gap_tag_id = oigt.id and oigt.delete_flag = 0
-        where oig.status = 0
+        where oig.status = 2
         and oig.delete_flag = 0
         <choose>
             <when test="keyword != null and keyword != ''">
@@ -274,6 +280,7 @@
         select
             oig.id,
             oig.user_id,
+            oig.status,
             oig.title,
             oig.tag,
             oig.content,
@@ -302,7 +309,7 @@
                            on oig.id = oigtr.info_gap_id and oigtr.rn &lt;= 3
                  left join osh_info_gap_tag oigt
                            on oigtr.gap_tag_id = oigt.id and oigt.delete_flag = 0
-        where oig.status = 0
+        where oig.status = 2
           and oig.delete_flag = 0
         group by oig.id
         order by oig.good_count desc, oig.collect_count desc, oig.view_count desc

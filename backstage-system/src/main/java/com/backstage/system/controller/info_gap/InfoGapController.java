@@ -50,7 +50,7 @@ public class InfoGapController {
         Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
         infoGapService.createInfoGap(dto, currentUserId);
 
-        return R.ok();
+        return R.ok((Void) null, "提交成功，等待审核");
     }
 
     /**
@@ -138,7 +138,7 @@ public class InfoGapController {
         Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
         infoGapService.updateInfoGap(dto, currentUserId);
 
-        return R.ok();
+        return R.ok((Void) null, "修改成功，等待审核");
     }
 
     /**
