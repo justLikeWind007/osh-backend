@@ -228,10 +228,10 @@ public class OshGroupServerController extends BaseController {
             return R.fail("请先登录");
         }
         
-        // 权限验证：只有管理员（level <= 2）可以发起拼团
+        // 权限验证：只有用户角色等级 >= 2 才能发起拼团
         Integer userLevel = UserContextUtil.getCurrentLevel();
-        if (userLevel == null || userLevel > 2) {
-            return R.fail("权限不足，只有管理员可以发起拼团");
+        if (userLevel == null || userLevel < 2) {
+            return R.fail("权限不足，只有角色等级 >= 2 的用户才能发起拼团");
         }
         
         try {
@@ -363,8 +363,8 @@ public class OshGroupServerController extends BaseController {
             // 4. 获取实际支付金额
             String money = order.getPrice() != null ? order.getPrice().toString() : "0";
             
-            // 5. 调用支付服务创建支付
-            PayResponse response = payService.createPay(orderNo, name, money, clientIp);
+            // 5. 调用支付服务创建支付（默认使用微信支付）
+            PayResponse response = payService.createPay(orderNo, name, money, clientIp, "wxpay");
             
             if (response.getCode() == 1) {
                 return R.ok(response, "获取支付链接成功");

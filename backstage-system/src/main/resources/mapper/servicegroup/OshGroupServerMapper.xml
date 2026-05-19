@@ -371,7 +371,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         SELECT 
             id, user_id, group_activity_id, group_work_id, order_no,
             price, base_price, remaining_months, status, pay_method,
-            pay_time, remark, created_time, updated_time
+            pay_time, created_time, updated_time
         FROM osh_group_order
         WHERE order_no = #{orderNo}
     </select>
@@ -464,7 +464,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         SELECT 
             id, user_id, group_activity_id, group_work_id, order_no,
             price, base_price, remaining_months, status, pay_method,
-            pay_time, remark, created_time, updated_time
+            pay_time, created_time, updated_time
         FROM osh_group_order
         WHERE status = 'pending'
           AND created_time &lt; #{timeoutTime}

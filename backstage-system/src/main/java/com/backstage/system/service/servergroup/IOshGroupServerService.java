@@ -147,4 +147,18 @@ public interface IOshGroupServerService {
      * @return 服务器SSH信息VO
      */
     com.backstage.system.domain.vo.group.ServerSshInfoVO getServerSshInfo(Long activityId, Long userId);
+    
+    /**
+     * 处理拼团订单支付成功后的业务逻辑
+     * 
+     * 该方法由 GroupPaidHandler 调用，在支付成功后执行：
+     * 1. 更新 osh_group_order 表的订单状态为已支付
+     * 2. 更新 osh_group_work 表的参团记录状态
+     * 3. 判断并更新 osh_group_user_initiated 表的拼团状态（成团/结束）
+     * 4. 设置服务器时间（成团时）
+     * 
+     * @param orderNo 订单号（osh_group_order.order_no）
+     * @return 是否处理成功
+     */
+    boolean handlePaymentSuccess(String orderNo);
 }

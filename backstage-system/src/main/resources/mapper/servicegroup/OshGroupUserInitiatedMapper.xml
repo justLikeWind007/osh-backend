@@ -49,7 +49,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <!-- 公共片段：全字段列 -->
     <sql id="selectUserInitiatedVo">
         SELECT 
-            id, user_id, order_id, min_num, max_num, duration, custom_price,
+            id, user_id, order_id, min_num, max_num, duration, custom_price, activity_id,
             group_status, current_num, server_ip, server_account, server_password,
             server_start_time, server_expire_time, initiate_time, expire_time,
             create_time, update_time, delete_flag

@@ -217,9 +217,10 @@ public class OshGroupServerServiceImpl implements IOshGroupServerService {
         if (initiated == null) {
             throw new ServiceException("拼团记录不存在");
         }
-        
+
+        Long activityId = initiated.getActivityId();
         // 通过 activity_id 查询拼团活动模板
-        OshGroupActivity activity = groupServerMapper.selectGroupActivityById(initiated.getActivityId());
+        OshGroupActivity activity = groupServerMapper.selectGroupActivityById(activityId);
         if (activity == null) {
             throw new ServiceException("拼团活动模板不存在");
         }
@@ -1212,6 +1213,86 @@ public class OshGroupServerServiceImpl implements IOshGroupServerService {
         }
         
         return sshInfo;
+    }
+    
+    /**
+     * 处理拼团订单支付成功后的业务逻辑
+     * 
+     * 该方法由 GroupPaidHandler 调用，在支付成功后执行：
+     * 1. 更新 osh_group_order 表的订单状态为已支付
+     * 2. 更新 osh_group_work 表的参团记录状态
+     * 3. 判断并更新 osh_group_user_initiated 表的拼团状态（成团/结束）
+     * 4. 设置服务器时间（成团时）
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean handlePaymentSuccess(String orderNo) {
+        logger.info("【拼团支付回调】处理支付成功，订单号: {}", orderNo);
+        
+        // 1. 查询订单
+        OshGroupOrder order = groupServerMapper.selectGroupOrderByOrderNo(orderNo);
+        if (order == null) {
+            logger.warn("【拼团支付回调】订单不存在，orderNo={}", orderNo);
+            return false;
+        }
+        
+        // 2. 幂等检查：已支付则跳过
+        if ("paid".equals(order.getStatus()) || "success".equals(order.getStatus())) {
+            logger.info("【拼团支付回调】订单已支付，跳过处理，orderNo={}", orderNo);
+            return true;
+        }
+        
+        // 3. 更新订单状态为已支付
+        LocalDateTime now = LocalDateTime.now();
+        int updateOrder = groupServerMapper.updateOrderStatus(order.getId(), "paid", now);
+        if (updateOrder <= 0) {
+            logger.error("【拼团支付回调】更新订单状态失败，orderNo={}", orderNo);
+            return false;
+        }
+        logger.info("【拼团支付回调】订单状态已更新为已支付，orderNo={}", orderNo);
+        
+        // 4. 获取参团记录（group_work_id 存储的是 osh_group_user_initiated 表ID）
+        Long groupWorkId = order.getGroupWorkId();
+        if (groupWorkId == null) {
+            logger.warn("【拼团支付回调】参团记录ID为空，orderNo={}", orderNo);
+            return true; // 非参团订单（如发起拼团订单），直接返回成功
+        }
+        
+        // 5. 查询用户发起拼团记录
+        OshGroupUserInitiated initiated = userInitiatedMapper.selectById(groupWorkId);
+        if (initiated == null) {
+            logger.warn("【拼团支付回调】用户发起拼团记录不存在，groupWorkId={}", groupWorkId);
+            return true; // 可能是系统活动模板订单，直接返回
+        }
+        
+        // 6. 判断是否达到成团条件
+        Integer currentNum = initiated.getCurrentNum();
+        Integer minNum = initiated.getMinNum();
+        Integer duration = initiated.getDuration();
+        
+        if (currentNum != null && minNum != null && currentNum >= minNum) {
+            // 已达最低成团人数，更新状态
+            LocalDateTime serverStartTime = now;
+            LocalDateTime serverExpireTime = serverStartTime.plusMonths(duration != null ? duration : 1);
+            
+            // 更新用户发起拼团记录状态为已成团
+            userInitiatedMapper.updateGroupStatus(groupWorkId, 1);
+            userInitiatedMapper.updateServerTime(groupWorkId, serverStartTime, serverExpireTime);
+            logger.info("【拼团支付回调】拼团已成团，initiatedId={}, currentNum={}, minNum={}", 
+                    groupWorkId, currentNum, minNum);
+            
+            // 查找并更新对应的 osh_group_work 记录
+            // groupWorkId 同时也是 osh_group_user_initiated 的 ID，groupActivityId 才是 osh_group_work 的 ID
+            OshGroupWork work = groupServerMapper.selectGroupWorkByActivityAndUser(groupWorkId, order.getUserId());
+            if (work != null) {
+                groupServerMapper.updateGroupWorkStatus(work.getId(), 1);
+                groupServerMapper.updateGroupWorkServerTime(work.getId(), serverStartTime, serverExpireTime);
+                logger.info("【拼团支付回调】参团记录已更新，workId={}", work.getId());
+            }
+        }
+        
+        logger.info("【拼团支付回调】处理完成，orderNo={}", orderNo);
+        return true;
     }
     
     /**
