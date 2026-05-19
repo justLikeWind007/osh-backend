@@ -19,6 +19,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+
+import java.math.BigDecimal;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
@@ -284,6 +286,7 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
             order.setGoodsCover(item.getCover());
             order.setOriginPrice(item.getOriginPrice());
             order.setSeckillPrice(item.getSeckillPrice());
+            order.setTotalAmount(item.getSeckillPrice().multiply(BigDecimal.valueOf(quantity)));
             order.setQuantity(quantity);
             order.setStatus(0); // 待支付
             order.setPayExpireTime(payExpireTime);
@@ -501,6 +504,7 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
         vo.setGoodsTitle(order.getGoodsTitle());
         vo.setOriginPrice(order.getOriginPrice());
         vo.setSeckillPrice(order.getSeckillPrice());
+        vo.setTotalAmount(order.getTotalAmount());
         vo.setQuantity(order.getQuantity());
         vo.setStatus(order.getStatus());
         vo.setPayTime(order.getPayTime());
@@ -523,6 +527,7 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
         vo.setGoodsCover(order.getGoodsCover());
         vo.setOriginPrice(order.getOriginPrice());
         vo.setSeckillPrice(order.getSeckillPrice());
+        vo.setTotalAmount(order.getTotalAmount());
         vo.setQuantity(order.getQuantity());
         vo.setPayExpireTime(order.getPayExpireTime());
         return vo;

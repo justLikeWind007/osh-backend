@@ -3,6 +3,7 @@ package com.backstage.system.service.seckill;
 import com.backstage.system.domain.dto.seckill.SeckillGoodsAddDTO;
 import com.backstage.system.domain.dto.seckill.SeckillGoodsUpdateDTO;
 import com.backstage.system.domain.seckill.OshSeckillGoods;
+import com.backstage.system.domain.vo.seckill.SeckillGoodsPreviewVO;
 import com.backstage.system.domain.vo.seckill.SeckillGoodsVO;
 
 import java.util.List;
@@ -26,7 +27,12 @@ public interface IOshSeckillGoodsService {
     List<SeckillGoodsVO> selectSeckillGoodsList(OshSeckillGoods goods);
 
     /**
-     * 新增秒杀商品（入池）
+     * 预览商品信息（根据 goodsType 路由到对应表查询，供前端表单自动回填）
+     */
+    SeckillGoodsPreviewVO previewGoods(Integer goodsType, Long goodsId);
+
+    /**
+     * 新增秒杀商品（入池），goodsName/goodsCover/originPrice 由后端自动查表填充
      */
     int insertSeckillGoods(SeckillGoodsAddDTO dto);
 
