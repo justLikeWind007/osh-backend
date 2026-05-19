@@ -76,10 +76,10 @@ public enum AssistantTicketStatus {
         LEGACY_CODE_MAP = Collections.unmodifiableMap(legacyCodeMap);
 
         Map<String, Set<String>> transitionMap = new HashMap<>();
-        transitionMap.put(PENDING.getCode(), new HashSet<>(Arrays.asList(PROCESSING.getCode(), CLOSED.getCode(), REJECTED.getCode())));
+        transitionMap.put(PENDING.getCode(), new HashSet<>(Arrays.asList(PROCESSING.getCode(), PENDING_CONFIRM.getCode(), CLOSED.getCode(), REJECTED.getCode())));
         transitionMap.put(PROCESSING.getCode(), new HashSet<>(Arrays.asList(PENDING_CONFIRM.getCode(), CLOSED.getCode(), REJECTED.getCode())));
         transitionMap.put(PENDING_CONFIRM.getCode(), new HashSet<>(Arrays.asList(RESOLVED.getCode(), REOPENED.getCode(), CLOSED.getCode())));
-        transitionMap.put(REOPENED.getCode(), new HashSet<>(Arrays.asList(PROCESSING.getCode(), CLOSED.getCode(), REJECTED.getCode())));
+        transitionMap.put(REOPENED.getCode(), new HashSet<>(Arrays.asList(PROCESSING.getCode(), PENDING_CONFIRM.getCode(), CLOSED.getCode(), REJECTED.getCode())));
         transitionMap.put(RESOLVED.getCode(), new HashSet<>(Arrays.asList(REOPENED.getCode())));
         transitionMap.put(CLOSED.getCode(), new HashSet<>(Arrays.asList(REOPENED.getCode())));
         transitionMap.put(REJECTED.getCode(), new HashSet<>(Arrays.asList(REOPENED.getCode())));
