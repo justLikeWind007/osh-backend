@@ -49,6 +49,15 @@ public class AssistantFeedbackProcessRecordServiceImpl
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public void updateRemark(Long recordId, String remark, Long operatorId) {
+        AssistantFeedbackProcessRecord entity = new AssistantFeedbackProcessRecord();
+        entity.setId(recordId);
+        entity.setRemark(StrUtil.trimToEmpty(remark));
+        entity.setUpdateBy(operatorId);
+        updateById(entity);
+    }
+
     private AssistantFeedbackProcessRecordVO toVO(AssistantFeedbackProcessRecord record) {
         AssistantFeedbackProcessRecordVO vo = BeanUtil.copyProperties(record, AssistantFeedbackProcessRecordVO.class);
         vo.setFromStatusText(AssistantTicketStatus.getDescriptionByCode(record.getFromStatus()));

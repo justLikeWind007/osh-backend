@@ -1,16 +1,15 @@
 package com.backstage.system.service.assistant;
 
 import com.backstage.common.core.page.TableDataInfo;
+import com.backstage.system.domain.assistant.AssistantFeedback;
 import com.backstage.system.domain.assistant.dto.AssistantFeedbackCreateDTO;
 import com.backstage.system.domain.assistant.dto.AssistantFeedbackPageDTO;
 import com.backstage.system.domain.assistant.dto.AssistantTicketQueryDTO;
 import com.backstage.system.domain.assistant.dto.AssistantTicketStatusUpdateDTO;
 import com.backstage.system.domain.assistant.vo.AssistantFeedbackDetailVO;
-import com.backstage.system.domain.assistant.vo.AssistantFeedbackListVO;
 import com.backstage.system.domain.assistant.vo.AssistantFeedbackProcessRecordVO;
 import com.backstage.system.domain.assistant.vo.AssistantFeedbackVO;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.backstage.system.domain.assistant.AssistantFeedback;
 
 import java.util.List;
 
@@ -67,6 +66,38 @@ public interface IAssistantFeedbackService extends IService<AssistantFeedback> {
     AssistantFeedbackVO updateTicketStatus(Long ticketId, Long handlerId, AssistantTicketStatusUpdateDTO dto);
 
     /**
+     * 追加处理备注（不改变状态，仅写一条处理进展记录）。
+     *
+     * @param feedbackId 反馈 ID
+     * @param handlerId  操作人 ID
+     * @param remark     备注内容
+     */
+    void appendProcessingRemark(Long feedbackId, Long handlerId, String remark);
+
+    /**
+     * 提交人确认工单结果。
+     *
+     * @param feedbackId 工单 ID
+     * @param userId     当前用户 ID
+     * @param dto        确认请求
+     * @return 更新后的工单信息
+     */
+    AssistantFeedbackVO confirmTicketStatus(Long feedbackId, Long userId, AssistantTicketStatusUpdateDTO dto);
+
+    /**
+     * 统计当前用户待确认工单数。
+     *
+     * @param userId 用户 ID
+     * @return 待确认工单数
+     */
+    long countPendingConfirmTickets(Long userId);
+
+    /**
+     * 处理待确认工单的提醒与自动确认。
+     */
+    void processPendingConfirmTickets();
+
+    /**
      * 分页查询反馈列表（公开接口）
      *
      * @param dto 查询条件
@@ -89,6 +120,14 @@ public interface IAssistantFeedbackService extends IService<AssistantFeedback> {
      * @return 反馈详情
      */
     AssistantFeedbackDetailVO getFeedbackDetail(Long feedbackId);
+
+    /**
+     * 获取不增加浏览量的工单状态摘要。
+     *
+     * @param feedbackId 工单 ID
+     * @return 工单摘要
+     */
+    AssistantFeedbackDetailVO getFeedbackStatusSummary(Long feedbackId);
 
     /**
      * 查询反馈处理记录。

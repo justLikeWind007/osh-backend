@@ -4,7 +4,6 @@ import com.alibaba.fastjson2.JSON;
 import com.backstage.common.constant.OshResourceConstants;
 import com.backstage.common.constant.OshUserConstants;
 import com.backstage.common.core.domain.OshUserEvent;
-import com.backstage.common.core.domain.R;
 import com.backstage.common.core.redis.RedisCache;
 import com.backstage.common.enums.ResultCode;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
@@ -56,13 +55,12 @@ public class OshUserEventAspect {
             return joinPoint.proceed();
         }
         Map<String,String> asset = (Map<String,String>)userMap.get(OshUserConstants.ASSET);
-        Long goldCoin = Long.valueOf(asset.get(OshUserConstants.GOLD_COIN));
         Long points = Long.valueOf(asset.get(OshUserConstants.POINTS));
         String actionType = oshUserEvent.actionType();
         String description = oshUserEvent.description();
         Long id = GenerateUtil.generateSnowflakeId();
         OshUserEvent event = new OshUserEvent(id,userId,username,roleCode,module,methodName,
-                actionType, ListUtil.listToString(resourceIds),resourceType,description, null,null,goldCoin,points,
+                actionType, ListUtil.listToString(resourceIds),resourceType,description, null,null,points,
                 LocalDateTime.now());
         try {
             event.setStatus(ResultCode.SUCCESS.getMsg());

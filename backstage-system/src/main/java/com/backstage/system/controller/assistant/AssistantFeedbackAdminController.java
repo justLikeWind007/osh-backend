@@ -5,14 +5,11 @@ import com.backstage.common.core.controller.BaseController;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.exception.ServiceException;
-import com.backstage.system.domain.assistant.dto.AssistantFeedbackCreateDTO;
-import com.backstage.system.domain.assistant.dto.AssistantFeedbackPageDTO;
-import com.backstage.system.domain.assistant.dto.AssistantFeedbackTagCreateDTO;
-import com.backstage.system.domain.assistant.dto.AssistantTicketQueryDTO;
-import com.backstage.system.domain.assistant.dto.AssistantTicketStatusUpdateDTO;
+import com.backstage.system.domain.assistant.dto.*;
 import com.backstage.system.domain.assistant.vo.AssistantFeedbackTagVO;
 import com.backstage.system.domain.assistant.vo.AssistantFeedbackVO;
 import com.backstage.system.service.assistant.IAssistantFeedbackCategoryService;
+import com.backstage.system.service.assistant.IAssistantFeedbackProcessRecordService;
 import com.backstage.system.service.assistant.IAssistantFeedbackService;
 import com.backstage.system.service.assistant.IAssistantFeedbackTagService;
 import com.backstage.system.utils.UserContextUtil;
@@ -32,15 +29,17 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/pc/admin/feedback")
 public class AssistantFeedbackAdminController extends BaseController {
 
-    public AssistantFeedbackAdminController(IAssistantFeedbackService feedbackService, IAssistantFeedbackCategoryService categoryService, IAssistantFeedbackTagService feedbackTagService) {
+    public AssistantFeedbackAdminController(IAssistantFeedbackService feedbackService, IAssistantFeedbackCategoryService categoryService, IAssistantFeedbackTagService feedbackTagService, IAssistantFeedbackProcessRecordService processRecordService) {
         this.feedbackService = feedbackService;
         this.categoryService = categoryService;
         this.feedbackTagService = feedbackTagService;
+        this.processRecordService = processRecordService;
     }
 
     private final IAssistantFeedbackService feedbackService;
     private final IAssistantFeedbackCategoryService categoryService;
     private final IAssistantFeedbackTagService feedbackTagService;
+    private final IAssistantFeedbackProcessRecordService processRecordService;
 
     /**
      * 创建公告（仅管理员）
@@ -147,6 +146,34 @@ public class AssistantFeedbackAdminController extends BaseController {
         Long handlerId = getCurrentUserId();
         AssistantFeedbackVO feedback = feedbackService.updateTicketStatus(ticketId, handlerId, dto);
         return R.ok(feedback, "工单状态更新成功");
+    }
+
+    /**
+     * 追加处理备注（不改变状态）
+     */
+    @ApiOperation("追加处理备注")
+    @PreAuthorize("hasAuthority('system:feedback:manage')")
+    @PostMapping("/{id}/remark")
+    public R<String> appendRemark(@PathVariable("id") Long feedbackId,
+                                  @Validated @RequestBody AssistantTicketStatusUpdateDTO dto) {
+        ensureAdmin();
+        Long handlerId = getCurrentUserId();
+        feedbackService.appendProcessingRemark(feedbackId, handlerId, dto.getRemark());
+        return R.ok("备注追加成功");
+    }
+
+    /**
+     * 修改处理记录备注
+     */
+    @ApiOperation("修改处理记录备注")
+    @PreAuthorize("hasAuthority('system:feedback:manage')")
+    @PutMapping("/process-record/{recordId}/remark")
+    public R<String> updateProcessRecordRemark(@PathVariable("recordId") Long recordId,
+                                               @Validated @RequestBody UpdateRemarkDTO dto) {
+        ensureAdmin();
+        Long operatorId = getCurrentUserId();
+        processRecordService.updateRemark(recordId, dto.getRemark(), operatorId);
+        return R.ok("备注修改成功");
     }
 
     /**

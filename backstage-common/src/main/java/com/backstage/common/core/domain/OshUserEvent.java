@@ -77,11 +77,6 @@ public class OshUserEvent extends OSHBaseEntity {
     @TableField("exception")
     private String exception;
     /**
-     * 当前金币
-     */
-    @TableField("current_coin")
-    private Long currentCoin;
-    /**
      * 当前积分
      */
     @TableField("current_point")
@@ -190,14 +185,6 @@ public class OshUserEvent extends OSHBaseEntity {
         this.exception = exception;
     }
 
-    public Long getCurrentCoin() {
-        return currentCoin;
-    }
-
-    public void setCurrentCoin(Long currentCoin) {
-        this.currentCoin = currentCoin;
-    }
-
     public Long getCurrentPoint() {
         return currentPoint;
     }
@@ -227,7 +214,6 @@ public class OshUserEvent extends OSHBaseEntity {
                 ", description='" + description + '\'' +
                 ", status='" + status + '\'' +
                 ", exception='" + exception + '\'' +
-                ", currentCoin=" + currentCoin +
                 ", currentPoint=" + currentPoint +
                 ", happenTime='" + happenTime + '\'' +
                 '}';
@@ -239,7 +225,7 @@ public class OshUserEvent extends OSHBaseEntity {
     public OshUserEvent(Long id, Long userId, String username, String role, String module,
                         String methodName, String actionType, String ResourceId, String resourceType,
                         String description, String status, String exception,
-                        Long currentCoin, Long currentPoint, LocalDateTime happenTime) {
+                        Long currentPoint, LocalDateTime happenTime) {
         this.id = id;
         this.userId = userId;
         this.username = username;
@@ -252,7 +238,6 @@ public class OshUserEvent extends OSHBaseEntity {
         this.description = description;
         this.status = status;
         this.exception = exception;
-        this.currentCoin = currentCoin;
         this.currentPoint = currentPoint;
         this.happenTime = happenTime;
     }
