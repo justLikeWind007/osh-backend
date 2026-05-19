@@ -5,11 +5,7 @@ import com.backstage.common.core.controller.BaseController;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.system.domain.assistant.dto.AssistantFeedbackPageDTO;
-import com.backstage.system.domain.assistant.vo.AssistantFeedbackCategoryVO;
-import com.backstage.system.domain.assistant.vo.AssistantFeedbackCommentVO;
-import com.backstage.system.domain.assistant.vo.AssistantFeedbackDetailVO;
-import com.backstage.system.domain.assistant.vo.AssistantFeedbackProcessRecordVO;
-import com.backstage.system.domain.assistant.vo.AssistantFeedbackTagVO;
+import com.backstage.system.domain.assistant.vo.*;
 import com.backstage.system.service.assistant.IAssistantFeedbackCategoryService;
 import com.backstage.system.service.assistant.IAssistantFeedbackCommentService;
 import com.backstage.system.service.assistant.IAssistantFeedbackService;
@@ -81,6 +77,12 @@ public class AssistantFeedbackPublicController extends BaseController {
     public R<AssistantFeedbackDetailVO> getFeedbackDetail(@PathVariable("id") Long id) {
         AssistantFeedbackDetailVO detail = feedbackService.getFeedbackDetail(id);
         return R.ok(detail);
+    }
+
+    @ApiOperation("获取工单状态摘要")
+    @GetMapping("/status-summary/{id}")
+    public R<AssistantFeedbackDetailVO> getFeedbackStatusSummary(@PathVariable("id") Long id) {
+        return R.ok(feedbackService.getFeedbackStatusSummary(id));
     }
 
     /**

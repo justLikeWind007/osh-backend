@@ -1,8 +1,8 @@
 package com.backstage.system.service.assistant;
 
+import com.backstage.system.domain.assistant.AssistantFeedbackProcessRecord;
 import com.backstage.system.domain.assistant.vo.AssistantFeedbackProcessRecordVO;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.backstage.system.domain.assistant.AssistantFeedbackProcessRecord;
 
 import java.util.List;
 
@@ -32,4 +32,13 @@ public interface IAssistantFeedbackProcessRecordService extends IService<Assista
      * @return 处理记录列表
      */
     List<AssistantFeedbackProcessRecordVO> listByFeedbackId(Long feedbackId);
+
+    /**
+     * 修改处理记录备注。
+     *
+     * @param recordId   记录 ID
+     * @param remark     新备注内容
+     * @param operatorId 操作人 ID
+     */
+    void updateRemark(Long recordId, String remark, Long operatorId);
 }
