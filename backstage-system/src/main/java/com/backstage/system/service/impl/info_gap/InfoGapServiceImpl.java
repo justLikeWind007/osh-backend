@@ -171,21 +171,8 @@ public class InfoGapServiceImpl implements InfoGapService {
 
     @Override
     public List<InfoGapVO> recommend() {
-        LambdaQueryWrapper<OshInfoGap> queryWrapper = Wrappers.lambdaQuery(OshInfoGap.class)
-                .eq(OshInfoGap::getDeleteFlag, 0)
-                .orderByDesc(OshInfoGap::getGoodCount)
-                .orderByDesc(OshInfoGap::getCollectCount)
-                .orderByDesc(OshInfoGap::getViewCount)
-                .last("Limit 3");
-
-        List<OshInfoGap> infoGapList = infoGapMapper.selectList(queryWrapper);
-        List<InfoGapVO> infoGapVOList = infoGapList.stream().map(infoGap -> {
-            InfoGapVO infoGapVO = new InfoGapVO();
-            BeanUtils.copyProperties(infoGap, infoGapVO);
-            return infoGapVO;
-        }).collect(Collectors.toList());
-
-        return infoGapVOList;
+        List<InfoGapVO> recommendList = infoGapMapper.selectRecommendList();
+        return recommendList;
     }
 
     // 辅助方法：抽取列名逻辑，避免代码重复

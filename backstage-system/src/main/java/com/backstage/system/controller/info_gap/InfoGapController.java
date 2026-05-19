@@ -72,7 +72,9 @@ public class InfoGapController {
     @GetMapping("/recommend")
     @Anonymous
     public R<List> recommend() {
-        return R.ok(infoGapService.recommend());
+        List<InfoGapVO> infoGapVOList = infoGapService.recommend();
+
+        return R.ok(infoGapVOList);
     }
 
     /**
