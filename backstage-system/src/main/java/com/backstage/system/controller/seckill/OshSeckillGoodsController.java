@@ -10,6 +10,7 @@ import com.backstage.system.domain.dto.seckill.SeckillGoodsAddDTO;
 import com.backstage.system.domain.dto.seckill.SeckillGoodsStatusDTO;
 import com.backstage.system.domain.dto.seckill.SeckillGoodsUpdateDTO;
 import com.backstage.system.domain.seckill.OshSeckillGoods;
+import com.backstage.system.domain.vo.seckill.SeckillGoodsPreviewVO;
 import com.backstage.system.domain.vo.seckill.SeckillGoodsVO;
 import com.backstage.system.service.seckill.IOshSeckillGoodsService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,22 @@ public class OshSeckillGoodsController extends BaseController {
 
     @Autowired
     private IOshSeckillGoodsService seckillGoodsService;
+
+    /**
+     * 预览商品信息（根据 goodsType + goodsId 查对应表，供前端表单自动回填）
+     * GET /pc/seckill/goods/preview?goodsType=1&goodsId=101
+     */
+    @PreAuthorize("hasAuthority('seckill:goods:add')")
+    @GetMapping("/preview")
+    public R<SeckillGoodsPreviewVO> preview(@RequestParam Integer goodsType,
+                                            @RequestParam Long goodsId) {
+        try {
+            SeckillGoodsPreviewVO vo = seckillGoodsService.previewGoods(goodsType, goodsId);
+            return R.ok(vo);
+        } catch (Exception e) {
+            return R.fail(e.getMessage());
+        }
+    }
 
     /**
      * 查询秒杀商品池列表
