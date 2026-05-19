@@ -49,7 +49,7 @@ public class SeckillResultVO implements Serializable {
     @ApiModelProperty("购买数量")
     private Integer quantity;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     @ApiModelProperty("支付截止时间（前端用于倒计时）")
     private Date payExpireTime;
 

@@ -2,14 +2,17 @@ package com.backstage.framework.task;
 
 import com.backstage.common.constant.SeckillCacheConstants;
 import com.backstage.system.domain.seckill.OshSeckillOrder;
+import com.backstage.system.mapper.seckill.OshSeckillActivityItemMapper;
 import com.backstage.system.mapper.seckill.OshSeckillOrderMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -37,7 +40,26 @@ public class SeckillOrderTimeoutTask {
     private OshSeckillOrderMapper orderMapper;
 
     @Autowired
+    private OshSeckillActivityItemMapper itemMapper;
+
+    @Autowired
     private StringRedisTemplate stringRedisTemplate;
+
+    /**
+     * Lua 脚本：归还 Redis 库存时不超过 totalStock 上限（原子操作）
+     * KEYS[1] = stockKey
+     * ARGV[1] = 归还数量 qty
+     * ARGV[2] = totalStock 上限
+     */
+    private static final DefaultRedisScript<Long> RETURN_STOCK_SCRIPT = new DefaultRedisScript<>(
+            "local cur = tonumber(redis.call('GET', KEYS[1])) or 0 " +
+            "local total = tonumber(ARGV[2]) " +
+            "local qty   = tonumber(ARGV[1]) " +
+            "local newVal = math.min(cur + qty, total) " +
+            "redis.call('SET', KEYS[1], tostring(newVal)) " +
+            "return newVal",
+            Long.class
+    );
 
     /**
      * 每分钟执行一次
@@ -61,16 +83,27 @@ public class SeckillOrderTimeoutTask {
                 update.setCancelReason("pay_timeout");
                 orderMapper.updateOrder(update);
 
-                // 2. 归还 Redis 库存
+                // 2. 归还 Redis 库存（Lua 原子操作，归还后不超过 totalStock）
                 String stockKey     = SECKILL_STOCK_KEY     + order.getActivityId() + ":" + order.getItemId();
                 String boughtCntKey = SECKILL_BOUGHT_CNT_KEY + order.getActivityId() + ":" + order.getItemId() + ":" + order.getUserId();
                 String orderKey     = SECKILL_ORDER_KEY     + order.getActivityId() + ":" + order.getItemId() + ":" + order.getUserId();
 
                 int qty = order.getQuantity() != null ? order.getQuantity() : 1;
 
-                // 只在 key 存在时归还，避免活动已结束缓存被清理后重新写入脏数据
-                if (Boolean.TRUE.equals(stringRedisTemplate.hasKey(stockKey))) {
-                    stringRedisTemplate.opsForValue().increment(stockKey, qty);
+                // 2a. 同步归还数据库库存（available_stock 不超过 total_stock，sold_count 不低于 0）
+                itemMapper.incrStock(order.getItemId(), qty);
+
+                // 2b. 归还 Redis 库存，需要 totalStock 作为上限
+                //     先从数据库取最新 totalStock，再用 Lua 脚本原子归还
+                com.backstage.system.domain.seckill.OshSeckillActivityItem item =
+                        itemMapper.selectItemById(order.getItemId());
+                if (item != null && Boolean.TRUE.equals(stringRedisTemplate.hasKey(stockKey))) {
+                    stringRedisTemplate.execute(
+                            RETURN_STOCK_SCRIPT,
+                            Arrays.asList(stockKey),
+                            String.valueOf(qty),
+                            String.valueOf(item.getTotalStock())
+                    );
                 }
 
                 // 3. 减少用户已购数量，允许用户重新下单
