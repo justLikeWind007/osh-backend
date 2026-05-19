@@ -20,10 +20,6 @@ public class UserAssetDTO {
      */
     private Integer changeSource;
     /**
-     * 资产类型：0-金币，1-积分
-     */
-    private Integer assetType;
-    /**
      * 变动数量（正数）
      */
     private Long changeAmount;
@@ -48,14 +44,6 @@ public class UserAssetDTO {
         this.changeSource = changeSource;
     }
 
-    public Integer getAssetType() {
-        return assetType;
-    }
-
-    public void setAssetType(Integer assetType) {
-        this.assetType = assetType;
-    }
-
     public Long getChangeAmount() {
         return changeAmount;
     }
@@ -77,7 +65,6 @@ public class UserAssetDTO {
         return "UserAssetDTO{" +
                 "changeType=" + changeType +
                 ", changeSource=" + changeSource +
-                ", assetType=" + assetType +
                 ", changeAmount=" + changeAmount +
                 ", remark='" + remark + '\'' +
                 '}';
