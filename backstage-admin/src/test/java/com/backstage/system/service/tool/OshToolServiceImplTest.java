@@ -83,6 +83,7 @@ public class OshToolServiceImplTest {
         Long toolId = toolService.createTool(request, operator);
 
         assertEquals(Long.valueOf(10001L), toolId);
+        verify(oshToolMapper).insertTool(argThat(tool -> Integer.valueOf(2).equals(tool.getStatus())));
         verify(oshToolTagMapper, times(2)).insertToolTag(any(OshToolTag.class));
         verify(oshToolTagMapper).insertToolTagRel(eq(10001L), eq(1L), eq("admin"));
         verify(oshToolTagMapper).insertToolTagRel(eq(10001L), eq(2L), eq("admin"));
@@ -120,6 +121,7 @@ public class OshToolServiceImplTest {
                 Integer.valueOf(0).equals(toolPackage.getPointCost())
                         && Integer.valueOf(1).equals(toolPackage.getPayType())
         ));
+        verify(oshToolMapper).insertTool(argThat(tool -> Integer.valueOf(2).equals(tool.getStatus())));
         verify(oshToolEsService).buildIndexMessage(eq(10002L), eq(ToolIndexEventType.TOOL_INDEX_CREATE));
     }
 
@@ -146,6 +148,7 @@ public class OshToolServiceImplTest {
                         && "/test/test".equals(tool.getRoutePath())
                         && tool.getIframeUrl() == null
                         && Integer.valueOf(0).equals(tool.getPointCost())
+                        && Integer.valueOf(2).equals(tool.getStatus())
         ));
         verify(oshToolEsService).buildIndexMessage(eq(10003L), eq(ToolIndexEventType.TOOL_INDEX_CREATE));
     }

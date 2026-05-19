@@ -7,6 +7,8 @@ import com.backstage.system.mapper.openproject.OshOpenProjectMapper;
 import com.backstage.system.service.openproject.IOshOpenProjectRankService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.xxl.job.core.context.XxlJobHelper;
+import com.xxl.job.core.handler.annotation.XxlJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,8 +41,7 @@ public class OpenProjectSyncTask {
     // GitHub API 速率限制：未认证 60次/小时，建议配置 token
     private static final String GITHUB_API = "https://api.github.com/repos/";
     // 从 GitHub URL 提取 owner/repo 的正则
-    private static final Pattern GITHUB_PATTERN =
-            Pattern.compile("github\\.com/([^/]+)/([^/\\s?#]+)");
+    private static final Pattern GITHUB_PATTERN = Pattern.compile("github\\.com/([^/]+)/([^/\\s?#]+)");
 
     @Value("${github.token:}")
     private String githubToken;
@@ -53,9 +54,11 @@ public class OpenProjectSyncTask {
 
     /**
      * 全量同步所有已通过审核的开源项目的 GitHub 数据
-     * 每天凌晨 2 点执行：0 0 2 * * ?
+     * xxl-job handler 名称：osh-backend-githubsync
      */
+    @XxlJob("osh-backend-githubsync")
     public void syncAll() {
+        XxlJobHelper.log("开源项目 GitHub 数据同步开始");
         log.info("开源项目 GitHub 数据同步开始");
 
         // 只同步已通过审核的项目
@@ -85,6 +88,7 @@ public class OpenProjectSyncTask {
         }
 
         log.info("开源项目 GitHub 数据同步完成，成功={}，跳过={}，失败={}", success, skip, fail);
+        XxlJobHelper.log("开源项目 GitHub 数据同步完成，成功=%d，跳过=%d，失败=%d", success, skip, fail);
 
         // 同步完成后保存今日快照，用于排行榜增量计算
         if (rankService != null) {

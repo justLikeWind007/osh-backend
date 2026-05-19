@@ -4,6 +4,7 @@ import com.backstage.common.constant.OshUserConstants;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.core.redis.RedisCache;
 import com.backstage.common.enums.ResultCode;
+import com.backstage.common.enums.UploadPathEnum;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.common.utils.email.EmailUtil;
 import com.backstage.common.utils.generate.GenerateUtil;
@@ -13,11 +14,14 @@ import com.backstage.system.domain.user.*;
 import com.backstage.system.domain.user.vo.OshUserLoginVO;
 import com.backstage.system.mapper.user.*;
 import com.backstage.system.request.UserListRequest;
+import com.backstage.system.service.common.OssService;
 import com.backstage.system.service.user.IOshUserService;
+import com.backstage.system.utils.OssUtil;
 import com.backstage.system.utils.UserContextUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.stereotype.Service;
 
 import javax.mail.MessagingException;
@@ -241,16 +245,61 @@ public class OshUserServiceImpl implements IOshUserService {
     }
 
     @Override
-    public R<String> updateInfo(String avatar, String nickname, String sex) {
+    public R<String> updateInfo(String username, String sex, String introduction) {
         Long userId = ThreadLocalUtil.get(OshUserConstants.USER_ID,Long.class);
         LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(OshUser::getId, userId);
         OshUser oshUser = oshUserMapper.selectOne(wrapper);
-        oshUser.setAvatar(avatar);
-        oshUser.setNickname(nickname);
+        oshUser.setUsername(username);
         oshUser.setSex(sex);
+        oshUser.setIntroduction(introduction);
         oshUserMapper.update(oshUser, wrapper);
         return R.ok(ResultCode.SUCCESS.getMsg());
+    }
+
+    @Autowired
+    private OssService ossService;
+
+    @Autowired
+    private OssUtil ossUtil;
+
+    @Override
+    public R<String> uploadAvatar(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return R.fail("上传文件不能为空");
+        }
+        // 校验文件类型
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null) {
+            return R.fail("文件名不能为空");
+        }
+        String extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+        if (!extension.matches("jpg|jpeg|png|gif|webp")) {
+            return R.fail("仅支持 jpg/png/gif/webp 格式的图片");
+        }
+        // 校验文件大小（最大 3MB）
+        if (file.getSize() > 3 * 1024 * 1024) {
+            return R.fail("头像图片大小不能超过 3MB");
+        }
+        try {
+            Long userId = ThreadLocalUtil.get(OshUserConstants.USER_ID, Long.class);
+            // 上传到 OSS，路径：common/image/avatar/{userId}/
+            String filePath = ossService.upload(file, UploadPathEnum.AVATAR, String.valueOf(userId));
+            if (filePath == null || filePath.contains("不能超过")) {
+                return R.fail(filePath);
+            }
+            // 获取完整的公开访问 URL
+            String avatarUrl = ossUtil.getFullFilePath(filePath);
+            // 更新用户头像字段
+            LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(OshUser::getId, userId);
+            OshUser oshUser = oshUserMapper.selectOne(wrapper);
+            oshUser.setAvatar(avatarUrl);
+            oshUserMapper.update(oshUser, wrapper);
+            return R.ok(avatarUrl);
+        } catch (Exception e) {
+            return R.fail("头像上传失败：" + e.getMessage());
+        }
     }
 
     @Override

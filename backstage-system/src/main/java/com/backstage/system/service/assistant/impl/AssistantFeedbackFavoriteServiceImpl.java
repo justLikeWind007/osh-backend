@@ -18,6 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 反馈收藏服务实现
@@ -105,6 +108,19 @@ public class AssistantFeedbackFavoriteServiceImpl implements IAssistantFeedbackF
                 .exists();
     }
 
+    @Override
+    public Set<Long> listFavoriteFeedbackIds(Long userId) {
+        if (userId == null) {
+            return Collections.emptySet();
+        }
+        return Db.lambdaQuery(AssistantFeedbackFavorite.class)
+                .eq(AssistantFeedbackFavorite::getUserId, userId)
+                .list()
+                .stream()
+                .map(AssistantFeedbackFavorite::getFeedbackId)
+                .collect(Collectors.toSet());
+    }
+
     /**
      * 使用 Wrapper + Mapper 更新，规避 MP 3.5.3.1 下 LambdaUpdateChainWrapper#setSql 的兼容性问题。
      *
@@ -117,6 +133,7 @@ public class AssistantFeedbackFavoriteServiceImpl implements IAssistantFeedbackF
         LambdaUpdateWrapper<AssistantFeedback> updateWrapper = Wrappers.lambdaUpdate(AssistantFeedback.class)
                 .setSql("favorite_count = " + favoriteCountSql)
                 .setSql("hot_score = " + hotScoreSql)
+                .eq(AssistantFeedback::getDeleteFlag, (byte) 0)
                 .eq(AssistantFeedback::getId, feedbackId);
         return assistantFeedbackMapper.update(new AssistantFeedback(), updateWrapper) > 0;
     }

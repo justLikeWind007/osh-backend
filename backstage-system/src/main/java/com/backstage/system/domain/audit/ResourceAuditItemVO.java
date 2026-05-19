@@ -23,6 +23,12 @@ public class ResourceAuditItemVO {
     @ApiModelProperty(value = "资源链接", example = "https://example.com")
     private String url;
 
+    @ApiModelProperty(value = "作者", example = "vuejs")
+    private String author;
+
+    @ApiModelProperty(value = "提交时间", example = "2026-05-12 10:00:00")
+    private LocalDateTime submitTime;
+
     @ApiModelProperty(value = "资源等级", example = "1")
     private Integer level;
 
@@ -73,6 +79,22 @@ public class ResourceAuditItemVO {
 
     public void setUrl(String url) {
         this.url = url;
+    }
+
+    public String getAuthor() {
+        return author;
+    }
+
+    public void setAuthor(String author) {
+        this.author = author;
+    }
+
+    public LocalDateTime getSubmitTime() {
+        return submitTime;
+    }
+
+    public void setSubmitTime(LocalDateTime submitTime) {
+        this.submitTime = submitTime;
     }
 
     public Integer getLevel() {

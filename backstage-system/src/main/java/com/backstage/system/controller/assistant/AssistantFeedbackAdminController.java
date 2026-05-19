@@ -7,11 +7,14 @@ import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.system.domain.assistant.dto.AssistantFeedbackCreateDTO;
 import com.backstage.system.domain.assistant.dto.AssistantFeedbackPageDTO;
+import com.backstage.system.domain.assistant.dto.AssistantFeedbackTagCreateDTO;
 import com.backstage.system.domain.assistant.dto.AssistantTicketQueryDTO;
 import com.backstage.system.domain.assistant.dto.AssistantTicketStatusUpdateDTO;
+import com.backstage.system.domain.assistant.vo.AssistantFeedbackTagVO;
 import com.backstage.system.domain.assistant.vo.AssistantFeedbackVO;
 import com.backstage.system.service.assistant.IAssistantFeedbackCategoryService;
 import com.backstage.system.service.assistant.IAssistantFeedbackService;
+import com.backstage.system.service.assistant.IAssistantFeedbackTagService;
 import com.backstage.system.utils.UserContextUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -26,22 +29,24 @@ import org.springframework.web.bind.annotation.*;
  */
 @Api(tags = "AI助手反馈-管理接口")
 @RestController
-@RequestMapping("/admin/feedback")
+@RequestMapping("/pc/admin/feedback")
 public class AssistantFeedbackAdminController extends BaseController {
 
-    public AssistantFeedbackAdminController(IAssistantFeedbackService feedbackService, IAssistantFeedbackCategoryService categoryService) {
+    public AssistantFeedbackAdminController(IAssistantFeedbackService feedbackService, IAssistantFeedbackCategoryService categoryService, IAssistantFeedbackTagService feedbackTagService) {
         this.feedbackService = feedbackService;
         this.categoryService = categoryService;
+        this.feedbackTagService = feedbackTagService;
     }
 
     private final IAssistantFeedbackService feedbackService;
     private final IAssistantFeedbackCategoryService categoryService;
+    private final IAssistantFeedbackTagService feedbackTagService;
 
     /**
      * 创建公告（仅管理员）
      */
     @ApiOperation("创建公告")
-    @PreAuthorize("@ss.hasPermi('system:feedback:manage')")
+    @PreAuthorize("hasAuthority('system:feedback:manage')")
     @PostMapping("/announcement/create")
     public R<AssistantFeedbackVO> createAnnouncement(@Validated @RequestBody AssistantFeedbackCreateDTO dto) {
         ensureAdmin();
@@ -52,15 +57,27 @@ public class AssistantFeedbackAdminController extends BaseController {
             return R.fail("只能创建公告类型的反馈");
         }
 
-        AssistantFeedbackVO feedback = feedbackService.createFeedback(userId, dto);
+        AssistantFeedbackVO feedback = feedbackService.createFeedback(userId, dto, true);
         return R.ok(feedback, "公告创建成功");
+    }
+
+    /**
+     * 创建反馈标签
+     */
+    @ApiOperation("创建反馈标签")
+    @PreAuthorize("hasAuthority('system:feedback:manage')")
+    @PostMapping("/tag/create")
+    public R<AssistantFeedbackTagVO> createTag(@Validated @RequestBody AssistantFeedbackTagCreateDTO dto) {
+        ensureAdmin();
+        AssistantFeedbackTagVO tag = feedbackTagService.createTag(dto, getCurrentUserId());
+        return R.ok(tag, "标签创建成功");
     }
 
     /**
      * 反馈管理列表（分页）
      */
     @ApiOperation("反馈管理列表")
-    @PreAuthorize("@ss.hasPermi('system:feedback:manage')")
+    @PreAuthorize("hasAuthority('system:feedback:manage')")
     @PostMapping("/page")
     public TableDataInfo pageFeedback(@RequestBody AssistantFeedbackPageDTO dto) {
         ensureAdmin();
@@ -71,7 +88,7 @@ public class AssistantFeedbackAdminController extends BaseController {
      * 工单管理列表（分页）
      */
     @ApiOperation("工单管理列表")
-    @PreAuthorize("@ss.hasPermi('system:feedback:manage')")
+    @PreAuthorize("hasAuthority('system:feedback:manage')")
     @GetMapping("/ticket/list")
     public TableDataInfo ticketList(AssistantTicketQueryDTO queryDTO) {
         ensureAdmin();
@@ -83,7 +100,7 @@ public class AssistantFeedbackAdminController extends BaseController {
      * 置顶反馈
      */
     @ApiOperation("置顶反馈")
-    @PreAuthorize("@ss.hasPermi('system:feedback:manage')")
+    @PreAuthorize("hasAuthority('system:feedback:manage')")
     @PostMapping("/{id}/pin")
     public R<String> pinFeedback(@PathVariable("id") Long feedbackId,
                                   @RequestParam("pinOrder") Integer pinOrder) {
@@ -96,7 +113,7 @@ public class AssistantFeedbackAdminController extends BaseController {
      * 取消置顶
      */
     @ApiOperation("取消置顶")
-    @PreAuthorize("@ss.hasPermi('system:feedback:manage')")
+    @PreAuthorize("hasAuthority('system:feedback:manage')")
     @PostMapping("/{id}/unpin")
     public R<String> unpinFeedback(@PathVariable("id") Long feedbackId) {
         ensureAdmin();
@@ -108,7 +125,7 @@ public class AssistantFeedbackAdminController extends BaseController {
      * 更新反馈状态
      */
     @ApiOperation("更新反馈状态")
-    @PreAuthorize("@ss.hasPermi('system:feedback:manage')")
+    @PreAuthorize("hasAuthority('system:feedback:manage')")
     @PostMapping("/{id}/status")
     public R<AssistantFeedbackVO> updateStatus(@PathVariable("id") Long feedbackId,
                                                  @Validated @RequestBody AssistantTicketStatusUpdateDTO dto) {
@@ -122,25 +139,21 @@ public class AssistantFeedbackAdminController extends BaseController {
      * 更新工单状态
      */
     @ApiOperation("更新工单状态")
-    @PreAuthorize("@ss.hasPermi('system:feedback:manage')")
+    @PreAuthorize("hasAuthority('system:feedback:manage')")
     @PostMapping("/ticket/{ticketId}/status")
     public R<AssistantFeedbackVO> updateTicketStatus(@PathVariable("ticketId") Long ticketId,
                                                      @Validated @RequestBody AssistantTicketStatusUpdateDTO dto) {
         ensureAdmin();
         Long handlerId = getCurrentUserId();
-        try {
-            AssistantFeedbackVO feedback = feedbackService.updateTicketStatus(ticketId, handlerId, dto);
-            return R.ok(feedback, "工单状态更新成功");
-        } catch (IllegalArgumentException ex) {
-            return R.fail(ex.getMessage());
-        }
+        AssistantFeedbackVO feedback = feedbackService.updateTicketStatus(ticketId, handlerId, dto);
+        return R.ok(feedback, "工单状态更新成功");
     }
 
     /**
      * 删除反馈（逻辑删除）
      */
     @ApiOperation("删除反馈")
-    @PreAuthorize("@ss.hasPermi('system:feedback:manage')")
+    @PreAuthorize("hasAuthority('system:feedback:manage')")
     @DeleteMapping("/{id}")
     public R<String> deleteFeedback(@PathVariable("id") Long feedbackId) {
         ensureAdmin();
@@ -169,6 +182,8 @@ public class AssistantFeedbackAdminController extends BaseController {
             if (level == null || level < 4) {
                 throw new ServiceException("无权限操作", HttpStatus.FORBIDDEN);
             }
+        } catch (ServiceException exception) {
+            throw exception;
         } catch (Exception e) {
             throw new ServiceException("权限验证失败", HttpStatus.FORBIDDEN);
         }

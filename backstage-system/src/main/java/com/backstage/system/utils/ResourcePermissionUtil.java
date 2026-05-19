@@ -24,7 +24,7 @@ public class ResourcePermissionUtil {
      * @return true-有权限，false-无权限
      */
     public static Integer getResourceLevel(ResourceTypeEnum resourceTypeEnum, Long resourceId) {
-        String tableName = resourceTypeEnum.getTableName();
+        String tableName = resourceTypeEnum.getMysqlTableName();
         Integer requiredLevel = getRequiredLevelFromTable(tableName, resourceId);
         if (requiredLevel == null) {
             return -1;

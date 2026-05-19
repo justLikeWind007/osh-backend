@@ -8,27 +8,35 @@ package com.backstage.common.enums;
  * Time: 18:26
  */
 public enum ResourceTypeEnum {
-    COURSE("course","osh_course"),
-    QA_QUESTION("qa_question","osh_question_answer_question"),
-    QA_ANSWER("qa_answer","osh_question_answer_answer"),
-    BOOK("book","osh_book"),
-    TOOL("tool","osh_tool"),
-    WEBSITE("website","osh_practical_website"),
+    COURSE("course", "osh_course", "osh_course_search_read"),
+    QA_QUESTION("qa_question", "osh_question_answer_question", ""),
+    QA_ANSWER("qa_answer", "osh_question_answer_answer", ""),
+    BOOK("book", "osh_book", ""),
+    TOOL("tool", "osh_tool", "osh_tool_search"),
+    WEBSITE("website", "osh_practical_website", ""),
+    OPEN_PROJECT("open_project", "osh_open_project", ""),
     ;
     private final String type;
-    private final String tableName;
+    private final String mysqlTableName;
+    private final String esIndexName;
 
-    ResourceTypeEnum(String type, String tableName) {
+
+    ResourceTypeEnum(String type, String mysqlTableName, String esIndexName) {
         this.type = type;
-        this.tableName = tableName;
+        this.mysqlTableName = mysqlTableName;
+        this.esIndexName = esIndexName;
     }
 
     public String getType() {
         return type;
     }
 
-    public String getTableName() {
-        return tableName;
+    public String getMysqlTableName() {
+        return mysqlTableName;
+    }
+
+    public String getEsIndexName() {
+        return esIndexName;
     }
 
     public static ResourceTypeEnum fromTypeCode(String type) {

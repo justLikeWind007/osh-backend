@@ -10,13 +10,16 @@ import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.system.domain.site.OshSiteInfo;
 import com.backstage.system.domain.site.OshSiteTag;
-import com.backstage.system.service.common.OssService;
 import com.backstage.system.domain.user.OshUser;
+import com.backstage.system.service.common.OssService;
 import com.backstage.system.service.site.IOshSiteInfoService;
 import com.backstage.system.service.site.IOshSiteTagsService;
+import com.backstage.system.service.site.impl.DemoSiteConfig;
 import com.backstage.system.service.user.IOshUserService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 import org.springframework.validation.annotation.Validated;
@@ -35,6 +38,8 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/pc/site")
 public class OshSiteInfoController extends BaseController {
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
     IOshSiteInfoService oshSiteInfoService;
@@ -186,11 +191,93 @@ public class OshSiteInfoController extends BaseController {
     @Anonymous
     @ApiOperation("检查网站连接状态")
     @PostMapping("/check-all")
-    public R<Boolean> checkAllSiteConnection() {
+    public R<List<OshSiteInfo>> checkAllSiteConnection() {
         List<OshSiteInfo> oshSiteInfos = oshSiteInfoService.list();
         if (CollectionUtils.isEmpty(oshSiteInfos)) {
             return R.fail("网站不存在");
         }
-        return R.ok(oshSiteInfoService.testConnection(oshSiteInfos));
+        oshSiteInfoService.testConnection(oshSiteInfos);
+        return R.ok(oshSiteInfos);
+    }
+
+    /**
+     * 启动演示站点后端服务（同步阻塞）
+     * 1. 通过 SSH 在远程服务器后台执行启动脚本
+     * 2. 定期执行健康检查脚本，轮询直到服务启动成功或超时
+     */
+    @Anonymous
+    @ApiOperation("启动演示站点后端服务（同步阻塞）")
+    @PostMapping("/demo/start/{id}")
+    public R<Map<String, Object>> startDemoService(@PathVariable Long id) {
+        try {
+            DemoSiteConfig cfg = oshSiteInfoService.loadDemoSiteConfig(id);
+            oshSiteInfoService.requireConfigField("启动脚本", cfg.getStartupScript());
+            oshSiteInfoService.requireConfigField("健康检查脚本", cfg.getHealthCheckScript());
+            Map<String, Object> result = oshSiteInfoService.startDemo(cfg);
+            return R.ok(result);
+        } catch (IllegalArgumentException e) {
+            return R.fail(e.getMessage());
+        } catch (Exception e) {
+            log.error("启动演示服务失败", e);
+            return R.fail("启动失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 检查演示站点后端服务状态
+     */
+    @Anonymous
+    @ApiOperation("检查演示站点后端服务状态")
+    @PostMapping("/demo/check/{id}")
+    public R<Map<String, Object>> checkDemoServiceStatus(@PathVariable Long id) {
+        try {
+            DemoSiteConfig cfg = oshSiteInfoService.loadDemoSiteConfig(id);
+            oshSiteInfoService.requireConfigField("健康检查脚本", cfg.getHealthCheckScript());
+            Map<String, Object> result = oshSiteInfoService.checkDemo(cfg);
+            return R.ok(result);
+        } catch (IllegalArgumentException e) {
+            return R.fail(e.getMessage());
+        } catch (Exception e) {
+            log.error("检查演示服务状态失败", e);
+            return R.fail("检查失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 异步启动演示站点（调用方轮询此接口）。
+     * 首次调用提交后台启动任务；后续调用返回当前任务状态。
+     */
+    @ApiOperation("异步启动演示站点（轮询接口）")
+    @PostMapping("/demo/start-async/{id}")
+    public R<Map<String, Object>> startDemoAsync(@PathVariable Long id) {
+        try {
+            Map<String, Object> result = oshSiteInfoService.startDemoAsync(id);
+            return R.ok(result);
+        } catch (IllegalArgumentException e) {
+            return R.fail(e.getMessage());
+        } catch (Exception e) {
+            log.error("异步启动演示站点失败", e);
+            return R.fail("启动失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 停止演示站点服务
+     */
+    @Anonymous
+    @ApiOperation("停止演示站点服务")
+    @PostMapping("/demo/stop/{id}")
+    public R<Map<String, Object>> stopDemoService(@PathVariable Long id) {
+        try {
+            DemoSiteConfig cfg = oshSiteInfoService.loadDemoSiteConfig(id);
+            oshSiteInfoService.requireConfigField("停止脚本", cfg.getStopScript());
+            Map<String, Object> result = oshSiteInfoService.stopDemo(cfg);
+            return R.ok(result);
+        } catch (IllegalArgumentException e) {
+            return R.fail(e.getMessage());
+        } catch (Exception e) {
+            log.error("停止演示服务失败", e);
+            return R.fail("停止失败：" + e.getMessage());
+        }
     }
 }

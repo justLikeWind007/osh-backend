@@ -2,6 +2,7 @@ package com.backstage.system.service.impl.tool;
 
 import com.backstage.common.response.PageResponse;
 import com.backstage.common.utils.StringUtils;
+import com.backstage.system.controller.course.OshCourseController;
 import com.backstage.system.domain.tool.OshTool;
 import com.backstage.system.domain.tool.OshToolPackage;
 import com.backstage.system.mapper.tool.OshToolCollectionMapper;
@@ -15,6 +16,8 @@ import com.backstage.system.service.tool.ToolIndexEventType;
 import com.backstage.system.service.tool.ToolIndexMessage;
 import com.backstage.system.service.tool.ToolIndexPackageMessage;
 import com.github.pagehelper.PageHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +32,8 @@ import java.util.stream.Collectors;
 public class OshToolEsServiceImpl implements IOshToolEsService {
 
     private static final int PAGE_SIZE = 200;
+
+    private static final Logger log = LoggerFactory.getLogger(OshToolEsServiceImpl.class);
 
     @Autowired
     private OshToolEsMapper oshToolEsMapper;
@@ -55,6 +60,7 @@ public class OshToolEsServiceImpl implements IOshToolEsService {
                 response = oshToolEsMapper.searchTools(request, null);
             }
             fillUserState(response.getRows(), userId);
+            log.debug("从es中查出: {} 条数据", response.getRows().size());
             return response;
         } catch (Exception ex) {
             throw new IllegalStateException("search tools from es failed", ex);
@@ -68,17 +74,14 @@ public class OshToolEsServiceImpl implements IOshToolEsService {
         try {
             oshToolEsMapper.deleteAllTools();
             while (true) {
-                ToolSearchRequest request = new ToolSearchRequest();
-                request.setPageNum(pageNum);
-                request.setPageSize(PAGE_SIZE);
                 PageHelper.startPage(pageNum, PAGE_SIZE);
-                List<OshTool> rows = oshToolMapper.pageQuerySearchTool(request, null);
+                List<OshTool> rows = oshToolMapper.selectAllToolsForEsSync();
                 if (StringUtils.isEmpty(rows)) {
                     break;
                 }
                 List<ToolIndexMessage> documents = new ArrayList<>(rows.size());
                 for (OshTool row : rows) {
-                    ToolIndexMessage message = buildIndexMessage(row.getId(), ToolIndexEventType.TOOL_INDEX_UPDATE);
+                    ToolIndexMessage message = buildIndexMessage(row, ToolIndexEventType.TOOL_INDEX_UPDATE);
                     if (message != null) {
                         documents.add(message);
                     }
@@ -101,9 +104,16 @@ public class OshToolEsServiceImpl implements IOshToolEsService {
         if (tool == null) {
             return null;
         }
-        List<String> tagNames = oshToolTagMapper.selectTagNamesByToolId(toolId);
-        List<Long> tagIds = oshToolTagMapper.selectTagIdsByToolId(toolId);
-        List<OshToolPackage> packages = oshToolPackageMapper.selectPackagesByToolId(toolId);
+        return buildIndexMessage(tool, eventType);
+    }
+
+    private ToolIndexMessage buildIndexMessage(OshTool tool, String eventType) {
+        if (tool == null) {
+            return null;
+        }
+        List<String> tagNames = oshToolTagMapper.selectTagNamesByToolId(tool.getId());
+        List<Long> tagIds = oshToolTagMapper.selectTagIdsByToolId(tool.getId());
+        List<OshToolPackage> packages = oshToolPackageMapper.selectPackagesByToolId(tool.getId());
         return buildIndexMessage(tool, tagIds, tagNames, packages, eventType);
     }
 
@@ -204,6 +214,8 @@ public class OshToolEsServiceImpl implements IOshToolEsService {
             message.setPackageName(item.getPackageName());
             message.setUseCount(item.getUseCount());
             message.setPrice(item.getPrice());
+            message.setPointCost(item.getPointCost());
+            message.setPayType(item.getPayType());
             message.setStatus(item.getStatus());
             message.setSortOrder(item.getSortOrder());
             messages.add(message);

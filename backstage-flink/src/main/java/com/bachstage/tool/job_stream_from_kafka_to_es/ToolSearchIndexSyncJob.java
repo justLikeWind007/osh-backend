@@ -26,24 +26,21 @@ public class ToolSearchIndexSyncJob
     private static final String EVENT_TYPE_UPDATE = "TOOL_INDEX_UPDATE";
     private static final String EVENT_TYPE_DELETE = "TOOL_INDEX_DELETE";
     private static final String EVENT_TYPE_COUNTER = "TOOL_INDEX_COUNTER";
-    private static final Integer PUBLISHED_STATUS = 1;
+    private static final String EVENT_TYPE_AUDIT_APPROVED = "AUDIT_APPROVED";
+    private static final String EVENT_TYPE_AUDIT_REJECTED = "AUDIT_REJECTED";
+    private static final Integer PUBLISHED_STATUS = 4;
 
     public static void main(String[] args) throws Exception
     {
-        System.out.println("========================================");
-        System.out.println("ToolSearchIndexSyncJob 启动中...");
-        System.out.println("========================================");
+        log.info("========================================");
+        log.info("ToolSearchIndexSyncJob 启动中...");
+        log.info("========================================");
 
         ToolIndexJobConfig config = ToolIndexJobConfig.fromSystem();
 
-        System.out.println("配置信息:");
-        System.out.println("  Kafka: " + config.getKafkaBootstrapServers());
-        System.out.println("  消费者组: " + config.getKafkaGroupId());
-        System.out.println("  Offset策略: " + config.getKafkaStartMode());
-        System.out.println("  Topic: " + config.getTopic());
-        System.out.println("  ES: " + config.getEsHosts());
-        System.out.println("  ES 索引: " + config.getEsIndex());
-        System.out.println("========================================\n");
+        log.info("配置信息: Kafka={}, 消费者组={}, Offset策略={}, Topic={}, ES={}, ES索引={}",
+                config.getKafkaBootstrapServers(), config.getKafkaGroupId(), config.getKafkaStartMode(),
+                config.getTopic(), config.getEsHosts(), config.getEsIndex());
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
@@ -52,6 +49,14 @@ public class ToolSearchIndexSyncJob
         Properties kafkaProps = ToolKafkaPropertiesFactory.create(config);
         DataStream<JSONObject> eventStream = buildToolEventStream(env, kafkaProps, config.getTopic());
 
+        // 审核状态变更：只做 partial update（status / updateTime / updateBy）
+        eventStream
+                .filter(ToolSearchIndexSyncJob::isAuditEvent)
+                .name("tool-index-audit-event-filter")
+                .addSink(ToolIndexElasticsearchSinkFactory.buildAuditPartialUpdateSink(config))
+                .name("tool-index-es-audit-partial-update-sink");
+
+        // 常规 upsert：已发布才写入
         eventStream
                 .filter(ToolSearchIndexSyncJob::isUpsertEvent)
                 .name("tool-index-upsert-event-filter")
@@ -60,13 +65,14 @@ public class ToolSearchIndexSyncJob
                 .addSink(ToolIndexElasticsearchSinkFactory.buildUpsertSink(config))
                 .name("tool-index-es-upsert-sink");
 
+        // 常规删除：DELETE 事件或未发布的 upsert
         eventStream
                 .filter(message -> isDeleteEvent(message) || isNotPublishedUpsertEvent(message))
                 .name("tool-index-es-delete-route-filter")
                 .addSink(ToolIndexElasticsearchSinkFactory.buildDeleteSink(config))
                 .name("tool-index-es-delete-sink");
 
-        System.out.println("Flink 任务已启动，正在监听工具索引统一 Topic...\n");
+        log.info("Flink 任务已启动，正在监听工具索引统一 Topic...");
         env.execute("tool-search-index-sync-job");
     }
 
@@ -82,10 +88,17 @@ public class ToolSearchIndexSyncJob
                 .addSource(consumer)
                 .name("tool-index-source")
                 .map((MapFunction<String, JSONObject>) value -> {
-                    log.info("【工具索引】收到消息: {}" , value);
-                    return JSON.parseObject(value);
+                    log.info("【工具索引】收到消息: {}", value);
+                    try {
+                        return JSON.parseObject(value);
+                    } catch (Exception ex) {
+                        log.error("【工具索引】解析消息失败，跳过该条非JSON数据: {}", value, ex);
+                        return null;
+                    }
                 })
                 .name("tool-index-parse")
+                .filter(message -> message != null)
+                .name("tool-index-json-filter")
                 .filter(message -> {
                     Long toolId = message.getLong("id");
                     String eventType = message.getString("eventType");
@@ -102,6 +115,12 @@ public class ToolSearchIndexSyncJob
         return EVENT_TYPE_CREATE.equals(eventType)
                 || EVENT_TYPE_UPDATE.equals(eventType)
                 || EVENT_TYPE_COUNTER.equals(eventType);
+    }
+
+    private static boolean isAuditEvent(JSONObject message)
+    {
+        String eventType = message.getString("eventType");
+        return EVENT_TYPE_AUDIT_APPROVED.equals(eventType) || EVENT_TYPE_AUDIT_REJECTED.equals(eventType);
     }
 
     private static boolean isDeleteEvent(JSONObject message)

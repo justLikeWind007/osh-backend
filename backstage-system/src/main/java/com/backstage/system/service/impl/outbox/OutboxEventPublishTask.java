@@ -52,18 +52,18 @@ public class OutboxEventPublishTask {
     }
 
     private void publishEvent(OshOutboxEvent event) {
-        log.debug("准备投递outbox事件, id={}, eventId={}, eventType={}, aggregateType={}, aggregateId={}, topic={}, messageKey={}, retryCount={}",
+        log.info("准备投递outbox事件, id={}, eventId={}, eventType={}, aggregateType={}, aggregateId={}, topic={}, messageKey={}, retryCount={}",
                 event.getId(), event.getEventId(), event.getEventType(), event.getAggregateType(), event.getAggregateId(), event.getTopic(), event.getMessageKey(), event.getRetryCount());
         int locked = outboxEventMapper.markSending(event.getId());
         if (locked <= 0) {
-            log.debug("outbox事件抢占失败，跳过投递, id={}, eventId={}", event.getId(), event.getEventId());
+            log.info("outbox事件抢占失败，跳过投递, id={}, eventId={}", event.getId(), event.getEventId());
             return;
         }
         try {
-            log.debug("开始发送outbox事件到Kafka, id={}, eventId={}, topic={}, messageKey={}", event.getId(), event.getEventId(), event.getTopic(), event.getMessageKey());
-            KafkaMessageUtil.sendMessageSync(event.getTopic(), event.getMessageKey(), event.getPayload());
+            log.info("开始发送outbox事件到Kafka, id={}, eventId={}, topic={}, messageKey={}", event.getId(), event.getEventId(), event.getTopic(), event.getMessageKey());
+            KafkaMessageUtil.sendMessage(event.getTopic(), event.getMessageKey(), event.getPayload());
             outboxEventMapper.markSent(event.getId());
-            log.debug("outbox事件发送Kafka成功并标记SENT, id={}, eventId={}, topic={}, messageKey={}", event.getId(), event.getEventId(), event.getTopic(), event.getMessageKey());
+            log.info("outbox事件发送Kafka成功并标记SENT, id={}, eventId={}, topic={}, messageKey={}", event.getId(), event.getEventId(), event.getTopic(), event.getMessageKey());
         } catch (Exception ex) {
             log.warn("outbox事件发送Kafka异常, id={}, eventId={}, topic={}, messageKey={}, error={}", event.getId(), event.getEventId(), event.getTopic(), event.getMessageKey(), ex.getMessage(), ex);
             handlePublishFailure(event, ex);

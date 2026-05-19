@@ -4,20 +4,23 @@
 
     <insert id="insertVoteRecord" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO osh_info_gap_vote (
-        user_id,
-        info_gap_id,
-        type,
-        create_time
-        ) VALUES (
-        #{userId},
-        #{infoGapId},
-        #{type},
-        NOW()
-        )
+            user_id,
+            info_gap_id,
+            vote_type,
+            create_time)
+        VALUES (
+            #{userId},
+            #{infoGapId},
+            #{voteType},
+            NOW())
     </insert>
 
     <select id="selectVoteRecord" resultType="com.backstage.system.domain.info_gap.OshInfoGapVote">
-        SELECT id, user_id as userId, info_gap_id as infoGapId, type
+        SELECT
+            id,
+            user_id as userId,
+            info_gap_id as infoGapId,
+            vote_type
         FROM osh_info_gap_vote
         WHERE user_id = #{userId} AND info_gap_id = #{infoId}
         LIMIT 1
@@ -26,11 +29,16 @@
     <delete id="deleteVoteRecord">
         DELETE FROM osh_info_gap_vote WHERE id = #{id}
     </delete>
+
     <update id="updateVoteRecord">
         UPDATE osh_info_gap_vote
-        SET type = #{type},
-        create_time = NOW()
+        SET vote_type = #{voteType}
         WHERE id = #{id}
     </update>
 
+    <update id="cancelVoteRecord">
+        UPDATE osh_info_gap_vote
+        SET vote_type = 0
+        WHERE user_id = #{userId} AND info_gap_id = #{infoId}
+    </update>
 </mapper>

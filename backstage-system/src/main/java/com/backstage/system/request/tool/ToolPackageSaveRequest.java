@@ -26,6 +26,12 @@ public class ToolPackageSaveRequest {
     @ApiModelProperty(value = "现金价格", example = "9.90")
     private BigDecimal price;
 
+    @ApiModelProperty(value = "积分价格", example = "100")
+    private Integer pointCost;
+
+    @ApiModelProperty(value = "支付类型：1-现金，3-现金+积分", example = "1")
+    private Integer payType;
+
     @ApiModelProperty(value = "状态：0-停用，1-启用", example = "1")
     private Integer status;
 
@@ -70,6 +76,22 @@ public class ToolPackageSaveRequest {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public Integer getPointCost() {
+        return pointCost;
+    }
+
+    public void setPointCost(Integer pointCost) {
+        this.pointCost = pointCost;
+    }
+
+    public Integer getPayType() {
+        return payType;
+    }
+
+    public void setPayType(Integer payType) {
+        this.payType = payType;
     }
 
     public Integer getSortOrder() {

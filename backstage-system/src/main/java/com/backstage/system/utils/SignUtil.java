@@ -1,14 +1,19 @@
 package com.backstage.system.utils;
 
 import com.backstage.common.config.PayConfig;
+import org.springframework.stereotype.Component;
+
 import java.security.MessageDigest;
 import java.util.Map;
 import java.util.TreeMap;
 
+@Component
 public class  SignUtil {
 
+
+
     // MD5签名
-    public static String createSign(Map<String, String> params) {
+    public static String createSign(Map<String, String> params,String key) {
         // 自动排序
         TreeMap<String, String> treeMap = new TreeMap<>(params);
         // 不会频繁创建String对象
@@ -31,7 +36,7 @@ public class  SignUtil {
         }
 
         // 拼接KEY 然后md5加密
-        String str = sb.toString() + PayConfig.KEY;
+        String str = sb.toString() + key;
 
         // 转小写
         return md5(str).toLowerCase();

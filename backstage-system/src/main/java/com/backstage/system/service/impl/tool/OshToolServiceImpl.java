@@ -44,6 +44,7 @@ public class OshToolServiceImpl implements IOshToolService {
     private static final String RESOURCE_TYPE_CASH_ONLY = "CASH_ONLY";
     private static final String RESOURCE_TYPE_CASH_POINT = "CASH_POINT";
     private static final int PAY_TYPE_CASH = 1;
+    private static final int PAY_TYPE_CASH_POINT = 3;
     private static final int RECOMMEND_PAGE_SIZE = 5;
     private static final int VOTE_TYPE_GOOD = 1;
     private static final int VOTE_TYPE_BAD = 3;
@@ -281,7 +282,7 @@ public class OshToolServiceImpl implements IOshToolService {
         tool.setPrice(BigDecimal.ZERO);
         tool.setOriginalPrice(BigDecimal.ZERO);
         tool.setPointCost(0);
-        tool.setStatus(request.getId() == null && request.getStatus() == null ? 1 : request.getStatus());
+        tool.setStatus(request.getId() == null && request.getStatus() == null ? 2 : request.getStatus());
         tool.setRemark(request.getRemark());
         tool.setResourceType(request.getId() == null ? StringUtils.defaultIfBlank(request.getResourceType(), DEFAULT_RESOURCE_TYPE) : request.getResourceType());
         tool.setLevel(request.getId() == null && request.getLevel() == null ? 1 : request.getLevel());
@@ -390,8 +391,8 @@ public class OshToolServiceImpl implements IOshToolService {
         toolPackage.setPackageName(StringUtils.defaultIfBlank(request.getPackageName(), request.getUseCount() + "次使用套餐"));
         toolPackage.setUseCount(request.getUseCount());
         toolPackage.setPrice(request.getPrice() == null ? BigDecimal.ZERO : request.getPrice());
-        toolPackage.setPointCost(0);
-        toolPackage.setPayType(PAY_TYPE_CASH);
+        toolPackage.setPointCost(resolvePackagePointCost(request));
+        toolPackage.setPayType(resolvePackagePayType(request));
         toolPackage.setStatus(request.getStatus() == null ? 1 : request.getStatus());
         toolPackage.setSortOrder(request.getSortOrder() == null ? 0 : request.getSortOrder());
         toolPackage.setCreateBy(operator);
@@ -409,6 +410,16 @@ public class OshToolServiceImpl implements IOshToolService {
         if (request.getPrice() == null || request.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("套餐现金金额必须大于0");
         }
+        int payType = request.getPayType() == null ? PAY_TYPE_CASH : request.getPayType();
+        if (payType != PAY_TYPE_CASH && payType != PAY_TYPE_CASH_POINT) {
+            throw new IllegalArgumentException("套餐支付类型错误");
+        }
+        if (payType == PAY_TYPE_CASH_POINT && (request.getPointCost() == null || request.getPointCost() <= 0)) {
+            throw new IllegalArgumentException("现金+积分套餐的积分金额必须大于0");
+        }
+        if (payType == PAY_TYPE_CASH && request.getPointCost() != null && request.getPointCost() < 0) {
+            throw new IllegalArgumentException("套餐积分金额不能小于0");
+        }
     }
 
     private List<ToolPackageSaveRequest> resolvePackagesByResourceType(ToolSaveRequest request) {
@@ -420,6 +431,17 @@ public class OshToolServiceImpl implements IOshToolService {
 
     private boolean isPackageEnabledResourceType(String resourceType) {
         return RESOURCE_TYPE_CASH_ONLY.equals(resourceType) || RESOURCE_TYPE_CASH_POINT.equals(resourceType);
+    }
+
+    private Integer resolvePackagePointCost(ToolPackageSaveRequest request) {
+        if (request.getPayType() == null || PAY_TYPE_CASH == request.getPayType()) {
+            return 0;
+        }
+        return request.getPointCost() == null ? 0 : request.getPointCost();
+    }
+
+    private Integer resolvePackagePayType(ToolPackageSaveRequest request) {
+        return request.getPayType() == null ? PAY_TYPE_CASH : request.getPayType();
     }
 
     private ToolUsagePermission buildToolUsagePermission(OshTool tool, Long userId, Integer userLevel) {

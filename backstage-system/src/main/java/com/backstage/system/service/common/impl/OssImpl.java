@@ -101,7 +101,12 @@ public class OssImpl implements OssService {
             if(file.getSize() > 1024 * 1024 * 100){
                 return "资料文件大小不能超过100MB";
             }
-        }else {
+        } else if(UploadPathEnum.AVATAR.equals(pathEnum)){
+            customPath = UploadPathEnum.AVATAR.getPath()+id+ym+"/";
+            if(file.getSize() > 1024 * 1024 * 3){
+                return "头像大小不能超过3MB";
+            }
+        } else {
             return "类型不正确";
         }
 

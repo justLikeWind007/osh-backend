@@ -2,6 +2,7 @@ package com.backstage.system.domain.assistant.vo;
 
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * AI 助手反馈列表响应 VO
@@ -49,6 +50,11 @@ public class AssistantFeedbackListVO {
      * 分类图标
      */
     private String categoryIcon;
+
+    /**
+     * 标签列表
+     */
+    private List<AssistantFeedbackTagVO> tags;
 
     /**
      * 反馈标题
@@ -167,6 +173,14 @@ public class AssistantFeedbackListVO {
 
     public void setCategoryIcon(String categoryIcon) {
         this.categoryIcon = categoryIcon;
+    }
+
+    public List<AssistantFeedbackTagVO> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<AssistantFeedbackTagVO> tags) {
+        this.tags = tags;
     }
 
     public String getTitle() {
