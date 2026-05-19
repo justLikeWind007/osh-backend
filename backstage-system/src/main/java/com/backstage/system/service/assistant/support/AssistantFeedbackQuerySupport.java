@@ -102,7 +102,7 @@ public class AssistantFeedbackQuerySupport {
                         .like(AssistantFeedback::getTitle, dto.getKeyword())
                         .or()
                         .like(AssistantFeedback::getContent, dto.getKeyword()))
-                .last(buildOrderBySql(dto.getSortType()));
+                .last(buildOrderBySql(dto));
 
         Long announcementCategoryId = resolveAnnouncementCategoryId();
         if (shouldExcludeAnnouncement(dto, announcementCategoryId)) {
@@ -231,9 +231,11 @@ public class AssistantFeedbackQuerySupport {
      * @param sortType 排序类型
      * @return 完整的ORDER BY SQL语句
      */
-    private String buildOrderBySql(String sortType) {
-        String resolvedSortType = StrUtil.isBlank(sortType) ? "hot" : sortType;
-        String pinOrderSql = "ORDER BY is_pinned DESC, pin_order ASC, ";
+    private String buildOrderBySql(AssistantFeedbackPageDTO dto) {
+        String resolvedSortType = StrUtil.isBlank(dto.getSortType()) ? "hot" : dto.getSortType();
+        String queryMode = normalizeQueryMode(dto.getQueryMode());
+        String minePrioritySql = "mine".equals(queryMode) ? "CASE WHEN status = 'PENDING_CONFIRM' THEN 0 ELSE 1 END ASC, " : "";
+        String pinOrderSql = "ORDER BY " + minePrioritySql + "is_pinned DESC, pin_order ASC, ";
         if ("hot".equals(resolvedSortType)) {
             return pinOrderSql + "hot_score DESC, create_time DESC";
         }

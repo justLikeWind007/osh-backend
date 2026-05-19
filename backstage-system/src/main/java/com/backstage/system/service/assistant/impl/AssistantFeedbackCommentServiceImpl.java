@@ -1,7 +1,6 @@
 package com.backstage.system.service.assistant.impl;
 
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.system.domain.assistant.AssistantFeedback;
@@ -49,54 +48,7 @@ public class AssistantFeedbackCommentServiceImpl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createComment(AssistantFeedbackCommentDTO dto, Long userId) {
-        AssistantFeedback feedback = getActiveFeedback(dto.getFeedbackId());
-        if (feedback == null) {
-            throw new ServiceException("反馈不存在");
-        }
-        if (!categoryService.isCommentAllowed(feedback.getCategoryId())) {
-            throw new ServiceException("当前反馈不允许评论");
-        }
-
-        // 构建评论实体
-        AssistantFeedbackComment comment = new AssistantFeedbackComment();
-        comment.setFeedbackId(dto.getFeedbackId());
-        comment.setUserId(userId);
-        comment.setContent(dto.getContent().trim());
-        comment.setIsAdminReply(Boolean.TRUE.equals(dto.getIsAdminReply()) ? 1 : 0);
-
-        // 判断是一级评论还是二级评�?
-        Long parentId = ObjectUtil.defaultIfNull(dto.getParentId(), 0L);
-        comment.setParentId(parentId);
-
-        if (parentId == 0) {
-            // 一级评�?
-            comment.setRootId(0L);
-            comment.setCommentLevel(1);
-        } else {
-            // 二级评论
-            AssistantFeedbackComment parentComment = getById(parentId);
-            if (parentComment == null) {
-                throw new ServiceException("父评论不存在");
-            }
-            if (!dto.getFeedbackId().equals(parentComment.getFeedbackId())) {
-                throw new ServiceException("父评论与当前反馈不匹配");
-            }
-
-            // 确定根评�?ID
-            Long rootId = parentComment.getCommentLevel() == 1 ? parentId : parentComment.getRootId();
-            comment.setRootId(rootId);
-            comment.setCommentLevel(2);
-            comment.setReplyToUserId(parentComment.getUserId());
-            comment.setReplyToUserName(resolveReplyToUserName(parentComment));
-        }
-
-        // 保存评论
-        save(comment);
-
-        // 更新反馈的评论数�?
-        feedbackService.incrementCommentCount(dto.getFeedbackId());
-
-        return comment.getId();
+        throw new ServiceException("评论功能已下线，请通过工单状态和官方进展跟踪问题处理结果");
     }
 
     @Override
