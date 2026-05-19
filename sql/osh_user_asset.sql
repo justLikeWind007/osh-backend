@@ -19,7 +19,6 @@ CREATE TABLE `osh_user_asset_record` (
     `user_id` bigint NOT NULL COMMENT '用户ID',
     `change_type` tinyint NOT NULL COMMENT '变动类型：0-收入，1-支出',
     `change_source` tinyint NOT NULL COMMENT '变动来源：0-签到，1-观看视频，2-分享，3-购买商品，4-提现，5-管理员调整等',
-    `asset_type` tinyint NOT NULL COMMENT '资产类型：0-金币，1-积分',
     `change_amount` bigint NOT NULL COMMENT '变动数量（正数）',
     `before_balance` bigint NOT NULL COMMENT '变动前余额',
     `after_balance` bigint NOT NULL COMMENT '变动后余额',
@@ -31,14 +30,12 @@ CREATE TABLE `osh_user_asset_record` (
     `delete_flag` tinyint NOT NULL DEFAULT '0' COMMENT '逻辑删除：0-未删除，1-已删除',
     PRIMARY KEY (`id`),
     KEY `idx_user_id` (`user_id`) COMMENT '用户ID索引',
-    KEY `idx_user_asset` (`user_id`, `asset_type`) COMMENT '用户资产查询索引',
     KEY `idx_business_id` (`business_id`) COMMENT '业务ID索引',
     KEY `idx_create_time` (`create_time`) COMMENT '创建时间索引'
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_as_cs COMMENT='用户资产变动记录表';
 
 CREATE TABLE `osh_user_asset` (
   `user_id` bigint NOT NULL AUTO_INCREMENT COMMENT '用户ID',
-  `gold_coin` bigint NOT NULL DEFAULT '0' COMMENT '金币数量',
   `points` bigint NOT NULL DEFAULT '0' COMMENT '积分数量',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `create_by` bigint NOT NULL COMMENT '创建人',

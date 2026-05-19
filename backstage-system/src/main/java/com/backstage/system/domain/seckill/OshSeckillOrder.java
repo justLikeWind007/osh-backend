@@ -46,8 +46,11 @@ public class OshSeckillOrder {
     @ApiModelProperty("原价快照")
     private BigDecimal originPrice;
 
-    @ApiModelProperty("秒杀价格快照")
+    @ApiModelProperty("秒杀单价快照")
     private BigDecimal seckillPrice;
+
+    @ApiModelProperty("实付总金额（seckillPrice × quantity）")
+    private BigDecimal totalAmount;
 
     @ApiModelProperty("购买数量")
     private Integer quantity;
@@ -55,15 +58,15 @@ public class OshSeckillOrder {
     @ApiModelProperty("订单状态：0-待支付 1-已支付 2-已取消 3-已超时 4-已退款")
     private Integer status;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     @ApiModelProperty("实际支付时间")
     private Date payTime;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     @ApiModelProperty("支付截止时间")
     private Date payExpireTime;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     @ApiModelProperty("取消时间")
     private Date cancelTime;
 
@@ -76,11 +79,11 @@ public class OshSeckillOrder {
     @ApiModelProperty("删除标记：0-正常 1-已删除")
     private Integer deleteFlag;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     @ApiModelProperty("创建时间")
     private Date createTime;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     @ApiModelProperty("更新时间")
     private Date updateTime;
 
@@ -116,6 +119,9 @@ public class OshSeckillOrder {
 
     public BigDecimal getSeckillPrice() { return seckillPrice; }
     public void setSeckillPrice(BigDecimal seckillPrice) { this.seckillPrice = seckillPrice; }
+
+    public BigDecimal getTotalAmount() { return totalAmount; }
+    public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
 
     public Integer getQuantity() { return quantity; }
     public void setQuantity(Integer quantity) { this.quantity = quantity; }
