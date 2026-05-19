@@ -16,6 +16,7 @@
         <result property="goodsCover"     column="goods_cover"/>
         <result property="originPrice"    column="origin_price"/>
         <result property="seckillPrice"   column="seckill_price"/>
+        <result property="totalAmount"    column="total_amount"/>
         <result property="quantity"       column="quantity"/>
         <result property="status"         column="status"/>
         <result property="payTime"        column="pay_time"/>
@@ -29,7 +30,7 @@
 
     <sql id="selectOrderVo">
         select id, seckill_no, activity_id, item_id, user_id, goods_id, goods_type,
-               goods_title, goods_cover, origin_price, seckill_price, quantity,
+               goods_title, goods_cover, origin_price, seckill_price, total_amount, quantity,
                status, pay_time, pay_expire_time, cancel_time, cancel_reason,
                osh_order_no, create_time, update_time
         from osh_seckill_order
@@ -71,11 +72,11 @@
             useGeneratedKeys="true" keyProperty="id">
         insert into osh_seckill_order
         (seckill_no, activity_id, item_id, user_id, goods_id, goods_type,
-         goods_title, goods_cover, origin_price, seckill_price, quantity,
+         goods_title, goods_cover, origin_price, seckill_price, total_amount, quantity,
          status, pay_expire_time, create_time)
         values
         (#{seckillNo}, #{activityId}, #{itemId}, #{userId}, #{goodsId}, #{goodsType},
-         #{goodsTitle}, #{goodsCover}, #{originPrice}, #{seckillPrice}, #{quantity},
+         #{goodsTitle}, #{goodsCover}, #{originPrice}, #{seckillPrice}, #{totalAmount}, #{quantity},
          #{status}, #{payExpireTime}, CURRENT_TIMESTAMP)
     </insert>
 
