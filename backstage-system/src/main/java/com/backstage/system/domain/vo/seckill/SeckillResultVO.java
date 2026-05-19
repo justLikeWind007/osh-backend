@@ -40,8 +40,11 @@ public class SeckillResultVO implements Serializable {
     @ApiModelProperty("原价")
     private BigDecimal originPrice;
 
-    @ApiModelProperty("秒杀价格")
+    @ApiModelProperty("秒杀单价")
     private BigDecimal seckillPrice;
+
+    @ApiModelProperty("实付总金额（seckillPrice × quantity）")
+    private BigDecimal totalAmount;
 
     @ApiModelProperty("购买数量")
     private Integer quantity;
@@ -73,6 +76,9 @@ public class SeckillResultVO implements Serializable {
 
     public BigDecimal getSeckillPrice() { return seckillPrice; }
     public void setSeckillPrice(BigDecimal seckillPrice) { this.seckillPrice = seckillPrice; }
+
+    public BigDecimal getTotalAmount() { return totalAmount; }
+    public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
 
     public Integer getQuantity() { return quantity; }
     public void setQuantity(Integer quantity) { this.quantity = quantity; }

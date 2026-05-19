@@ -10,7 +10,7 @@ import com.backstage.system.domain.vo.tool.ToolPurchaseListVO;
 import com.backstage.system.request.tool.ToolPurchaseCancelRequest;
 import com.backstage.system.request.tool.ToolPurchaseCreateRequest;
 import com.backstage.system.request.tool.ToolPurchaseListRequest;
-import com.backstage.system.service.order.UnifiedOrderService;
+import com.backstage.system.service.order.OrderService;
 import com.backstage.system.service.tool.ToolPurchaseService;
 import com.backstage.system.utils.UserContextUtil;
 import io.swagger.annotations.Api;
@@ -35,7 +35,7 @@ public class ToolPurchaseController {
     private ToolPurchaseService toolPurchaseService;
 
     @Autowired
-    private UnifiedOrderService unifiedOrderService;
+    private OrderService orderService;
 
     @ApiOperation("查询工具购买详情")
     @GetMapping("/detail")
@@ -76,7 +76,7 @@ public class ToolPurchaseController {
         if (currentUser == null) {
             return R.fail("请先登录");
         }
-        unifiedOrderService.cancelPayment(request.getPaymentNo());
+        orderService.cancelPayment(request.getPaymentNo());
         return R.ok("关单成功");
     }
 }

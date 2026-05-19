@@ -14,8 +14,7 @@ import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.service.common.OssService;
 import com.backstage.system.service.site.IOshSiteInfoService;
 import com.backstage.system.service.site.IOshSiteTagsService;
-import com.backstage.system.service.site.impl.RemoteShellExecutor;
-import com.backstage.system.service.site.impl.ScriptResult;
+import com.backstage.system.service.site.impl.DemoSiteConfig;
 import com.backstage.system.service.user.IOshUserService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -202,108 +201,22 @@ public class OshSiteInfoController extends BaseController {
     }
 
     /**
-     * 启动演示站点后端服务
+     * 启动演示站点后端服务（同步阻塞）
      * 1. 通过 SSH 在远程服务器后台执行启动脚本
      * 2. 定期执行健康检查脚本，轮询直到服务启动成功或超时
      */
     @Anonymous
-    @ApiOperation("启动演示站点后端服务")
+    @ApiOperation("启动演示站点后端服务（同步阻塞）")
     @PostMapping("/demo/start/{id}")
     public R<Map<String, Object>> startDemoService(@PathVariable Long id) {
-        OshSiteInfo siteInfo = oshSiteInfoService.getById(id);
-        if (siteInfo == null) {
-            return R.fail("网站不存在");
-        }
-        if (!"demo".equals(siteInfo.getSiteType())) {
-            return R.fail("该网站不是演示站点");
-        }
-        Map<String, Object> config = siteInfo.getSiteConfig();
-        if (config == null || config.isEmpty()) {
-            return R.fail("演示站点未配置");
-        }
-
         try {
-            String backendHost = (String) config.get("backendHost");
-            int backendPort = config.containsKey("backendPort") ? ((Number) config.get("backendPort")).intValue() : 22;
-            String backendUser = (String) config.get("backendUser");
-            String backendPassword = (String) config.get("backendPassword");
-            String startupScript = (String) config.get("startupScript");
-            String healthCheckScript = (String) config.get("healthCheckScript");
-            String frontendUrl = (String) config.get("frontendUrl");
-            String loginUsername = (String) config.get("loginUsername");
-            String loginPassword = (String) config.get("loginPassword");
-
-            // SSH 登录方式
-            String loginMethod = (String) config.getOrDefault("loginMethod", "password");
-            String privateKey = (String) config.get("privateKey");
-            RemoteShellExecutor.AuthMethod authMethod = "privateKey".equals(loginMethod)
-                    ? RemoteShellExecutor.AuthMethod.PRIVATE_KEY
-                    : RemoteShellExecutor.AuthMethod.PASSWORD;
-            String sshCredential = authMethod == RemoteShellExecutor.AuthMethod.PRIVATE_KEY ? privateKey : backendPassword;
-
-            if (backendHost == null || backendUser == null) {
-                return R.fail("SSH配置不完整，请检查后端服务器IP、用户名");
-            }
-            if (authMethod == RemoteShellExecutor.AuthMethod.PRIVATE_KEY && (privateKey == null || privateKey.isEmpty())) {
-                return R.fail("登录方式为私钥，但私钥未配置");
-            }
-            if (authMethod == RemoteShellExecutor.AuthMethod.PASSWORD && (backendPassword == null || backendPassword.isEmpty())) {
-                return R.fail("登录方式为密码，但密码未配置");
-            }
-            if (startupScript == null || startupScript.isEmpty()) {
-                return R.fail("启动脚本未配置");
-            }
-            if (healthCheckScript == null || healthCheckScript.isEmpty()) {
-                return R.fail("健康检查脚本未配置");
-            }
-
-            String pid = RemoteShellExecutor.executeScriptBackground(
-                    backendHost, backendPort, backendUser, authMethod, sshCredential, startupScript);
-            log.info("Demo startup script started, PID: {}, siteId: {}", pid, id);
-
-            int maxRetries = 60;
-            int retryIntervalSeconds = 5;
-            for (int i = 0; i < maxRetries; i++) {
-                try {
-                    Thread.sleep(retryIntervalSeconds * 1000L);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-
-                try {
-                    ScriptResult checkResult = RemoteShellExecutor.executeScript(
-                            backendHost, backendPort, backendUser, authMethod, sshCredential,
-                            healthCheckScript, 15);
-
-                    if (checkResult.isSuccess()) {
-                        Map<String, Object> result = new HashMap<>();
-                        result.put("started", true);
-                        result.put("frontendUrl", frontendUrl);
-                        result.put("loginUsername", loginUsername);
-                        result.put("loginPassword", loginPassword);
-                        result.put("retries", i + 1);
-                        result.put("healthCheckOutput", checkResult.getOutput());
-                        log.info("Demo service started successfully after {} retries, siteId: {}", i + 1, id);
-                        return R.ok(result, "服务启动成功");
-                    }
-
-                    log.debug("Health check attempt {} failed, exitCode: {}, siteId: {}",
-                                    i + 1, checkResult.getExitCode(), id);
-                } catch (Exception e) {
-                    log.warn("Health check attempt {} error: {}, siteId: {}", i + 1, e.getMessage(), id);
-                }
-            }
-
-            // 超时
-            Map<String, Object> result = new HashMap<>();
-            result.put("started", false);
-            result.put("message", "服务启动超时（已等待 " + (maxRetries * retryIntervalSeconds) + " 秒），请手动检查");
-            result.put("frontendUrl", frontendUrl);
-            result.put("loginUsername", loginUsername);
-            result.put("loginPassword", loginPassword);
-            return R.ok(result, "启动脚本已执行，但健康检查未通过");
-
+            DemoSiteConfig cfg = oshSiteInfoService.loadDemoSiteConfig(id);
+            oshSiteInfoService.requireConfigField("启动脚本", cfg.getStartupScript());
+            oshSiteInfoService.requireConfigField("健康检查脚本", cfg.getHealthCheckScript());
+            Map<String, Object> result = oshSiteInfoService.startDemo(cfg);
+            return R.ok(result);
+        } catch (IllegalArgumentException e) {
+            return R.fail(e.getMessage());
         } catch (Exception e) {
             log.error("启动演示服务失败", e);
             return R.fail("启动失败：" + e.getMessage());
@@ -312,71 +225,18 @@ public class OshSiteInfoController extends BaseController {
 
     /**
      * 检查演示站点后端服务状态
-     * 通过 SSH 在远程服务器执行健康检查脚本
      */
     @Anonymous
     @ApiOperation("检查演示站点后端服务状态")
     @PostMapping("/demo/check/{id}")
     public R<Map<String, Object>> checkDemoServiceStatus(@PathVariable Long id) {
-        OshSiteInfo siteInfo = oshSiteInfoService.getById(id);
-        if (siteInfo == null) {
-            return R.fail("网站不存在");
-        }
-        if (!"demo".equals(siteInfo.getSiteType())) {
-            return R.fail("该网站不是演示站点");
-        }
-        Map<String, Object> config = siteInfo.getSiteConfig();
-        if (config == null || config.isEmpty()) {
-            return R.fail("演示站点未配置");
-        }
-
         try {
-            String backendHost = (String) config.get("backendHost");
-            int backendPort = config.containsKey("backendPort") ? ((Number) config.get("backendPort")).intValue() : 22;
-            String backendUser = (String) config.get("backendUser");
-            String backendPassword = (String) config.get("backendPassword");
-            String healthCheckScript = (String) config.get("healthCheckScript");
-            String frontendUrl = (String) config.get("frontendUrl");
-            String loginUsername = (String) config.get("loginUsername");
-            String loginPassword = (String) config.get("loginPassword");
-
-            // SSH 登录方式
-            String loginMethod = (String) config.getOrDefault("loginMethod", "password");
-            String privateKey = (String) config.get("privateKey");
-            RemoteShellExecutor.AuthMethod authMethod = "privateKey".equals(loginMethod)
-                    ? RemoteShellExecutor.AuthMethod.PRIVATE_KEY
-                    : RemoteShellExecutor.AuthMethod.PASSWORD;
-            String sshCredential = authMethod == RemoteShellExecutor.AuthMethod.PRIVATE_KEY ? privateKey : backendPassword;
-
-            if (healthCheckScript == null || healthCheckScript.isEmpty()) {
-                return R.fail("健康检查脚本未配置");
-            }
-
-            Map<String, Object> result = new HashMap<>();
-            result.put("siteId", id);
-            result.put("frontendUrl", frontendUrl);
-            result.put("loginUsername", loginUsername);
-            result.put("loginPassword", loginPassword);
-
-            // 执行健康检查脚本
-            if (backendHost != null && backendUser != null) {
-                try {
-                    ScriptResult checkResult = RemoteShellExecutor.executeScript(
-                            backendHost, backendPort, backendUser, authMethod, sshCredential,
-                            healthCheckScript, 15);
-                    result.put("healthy", checkResult.isSuccess());
-                    result.put("exitCode", checkResult.getExitCode());
-                    result.put("output", checkResult.getOutput());
-                } catch (Exception e) {
-                    result.put("healthy", false);
-                    result.put("error", e.getMessage());
-                }
-            } else {
-                result.put("healthy", false);
-                result.put("error", "SSH配置不完整");
-            }
-
-            return R.ok(result, "状态检查完成");
+            DemoSiteConfig cfg = oshSiteInfoService.loadDemoSiteConfig(id);
+            oshSiteInfoService.requireConfigField("健康检查脚本", cfg.getHealthCheckScript());
+            Map<String, Object> result = oshSiteInfoService.checkDemo(cfg);
+            return R.ok(result);
+        } catch (IllegalArgumentException e) {
+            return R.fail(e.getMessage());
         } catch (Exception e) {
             log.error("检查演示服务状态失败", e);
             return R.fail("检查失败：" + e.getMessage());
@@ -403,62 +263,18 @@ public class OshSiteInfoController extends BaseController {
 
     /**
      * 停止演示站点服务
-     * 通过 SSH 在远程服务器执行停止脚本
      */
     @Anonymous
     @ApiOperation("停止演示站点服务")
     @PostMapping("/demo/stop/{id}")
     public R<Map<String, Object>> stopDemoService(@PathVariable Long id) {
-        OshSiteInfo siteInfo = oshSiteInfoService.getById(id);
-        if (siteInfo == null) {
-            return R.fail("网站不存在");
-        }
-        if (!"demo".equals(siteInfo.getSiteType())) {
-            return R.fail("该网站不是演示站点");
-        }
-        Map<String, Object> config = siteInfo.getSiteConfig();
-        if (config == null || config.isEmpty()) {
-            return R.fail("演示站点未配置");
-        }
-
         try {
-            String backendHost = (String) config.get("backendHost");
-            int backendPort = config.containsKey("backendPort") ? ((Number) config.get("backendPort")).intValue() : 22;
-            String backendUser = (String) config.get("backendUser");
-            String backendPassword = (String) config.get("backendPassword");
-            String stopScript = (String) config.get("stopScript");
-
-            // SSH 登录方式
-            String loginMethod = (String) config.getOrDefault("loginMethod", "password");
-            String privateKey = (String) config.get("privateKey");
-            RemoteShellExecutor.AuthMethod authMethod = "privateKey".equals(loginMethod)
-                    ? RemoteShellExecutor.AuthMethod.PRIVATE_KEY
-                    : RemoteShellExecutor.AuthMethod.PASSWORD;
-            String sshCredential = authMethod == RemoteShellExecutor.AuthMethod.PRIVATE_KEY ? privateKey : backendPassword;
-
-            if (backendHost == null || backendUser == null) {
-                return R.fail("SSH配置不完整");
-            }
-            if (stopScript == null || stopScript.isEmpty()) {
-                return R.fail("停止脚本未配置");
-            }
-
-            ScriptResult stopResult = RemoteShellExecutor.executeScript(
-                    backendHost, backendPort, backendUser, authMethod, sshCredential,
-                    stopScript, 30);
-
-            Map<String, Object> result = new HashMap<>();
-            result.put("stopped", stopResult.isSuccess());
-            result.put("exitCode", stopResult.getExitCode());
-            result.put("output", stopResult.getOutput());
-
-            if (stopResult.isSuccess()) {
-                log.info("Demo service stopped successfully, siteId: {}", id);
-                return R.ok(result, "服务已停止");
-            } else {
-                log.warn("Demo stop script exited with non-zero code: {}, siteId: {}", stopResult.getExitCode(), id);
-                return R.ok(result, "停止脚本已执行（退出码: " + stopResult.getExitCode() + "）");
-            }
+            DemoSiteConfig cfg = oshSiteInfoService.loadDemoSiteConfig(id);
+            oshSiteInfoService.requireConfigField("停止脚本", cfg.getStopScript());
+            Map<String, Object> result = oshSiteInfoService.stopDemo(cfg);
+            return R.ok(result);
+        } catch (IllegalArgumentException e) {
+            return R.fail(e.getMessage());
         } catch (Exception e) {
             log.error("停止演示服务失败", e);
             return R.fail("停止失败：" + e.getMessage());

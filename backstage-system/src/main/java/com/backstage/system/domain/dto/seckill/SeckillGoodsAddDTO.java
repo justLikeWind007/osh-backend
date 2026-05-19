@@ -4,12 +4,12 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
 import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
 /**
  * 添加商品到秒杀商品池 DTO
+ * goodsName / goodsCover / originPrice 由后端根据 goodsType 自动从对应表查询填充，前端无需传入
  *
  * @author backstage
  * @date 2026-04-28
@@ -22,20 +22,8 @@ public class SeckillGoodsAddDTO {
     private Long goodsId;
 
     @NotNull(message = "商品类型不能为空")
-    @ApiModelProperty(value = "商品类型：1-课程 2-书籍 3-商品", required = true)
+    @ApiModelProperty(value = "商品类型：1-课程 2-书籍", required = true)
     private Integer goodsType;
-
-    @NotBlank(message = "商品名称不能为空")
-    @ApiModelProperty(value = "商品名称快照", required = true)
-    private String goodsName;
-
-    @ApiModelProperty("商品封面快照")
-    private String goodsCover;
-
-    @NotNull(message = "商品原价不能为空")
-    @DecimalMin(value = "0.01", message = "商品原价必须大于0")
-    @ApiModelProperty(value = "商品原价快照", required = true)
-    private BigDecimal originPrice;
 
     @NotNull(message = "最低秒杀价不能为空")
     @DecimalMin(value = "0.01", message = "最低秒杀价必须大于0")
@@ -50,15 +38,6 @@ public class SeckillGoodsAddDTO {
 
     public Integer getGoodsType() { return goodsType; }
     public void setGoodsType(Integer goodsType) { this.goodsType = goodsType; }
-
-    public String getGoodsName() { return goodsName; }
-    public void setGoodsName(String goodsName) { this.goodsName = goodsName; }
-
-    public String getGoodsCover() { return goodsCover; }
-    public void setGoodsCover(String goodsCover) { this.goodsCover = goodsCover; }
-
-    public BigDecimal getOriginPrice() { return originPrice; }
-    public void setOriginPrice(BigDecimal originPrice) { this.originPrice = originPrice; }
 
     public BigDecimal getMinSeckillPrice() { return minSeckillPrice; }
     public void setMinSeckillPrice(BigDecimal minSeckillPrice) { this.minSeckillPrice = minSeckillPrice; }

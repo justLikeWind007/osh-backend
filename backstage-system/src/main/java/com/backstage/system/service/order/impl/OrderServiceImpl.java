@@ -1,9 +1,13 @@
 package com.backstage.system.service.order.impl;
 
+import com.alibaba.fastjson2.JSON;
 import com.backstage.common.config.PayConfig;
+import com.backstage.common.constant.KafkaConstants;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.common.utils.ip.IpUtils;
+import com.backstage.common.utils.kafka.KafkaMessageUtil;
+import com.backstage.system.domain.message.order.PaySuccessMessage;
 import com.backstage.system.domain.vo.pay.OrderCheckoutReqVO;
 import com.backstage.system.domain.vo.pay.OrderCheckoutRespVO;
 import com.backstage.system.domain.order.OrderPaymentInfo;
@@ -20,14 +24,16 @@ import com.backstage.system.domain.vo.order.PayResponse;
 import com.backstage.system.mapper.order.OshOrderMapper;
 import com.backstage.system.mapper.order.OshPaymentMapper;
 import com.backstage.system.mapper.order.OshPaymentNotifyLogMapper;
+import com.backstage.system.service.order.*;
 import com.backstage.system.service.book.IBookService;
 import com.backstage.system.service.order.OrderNoGenerator;
 import com.backstage.system.service.order.PayService;
 import com.backstage.system.service.order.OrderPaidHandlerRegistry;
-import com.backstage.system.service.order.UnifiedOrderService;
+import com.backstage.system.service.order.OrderService;
 import com.backstage.system.service.tool.ToolPurchaseService;
 import com.backstage.system.utils.SignUtil;
-import org.springframework.context.annotation.Lazy;
+import com.backstage.system.utils.UserContextUtil;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -54,14 +60,14 @@ import java.util.Set;
  * 统一订单服务实现，负责订单创建、支付查询和支付回调处理。
  */
 @Service
-public class UnifiedOrderServiceImpl implements UnifiedOrderService {
+public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> implements OrderService {
 
-    private static final Logger log = LoggerFactory.getLogger(UnifiedOrderServiceImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(OrderServiceImpl.class);
 
     private static final int PAY_CREATE_SUCCESS_CODE = 1;
     private static final int SIGN_INVALID = 0;
     private static final int SIGN_VALID = 1;
-    private static final int ORDER_PENDING = OrderStatusEnum.PENDING.getCode();
+
     private static final int ORDER_PAID = OrderStatusEnum.PAID.getCode();
     private static final int PAYMENT_PENDING = PaymentStatusEnum.PENDING.getCode();
     private static final int PAYMENT_SUCCESS = PaymentStatusEnum.SUCCESS.getCode();
@@ -105,38 +111,38 @@ public class UnifiedOrderServiceImpl implements UnifiedOrderService {
     /**
      * 创建统一订单，并按金额返回免费完成结果或支付渠道参数。
      *
-     * @param param 结算参数
+     * @param reqVO 结算参数
      * @return 订单结算结果
      */
     @Override
-    public OrderCheckoutRespVO checkout(OrderCheckoutReqVO param) {
+    public OrderCheckoutRespVO checkout(OrderCheckoutReqVO reqVO) {
 
         String clientIp = IpUtils.getIpAddr();
         // 校验结算参数
-        validateCheckoutParam(param);
+        validateCheckoutParam(reqVO);
 
         // 准备订单号、金额和支付渠道
-        String orderNo = orderNoGenerator.nextOrderNo();
+        String orderNo = orderNoGenerator.nextOrderNo(ProductTypeEnum.fromCode(reqVO.getProductType()).getDesc());
         String paymentNo = orderNoGenerator.nextPaymentNo();
-        BigDecimal amount = money(param.getPayableAmount());
-        PayChannelEnum channelEnum = resolvePaymentChannel(param.getChannel());
+        BigDecimal amount = money(reqVO.getPayableAmount());
+        PayChannelEnum channelEnum = resolvePaymentChannel(reqVO.getChannel());
         int channelCode = channelEnum.getCode();
 
         // 创建本地待支付订单和支付流水
-        OshOrder order = buildPendingOrder(param, orderNo, amount);
-        OshPayment payment = buildPendingPayment(orderNo, paymentNo, amount, param, clientIp, channelCode);
+        OshOrder order = buildPendingOrder(reqVO, orderNo, amount);
+        OshPayment payment = buildPendingPayment(orderNo, paymentNo, amount, reqVO, clientIp, channelCode);
         createPendingOrderAndPayment(order, payment);
 
         // 免费订单直接完成支付状态
         if (isFreeAmount(amount)) {
             LocalDateTime now = LocalDateTime.now();
             completeFreePayment(orderNo, paymentNo, now);
-            afterOrderPaid(orderNo);
+            handleOrderProductPaid(orderNo);
             return freeCheckoutResult(orderNo, paymentNo, amount);
         }
 
         // 请求支付渠道创建付款信息
-        PayResponse payResponse = requestPayment(orderNo, paymentNo, param.getProductName(), amount, clientIp, channelEnum.getValue());
+        PayResponse payResponse = requestPayment(orderNo, paymentNo, reqVO.getProductName(), amount, clientIp, channelEnum.getValue());
         log.info("【支付】调用易支付平台生成订单及二维码，result：{}",payResponse);
         // 保存支付渠道响应
         savePayResponse(paymentNo, payResponse);
@@ -360,7 +366,7 @@ public class UnifiedOrderServiceImpl implements UnifiedOrderService {
                     paymentMapper.updatePendingToSuccess(payment.getPaymentNo(), platformTradeNo, paidTime);
                     orderMapper.updatePendingToPaid(payment.getOrderNo(), paidTime);
                 });
-                afterOrderPaid(payment.getOrderNo());
+                handleOrderProductPaid(payment.getOrderNo());
             }
         } catch (Exception e) {
             log.warn("主动查询支付平台异常, paymentNo={}", payment.getPaymentNo(), e);
@@ -499,7 +505,7 @@ public class UnifiedOrderServiceImpl implements UnifiedOrderService {
         markNotifyLog(notifyLog, SIGN_VALID, NotifyProcessStatusEnum.SUCCESS.getCode(), null);
 
         // 根据商品类型发放权益
-        afterOrderPaid(payment.getOrderNo());
+        handleOrderProductPaid(payment.getOrderNo());
         return true;
     }
 
@@ -508,22 +514,28 @@ public class UnifiedOrderServiceImpl implements UnifiedOrderService {
      *
      * @param orderNo 订单号
      */
-    private void afterOrderPaid(String orderNo) {
-        OshOrder order = orderMapper.selectByOrderNo(orderNo);
-        if (Objects.isNull(order) || Objects.isNull(order.getProductType())) {
-            log.warn("权益发放跳过，订单信息不完整: orderNo={}", orderNo);
-            return;
-        }
-        ProductTypeEnum productTypeEnum = ProductTypeEnum.fromCode(order.getProductType());
-        if (Objects.isNull(productTypeEnum)) {
-            log.warn("权益发放跳过，未知商品类型: orderNo={}, productType={}", orderNo, order.getProductType());
-            return;
-        }
+    private void handleOrderProductPaid(String orderNo) {
+
         try {
-            paidHandlerRegistry.handle(productTypeEnum.name(), orderNo);
-        } catch (Exception e) {
-            log.error("权益发放失败, orderNo={}, productType={}", orderNo, order.getProductType(), e);
+            PaySuccessMessage message = packgePaySuccessMessage(orderNo);
+            KafkaMessageUtil.sendMessage(
+                    KafkaConstants.PAY_SUCCESS_TOPIC,
+                    orderNo,
+                    JSON.toJSONString(message)
+            );
+            log.info("【支付】发送支付成功消息成功，orderNo={}, userId={}", orderNo,UserContextUtil.getCurrentUserId());
+        }catch (Exception e) {
+            log.info("【支付】发送支付成功消息失败，orderNo={}, userId={}", orderNo, UserContextUtil.getCurrentUserId());
         }
+
+    }
+
+    private PaySuccessMessage packgePaySuccessMessage(String orderNo) {
+        PaySuccessMessage  message = new PaySuccessMessage();
+        message.setOrderNo(orderNo);
+
+
+        return message;
     }
 
     /**

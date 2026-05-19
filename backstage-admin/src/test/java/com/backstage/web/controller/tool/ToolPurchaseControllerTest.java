@@ -7,7 +7,7 @@ import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.domain.vo.pay.OrderCheckoutRespVO;
 import com.backstage.system.domain.vo.tool.ToolPurchaseDetailVO;
 import com.backstage.system.request.tool.ToolPurchaseCreateRequest;
-import com.backstage.system.service.order.UnifiedOrderService;
+import com.backstage.system.service.order.OrderService;
 import com.backstage.system.service.tool.ToolPurchaseService;
 import org.junit.Before;
 import org.junit.After;
@@ -31,15 +31,15 @@ public class ToolPurchaseControllerTest {
 
     private MockMvc mockMvc;
     private ToolPurchaseService toolPurchaseService;
-    private UnifiedOrderService unifiedOrderService;
+    private OrderService orderService;
 
     @Before
     public void setUp() {
         ToolPurchaseController controller = new ToolPurchaseController();
         toolPurchaseService = mock(ToolPurchaseService.class);
         ReflectionTestUtils.setField(controller, "toolPurchaseService", toolPurchaseService);
-        unifiedOrderService = mock(UnifiedOrderService.class);
-        ReflectionTestUtils.setField(controller, "unifiedOrderService", unifiedOrderService);
+        orderService = mock(OrderService.class);
+        ReflectionTestUtils.setField(controller, "orderService", orderService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
@@ -118,6 +118,6 @@ public class ToolPurchaseControllerTest {
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.msg").value("关单成功"));
 
-        verify(unifiedOrderService).cancelPayment("P20260517003");
+        verify(orderService).cancelPayment("P20260517003");
     }
 }
