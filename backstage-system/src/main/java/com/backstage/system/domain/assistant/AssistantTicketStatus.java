@@ -1,11 +1,6 @@
 package com.backstage.system.domain.assistant;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -19,7 +14,12 @@ public enum AssistantTicketStatus {
     /**
      * 待处理
      */
-    PENDING("PENDING", "待处理"),
+    PENDING("PENDING", "已提交"),
+
+    /**
+     * 已受理
+     */
+    TRIAGED("TRIAGED", "已受理"),
 
     /**
      * 处理中
@@ -27,14 +27,29 @@ public enum AssistantTicketStatus {
     PROCESSING("PROCESSING", "处理中"),
 
     /**
+     * 待用户确认
+     */
+    PENDING_CONFIRM("PENDING_CONFIRM", "待你确认"),
+
+    /**
      * 已解决
      */
     RESOLVED("RESOLVED", "已解决"),
 
     /**
+     * 重新打开
+     */
+    REOPENED("REOPENED", "问题仍在"),
+
+    /**
      * 已关闭
      */
-    CLOSED("CLOSED", "已关闭");
+    CLOSED("CLOSED", "已关闭"),
+
+    /**
+     * 已驳回
+     */
+    REJECTED("REJECTED", "已驳回");
 
     private final String code;
     private final String description;
@@ -47,21 +62,27 @@ public enum AssistantTicketStatus {
     static {
         Map<String, String> legacyCodeMap = new HashMap<>();
         legacyCodeMap.put("submitted", PENDING.getCode());
-        legacyCodeMap.put("triaged", PROCESSING.getCode());
+        legacyCodeMap.put("triaged", TRIAGED.getCode());
         legacyCodeMap.put("in_progress", PROCESSING.getCode());
+        legacyCodeMap.put("pending_confirm", PENDING_CONFIRM.getCode());
         legacyCodeMap.put("resolved", RESOLVED.getCode());
         legacyCodeMap.put("closed", CLOSED.getCode());
-        legacyCodeMap.put("rejected", CLOSED.getCode());
+        legacyCodeMap.put("rejected", REJECTED.getCode());
+        legacyCodeMap.put("reopened", REOPENED.getCode());
         legacyCodeMap.put("pending", PENDING.getCode());
+        legacyCodeMap.put("triage", TRIAGED.getCode());
         legacyCodeMap.put("processing", PROCESSING.getCode());
         legacyCodeMap.put("done", RESOLVED.getCode());
         LEGACY_CODE_MAP = Collections.unmodifiableMap(legacyCodeMap);
 
         Map<String, Set<String>> transitionMap = new HashMap<>();
-        transitionMap.put(PENDING.getCode(), new HashSet<>(Arrays.asList(PROCESSING.getCode(), CLOSED.getCode())));
-        transitionMap.put(PROCESSING.getCode(), new HashSet<>(Arrays.asList(RESOLVED.getCode(), CLOSED.getCode())));
-        transitionMap.put(RESOLVED.getCode(), new HashSet<>(Arrays.asList(PROCESSING.getCode())));
-        transitionMap.put(CLOSED.getCode(), new HashSet<>(Arrays.asList(PROCESSING.getCode())));
+        transitionMap.put(PENDING.getCode(), new HashSet<>(Arrays.asList(PROCESSING.getCode(), CLOSED.getCode(), REJECTED.getCode())));
+        transitionMap.put(PROCESSING.getCode(), new HashSet<>(Arrays.asList(PENDING_CONFIRM.getCode(), CLOSED.getCode(), REJECTED.getCode())));
+        transitionMap.put(PENDING_CONFIRM.getCode(), new HashSet<>(Arrays.asList(RESOLVED.getCode(), REOPENED.getCode(), CLOSED.getCode())));
+        transitionMap.put(REOPENED.getCode(), new HashSet<>(Arrays.asList(PROCESSING.getCode(), CLOSED.getCode(), REJECTED.getCode())));
+        transitionMap.put(RESOLVED.getCode(), new HashSet<>(Arrays.asList(REOPENED.getCode())));
+        transitionMap.put(CLOSED.getCode(), new HashSet<>(Arrays.asList(REOPENED.getCode())));
+        transitionMap.put(REJECTED.getCode(), new HashSet<>(Arrays.asList(REOPENED.getCode())));
         TRANSITION_MAP = Collections.unmodifiableMap(transitionMap);
     }
 
