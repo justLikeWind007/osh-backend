@@ -19,6 +19,17 @@ public class CourseSearchRequest extends PageRequest {
     private Boolean isFollowing;
     private Integer collectionFlag;
     /**
+     * Course id input from UI (resource number search).
+     */
+    private String courseNo;
+    /**
+     * Parsed course id filter:
+     * null => no filter
+     * -1  => invalid input, force empty result
+     * >0  => exact id filter
+     */
+    private Long courseIdFilter;
+    /**
      * Internal switch set by backend controller based on permissions.
      * true: include all statuses; false/null: only published.
      */
@@ -72,11 +83,42 @@ public class CourseSearchRequest extends PageRequest {
         this.collectionFlag = collectionFlag;
     }
 
+    public String getCourseNo() {
+        return courseNo;
+    }
+
+    public void setCourseNo(String courseNo) {
+        this.courseNo = StringUtils.trimToNull(courseNo);
+        this.courseIdFilter = parseCourseIdFilter(this.courseNo);
+    }
+
+    public Long getCourseIdFilter() {
+        return courseIdFilter;
+    }
+
+    public void setCourseIdFilter(Long courseIdFilter) {
+        this.courseIdFilter = courseIdFilter;
+    }
+
     public Boolean getIncludeUnpublished() {
         return includeUnpublished;
     }
 
     public void setIncludeUnpublished(Boolean includeUnpublished) {
         this.includeUnpublished = includeUnpublished;
+    }
+
+    private Long parseCourseIdFilter(String value) {
+        if (value == null) {
+            return null;
+        }
+        if (!StringUtils.isNumeric(value)) {
+            return -1L;
+        }
+        try {
+            return Long.valueOf(value);
+        } catch (Exception ex) {
+            return -1L;
+        }
     }
 }

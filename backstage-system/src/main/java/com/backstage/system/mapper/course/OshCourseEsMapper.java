@@ -167,6 +167,9 @@ public class OshCourseEsMapper {
         if (request != null && StringUtils.isNotEmpty(request.getResourceType())) {
             boolQuery.filter(QueryBuilders.termQuery("resourceType", request.getResourceType()));
         }
+        if (request != null && request.getCourseIdFilter() != null) {
+            boolQuery.filter(QueryBuilders.termQuery("id", request.getCourseIdFilter()));
+        }
 
         sourceBuilder.query(boolQuery);
         sourceBuilder.sort(SortBuilders.fieldSort("createTime").order(SortOrder.DESC));
@@ -215,6 +218,7 @@ public class OshCourseEsMapper {
         vo.setLevel(document.getLevel());
         vo.setStatus(document.getStatus());
         vo.setExamId(document.getExamId());
+        vo.setTagNamesText(document.getTagNamesText());
         vo.setCollectionFlag(0);
         vo.setBuyFlag(0);
         return vo;
