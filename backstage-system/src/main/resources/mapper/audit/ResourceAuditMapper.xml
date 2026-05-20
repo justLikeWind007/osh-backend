@@ -99,9 +99,9 @@
             </when>
             <when test="tableName == 'osh_info_gap'">
                 select id, title, content as description, null as cover, null as url, null as author,
-                       create_time as submit_time, null as level, status, null as create_by, create_time
+                       create_time as submit_time, null as level, status, cast(user_id as char) as create_by, create_time
                 from osh_info_gap
-                where delete_flag = 0 and status = 0
+                where delete_flag = 0 and status = 1
                 <if test="keyword != null and keyword != ''">
                     and (title like concat('%', #{keyword}, '%') or content like concat('%', #{keyword}, '%') or tag like concat('%', #{keyword}, '%'))
                 </if>
@@ -162,7 +162,7 @@
                 </if>
             </when>
             <when test="tableName == 'osh_info_gap'">
-                select count(1) from osh_info_gap where delete_flag = 0 and status = 0
+                select count(1) from osh_info_gap where delete_flag = 0 and status = 1
             </when>
             <otherwise>
                 select 0
@@ -223,7 +223,7 @@
             </when>
             <when test="tableName == 'osh_info_gap'">
                 select id, title, content as description, null as cover, null as url,
-                       null as author, create_time as submit_time, null as level, status, create_by, create_time
+                       null as author, create_time as submit_time, null as level, status, cast(user_id as char) as create_by, create_time
                 from osh_info_gap
                 where id = #{resourceId}
                 limit 1
@@ -295,7 +295,7 @@
                 set status = #{status},
                     update_by = #{operatorId},
                     update_time = now()
-                where id = #{resourceId} and delete_flag = 0 and status = 2
+                where id = #{resourceId} and delete_flag = 0 and status = 1
             </when>
             <otherwise>
                 update osh_tool set status = status where 1 = 0
