@@ -35,7 +35,16 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         c.level,
         c.status,
         c.delete_flag,
-        c.exam_id
+        c.exam_id,
+        (
+            select group_concat(distinct ct2.name order by ct2.sort separator ',')
+            from osh_course_tag_rel ctr2
+            inner join osh_course_tag ct2 on ct2.id = ctr2.tag_id
+                and ct2.delete_flag = 0
+                and ct2.status = 1
+            where ctr2.course_id = c.id
+              and ctr2.delete_flag = 0
+        ) as tag_names_text
     </sql>
 
     <sql id="courseDetailColumns">
@@ -138,6 +147,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="deleteFlag" column="delete_flag"/>
         <result property="examId" column="exam_id"/>
         <result property="collectionCount" column="collection_count"/>
+        <result property="tagNamesText" column="tag_names_text"/>
         <result property="collectionFlag" column="collection_flag"/>
         <result property="buyFlag" column="buy_flag"/>
     </resultMap>
@@ -367,7 +377,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             and ct.status = 1
         <where>
             c.delete_flag = 0
-            and c.status = 4
+            <if test="request == null or request.includeUnpublished == null or !request.includeUnpublished">
+                and c.status = 4
+            </if>
             <if test="request.keyword != null and request.keyword != ''">
                 and c.title like concat('%', #{request.keyword}, '%')
             </if>
@@ -379,6 +391,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             </if>
             <if test="request.resourceType != null and request.resourceType != ''">
                 and c.resource_type = #{request.resourceType}
+            </if>
+            <if test="request.courseIdFilter != null">
+                and c.id = #{request.courseIdFilter}
             </if>
         </where>
         order by sort_score desc,c.create_time desc
@@ -416,7 +431,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             and occ.delete_flag = 0
         <where>
             c.delete_flag = 0
-            and c.status = 4
+            <if test="request == null or request.includeUnpublished == null or !request.includeUnpublished">
+                and c.status = 4
+            </if>
             <if test="request.keyword != null and request.keyword != ''">
                 and c.title like concat('%', #{request.keyword}, '%')
             </if>
@@ -437,6 +454,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             </if>
             <if test="request.resourceType != null and request.resourceType != ''">
                 and c.resource_type = #{request.resourceType}
+            </if>
+            <if test="request.courseIdFilter != null">
+                and c.id = #{request.courseIdFilter}
             </if>
         </where>
         order by occ.create_time desc, c.id desc
@@ -453,7 +473,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             and occ.delete_flag = 0
         <where>
             c.delete_flag = 0
-            and c.status = 4
+            <if test="request == null or request.includeUnpublished == null or !request.includeUnpublished">
+                and c.status = 4
+            </if>
             <if test="request.keyword != null and request.keyword != ''">
                 and c.title like concat('%', #{request.keyword}, '%')
             </if>
@@ -474,6 +496,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             </if>
             <if test="request.resourceType != null and request.resourceType != ''">
                 and c.resource_type = #{request.resourceType}
+            </if>
+            <if test="request.courseIdFilter != null">
+                and c.id = #{request.courseIdFilter}
             </if>
         </where>
         order by occ.create_time desc, c.id desc
@@ -502,7 +527,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             and ocb.user_id = #{userId}
         where c.id = #{id}
         and c.delete_flag = 0
-        and c.status = 4
+        <if test="!includeUnpublished">
+            and c.status = 4
+        </if>
     </select>
 
     <select id="selectCourseSectionList" parameterType="Long" resultMap="OshCourseSectionResult">

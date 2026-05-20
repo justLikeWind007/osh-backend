@@ -92,7 +92,8 @@ public interface OshCourseMapper
      */
     int deleteCourseByIds(Long[] ids);
 
-    OshCourseDetailVo getCourseDetail(@Param("id") Long id, @Param("userId") Long userId);
+    OshCourseDetailVo getCourseDetail(@Param("id") Long id, @Param("userId") Long userId,
+                                      @Param("includeUnpublished") boolean includeUnpublished);
 
     Integer isUserBuyCourseOrFreeCourse(Long courseId, Long userId);
 
