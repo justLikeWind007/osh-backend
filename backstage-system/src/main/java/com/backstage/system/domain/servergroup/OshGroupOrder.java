@@ -53,6 +53,32 @@ public class OshGroupOrder {
     /** 更新时间 */
     private LocalDateTime updateTime;
     
+    // ===== 以下为支付流水相关字段（联查 osh_payment 表） =====
+    
+    /** 支付流水号 */
+    private String paymentNo;
+    
+    /** 支付渠道：1-微信 2-支付宝 3-免费 */
+    private Integer channel;
+    
+    /** 支付流水状态：0-待支付 1-已支付 2-已关闭 3-已失败 */
+    private Integer paymentStatus;
+    
+    /** 平台交易号 */
+    private String platformTradeNo;
+    
+    /** 支付链接 */
+    private String payUrl;
+    
+    /** 支付二维码 */
+    private String qrcode;
+    
+    /** 支付成功时间（从支付流水表获取） */
+    private LocalDateTime paidTime;
+    
+    /** 支付流水创建时间 */
+    private LocalDateTime paymentCreatedTime;
+    
     // Getter and Setter
     
     public Long getId() {
@@ -165,5 +191,71 @@ public class OshGroupOrder {
     
     public void setUpdateTime(LocalDateTime updateTime) {
         this.updateTime = updateTime;
+    }
+    
+    // 支付流水相关字段的 getter 和 setter
+    
+    public String getPaymentNo() {
+        return paymentNo;
+    }
+    
+    public void setPaymentNo(String paymentNo) {
+        this.paymentNo = paymentNo;
+    }
+    
+    public Integer getChannel() {
+        return channel;
+    }
+    
+    public void setChannel(Integer channel) {
+        this.channel = channel;
+    }
+    
+    public Integer getPaymentStatus() {
+        return paymentStatus;
+    }
+    
+    public void setPaymentStatus(Integer paymentStatus) {
+        this.paymentStatus = paymentStatus;
+    }
+    
+    public String getPlatformTradeNo() {
+        return platformTradeNo;
+    }
+    
+    public void setPlatformTradeNo(String platformTradeNo) {
+        this.platformTradeNo = platformTradeNo;
+    }
+    
+    public String getPayUrl() {
+        return payUrl;
+    }
+    
+    public void setPayUrl(String payUrl) {
+        this.payUrl = payUrl;
+    }
+    
+    public String getQrcode() {
+        return qrcode;
+    }
+    
+    public void setQrcode(String qrcode) {
+        this.qrcode = qrcode;
+    }
+    
+    public LocalDateTime getPaidTime() {
+        return paidTime;
+    }
+    
+    public void setPaidTime(LocalDateTime paidTime) {
+        this.paidTime = paidTime;
+    }
+    
+    public LocalDateTime getPaymentCreatedTime() {
+        return paymentCreatedTime;
+    }
+    
+    public void setPaymentCreatedTime(LocalDateTime paymentCreatedTime) {
+        this.paymentCreatedTime = paymentCreatedTime;
     }
 }

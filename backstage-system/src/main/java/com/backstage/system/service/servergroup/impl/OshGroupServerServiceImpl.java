@@ -1006,6 +1006,7 @@ public class OshGroupServerServiceImpl implements IOshGroupServerService {
         Integer minNum = (Integer) activity.get("min_num");
         Integer duration = (Integer) activity.get("duration");
         java.math.BigDecimal customPrice = (java.math.BigDecimal) activity.get("custom_price");
+        Long leaderUserId = (Long) activity.get("user_id"); // 团长是发起人
         java.time.LocalDateTime serverStartTime = null;
         java.time.LocalDateTime serverExpireTime = null;
         int workGroupStatus = 0; // 默认进行中
@@ -1341,5 +1342,28 @@ public class OshGroupServerServiceImpl implements IOshGroupServerService {
         
         // 备注
         sshInfo.setRemark("本服务器由拼团活动 '" + activity.getTitle() + "' 分配");
+    }
+    
+    /**
+     * 创建拼团订单的支付流水记录
+     * 
+     * 在调用支付接口前，必须先创建支付流水记录，以便支付回调时能够被正确处理。
+     * 支付流水用于记录支付状态，与 osh_group_order 订单表配合使用。
+     */
+    @Override
+    public void createGroupPayment(String orderNo, String amount, String clientIp) {
+        // 生成支付流水号（与订单号一致，易支付使用 out_trade_no 作为支付流水号）
+        String paymentNo = orderNo;
+        
+        // 将金额字符串转换为 BigDecimal
+        BigDecimal amountDecimal = new BigDecimal(amount);
+        
+        // 插入支付流水记录
+        int result = groupServerMapper.insertGroupPayment(paymentNo, orderNo, amountDecimal, clientIp);
+        if (result <= 0) {
+            logger.warn("【拼团支付】创建支付流水失败，orderNo={}, paymentNo={}", orderNo, paymentNo);
+        } else {
+            logger.info("【拼团支付】创建支付流水成功，orderNo={}, paymentNo={}, amount={}", orderNo, paymentNo, amount);
+        }
     }
 }

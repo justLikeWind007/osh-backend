@@ -9,6 +9,7 @@ import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.common.utils.SecurityUtils;
 import com.backstage.system.domain.dto.GroupCreateDTO;
 import com.backstage.system.domain.dto.AddUserToGroupDTO;
+import com.backstage.system.domain.servergroup.OshGroupOrder;
 import com.backstage.system.domain.vo.GroupActivityListVO;
 import com.backstage.system.domain.vo.GroupCreateVO;
 import com.backstage.system.domain.vo.GroupDetailVO;
@@ -363,7 +364,10 @@ public class OshGroupServerController extends BaseController {
             // 4. 获取实际支付金额
             String money = order.getPrice() != null ? order.getPrice().toString() : "0";
             
-            // 5. 调用支付服务创建支付（默认使用微信支付）
+            // 5. 创建支付流水记录（必须先创建，才能被回调处理）
+            groupServerService.createGroupPayment(orderNo, money, clientIp);
+            
+            // 6. 调用支付服务创建支付（默认使用微信支付）
             PayResponse response = payService.createPay(orderNo, name, money, clientIp, "wxpay");
             
             if (response.getCode() == 1) {
@@ -374,6 +378,37 @@ public class OshGroupServerController extends BaseController {
         } catch (Exception e) {
             logger.error("拼团订单支付失败", e);
             return R.fail("支付请求失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 接口11：查询拼团订单状态
+     * 权限要求：登录用户可查询自己的订单状态
+     * 
+     * GET /pc/group/order/status
+     * 
+     * @param orderNo 订单号
+     * @return 订单状态信息
+     */
+    @ApiOperation("查询拼团订单状态")
+    @GetMapping("/order/status")
+    public R<com.backstage.system.domain.servergroup.OshGroupOrder> getOrderStatus(
+            @ApiParam("订单号") @RequestParam(value = "orderNo") String orderNo) {
+        // 从 ThreadLocal 获取网校用户ID（验证登录状态）
+        Long userId = ThreadLocalUtil.get(OshUserConstants.USER_ID, Long.class);
+        if (userId == null) {
+            return R.fail("请先登录");
+        }
+        
+        try {
+            OshGroupOrder order = groupServerService.selectGroupOrderByOrderNo(orderNo);
+            if (order == null) {
+                return R.fail("订单不存在");
+            }
+            return R.ok(order, "查询成功");
+        } catch (Exception e) {
+            logger.error("查询订单状态失败", e);
+            return R.fail("查询失败: " + e.getMessage());
         }
     }
     

@@ -17,6 +17,9 @@ public class OshGroupWork {
     /** 关联拼团活动ID */
     private Long groupActivityId;
     
+    /** 团长用户ID */
+    private Long leaderUserId;
+    
     /** 参团用户ID */
     private Long userId;
     
@@ -75,6 +78,14 @@ public class OshGroupWork {
     
     public void setGroupActivityId(Long groupActivityId) {
         this.groupActivityId = groupActivityId;
+    }
+    
+    public Long getLeaderUserId() {
+        return leaderUserId;
+    }
+    
+    public void setLeaderUserId(Long leaderUserId) {
+        this.leaderUserId = leaderUserId;
     }
     
     public Long getUserId() {

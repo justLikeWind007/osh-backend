@@ -161,4 +161,16 @@ public interface IOshGroupServerService {
      * @return 是否处理成功
      */
     boolean handlePaymentSuccess(String orderNo);
+    
+    /**
+     * 创建拼团订单的支付流水记录
+     * 
+     * 在调用支付接口前，必须先创建支付流水记录，以便支付回调时能够被正确处理。
+     * 支付流水用于记录支付状态，与 osh_group_order 订单表配合使用。
+     * 
+     * @param orderNo 订单号（osh_group_order.order_no）
+     * @param amount 支付金额
+     * @param clientIp 客户端IP
+     */
+    void createGroupPayment(String orderNo, String amount, String clientIp);
 }

@@ -257,8 +257,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <update id="updateGroupWorkServerTime">
         UPDATE osh_group_work
         SET server_start_time = #{serverStartTime},
-            server_expire_time = #{serverExpireTime},
-            update_time = NOW()
+            server_expire_time = #{serverExpireTime}
         WHERE id = #{id}
     </update>
 
@@ -283,8 +282,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             join_time,
             server_start_time,
             server_expire_time,
-            create_time,
-            update_time
+            created_time
         ) VALUES (
             #{groupActivityId},
             #{userId},
@@ -295,7 +293,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             #{joinTime},
             #{serverStartTime},
             #{serverExpireTime},
-            NOW(),
             NOW()
         )
     </insert>
@@ -361,19 +358,21 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <!-- 更新参团记录状态 -->
     <update id="updateGroupWorkStatus">
         UPDATE osh_group_work
-        SET group_status = #{groupStatus},
-            update_time = NOW()
+        SET group_status = #{groupStatus}
         WHERE id = #{id}
     </update>
 
-    <!-- 根据订单号查询订单 -->
+    <!-- 根据订单号查询订单（联查支付流水表） -->
     <select id="selectGroupOrderByOrderNo" parameterType="java.lang.String" resultType="com.backstage.system.domain.servergroup.OshGroupOrder">
         SELECT 
-            id, user_id, group_activity_id, group_work_id, order_no,
-            price, base_price, remaining_months, status, pay_method,
-            pay_time, created_time, updated_time
-        FROM osh_group_order
-        WHERE order_no = #{orderNo}
+            go.id, go.user_id, go.group_activity_id, go.group_work_id, go.order_no,
+            go.price, go.base_price, go.remaining_months, go.status, go.pay_method,
+            go.pay_time, go.created_time, go.updated_time,
+            p.payment_no, p.channel, p.status AS payment_status, p.platform_trade_no,
+            p.pay_url, p.qrcode, p.paid_time, p.created_time AS payment_created_time
+        FROM osh_group_order go
+        LEFT JOIN osh_payment p ON go.order_no = p.payment_no
+        WHERE go.order_no = #{orderNo}
     </select>
 
     <!-- 更新订单状态 -->
@@ -502,5 +501,18 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             LIMIT #{limit}
         </if>
     </select>
+
+    <!-- 插入支付流水记录（用于拼团订单） -->
+    <insert id="insertGroupPayment">
+        INSERT INTO osh_payment (
+            payment_no, order_no, amount, status, 
+            request_payload, expire_time, created_time, updated_time, delete_flag
+        ) VALUES (
+            #{paymentNo}, #{orderNo}, #{amount}, 0,
+            CONCAT('{"clientIp":"', #{clientIp}, '","source":"group"}'),
+            DATE_ADD(NOW(), INTERVAL 30 MINUTE),
+            NOW(), NOW(), 0
+        )
+    </insert>
 
 </mapper>

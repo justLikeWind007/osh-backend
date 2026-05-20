@@ -236,4 +236,13 @@ public interface OshGroupServerMapper {
     List<UserSearchVO> selectUsernamesByKeyword(
             @Param("keyword") String keyword,
             @Param("limit") Integer limit);
+    
+    /**
+     * 插入支付流水记录（用于拼团订单）
+     * 
+     * @param payment 支付流水记录
+     * @return 影响行数
+     */
+    int insertGroupPayment(@Param("paymentNo") String paymentNo, @Param("orderNo") String orderNo, 
+                           @Param("amount") BigDecimal amount, @Param("clientIp") String clientIp);
 }
