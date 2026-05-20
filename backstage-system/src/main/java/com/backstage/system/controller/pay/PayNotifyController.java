@@ -1,4 +1,4 @@
-package com.backstage.system.controller.common;
+package com.backstage.system.controller.pay;
 
 import com.backstage.common.annotation.Anonymous;
 import com.backstage.system.domain.seckill.OshSeckillOrder;
