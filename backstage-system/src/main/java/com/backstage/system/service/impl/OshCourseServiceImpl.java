@@ -113,9 +113,9 @@ public class OshCourseServiceImpl implements IOshCourseService {
     }
 
     @Override
-    public OshCourseDetailVo getCourseDetail(Long id, Long userId) {
+    public OshCourseDetailVo getCourseDetail(Long id, Long userId, boolean includeUnpublished) {
         // 1. 拿到详情 VO
-        OshCourseDetailVo vo = oshCourseMapper.getCourseDetail(id, userId);
+        OshCourseDetailVo vo = oshCourseMapper.getCourseDetail(id, userId, includeUnpublished);
         if (vo == null) return null;
         fillResourceTypeDetail(vo);
 
@@ -375,7 +375,8 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
         OshCourse course = new OshCourse();
         course.setId(courseId);
-        course.setStatus(OshCourseStatusEnum.PUBLISHED.getCode());
+        // New/edited courses must go through the audit queue first.
+        course.setStatus(OshCourseStatusEnum.PENDING_AUDIT.getCode());
         course.setUpdateBy(operator == null ? null : StringUtils.trimToNull(operator.getUsername()));
         int rows = oshCourseMapper.updateCourse(course);
         if (rows <= 0) {
@@ -636,7 +637,8 @@ public class OshCourseServiceImpl implements IOshCourseService {
         course.setLikeCount(CourseConstants.DEFAULT_COUNT);
         course.setCommentCount(CourseConstants.DEFAULT_COUNT);
         course.setRatingScore(CourseConstants.DEFAULT_RATING_SCORE);
-        course.setStatus(OshCourseStatusEnum.PUBLISHED.getCode());
+        // Editing a course re-enters the audit workflow.
+        course.setStatus(OshCourseStatusEnum.PENDING_AUDIT.getCode());
 
         String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
         course.setCreateBy(operatorName);
@@ -665,7 +667,8 @@ public class OshCourseServiceImpl implements IOshCourseService {
         course.setResourceType(request.getResourceType());
         course.setLevel(request.getLevel());
         if (request.getServicePeriod() != null) course.setServicePeriod(request.getServicePeriod());
-        course.setStatus(OshCourseStatusEnum.PUBLISHED.getCode());
+        // Editing a course should re-enter the audit queue.
+        course.setStatus(OshCourseStatusEnum.PENDING_AUDIT.getCode());
         String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
         course.setUpdateBy(operatorName);
         return course;

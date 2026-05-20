@@ -18,6 +18,11 @@ public class CourseSearchRequest extends PageRequest {
     private String resourceType;
     private Boolean isFollowing;
     private Integer collectionFlag;
+    /**
+     * Internal switch set by backend controller based on permissions.
+     * true: include all statuses; false/null: only published.
+     */
+    private Boolean includeUnpublished;
 
     public CourseSearchRequest() {
     }
@@ -65,5 +70,13 @@ public class CourseSearchRequest extends PageRequest {
 
     public void setCollectionFlag(Integer collectionFlag) {
         this.collectionFlag = collectionFlag;
+    }
+
+    public Boolean getIncludeUnpublished() {
+        return includeUnpublished;
+    }
+
+    public void setIncludeUnpublished(Boolean includeUnpublished) {
+        this.includeUnpublished = includeUnpublished;
     }
 }

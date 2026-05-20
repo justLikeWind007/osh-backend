@@ -146,8 +146,10 @@ public class OshCourseEsMapper {
                 .size(pageSize)
                 .timeout(TimeValue.timeValueMillis(searchEsProperties.getFallbackTimeoutMillis()));
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
-                .filter(QueryBuilders.termQuery("status", 4))
                 .filter(QueryBuilders.termQuery("deleteFlag", 0));
+        if (request == null || request.getIncludeUnpublished() == null || !request.getIncludeUnpublished()) {
+            boolQuery.filter(QueryBuilders.termQuery("status", 4));
+        }
 
         if (courseIds != null && !courseIds.isEmpty()) {
             boolQuery.filter(QueryBuilders.termsQuery("id", courseIds));

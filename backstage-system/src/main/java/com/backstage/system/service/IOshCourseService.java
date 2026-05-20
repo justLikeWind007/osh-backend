@@ -86,7 +86,7 @@ public interface IOshCourseService {
      */
     int deleteCourseById(Long id);
 
-    OshCourseDetailVo getCourseDetail(Long id, Long userId);
+    OshCourseDetailVo getCourseDetail(Long id, Long userId, boolean includeUnpublished);
 
     List<OshCourseSectionVo> getCourseSectionOutline(Long courseId);
 

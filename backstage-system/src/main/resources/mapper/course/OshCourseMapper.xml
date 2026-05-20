@@ -367,7 +367,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             and ct.status = 1
         <where>
             c.delete_flag = 0
-            and c.status = 4
+            <if test="request == null or request.includeUnpublished == null or !request.includeUnpublished">
+                and c.status = 4
+            </if>
             <if test="request.keyword != null and request.keyword != ''">
                 and c.title like concat('%', #{request.keyword}, '%')
             </if>
@@ -416,7 +418,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             and occ.delete_flag = 0
         <where>
             c.delete_flag = 0
-            and c.status = 4
+            <if test="request == null or request.includeUnpublished == null or !request.includeUnpublished">
+                and c.status = 4
+            </if>
             <if test="request.keyword != null and request.keyword != ''">
                 and c.title like concat('%', #{request.keyword}, '%')
             </if>
@@ -453,7 +457,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             and occ.delete_flag = 0
         <where>
             c.delete_flag = 0
-            and c.status = 4
+            <if test="request == null or request.includeUnpublished == null or !request.includeUnpublished">
+                and c.status = 4
+            </if>
             <if test="request.keyword != null and request.keyword != ''">
                 and c.title like concat('%', #{request.keyword}, '%')
             </if>
@@ -502,7 +508,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             and ocb.user_id = #{userId}
         where c.id = #{id}
         and c.delete_flag = 0
-        and c.status = 4
+        <if test="!includeUnpublished">
+            and c.status = 4
+        </if>
     </select>
 
     <select id="selectCourseSectionList" parameterType="Long" resultMap="OshCourseSectionResult">
