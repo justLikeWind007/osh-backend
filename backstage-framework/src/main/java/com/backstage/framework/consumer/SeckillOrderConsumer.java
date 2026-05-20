@@ -10,9 +10,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
+
+import java.util.Arrays;
 
 /**
  * 秒杀订单创建 Kafka 消费者
@@ -35,6 +38,22 @@ public class SeckillOrderConsumer {
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
+    /**
+     * Lua 脚本：回滚 Redis 库存时不超过 totalStock 上限（原子操作）
+     * KEYS[1] = stockKey
+     * ARGV[1] = 回滚数量 qty
+     * ARGV[2] = totalStock 上限
+     */
+    private static final DefaultRedisScript<Long> RETURN_STOCK_SCRIPT = new DefaultRedisScript<>(
+            "local cur = tonumber(redis.call('GET', KEYS[1])) or 0 " +
+            "local total = tonumber(ARGV[2]) " +
+            "local qty   = tonumber(ARGV[1]) " +
+            "local newVal = math.min(cur + qty, total) " +
+            "redis.call('SET', KEYS[1], tostring(newVal)) " +
+            "return newVal",
+            Long.class
+    );
+
     @KafkaListener(topics = KafkaConstants.SECKILL_ORDER_CREATE_TOPIC,
                    groupId = "${spring.kafka.consumer.group-id}")
     public void consumeSeckillOrder(String message, Acknowledgment ack) {
@@ -54,9 +73,21 @@ public class SeckillOrderConsumer {
             int quantity = msg.getQuantity() != null ? msg.getQuantity() : 1;
             int affected = itemMapper.decrStock(msg.getItemId(), quantity);
             if (affected == 0) {
-                // 数据库库存扣减失败，回滚 Redis 库存
+                // 数据库库存扣减失败，回滚 Redis 库存（Lua 原子操作，回滚后不超过 totalStock）
                 String stockKey = "seckill:stock:" + msg.getActivityId() + ":" + msg.getItemId();
-                stringRedisTemplate.opsForValue().increment(stockKey, quantity);
+                com.backstage.system.domain.seckill.OshSeckillActivityItem item =
+                        itemMapper.selectItemById(msg.getItemId());
+                if (item != null) {
+                    stringRedisTemplate.execute(
+                            RETURN_STOCK_SCRIPT,
+                            Arrays.asList(stockKey),
+                            String.valueOf(quantity),
+                            String.valueOf(item.getTotalStock())
+                    );
+                } else {
+                    // 兜底：查不到商品信息时直接 +qty（极端情况）
+                    stringRedisTemplate.opsForValue().increment(stockKey, quantity);
+                }
                 logger.error("【秒杀消费者】数据库库存不足，已回滚Redis库存，itemId={}, seckillNo={}",
                         msg.getItemId(), msg.getSeckillNo());
                 ack.acknowledge(); // 手动提交（业务失败但消息已处理）

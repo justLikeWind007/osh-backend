@@ -16,6 +16,7 @@ public class InfoGapVO {
     private Integer badCount;
     private Integer viewCount;
     private Integer collectCount;
+    private Integer status;
     private java.time.LocalDateTime createTime;
     private java.time.LocalDateTime updateTime;
 
@@ -55,6 +56,8 @@ public class InfoGapVO {
     public void setMiddleCount(Integer middleCount) { this.middleCount = middleCount; }
     public Integer getBadCount() { return badCount; }
     public void setBadCount(Integer badCount) { this.badCount = badCount; }
+    public Integer getStatus() { return status; }
+    public void setStatus(Integer status) { this.status = status; }
     public java.time.LocalDateTime getCreateTime() { return createTime; }
     public void setCreateTime(java.time.LocalDateTime createTime) { this.createTime = createTime; }
     public String getNickname() { return nickname; }
