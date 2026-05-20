@@ -24,10 +24,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.constraints.NotNull;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -70,6 +74,7 @@ public class OshCourseController extends BaseController {
         normalizeCollectionFilter(request);
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         Long userId = currentOshUser == null ? null : currentOshUser.getId();
+        request.setIncludeUnpublished(canViewUnpublishedDetail(currentOshUser));
         // 当用户请求查看"收藏"类型的课程（collectionFlag=1）但用户未登录时，直接返回一个空的分页结果，而不是继续执行搜索。
         if (Integer.valueOf(1).equals(request.getCollectionFlag()) && userId == null) {
             return R.ok(PageResponse.of(Collections.emptyList(), 0L, request.getPageNum(), request.getPageSize()), "ok");
@@ -102,6 +107,7 @@ public class OshCourseController extends BaseController {
     public R esCourseSearch(@RequestBody CourseSearchRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         Long userId = currentOshUser == null ? null : currentOshUser.getId();
+        request.setIncludeUnpublished(canViewUnpublishedDetail(currentOshUser));
         return R.ok(oshCourseEsService.searchCourses(request, userId), "ok");
     }
 
@@ -129,6 +135,7 @@ public class OshCourseController extends BaseController {
         if (currentOshUser == null) {
             return R.fail("请先登录");
         }
+        request.setIncludeUnpublished(canViewUnpublishedDetail(currentOshUser));
         return R.ok(oshCourseEsService.searchCourses(request, currentOshUser.getId()), "ok");
     }
 
@@ -140,6 +147,7 @@ public class OshCourseController extends BaseController {
         if (currentOshUser == null) {
             return R.fail("请先登录");
         }
+        request.setIncludeUnpublished(canViewUnpublishedDetail(currentOshUser));
         List<OshCourse> list = oshCourseService.pageQueryUserCollectionCourse(currentOshUser.getId(), request);
         PageInfo<OshCourse> pageInfo = new PageInfo<>(list);
         return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
@@ -152,11 +160,39 @@ public class OshCourseController extends BaseController {
     public R<OshCourseDetailVo> getCourseDetail(@NotNull @PathVariable("id") Long id) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         Long userId = currentOshUser == null ? null : currentOshUser.getId();
-        OshCourseDetailVo oshCourseDetailVo = oshCourseService.getCourseDetail(id, userId);
+        boolean includeUnpublished = canViewUnpublishedDetail(currentOshUser);
+        OshCourseDetailVo oshCourseDetailVo = oshCourseService.getCourseDetail(id, userId, includeUnpublished);
         if (oshCourseDetailVo == null) {
             return R.fail("课程不存在");
         }
         return R.ok(oshCourseDetailVo);
+    }
+
+    private boolean canViewUnpublishedDetail(OshUser currentOshUser) {
+        if (currentOshUser == null) {
+            return false;
+        }
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null) {
+                return false;
+            }
+            Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
+            if (authorities == null || authorities.isEmpty()) {
+                return false;
+            }
+            for (GrantedAuthority authority : authorities) {
+                String perm = authority == null ? null : authority.getAuthority();
+                if ("course:create".equals(perm)
+                        || "course:update".equals(perm)
+                        || "course:delete".equals(perm)) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     @ApiOperation("获取小节内容 videoUrl or text")
@@ -223,7 +259,7 @@ public class OshCourseController extends BaseController {
 
     @ApiOperation("新增/修改课程")
     @PostMapping("/save")
-    @PreAuthorize("hasAuthority('course:create')")
+    @PreAuthorize("hasAuthority('course:create') or hasAuthority('course:update')")
     @DistributeLock(scene = "resource", key = "operation", expireTime = 10000, waitTime = 3000, releaseImmediately = true)
     public R<Long> save(@RequestBody CourseCreateRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
