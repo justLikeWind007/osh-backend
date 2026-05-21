@@ -1,4 +1,4 @@
-package com.backstage.system.controller.common;
+package com.backstage.system.controller.pay;
 
 
 import com.backstage.common.core.domain.R;
@@ -50,8 +50,8 @@ public class PayController {
      */
     @GetMapping("/status")
     @PreAuthorize("hasAuthority('pay:status')")
-    public OrderStatusResult status(@RequestParam String outTradeNo) {
-        return orderService.getPaymentStatus(outTradeNo);
+    public OrderStatusResult status(@RequestParam String orderNo) {
+        return orderService.getOrderStatus(orderNo);
     }
 
     /**
@@ -60,8 +60,8 @@ public class PayController {
 
     @PostMapping("/cancel")
     @PreAuthorize("hasAuthority('pay:cancel')")
-    public R cancel(@RequestParam String outTradeNo) {
-        orderService.cancelPayment(outTradeNo);
+    public R cancel(@RequestParam String orderNo) {
+        orderService.cancelPaymentByOrderNo(orderNo);
         return R.ok();
     }
 }
