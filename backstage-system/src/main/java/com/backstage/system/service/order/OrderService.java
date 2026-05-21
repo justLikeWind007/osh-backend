@@ -43,4 +43,10 @@ public interface OrderService extends IService<OshOrder> {
      * @param paymentNo
      */
     void cancelPayment(String paymentNo);
+
+    /**
+     * 按订单号取消支付
+     * @param orderNo
+     */
+    void cancelPaymentByOrderNo(String orderNo);
 }
