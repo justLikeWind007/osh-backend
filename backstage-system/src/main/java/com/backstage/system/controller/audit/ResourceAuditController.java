@@ -1,5 +1,6 @@
 package com.backstage.system.controller.audit;
 
+import com.backstage.common.enums.ResourceStatusEnum;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.system.domain.audit.ResourceAuditApproveRequest;
@@ -47,7 +48,7 @@ public class ResourceAuditController {
         }
         try {
             resourceAuditService.audit(request.getResourceType(), request.getResourceId(), request.getStatus(), currentUser.getUsername(), currentUser.getId());
-            return R.ok(Integer.valueOf(1).equals(request.getStatus()) ? "审核通过" : "已拒绝");
+            return R.ok(ResourceStatusEnum.isPublished(request.getStatus()) ? "审核通过" : "已拒绝");
         } catch (IllegalArgumentException | ServiceException ex) {
             return R.fail(ex.getMessage());
         }

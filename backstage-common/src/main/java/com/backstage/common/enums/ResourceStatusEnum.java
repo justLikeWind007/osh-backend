@@ -5,7 +5,7 @@ public enum ResourceStatusEnum {
     DRAFT(0, "草稿"),
     PENDING_AUDIT(2, "待审核"),
     PUBLISHED(4, "已发布"),
-    OFFLINE(6, "已下架");
+    OFF_SHELF(6, "已下架");
 
     private final Integer code;
     private final String desc;
@@ -23,12 +23,19 @@ public enum ResourceStatusEnum {
         return desc;
     }
 
-    public static ResourceStatusEnum fromCode(Integer code) {
-        for (ResourceStatusEnum status : values()) {
-            if (status.getCode().equals(code)) {
-                return status;
-            }
-        }
-        throw new IllegalArgumentException("未知的资源状态: " + code);
+    public static boolean isDraft(Integer code) {
+        return DRAFT.code.equals(code);
+    }
+
+    public static boolean isPendingAudit(Integer code) {
+        return PENDING_AUDIT.code.equals(code);
+    }
+
+    public static boolean isPublished(Integer code) {
+        return PUBLISHED.code.equals(code);
+    }
+
+    public static boolean isOffShelf(Integer code) {
+        return OFF_SHELF.code.equals(code);
     }
 }

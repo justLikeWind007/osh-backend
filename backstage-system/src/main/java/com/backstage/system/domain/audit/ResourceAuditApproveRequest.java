@@ -17,7 +17,7 @@ public class ResourceAuditApproveRequest {
     @NotNull(message = "资源ID不能为空")
     private Long resourceId;
 
-    @ApiModelProperty(value = "审核动作：1-通过并将资源状态改为4，2-拒绝并将资源状态改为6", example = "1")
+    @ApiModelProperty(value = "审核后资源状态：4-已发布，6-已下架", example = "4")
     private Integer status;
 
     public String getResourceType() {
