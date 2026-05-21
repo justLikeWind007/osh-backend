@@ -15,6 +15,7 @@ public class OshInfoGap {
     @TableId(type = IdType.AUTO)
     private Long id;
     private Long userId;
+    private String userName;
     private String title;
     private String tag;
     private String content;
@@ -84,5 +85,13 @@ public class OshInfoGap {
 
     public void setUpdateBy(Long updateBy) {
         this.updateBy = updateBy;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
     }
 }
