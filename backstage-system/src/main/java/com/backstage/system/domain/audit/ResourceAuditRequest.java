@@ -8,7 +8,7 @@ import javax.validation.constraints.NotBlank;
 @ApiModel(description = "资源审核分页请求")
 public class ResourceAuditRequest {
 
-    @ApiModelProperty(value = "资源类型：course / qa_question / qa_answer / book / tool / website / open_project", required = true, example = "open_project")
+    @ApiModelProperty(value = "资源类型：course / qa_question / qa_answer / book / tool / website / open_project / info_gap", required = true, example = "open_project")
     @NotBlank(message = "资源类型不能为空")
     private String resourceType;
 

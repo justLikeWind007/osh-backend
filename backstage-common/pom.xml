@@ -18,6 +18,7 @@
                     <include>**/static/**</include>
                     <include>**/*.jpg</include>
                     <include>**/*.png</include>
+                    <include>**/*.factories</include>
                     <include>**/*.gif</include>
                     <include>**/*.ico</include>
                 </includes>
@@ -43,6 +44,12 @@
     </description>
 
     <dependencies>
+
+        <!-- Spring Cloud Context（PropertySourceLocator） -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-context</artifactId>
+        </dependency>
 
         <!-- Spring框架基本的核心工具 -->
         <dependency>
