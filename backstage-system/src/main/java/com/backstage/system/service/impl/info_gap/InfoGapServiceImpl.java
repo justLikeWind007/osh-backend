@@ -91,7 +91,7 @@ public class InfoGapServiceImpl implements InfoGapService {
         entity.setTitle(dto.getTitle());
         entity.setContent(dto.getContent());
         entity.setTag(dto.getTag());
-        entity.setStatus(1);
+        entity.setStatus(0);
 
         // 手动保存
         infoGapMapper.insertInfoGap(entity);
@@ -243,7 +243,7 @@ public class InfoGapServiceImpl implements InfoGapService {
                 .set(OshInfoGap::getTitle, dto.getTitle())
                 .set(OshInfoGap::getContent, dto.getContent())
                 .set(OshInfoGap::getTag, dto.getTag())
-                .set(OshInfoGap::getStatus, 1);
+                .set(OshInfoGap::getStatus, 0);
 
         int updateRows = infoGapMapper.update(null, updateWrapper);
         if (updateRows <= 0) {
