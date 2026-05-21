@@ -10,6 +10,7 @@ import com.backstage.system.domain.seckill.OshSeckillActivity;
 import com.backstage.system.domain.seckill.OshSeckillActivityItem;
 import com.backstage.system.domain.seckill.OshSeckillOrder;
 import com.backstage.system.domain.vo.seckill.SeckillOrderAdminVO;
+import com.backstage.system.domain.vo.seckill.SeckillRecentOrderVO;
 import com.backstage.system.domain.vo.seckill.SeckillResultVO;
 import com.backstage.system.mapper.seckill.OshSeckillActivityItemMapper;
 import com.backstage.system.mapper.seckill.OshSeckillActivityMapper;
@@ -410,6 +411,13 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
         redisTemplate.delete(orderKey);
 
         logger.info("【秒杀】用户取消订单，seckillNo={}, userId={}", seckillNo, userId);
+    }
+
+    @Override
+    public List<SeckillRecentOrderVO> getRecentPaidOrders(int limit) {
+        // 最大限制50条，防止滥用
+        int safeLimit = (limit <= 0 || limit > 50) ? 10 : limit;
+        return orderMapper.selectRecentPaidOrders(safeLimit);
     }
 
     // ==================== 私有方法 ====================
