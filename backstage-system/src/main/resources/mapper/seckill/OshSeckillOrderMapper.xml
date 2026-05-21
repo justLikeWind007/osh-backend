@@ -87,6 +87,24 @@
           and pay_expire_time &lt; NOW()
     </select>
 
+    <!-- 查询最近已支付订单，关联用户表取昵称/用户名，用于首页滚动条展示 -->
+    <select id="selectRecentPaidOrders" resultType="com.backstage.system.domain.vo.seckill.SeckillRecentOrderVO">
+        select
+            CASE
+                WHEN u.nickname IS NOT NULL AND u.nickname != ''
+                    THEN CONCAT(LEFT(u.nickname, 2), '**')
+                ELSE CONCAT(LEFT(u.username, 2), '**')
+            END AS username,
+            o.goods_title  AS goodsTitle,
+            o.goods_type   AS goodsType,
+            o.create_time  AS createTime
+        from osh_seckill_order o
+        left join osh_user u on o.user_id = u.id
+        where o.status = 1
+        order by o.create_time desc
+        limit #{limit}
+    </select>
+
     <update id="updateOrder" parameterType="com.backstage.system.domain.seckill.OshSeckillOrder">
         update osh_seckill_order
         <trim prefix="SET" suffixOverrides=",">

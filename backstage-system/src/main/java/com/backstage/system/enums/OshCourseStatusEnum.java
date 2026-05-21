@@ -1,11 +1,13 @@
 package com.backstage.system.enums;
 
+import com.backstage.common.enums.ResourceStatusEnum;
+
 public enum OshCourseStatusEnum {
 
-    DRAFT(0, "草稿"),
-    PENDING_AUDIT(2, "待审核"),
-    PUBLISHED(4, "已发布"),
-    OFF_SHELF(3, "已下架");
+    DRAFT(ResourceStatusEnum.DRAFT.getCode(), ResourceStatusEnum.DRAFT.getDesc()),
+    PENDING_AUDIT(ResourceStatusEnum.PENDING_AUDIT.getCode(), ResourceStatusEnum.PENDING_AUDIT.getDesc()),
+    PUBLISHED(ResourceStatusEnum.PUBLISHED.getCode(), ResourceStatusEnum.PUBLISHED.getDesc()),
+    OFF_SHELF(ResourceStatusEnum.OFF_SHELF.getCode(), ResourceStatusEnum.OFF_SHELF.getDesc());
 
     private final Integer code;
     private final String desc;

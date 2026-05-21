@@ -38,6 +38,12 @@ public class ApplicationPropertiesConfig
         return Integer.parseInt(value);
     }
 
+    public static long readLong(String propertyKey, String systemKey, long defaultValue)
+    {
+        String value = read(propertyKey, systemKey, String.valueOf(defaultValue));
+        return Long.parseLong(value);
+    }
+
     private static Properties loadProperties()
     {
         Properties properties = new Properties();

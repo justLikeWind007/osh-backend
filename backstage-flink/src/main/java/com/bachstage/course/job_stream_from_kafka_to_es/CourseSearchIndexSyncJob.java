@@ -7,9 +7,11 @@ import com.bachstage.course.job_stream_from_kafka_to_es.es.CourseIndexElasticsea
 import com.bachstage.course.job_stream_from_kafka_to_es.kafka.KafkaPropertiesFactory;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
+import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.CheckpointingMode;
+import org.apache.flink.streaming.api.environment.CheckpointConfig;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,8 +42,16 @@ public class CourseSearchIndexSyncJob {
                 config.getTopic(), config.getEsHosts(), config.getEsIndex());
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.setParallelism(1);
-        env.enableCheckpointing(60000, CheckpointingMode.AT_LEAST_ONCE);
+        env.setParallelism(config.getParallelism());
+        env.enableCheckpointing(config.getCheckpointIntervalMs(), CheckpointingMode.EXACTLY_ONCE);
+        env.getCheckpointConfig().setMinPauseBetweenCheckpoints(config.getCheckpointMinPauseMs());
+        env.getCheckpointConfig().setCheckpointTimeout(config.getCheckpointTimeoutMs());
+        env.getCheckpointConfig().setMaxConcurrentCheckpoints(config.getMaxConcurrentCheckpoints());
+        env.getCheckpointConfig().setTolerableCheckpointFailureNumber(config.getTolerableCheckpointFailureNumber());
+        env.getCheckpointConfig().enableExternalizedCheckpoints(CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION);
+        env.setRestartStrategy(RestartStrategies.fixedDelayRestart(
+                config.getRestartAttempts(),
+                org.apache.flink.api.common.time.Time.milliseconds(config.getRestartDelayMs())));
 
         Properties kafkaProps = KafkaPropertiesFactory.create(config);
         DataStream<JSONObject> eventStream = buildCourseEventStream(

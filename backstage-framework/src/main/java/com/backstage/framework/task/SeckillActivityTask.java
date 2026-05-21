@@ -48,9 +48,9 @@ public class SeckillActivityTask {
     private StringRedisTemplate stringRedisTemplate;
 
     /**
-     * 每分钟整点执行，自动流转活动状态
+     * 每5分钟执行一次，自动流转活动状态
      */
-    @Scheduled(cron = "0/5 * * * * ?")
+    @Scheduled(cron = "0 0/5 * * * ?")
     public void updateActivityStatus() {
         // ===== 1. 未开始 → 进行中 =====
         List<OshSeckillActivity> toStart = activityMapper.selectActivitiesToStart();
