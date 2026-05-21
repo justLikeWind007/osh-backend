@@ -15,7 +15,9 @@ public enum ProductTypeEnum {
 
     SECKILL(4, "seckill","秒杀"),
 
-    TOOL(5, "tool","工具");
+    TOOL(5, "tool","工具"),
+
+    GROUP(6, "group", "拼团");
     ;
 
     private final int code;

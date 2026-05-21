@@ -9,6 +9,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import com.backstage.common.annotation.Excel;
 import com.backstage.common.core.domain.BaseEntity;
+import org.apache.ibatis.type.Alias;
 
 /**
  * 订单对象 osh_group_order
@@ -16,6 +17,7 @@ import com.backstage.common.core.domain.BaseEntity;
  * @author ruoyi
  * @date 2026-03-11
  */
+@Alias("OshGroupOrderEntity")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class OshGroupOrder extends BaseEntity
 {
