@@ -122,7 +122,7 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
         validateCheckoutParam(reqVO);
 
         // 准备订单号、金额和支付渠道
-        String orderNo = orderNoGenerator.nextOrderNo(ProductTypeEnum.fromCode(reqVO.getProductType()).getDesc());
+        String orderNo = orderNoGenerator.nextOrderNo(ProductTypeEnum.fromCode(reqVO.getProductType()).getName());
         String paymentNo = orderNoGenerator.nextPaymentNo();
         BigDecimal amount = money(reqVO.getPayableAmount());
         PayChannelEnum channelEnum = resolvePaymentChannel(reqVO.getChannel());
