@@ -1,6 +1,7 @@
 package com.backstage.system.mapper.seckill;
 
 import com.backstage.system.domain.seckill.OshSeckillOrder;
+import com.backstage.system.domain.vo.seckill.SeckillRecentOrderVO;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
@@ -35,4 +36,7 @@ public interface OshSeckillOrderMapper {
 
     /** 查询支付超时的待支付订单（status=0 且 pay_expire_time < now） */
     List<OshSeckillOrder> selectTimeoutOrders();
+
+    /** 查询最近已支付订单，关联用户表取昵称/用户名，用于首页滚动条展示 */
+    List<SeckillRecentOrderVO> selectRecentPaidOrders(@Param("limit") int limit);
 }

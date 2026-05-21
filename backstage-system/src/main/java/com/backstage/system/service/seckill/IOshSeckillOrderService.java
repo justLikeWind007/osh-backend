@@ -2,6 +2,7 @@ package com.backstage.system.service.seckill;
 
 import com.backstage.system.domain.seckill.OshSeckillOrder;
 import com.backstage.system.domain.vo.seckill.SeckillOrderAdminVO;
+import com.backstage.system.domain.vo.seckill.SeckillRecentOrderVO;
 import com.backstage.system.domain.vo.seckill.SeckillResultVO;
 
 import java.util.List;
@@ -58,4 +59,12 @@ public interface IOshSeckillOrderService {
      * @param userId    当前用户ID（校验归属）
      */
     void cancelOrder(String seckillNo, Long userId);
+
+    /**
+     * 查询最近已支付订单，用于首页滚动条展示
+     *
+     * @param limit 返回条数，最大50
+     * @return 脱敏后的最近成交记录
+     */
+    List<SeckillRecentOrderVO> getRecentPaidOrders(int limit);
 }
