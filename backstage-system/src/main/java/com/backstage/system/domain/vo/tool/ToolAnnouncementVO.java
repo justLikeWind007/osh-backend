@@ -1,4 +1,4 @@
-package com.backstage.system.domain.vo.announcement;
+package com.backstage.system.domain.vo.tool;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -17,7 +17,7 @@ public class ToolAnnouncementVO {
     @ApiModelProperty(value = "公告跳转链接", example = "https://example.com/tool/notice/1")
     private String link;
 
-    @ApiModelProperty(value = "创建时间", example = "2026-05-19 10:00:00")
+    @ApiModelProperty(value = "创建时间", example = "2026-05-21 10:00:00")
     private LocalDateTime createTime;
 
     public Long getId() {

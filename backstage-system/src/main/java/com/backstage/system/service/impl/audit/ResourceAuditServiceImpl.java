@@ -1,5 +1,6 @@
 package com.backstage.system.service.impl.audit;
 
+import com.backstage.common.enums.ResourceStatusEnum;
 import com.backstage.common.enums.ResourceTypeEnum;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.common.response.PageResponse;
@@ -81,11 +82,11 @@ public class ResourceAuditServiceImpl implements IResourceAuditService {
         if (resourceId == null) {
             throw new IllegalArgumentException("资源ID不能为空");
         }
-        if (!Integer.valueOf(1).equals(status) && !Integer.valueOf(2).equals(status)) {
+        if (!ResourceStatusEnum.isPublished(status) && !ResourceStatusEnum.isOffShelf(status)) {
             throw new IllegalArgumentException("审核状态错误");
         }
         ResourceTypeEnum typeEnum = parseResourceType(resourceType);
-        int resourceStatus = Integer.valueOf(1).equals(status) ? 4 : 6;
+        int resourceStatus = Integer.valueOf(1).equals(status) ? 2 : 3;
         int rows = resourceAuditMapper.updateAuditStatus(typeEnum.getMysqlTableName(), resourceId, resourceStatus, operator, operatorId);
         if (rows <= 0) {
             throw new ServiceException("待审核资源不存在或已处理");
@@ -142,7 +143,7 @@ public class ResourceAuditServiceImpl implements IResourceAuditService {
             // 该资源类型暂无 ES 索引，跳过同步
             return;
         }
-        String eventType = resourceStatus == 4 ? AuditIndexEventType.AUDIT_APPROVED : AuditIndexEventType.AUDIT_REJECTED;
+        String eventType = ResourceStatusEnum.isPublished(resourceStatus) ? AuditIndexEventType.AUDIT_APPROVED : AuditIndexEventType.AUDIT_REJECTED;
         AuditIndexMessage message = new AuditIndexMessage();
         message.setEventType(eventType);
         message.setResourceType(resourceType.getType());
@@ -167,7 +168,7 @@ public class ResourceAuditServiceImpl implements IResourceAuditService {
             }
             WsNotifyMessage message = new WsNotifyMessage();
             message.setType("RESOURCE_AUDIT_RESULT");
-            message.setTitle(Integer.valueOf(4).equals(resourceStatus) ? "资源审核通过" : "资源审核未通过");
+            message.setTitle(ResourceStatusEnum.isPublished(resourceStatus) ? "资源审核通过" : "资源审核未通过");
             message.setContent(webSocketNotifyService.truncate(buildAuditNotifyContent(resourceType, resource, resourceStatus)));
             message.setJumpUrl("/audit");
             message.setBizId(String.valueOf(resourceId));
@@ -189,7 +190,7 @@ public class ResourceAuditServiceImpl implements IResourceAuditService {
 
     private String buildAuditNotifyContent(ResourceTypeEnum resourceType, ResourceAuditItemVO resource, Integer resourceStatus) {
         String resourceName = StringUtils.isEmpty(resource.getTitle()) ? String.valueOf(resource.getId()) : resource.getTitle();
-        String statusText = Integer.valueOf(4).equals(resourceStatus) ? "已通过" : "已拒绝";
+        String statusText = ResourceStatusEnum.isPublished(resourceStatus) ? "已通过" : "已拒绝";
         return getResourceTypeLabel(resourceType) + "「" + resourceName + "」审核" + statusText;
     }
 

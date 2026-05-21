@@ -97,6 +97,17 @@
                 order by create_time desc, id desc
                 limit #{offset}, #{pageSize}
             </when>
+            <when test="tableName == 'osh_info_gap'">
+                select id, title, content as description, null as cover, null as url, null as author,
+                       create_time as submit_time, null as level, status, user_name as create_by, create_time
+                from osh_info_gap
+                where delete_flag = 0 and status = 0
+                <if test="keyword != null and keyword != ''">
+                    and (title like concat('%', #{keyword}, '%') or content like concat('%', #{keyword}, '%') or tag like concat('%', #{keyword}, '%'))
+                </if>
+                order by create_time desc, id desc
+                limit #{offset}, #{pageSize}
+            </when>
             <otherwise>
                 select null as id, null as title, null as description, null as cover, null as url,
                        null as author, null as submit_time,
@@ -148,6 +159,12 @@
                 select count(1) from osh_open_project where delete_flag = 0 and status = 0
                 <if test="keyword != null and keyword != ''">
                     and (project_name like concat('%', #{keyword}, '%') or project_desc like concat('%', #{keyword}, '%') or project_url like concat('%', #{keyword}, '%') or author_name like concat('%', #{keyword}, '%'))
+                </if>
+            </when>
+            <when test="tableName == 'osh_info_gap'">
+                select count(1) from osh_info_gap where delete_flag = 0 and status = 0
+                <if test="keyword != null and keyword != ''">
+                    and (title like concat('%', #{keyword}, '%') or content like concat('%', #{keyword}, '%') or tag like concat('%', #{keyword}, '%'))
                 </if>
             </when>
             <otherwise>
@@ -204,6 +221,13 @@
                 select id, project_name as title, project_desc as description, project_cover as cover, project_url as url,
                        author_name as author, create_time as submit_time, null as level, status, create_by, create_time
                 from osh_open_project
+                where id = #{resourceId}
+                limit 1
+            </when>
+            <when test="tableName == 'osh_info_gap'">
+                select id, title, content as description, null as cover, null as url,
+                       null as author, create_time as submit_time, null as level, status, user_name as create_by, create_time
+                from osh_info_gap
                 where id = #{resourceId}
                 limit 1
             </when>
@@ -264,6 +288,13 @@
             </when>
             <when test="tableName == 'osh_open_project'">
                 update osh_open_project
+                set status = #{status},
+                    update_by = #{operatorId},
+                    update_time = now()
+                where id = #{resourceId} and delete_flag = 0 and status = 2
+            </when>
+            <when test="tableName == 'osh_info_gap'">
+                update osh_info_gap
                 set status = #{status},
                     update_by = #{operatorId},
                     update_time = now()

@@ -13,12 +13,15 @@ import com.backstage.system.domain.seckill.OshSeckillOrder;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.domain.vo.order.PayResponse;
 import com.backstage.system.domain.vo.seckill.SeckillActivityUserVO;
+import com.backstage.system.domain.vo.seckill.SeckillRecentOrderVO;
 import com.backstage.system.domain.vo.seckill.SeckillResultVO;
 import com.backstage.system.service.order.PayService;
 import com.backstage.system.service.seckill.IOshSeckillActivityService;
 import com.backstage.system.service.seckill.IOshSeckillOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 import java.util.List;
 
@@ -130,8 +133,7 @@ public class SeckillUserController extends BaseController {
     /*
      * 前端拿到 seckillNo 后调此接口，返回支付链接（payurl）或二维码（qrcode）
      * channel 可选，支持 wxpay / alipay，默认微信支付
-     */
-    @PostMapping("/order/pay/{seckillNo}")
+     */    @PostMapping("/order/pay/{seckillNo}")
     public R<PayResponse> pay(@PathVariable String seckillNo,
                               @RequestParam(required = false, defaultValue = "wxpay") String channel) {
         Long userId = getCurrentUser().getId();
@@ -156,7 +158,7 @@ public class SeckillUserController extends BaseController {
 
         // 发起支付，以 seckillNo 作为外部订单号
         String clientIp = IpUtils.getIpAddr();
-        String money = order.getSeckillPrice().toString();
+        String money = order.getTotalAmount().toString();  // 实付总金额（seckillPrice × quantity）
         String name = order.getGoodsTitle();
         PayResponse resp = payService.createPay(seckillNo, name, money, clientIp, channelValue);
 
@@ -164,5 +166,17 @@ public class SeckillUserController extends BaseController {
             return R.fail("发起支付失败：" + resp.getMsg());
         }
         return R.ok(resp);
+    }
+
+    /**
+     * 接口15：查询最近成交记录（用于首页滚动条展示）
+     * 不需要登录，匿名可访问
+     * limit 默认10条，最大50条
+     */
+    @Anonymous
+    @GetMapping("/recent/orders")
+    public R<List<SeckillRecentOrderVO>> recentOrders(
+            @RequestParam(required = false, defaultValue = "10") int limit) {
+        return R.ok(orderService.getRecentPaidOrders(limit));
     }
 }

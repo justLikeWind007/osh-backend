@@ -15,6 +15,7 @@ public class OshInfoGap {
     @TableId(type = IdType.AUTO)
     private Long id;
     private Long userId;
+    private String userName;
     private String title;
     private String tag;
     private String content;
@@ -24,6 +25,7 @@ public class OshInfoGap {
     private Integer collectCount;
     private Integer viewCount;
     private Integer status; // 0-草稿, 1-待审核, 2-已发布, 3-已下架
+    private Long updateBy;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
     @TableLogic
@@ -75,5 +77,21 @@ public class OshInfoGap {
 
     public void setDeleteFlag(Integer deleteFlag) {
         this.deleteFlag = deleteFlag;
+    }
+
+    public Long getUpdateBy() {
+        return updateBy;
+    }
+
+    public void setUpdateBy(Long updateBy) {
+        this.updateBy = updateBy;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
     }
 }
