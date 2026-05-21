@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.homepage.OshHomePageBookMapper">
+
+    <!-- 热门电子书查询（基于热度公式） -->
+    <select id="selectHotBooks" resultType="com.backstage.system.domain.homepage.vo.HotBookVO">
+        SELECT
+            t.id,
+            t.title,
+            t.cover,
+            t.description,
+            t.price,
+            t.sub_count AS subCount,
+            t.level,
+            t.chapter_count AS chapterCount,
+            ROUND(
+                (0.70 * IFNULL(t.sub_raw / NULLIF(m.max_sub_raw, 0), 0)
+               + 0.20 * (0.80 * IFNULL(t.chapter_raw / NULLIF(m.max_chapter_raw, 0), 0)
+                       + 0.20 * IFNULL(t.free_chapter_raw / NULLIF(m.max_free_chapter_raw, 0), 0))
+               + 0.10 * t.level_score)
+                * t.time_decay, 4
+            ) AS hotScore
+        FROM (
+            SELECT
+                b.id, b.title, b.cover, b.description, b.price,
+                b.sub_count, b.level, b.create_time,
+                IFNULL(cs.chapter_count, 0) AS chapter_count,
+                LN(1 + IFNULL(b.sub_count, 0)) AS sub_raw,
+                LN(1 + IFNULL(cs.chapter_count, 0)) AS chapter_raw,
+                LN(1 + IFNULL(cs.free_chapter_count, 0)) AS free_chapter_raw,
+                CASE
+                    WHEN b.level IS NULL THEN 0
+                    WHEN CAST(b.level AS UNSIGNED) >= 2 THEN 1
+                    ELSE CAST(b.level AS UNSIGNED) / 2
+                END AS level_score,
+                CASE
+                    WHEN TIMESTAMPDIFF(DAY, b.create_time, NOW()) &lt;= 30 THEN 1.20
+                    WHEN TIMESTAMPDIFF(DAY, b.create_time, NOW()) &lt;= 90 THEN 1.00
+                    WHEN TIMESTAMPDIFF(DAY, b.create_time, NOW()) &lt;= 180 THEN 0.85
+                    WHEN TIMESTAMPDIFF(DAY, b.create_time, NOW()) &lt;= 365 THEN 0.70
+                    ELSE 0.55
+                END AS time_decay
+            FROM osh_book b
+            LEFT JOIN (
+                SELECT
+                    book_id,
+                    COUNT(*) AS chapter_count,
+                    SUM(CASE WHEN is_free = 1 THEN 1 ELSE 0 END) AS free_chapter_count
+                FROM osh_book_chapter
+                WHERE delete_flag = 0 AND del_flag = '0'
+                GROUP BY book_id
+            ) cs ON cs.book_id = b.id
+            WHERE b.status = '0' AND b.del_flag = '0' AND b.delete_flag = 0
+        ) t
+        JOIN (
+            SELECT
+                MAX(LN(1 + IFNULL(b2.sub_count, 0))) AS max_sub_raw,
+                MAX(LN(1 + IFNULL(cs2.chapter_count, 0))) AS max_chapter_raw,
+                MAX(LN(1 + IFNULL(cs2.free_chapter_count, 0))) AS max_free_chapter_raw
+            FROM osh_book b2
+            LEFT JOIN (
+                SELECT
+                    book_id,
+                    COUNT(*) AS chapter_count,
+                    SUM(CASE WHEN is_free = 1 THEN 1 ELSE 0 END) AS free_chapter_count
+                FROM osh_book_chapter
+                WHERE delete_flag = 0 AND del_flag = '0'
+                GROUP BY book_id
+            ) cs2 ON cs2.book_id = b2.id
+            WHERE b2.status = '0' AND b2.del_flag = '0' AND b2.delete_flag = 0
+        ) m ON 1 = 1
+        ORDER BY hotScore DESC, t.create_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 根据电子书ID批量查询标签 -->
+    <select id="selectTagsByBookIds" resultType="com.backstage.system.domain.homepage.vo.HotBookVO">
+        SELECT book_id AS bookId, tag_name AS tagName
+        FROM osh_book_tag
+        WHERE book_id IN
+        <foreach collection="bookIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND del_flag = 0
+        ORDER BY sort_order ASC
+    </select>
+
+</mapper>
