@@ -243,7 +243,7 @@ public class InfoGapServiceImpl implements InfoGapService {
                 .set(OshInfoGap::getTitle, dto.getTitle())
                 .set(OshInfoGap::getContent, dto.getContent())
                 .set(OshInfoGap::getTag, dto.getTag())
-                .set(OshInfoGap::getStatus, 0);
+                .set(OshInfoGap::getStatus, 2);
 
         int updateRows = infoGapMapper.update(null, updateWrapper);
         if (updateRows <= 0) {
