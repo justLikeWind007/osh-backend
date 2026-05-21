@@ -101,7 +101,6 @@ public class WxPayController extends BaseController
             wxPay.setCodeUrl("weixin:asddasd");
             int rows = wxPayService.insertWxPay(wxPay);
 
-
             // 修改返回格式
             if (rows > 0) {
                 Map<String, Object> dataInner = new LinkedHashMap<String, Object>();
@@ -115,9 +114,6 @@ public class WxPayController extends BaseController
             return data;
         }
         return toAjax(0);
-
-
-
     }
 
     /**
