@@ -13,8 +13,10 @@ import com.backstage.system.domain.seckill.OshSeckillOrder;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.domain.vo.order.PayResponse;
 import com.backstage.system.domain.vo.seckill.SeckillActivityUserVO;
+import com.backstage.system.domain.vo.seckill.SeckillAnnouncementVO;
 import com.backstage.system.domain.vo.seckill.SeckillRecentOrderVO;
 import com.backstage.system.domain.vo.seckill.SeckillResultVO;
+import com.backstage.system.service.announcement.ISeckillAnnouncementService;
 import com.backstage.system.service.order.PayService;
 import com.backstage.system.service.seckill.IOshSeckillActivityService;
 import com.backstage.system.service.seckill.IOshSeckillOrderService;
@@ -50,6 +52,9 @@ public class SeckillUserController extends BaseController {
 
     @Autowired
     private PayService payService;
+
+    @Autowired
+    private ISeckillAnnouncementService seckillAnnouncementService;
 
     /**
      * 接口8：查询进行中的秒杀活动列表（用户端）
@@ -169,14 +174,26 @@ public class SeckillUserController extends BaseController {
     }
 
     /**
-     * 接口15：查询最近成交记录（用于首页滚动条展示）
+     * 接口15：查询秒杀动态栏（最近成交记录）
+     * 数据来源：osh_announcement（biz_type='seckill_dynamic'）
      * 不需要登录，匿名可访问
-     * limit 默认10条，最大50条
      */
     @Anonymous
     @GetMapping("/recent/orders")
-    public R<List<SeckillRecentOrderVO>> recentOrders(
+    public R<List<SeckillAnnouncementVO>> recentOrders(
             @RequestParam(required = false, defaultValue = "10") int limit) {
-        return R.ok(orderService.getRecentPaidOrders(limit));
+        return R.ok(seckillAnnouncementService.getSeckillDynamics(limit));
+    }
+
+    /**
+     * 接口16：查询秒杀公告栏
+     * 数据来源：osh_announcement（biz_type='seckill_notice'）
+     * 不需要登录，匿名可访问
+     */
+    @Anonymous
+    @GetMapping("/announcement/notices")
+    public R<List<SeckillAnnouncementVO>> seckillNotices(
+            @RequestParam(required = false, defaultValue = "10") int limit) {
+        return R.ok(seckillAnnouncementService.getSeckillNotices(limit));
     }
 }
