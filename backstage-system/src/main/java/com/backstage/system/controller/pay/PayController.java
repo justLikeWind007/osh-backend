@@ -26,10 +26,15 @@ public class PayController {
     @Autowired
     private OrderCheckoutService orderCheckoutService;
 
-
+    /**
+     * 创建支付订单。
+     *
+     * @param reqVO 订单结算参数
+     * @return 支付创建结果
+     */
     @PostMapping("/create")
     @PreAuthorize("hasAuthority('pay:create')")
-    public PayCreateRespVO create(@Valid @RequestBody OrderCheckoutReqVO reqVO) {
+    public R<PayCreateRespVO> create(@Valid @RequestBody OrderCheckoutReqVO reqVO) {
         OrderCheckoutRespVO checkoutResult = orderCheckoutService.checkout(reqVO);
 
         PayCreateRespVO response = new PayCreateRespVO();
@@ -42,25 +47,31 @@ public class PayController {
             response.setQrcode(payment.getQrcode());
             response.setPayUrl(payment.getPayUrl());
         }
-        return response;
+        return R.ok(response);
     }
 
     /**
      * 查询订单支付状态（前端轮询）。
+     *
+     * @param orderNo 订单编号
+     * @return 订单支付状态
      */
     @GetMapping("/status")
     @PreAuthorize("hasAuthority('pay:status')")
-    public OrderStatusResult status(@RequestParam String orderNo) {
-        return orderService.getOrderStatus(orderNo);
+    public R<OrderStatusResult> status(@RequestParam String orderNo) {
+        return R.ok(orderService.getOrderStatus(orderNo));
     }
 
     /**
      * 取消支付（用户主动取消）。
+     *
+     * @param orderNo 订单编号
+     * @return 取消支付结果
      */
 
     @PostMapping("/cancel")
     @PreAuthorize("hasAuthority('pay:cancel')")
-    public R cancel(@RequestParam String orderNo) {
+    public R<Void> cancel(@RequestParam String orderNo) {
         orderService.cancelPaymentByOrderNo(orderNo);
         return R.ok();
     }
