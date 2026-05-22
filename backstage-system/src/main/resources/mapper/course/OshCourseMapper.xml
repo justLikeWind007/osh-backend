@@ -551,7 +551,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                r.anchor_start,
                r.anchor_end,
                r.excerpt_title,
-               case when s.type = 'text' then ifnull(d.content, s.text_content) else s.text_content end as text_content,
+               ifnull(d.content, s.text_content) as text_content,
                s.cover,
                s.video_codec,
                s.video_bitrate,
@@ -572,6 +572,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             from osh_doc_ref rr
             where rr.ref_type = 'course_section'
               and rr.ref_id = s.id
+              and rr.is_primary = 1
               and rr.delete_flag = 0
             order by rr.is_primary desc, rr.create_time desc
             limit 1
@@ -621,7 +622,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                s.duration,
                s.media_url,
                s.cover,
-               case when s.type = 'text' then ifnull(d.content, s.text_content) else s.text_content end as text_content,
+               ifnull(d.content, s.text_content) as text_content,
                s.video_desc,
                s.video_codec,
                s.video_bitrate,
@@ -642,6 +643,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             from osh_doc_ref rr
             where rr.ref_type = 'course_section'
               and rr.ref_id = s.id
+              and rr.is_primary = 1
               and rr.delete_flag = 0
             order by rr.is_primary desc, rr.create_time desc
             limit 1
@@ -653,7 +655,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <select id="getCourseSectionContent" resultType="java.lang.String">
         select case
-                   when s.type = 'text' then ifnull(d.content, s.text_content)
+                   when s.type = 'text' then ifnull(d.content, '')
                    when s.type = 'video' then s.media_url
                    else ''
                    end as content
@@ -663,6 +665,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             from osh_doc_ref rr
             where rr.ref_type = 'course_section'
               and rr.ref_id = s.id
+              and rr.is_primary = 1
               and rr.delete_flag = 0
             order by rr.is_primary desc, rr.create_time desc
             limit 1

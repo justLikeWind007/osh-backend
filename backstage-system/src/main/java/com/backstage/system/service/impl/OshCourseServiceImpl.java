@@ -236,10 +236,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         }
         if (CourseSectionConstants.TYPE_TEXT.equalsIgnoreCase(section.getType())) {
             String content = oshDocMapper.selectPrimaryDocContentBySectionId(sectionId);
-            if (StringUtils.isNotBlank(content)) {
-                return content;
-            }
-            return StringUtils.defaultString(section.getTextContent(), "");
+            return StringUtils.defaultString(content, "");
         }
         if (CourseSectionConstants.TYPE_VIDEO.equalsIgnoreCase(section.getType())) {
             return StringUtils.defaultString(section.getMediaUrl(), "");
@@ -1050,8 +1047,8 @@ public class OshCourseServiceImpl implements IOshCourseService {
                 throw new IllegalArgumentException("要绑定的文档不存在");
             }
             docId = existingDoc.getId();
-            // 如果仍然绑定当前文档，并且这次有内容修改，则更新文档正文。
-            if (Objects.equals(currentDocId, docId) && hasTextUpdate) {
+            // 复用模式下允许直接编辑共享文档内容（会影响所有绑定此 doc 的小节）。
+            if (hasTextUpdate) {
                 OshDoc updateDoc = new OshDoc();
                 updateDoc.setId(docId);
                 updateDoc.setTitle(docTitle);
