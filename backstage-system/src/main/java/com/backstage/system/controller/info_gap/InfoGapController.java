@@ -47,8 +47,9 @@ public class InfoGapController {
     @PostMapping("/save")
     public R<Void> save(@RequestBody InfoGapCreateDTO dto) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        String currentUsername = currentOshUser.getUsername();
         Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
-        infoGapService.createInfoGap(dto, currentUserId);
+        infoGapService.createInfoGap(dto, currentUserId, currentUsername);
 
         return R.ok((Void) null, "提交成功，等待审核");
     }
