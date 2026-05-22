@@ -174,6 +174,11 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
 
         // 查询订单关联的支付流水
         OshPayment payment = paymentMapper.selectByOrderNo(orderNo);
+        if (Objects.nonNull(payment) && Objects.nonNull(payment.getStatus()) && payment.getStatus() == PAYMENT_PENDING) {
+            tryRefreshFromPlatform(payment);
+            order = orderMapper.selectByOrderNo(orderNo);
+            payment = paymentMapper.selectByOrderNo(orderNo);
+        }
 
         // 组装统一订单状态
         return toStatusResult(order, payment);
@@ -214,17 +219,18 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
     @Override
     public void cancelPayment(String paymentNo) {
         OshPayment payment = paymentMapper.selectByPaymentNo(paymentNo);
-        if (Objects.isNull(payment)) {
-            throw new ServiceException("支付流水不存在");
-        }
-        if (payment.getStatus() != PAYMENT_PENDING) {
-            throw new ServiceException("当前支付状态不可取消");
-        }
-        executeInTransaction(() -> {
-            paymentMapper.updatePendingToClosed(paymentNo);
-            orderMapper.updatePendingToClosed(payment.getOrderNo(),LocalDateTime.now());
-        });
-        toolPurchaseService.cancelPendingPurchase(paymentNo);
+        cancelPendingPayment(payment);
+    }
+
+    /**
+     * 按订单号取消支付，前端业务侧只感知订单号。
+     *
+     * @param orderNo 订单号
+     */
+    @Override
+    public void cancelPaymentByOrderNo(String orderNo) {
+        OshPayment payment = paymentMapper.selectByOrderNo(orderNo);
+        cancelPendingPayment(payment);
     }
 
     /**
@@ -454,6 +460,26 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
             operation.run();
             return null;
         });
+    }
+
+    /**
+     * 关闭待支付流水和关联订单。
+     *
+     * @param payment 待关闭支付流水
+     */
+    private void cancelPendingPayment(OshPayment payment) {
+        if (Objects.isNull(payment)) {
+            throw new ServiceException("支付流水不存在");
+        }
+        if (payment.getStatus() != PAYMENT_PENDING) {
+            throw new ServiceException("当前支付状态不可取消");
+        }
+        String paymentNo = payment.getPaymentNo();
+        executeInTransaction(() -> {
+            paymentMapper.updatePendingToClosed(paymentNo);
+            orderMapper.updatePendingToClosed(payment.getOrderNo(), LocalDateTime.now());
+        });
+        toolPurchaseService.cancelPendingPurchase(paymentNo);
     }
 
     /**

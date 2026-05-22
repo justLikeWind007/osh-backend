@@ -70,7 +70,7 @@
             on oig.id = oigtr.info_gap_id and oigtr.rn &lt;= 3
         left join osh_info_gap_tag oigt
             on oigtr.gap_tag_id = oigt.id and oigt.delete_flag = 0
-        where oig.status = 2 and oig.delete_flag = 0
+        where oig.status = 4 and oig.delete_flag = 0
         group by oig.id
         <choose>
             <when test="type == 'hot'">
@@ -84,8 +84,8 @@
 
 
     <insert id="insertInfoGap" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO osh_info_gap (user_id, title, tag, content, status, create_time)
-        VALUES (#{userId}, #{title}, #{tag}, #{content}, #{status}, NOW())
+        INSERT INTO osh_info_gap (user_id, user_name, title, tag, content, status, create_time)
+        VALUES (#{userId}, #{userName}, #{title}, #{tag}, #{content}, #{status}, NOW())
     </insert>
 
     <update id="updateCountAtomically">
@@ -144,7 +144,7 @@
             on oig.id = oigtr.info_gap_id and oigtr.rn &lt;= 3
         left join osh_info_gap_tag oigt
             on oigtr.gap_tag_id = oigt.id and oigt.delete_flag = 0
-        where oig.status = 2
+        where oig.status = 4
           and oig.delete_flag = 0
         group by oig.id
         order by oig.create_time desc
@@ -309,7 +309,7 @@
                            on oig.id = oigtr.info_gap_id and oigtr.rn &lt;= 3
                  left join osh_info_gap_tag oigt
                            on oigtr.gap_tag_id = oigt.id and oigt.delete_flag = 0
-        where oig.status = 2
+        where oig.status = 4
           and oig.delete_flag = 0
         group by oig.id
         order by oig.good_count desc, oig.collect_count desc, oig.view_count desc
