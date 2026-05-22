@@ -1,6 +1,10 @@
 package com.backstage.system.domain.info_gap;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.baomidou.mybatisplus.annotation.TableName;
+
 import java.time.LocalDateTime;
 
 /**
@@ -19,7 +23,7 @@ public class OshInfoGap {
     private Integer badCount;
     private Integer collectCount;
     private Integer viewCount;
-    private Integer status; // 0-正常, 1-审核中, 2-已下架
+    private Integer status; // 0-草稿, 1-待审核, 2-已发布, 3-已下架
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
     @TableLogic
