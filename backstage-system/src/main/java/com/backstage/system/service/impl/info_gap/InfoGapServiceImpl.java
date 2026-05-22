@@ -91,7 +91,7 @@ public class InfoGapServiceImpl implements InfoGapService {
         entity.setTitle(dto.getTitle());
         entity.setContent(dto.getContent());
         entity.setTag(dto.getTag());
-        entity.setStatus(0);
+        entity.setStatus(2);
 
         // 手动保存
         infoGapMapper.insertInfoGap(entity);
