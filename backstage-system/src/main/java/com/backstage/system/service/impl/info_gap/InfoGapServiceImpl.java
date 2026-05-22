@@ -1,4 +1,5 @@
 package com.backstage.system.service.impl.info_gap;
+
 import com.backstage.common.exception.ServiceException;
 import com.backstage.system.domain.dto.info_gap.InfoGapCreateDTO;
 import com.backstage.system.domain.dto.info_gap.InfoGapSearchReqDTO;
@@ -7,15 +8,13 @@ import com.backstage.system.domain.info_gap.*;
 import com.backstage.system.domain.user.risk.OshUserRiskProfile;
 import com.backstage.system.domain.vo.info_gap.InfoGapVO;
 import com.backstage.system.mapper.info_gap.*;
+import com.backstage.system.mapper.user.OshUserMapper;
 import com.backstage.system.service.info_gap.InfoGapService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.pagehelper.PageHelper;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +36,8 @@ public class InfoGapServiceImpl implements InfoGapService {
     private OshInfoGapTagRelMapper infoGapTagRelMapper;
     @Autowired
     private OshInfoGapTagMapper infoGapTagMapper;
+    @Autowired
+    private OshUserMapper oshUserMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -74,7 +75,7 @@ public class InfoGapServiceImpl implements InfoGapService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void createInfoGap(InfoGapCreateDTO dto, Long userId) {
+    public void createInfoGap(InfoGapCreateDTO dto, Long userId, String userName) {
         if (dto.getContent() == null || dto.getContent().length() > 500) {
             throw new RuntimeException("内容不能为空且不能超过500字");
         }
@@ -92,6 +93,7 @@ public class InfoGapServiceImpl implements InfoGapService {
         entity.setContent(dto.getContent());
         entity.setTag(dto.getTag());
         entity.setStatus(2);
+        entity.setUserName(userName);
 
         // 手动保存
         infoGapMapper.insertInfoGap(entity);
