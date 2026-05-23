@@ -16,7 +16,7 @@ public interface InfoGapService {
     List<InfoGapVO> getInfoGapList(Integer pageNum, Integer pageSize, String type, Long currentUserId);
 
     // 包含风控校验的发布逻辑
-    void createInfoGap(InfoGapCreateDTO dto, Long userId);
+    void createInfoGap(InfoGapCreateDTO dto, Long userId, String userName);
 
     // 包含幂等校验和原子更新的评价逻辑
     void vote(Long userId, Long infoId, Integer type);

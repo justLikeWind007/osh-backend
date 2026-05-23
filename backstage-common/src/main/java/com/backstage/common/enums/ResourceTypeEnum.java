@@ -15,6 +15,7 @@ public enum ResourceTypeEnum {
     TOOL("tool", "osh_tool", "osh_tool_search"),
     WEBSITE("website", "osh_practical_website", ""),
     OPEN_PROJECT("open_project", "osh_open_project", ""),
+    INFO_GAP("info_gap", "osh_info_gap", ""),
     ;
     private final String type;
     private final String mysqlTableName;

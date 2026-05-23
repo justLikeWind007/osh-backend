@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.servergroup.OshGroupUserInitiatedMapper">
+
+    <!-- 结果映射 -->
+    <resultMap type="com.backstage.system.domain.servergroup.OshGroupUserInitiated" id="OshGroupUserInitiatedResult">
+        <id     property="id"              column="id"/>
+        <result property="userId"          column="user_id"/>
+        <result property="orderId"         column="order_id"/>
+        <result property="minNum"          column="min_num"/>
+        <result property="maxNum"          column="max_num"/>
+        <result property="duration"        column="duration"/>
+        <result property="customPrice"     column="custom_price"/>
+        <result property="groupStatus"     column="group_status"/>
+        <result property="currentNum"      column="current_num"/>
+        <result property="serverIp"        column="server_ip"/>
+        <result property="serverAccount"   column="server_account"/>
+        <result property="serverPassword"  column="server_password"/>
+        <result property="serverStartTime" column="server_start_time"/>
+        <result property="serverExpireTime" column="server_expire_time"/>
+        <result property="initiateTime"    column="initiate_time"/>
+        <result property="expireTime"      column="expire_time"/>
+        <result property="createTime"      column="create_time"/>
+        <result property="updateTime"      column="update_time"/>
+        <result property="deleteFlag"      column="delete_flag"/>
+    </resultMap>
+
+    <!-- 结果映射：用户发起拼团活动列表VO -->
+    <resultMap type="com.backstage.system.domain.vo.UserInitiatedActivityListVO" id="UserInitiatedActivityListVOResult">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="cpu" column="cpu"/>
+        <result property="memory" column="memory"/>
+        <result property="storage" column="storage"/>
+        <result property="basePrice" column="base_price"/>
+        <result property="totalDuration" column="total_duration"/>
+        <result property="currentNum" column="current_num"/>
+        <result property="groupMinNum" column="group_min_num"/>
+        <result property="groupMaxNum" column="group_max_num"/>
+        <result property="status" column="status"/>
+        <result property="startTime" column="start_time"/>
+        <result property="serverStartTime" column="server_start_time"/>
+        <result property="serverEndTime" column="server_end_time"/>
+        <result property="serverTutorialUrl" column="server_tutorial_url"/>
+    </resultMap>
+
+    <!-- 公共片段：全字段列 -->
+    <sql id="selectUserInitiatedVo">
+        SELECT 
+            id, user_id, order_id, min_num, max_num, duration, custom_price, activity_id,
+            group_status, current_num, server_ip, server_account, server_password,
+            server_start_time, server_expire_time, initiate_time, expire_time,
+            create_time, update_time, delete_flag
+        FROM osh_group_user_initiated
+    </sql>
+
+    <!-- 查询用户发起拼团活动列表 -->
+    <!-- 
+        优化说明: 
+        - 修复前: gui.order_id → go.id → go.group_activity_id → ga.id (两次JOIN)
+        - 修复后: gui.activity_id → ga.id (一次JOIN,性能提升50%+)
+        - 前提: 需要执行 fix_group_table_structure.sql 添加 activity_id 字段
+    -->
+    <select id="selectUserInitiatedActivityList" resultMap="UserInitiatedActivityListVOResult">
+        SELECT 
+            gui.id,
+            COALESCE(ga.title, '未知活动') AS title,
+            COALESCE(ga.cpu, '待定') AS cpu,
+            COALESCE(ga.memory, '待定') AS memory,
+            COALESCE(ga.storage, '待定') AS storage,
+            gui.custom_price AS base_price,
+            gui.duration AS total_duration,
+            gui.current_num,
+            gui.min_num AS group_min_num,
+            gui.max_num AS group_max_num,
+            CASE 
+                WHEN gui.group_status = 0 THEN 1  -- 招募中 -> 进行中
+                WHEN gui.group_status = 1 THEN 2  -- 已成团 -> 拼团成功
+                WHEN gui.group_status = 2 THEN 3  -- 已取消/过期 -> 已结束
+                ELSE 1
+            END AS status,
+            gui.initiate_time AS start_time,
+            gui.server_start_time,
+            gui.server_expire_time AS server_end_time,
+            ga.server_tutorial_url,
+            ga.cover
+        FROM osh_group_user_initiated gui
+        LEFT JOIN osh_group_activity ga ON gui.activity_id = ga.id
+        <where>
+            gui.delete_flag = 0
+            <if test="type != null and type != ''">
+                AND gui.user_id IS NOT NULL
+            </if>
+            <if test="status != null">
+                AND (
+                    CASE 
+                        WHEN gui.group_status = 0 THEN 1
+                        WHEN gui.group_status = 1 THEN 2
+                        WHEN gui.group_status = 2 THEN 3
+                        ELSE 1
+                    END
+                ) = #{status}
+            </if>
+        </where>
+        ORDER BY gui.initiate_time DESC
+    </select>
+
+
+    <!-- 插入用户发起拼团记录 -->
+    <insert id="insertUserInitiated" parameterType="com.backstage.system.domain.servergroup.OshGroupUserInitiated" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO osh_group_user_initiated (
+            user_id,
+            activity_id,
+            order_id,
+            min_num,
+            max_num,
+            duration,
+            custom_price,
+            group_status,
+            current_num,
+            initiate_time,
+            expire_time,
+            create_time,
+            update_time,
+            delete_flag
+        ) VALUES (
+            #{userId},
+            #{activityId},
+            #{orderId},
+            #{minNum},
+            #{maxNum},
+            #{duration},
+            #{customPrice},
+            #{groupStatus},
+            #{currentNum},
+            #{initiateTime},
+            #{expireTime},
+            NOW(),
+            NOW(),
+            0
+        )
+    </insert>
+
+    <!-- 根据ID查询 -->
+    <select id="selectById" parameterType="java.lang.Long" resultMap="OshGroupUserInitiatedResult">
+        <include refid="selectUserInitiatedVo"/>
+        WHERE id = #{id} AND delete_flag = 0
+    </select>
+
+    <!-- 查询用户发起的拼团列表 -->
+    <select id="selectByUserId" resultMap="OshGroupUserInitiatedResult">
+        <include refid="selectUserInitiatedVo"/>
+        WHERE user_id = #{userId} AND delete_flag = 0
+        <if test="groupStatus != null">
+            AND group_status = #{groupStatus}
+        </if>
+        ORDER BY initiate_time DESC
+    </select>
+
+    <!-- 更新发起拼团记录 -->
+    <update id="updateUserInitiated" parameterType="com.backstage.system.domain.servergroup.OshGroupUserInitiated">
+        UPDATE osh_group_user_initiated
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="orderId != null">order_id = #{orderId},</if>
+            <if test="minNum != null">min_num = #{minNum},</if>
+            <if test="maxNum != null">max_num = #{maxNum},</if>
+            <if test="duration != null">duration = #{duration},</if>
+            <if test="customPrice != null">custom_price = #{customPrice},</if>
+            <if test="groupStatus != null">group_status = #{groupStatus},</if>
+            <if test="currentNum != null">current_num = #{currentNum},</if>
+            <if test="serverIp != null">server_ip = #{serverIp},</if>
+            <if test="serverAccount != null">server_account = #{serverAccount},</if>
+            <if test="serverPassword != null">server_password = #{serverPassword},</if>
+            <if test="serverStartTime != null">server_start_time = #{serverStartTime},</if>
+            <if test="serverExpireTime != null">server_expire_time = #{serverExpireTime},</if>
+            <if test="expireTime != null">expire_time = #{expireTime},</if>
+            <if test="deleteFlag != null">delete_flag = #{deleteFlag},</if>
+            update_time = NOW(),
+        </trim>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 更新当前参团人数 -->
+    <update id="updateCurrentNum">
+        UPDATE osh_group_user_initiated
+        SET current_num = #{currentNum},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 更新组团状态 -->
+    <update id="updateGroupStatus">
+        UPDATE osh_group_user_initiated
+        SET group_status = #{groupStatus},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 更新服务器时间 -->
+    <update id="updateServerTime">
+        UPDATE osh_group_user_initiated
+        SET server_start_time = #{serverStartTime},
+            server_expire_time = #{serverExpireTime},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 检查用户是否已参与该拼团 -->
+    <select id="checkUserAlreadyJoined" resultType="java.lang.Integer">
+        SELECT COUNT(*) 
+        FROM (
+            -- 检查是否是发起人
+            SELECT user_id 
+            FROM osh_group_user_initiated
+            WHERE id = #{activityId} 
+              AND user_id = #{userId}
+              AND delete_flag = 0
+            UNION ALL
+            -- 检查是否已作为参团成员加入
+            SELECT user_id
+            FROM osh_group_work
+            WHERE group_activity_id = #{activityId}
+              AND user_id = #{userId}
+        ) AS combined
+    </select>
+
+    <!-- 查询拼团活动详情（用于校验） -->
+    <select id="selectActivityDetail" resultType="java.util.HashMap">
+        SELECT 
+            id,
+            user_id AS leaderUserId,
+            min_num,
+            max_num,
+            current_num,
+            group_status,
+            duration,
+            custom_price,
+            expire_time
+        FROM osh_group_user_initiated
+        WHERE id = #{activityId}
+          AND delete_flag = 0
+    </select>
+
+</mapper>

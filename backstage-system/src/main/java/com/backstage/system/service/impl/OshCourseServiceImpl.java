@@ -7,6 +7,8 @@ import com.backstage.system.domain.course.OshCourseSection;
 import com.backstage.system.domain.course.OshCourseMaterial;
 import com.backstage.system.domain.course.OshCourseTag;
 import com.backstage.system.domain.course.OshCourseTagRel;
+import com.backstage.system.domain.document.OshDoc;
+import com.backstage.system.domain.document.OshDocRef;
 import com.backstage.system.domain.course.vo.CourseSearchLoginVo;
 import com.backstage.system.domain.course.vo.OshCourseDetailVo;
 import com.backstage.system.domain.course.vo.OshCourseSectionVo;
@@ -18,6 +20,7 @@ import com.backstage.system.mapper.course.OshCourseCollectionMapper;
 import com.backstage.system.mapper.course.OshCourseMaterialMapper;
 import com.backstage.system.mapper.course.OshCourseSectionMapper;
 import com.backstage.system.mapper.course.OshCourseTagMapper;
+import com.backstage.system.mapper.document.OshDocMapper;
 import com.backstage.system.mapper.user.OshRoleMapper;
 import com.backstage.system.request.CourseCreateRequest;
 import com.backstage.system.request.CourseChapterCreateRequest;
@@ -35,6 +38,7 @@ import com.backstage.system.service.course.CourseIndexMessageMapper;
 import com.backstage.system.service.course.CourseIndexUpsertMessage;
 import com.backstage.system.service.course.ICourseManageService;
 import com.backstage.system.utils.FileSizeConvertUtil;
+import com.backstage.common.utils.generate.GenerateUtil;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.github.pagehelper.PageHelper;
 import org.apache.commons.lang3.StringUtils;
@@ -81,10 +85,16 @@ public class OshCourseServiceImpl implements IOshCourseService {
     @Autowired
     private OshRoleMapper oshRoleMapper;
 
+    @Autowired
+    private OshDocMapper oshDocMapper;
+
     // 拥有全量访问权限的角色 code（与 osh_role.role_code 保持一致）
     private static final Set<String> FULL_ACCESS_ROLE_CODES = new HashSet<>(
             Arrays.asList("vip", "small_class", "manager", "core_developer", "founder")
     );
+
+    private static final String DOC_MODE_BIND_EXISTING = "BIND_EXISTING";
+    private static final String DOC_REF_TYPE_COURSE_SECTION = "course_section";
 
 
 
@@ -220,7 +230,18 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
     @Override
     public String getCourseSectionContent(Long sectionId, Long userId) {
-        return oshCourseMapper.getCourseSectionContent(sectionId);
+        OshCourseSection section = oshCourseMapper.selectCourseSectionById(sectionId);
+        if (section == null || section.getDeleteFlag() == null || section.getDeleteFlag() != CourseSectionConstants.DELETE_FLAG_NORMAL) {
+            return "";
+        }
+        if (CourseSectionConstants.TYPE_TEXT.equalsIgnoreCase(section.getType())) {
+            String content = oshDocMapper.selectPrimaryDocContentBySectionId(sectionId);
+            return StringUtils.defaultString(content, "");
+        }
+        if (CourseSectionConstants.TYPE_VIDEO.equalsIgnoreCase(section.getType())) {
+            return StringUtils.defaultString(section.getMediaUrl(), "");
+        }
+        return "";
     }
 
     @Override
@@ -441,11 +462,31 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Long createCourseTextSection(CourseTextSectionCreateRequest request, OshUser operator) {
+        validateTextDocPayload(request);
+
+        // 有 id 时走更新；无 id 时走新增
+        if (request.getId() != null) {
+            OshCourseSection existingSection = ensureSectionExists(request.getId());
+            ensureCourseExists(existingSection.getCourseId());
+            ensureParentChapter(existingSection.getCourseId(), request.getParentId());
+
+            OshCourseSection section = buildTextSectionForUpdate(request, existingSection, operator);
+            oshCourseMapper.updateCourseSection(section);
+            saveOrBindSectionDoc(section.getId(), request, operator);
+            return section.getId();
+        }
+
         ensureCourseExists(request.getCourseId());
         ensureParentChapter(request.getCourseId(), request.getParentId());
         OshCourseSection section = buildTextSectionForCreate(request, operator);
-        return insertCourseSection(section);
+        Long sectionId = insertCourseSection(section);
+        if (sectionId == null) {
+            throw new IllegalArgumentException("新增文本小节失败");
+        }
+        saveOrBindSectionDoc(sectionId, request, operator);
+        return sectionId;
     }
 
     @Override
@@ -455,6 +496,9 @@ public class OshCourseServiceImpl implements IOshCourseService {
             OshCourseSection section = buildVideoSectionForUpdate(request, operator);
             section.setId(request.getId());
             oshCourseMapper.updateCourseSection(section);
+            if (shouldHandleDocForVideoRequest(request)) {
+                saveOrBindSectionDoc(request.getId(), buildDocBindRequestForVideo(request), operator);
+            }
             return request.getId();
         }
         // 无 id → 新增，先校验必填
@@ -464,7 +508,11 @@ public class OshCourseServiceImpl implements IOshCourseService {
         ensureCourseExists(request.getCourseId());
         ensureParentChapter(request.getCourseId(), request.getParentId());
         OshCourseSection section = buildVideoSectionForCreate(request, operator);
-        return insertCourseSection(section);
+        Long sectionId = insertCourseSection(section);
+        if (sectionId != null && shouldHandleDocForVideoRequest(request)) {
+            saveOrBindSectionDoc(sectionId, buildDocBindRequestForVideo(request), operator);
+        }
+        return sectionId;
     }
 
 
@@ -914,9 +962,151 @@ public class OshCourseServiceImpl implements IOshCourseService {
         return section;
     }
 
+    static OshCourseSection buildTextSectionForUpdate(CourseTextSectionCreateRequest request, OshCourseSection existing, OshUser operator) {
+        OshCourseSection section = new OshCourseSection();
+        section.setId(existing.getId());
+        section.setTitle(StringUtils.trimToNull(request.getTitle()));
+        section.setSort(request.getSort());
+        section.setFreeFlag(defaultFreeFlag(request.getFreeFlag()));
+        section.setTextContent(StringUtils.trimToNull(request.getTextContent()));
+        String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
+        section.setUpdateBy(operatorName);
+        section.setUpdateTime(new Date());
+        return section;
+    }
+
     private Long insertCourseSection(OshCourseSection section) {
         int rows = oshCourseMapper.insertCourseSection(section);
         return rows > 0 ? section.getId() : null;
+    }
+
+    private void validateTextDocPayload(CourseTextSectionCreateRequest request) {
+        boolean bindExisting = isBindExistingDocMode(request);
+        if (bindExisting && request.getDocId() == null) {
+            throw new IllegalArgumentException("绑定已有文档时 docId 不能为空");
+        }
+        if (!bindExisting && StringUtils.isBlank(request.getTextContent())) {
+            throw new IllegalArgumentException("文本内容不能为空");
+        }
+    }
+
+    private boolean isBindExistingDocMode(CourseTextSectionCreateRequest request) {
+        if (request.getDocId() != null) {
+            return true;
+        }
+        return StringUtils.equalsIgnoreCase(DOC_MODE_BIND_EXISTING, request.getDocMode());
+    }
+
+    private boolean shouldHandleDocForVideoRequest(CourseVideoSectionCreateRequest request) {
+        if (request == null) {
+            return false;
+        }
+        if (request.getDocId() != null) {
+            return true;
+        }
+        if (StringUtils.isNotBlank(request.getDocMode())
+                && !StringUtils.equalsIgnoreCase(DOC_MODE_BIND_EXISTING, request.getDocMode())) {
+            return true;
+        }
+        if (StringUtils.equalsIgnoreCase(DOC_MODE_BIND_EXISTING, request.getDocMode())) {
+            return true;
+        }
+        return StringUtils.isNotBlank(request.getTextContent());
+    }
+
+    private CourseTextSectionCreateRequest buildDocBindRequestForVideo(CourseVideoSectionCreateRequest request) {
+        CourseTextSectionCreateRequest bindRequest = new CourseTextSectionCreateRequest();
+        bindRequest.setId(request.getId());
+        bindRequest.setCourseId(request.getCourseId());
+        bindRequest.setParentId(request.getParentId());
+        bindRequest.setTitle(request.getTitle());
+        bindRequest.setSort(request.getSort());
+        bindRequest.setFreeFlag(request.getFreeFlag());
+        bindRequest.setTextContent(request.getTextContent());
+        bindRequest.setDocMode(request.getDocMode());
+        bindRequest.setDocId(request.getDocId());
+        bindRequest.setDocTitle(request.getDocTitle());
+        bindRequest.setAnchorType(request.getAnchorType());
+        bindRequest.setAnchorStart(request.getAnchorStart());
+        bindRequest.setAnchorEnd(request.getAnchorEnd());
+        bindRequest.setExcerptTitle(request.getExcerptTitle());
+        return bindRequest;
+    }
+
+    private void saveOrBindSectionDoc(Long sectionId, CourseTextSectionCreateRequest request, OshUser operator) {
+        Long docId;
+        String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
+        Date now = new Date();
+        Long currentDocId = oshDocMapper.selectPrimaryDocIdBySectionId(sectionId);
+        boolean hasTextUpdate = StringUtils.isNotBlank(request.getTextContent()) || StringUtils.isNotBlank(request.getDocTitle());
+        String docTitle = StringUtils.defaultIfBlank(request.getDocTitle(), request.getTitle());
+
+        if (request.getDocId() != null) {
+            OshDoc existingDoc = oshDocMapper.selectDocById(request.getDocId());
+            if (existingDoc == null) {
+                throw new IllegalArgumentException("要绑定的文档不存在");
+            }
+            docId = existingDoc.getId();
+            // 复用模式下允许直接编辑共享文档内容（会影响所有绑定此 doc 的小节）。
+            if (hasTextUpdate) {
+                OshDoc updateDoc = new OshDoc();
+                updateDoc.setId(docId);
+                updateDoc.setTitle(docTitle);
+                updateDoc.setContent(StringUtils.defaultString(request.getTextContent(), ""));
+                updateDoc.setContentFormat("html");
+                updateDoc.setUpdateBy(operatorName);
+                updateDoc.setUpdateTime(now);
+                oshDocMapper.updateDocContent(updateDoc);
+            }
+        } else {
+            if (currentDocId != null) {
+                OshDoc updateDoc = new OshDoc();
+                updateDoc.setId(currentDocId);
+                updateDoc.setTitle(docTitle);
+                updateDoc.setContent(StringUtils.defaultString(request.getTextContent(), ""));
+                updateDoc.setContentFormat("html");
+                updateDoc.setUpdateBy(operatorName);
+                updateDoc.setUpdateTime(now);
+                oshDocMapper.updateDocContent(updateDoc);
+                docId = currentDocId;
+            } else {
+                OshDoc newDoc = new OshDoc();
+                newDoc.setId(GenerateUtil.generateSnowflakeId());
+                newDoc.setTitle(StringUtils.defaultIfBlank(docTitle, "Section#" + sectionId));
+                newDoc.setContentFormat("html");
+                newDoc.setContent(StringUtils.defaultString(request.getTextContent(), ""));
+                newDoc.setSummary(null);
+                newDoc.setStatus(OshCourseStatusEnum.PUBLISHED.getCode());
+                newDoc.setVisibility(1);
+                newDoc.setDeleteFlag(0);
+                newDoc.setCreateBy(operatorName);
+                newDoc.setCreateTime(now);
+                newDoc.setUpdateBy(operatorName);
+                newDoc.setUpdateTime(now);
+                oshDocMapper.insertDoc(newDoc);
+                docId = newDoc.getId();
+            }
+        }
+
+        oshDocMapper.softDeleteSectionDocRefs(sectionId, operatorName);
+        OshDocRef ref = new OshDocRef();
+        ref.setId(GenerateUtil.generateSnowflakeId());
+        ref.setDocId(docId);
+        ref.setRefType(DOC_REF_TYPE_COURSE_SECTION);
+        ref.setRefId(sectionId);
+        ref.setIsPrimary(1);
+        ref.setSort(0);
+        String anchorType = StringUtils.defaultIfBlank(request.getAnchorType(), "full");
+        ref.setAnchorType(anchorType);
+        ref.setAnchorStart(StringUtils.defaultString(request.getAnchorStart(), ""));
+        ref.setAnchorEnd(StringUtils.defaultString(request.getAnchorEnd(), ""));
+        ref.setExcerptTitle(StringUtils.trimToNull(request.getExcerptTitle()));
+        ref.setDeleteFlag(0);
+        ref.setCreateBy(operatorName);
+        ref.setCreateTime(now);
+        ref.setUpdateBy(operatorName);
+        ref.setUpdateTime(now);
+        oshDocMapper.insertDocRef(ref);
     }
 
     private OshCourse ensureCourseExists(Long courseId) {
@@ -925,6 +1115,14 @@ public class OshCourseServiceImpl implements IOshCourseService {
             throw new IllegalArgumentException("课程不存在");
         }
         return course;
+    }
+
+    private OshCourseSection ensureSectionExists(Long sectionId) {
+        OshCourseSection section = oshCourseMapper.selectCourseSectionById(sectionId);
+        if (section == null || section.getDeleteFlag() == null || section.getDeleteFlag() != CourseSectionConstants.DELETE_FLAG_NORMAL) {
+            throw new IllegalArgumentException("小节不存在");
+        }
+        return section;
     }
 
     private void ensureParentChapter(Long courseId, Long parentId) {

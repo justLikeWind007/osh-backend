@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.document.OshDocMapper">
+
+    <resultMap id="OshDocResult" type="com.backstage.system.domain.document.OshDoc">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="contentFormat" column="content_format"/>
+        <result property="content" column="content"/>
+        <result property="summary" column="summary"/>
+        <result property="status" column="status"/>
+        <result property="visibility" column="visibility"/>
+        <result property="deleteFlag" column="delete_flag"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectDocById" resultMap="OshDocResult">
+        select id,
+               title,
+               content_format,
+               content,
+               summary,
+               status,
+               visibility,
+               delete_flag,
+               create_by,
+               create_time,
+               update_by,
+               update_time
+        from osh_doc
+        where id = #{id}
+          and delete_flag = 0
+    </select>
+
+    <insert id="insertDoc" parameterType="com.backstage.system.domain.document.OshDoc">
+        insert into osh_doc (
+            id,
+            title,
+            content_format,
+            content,
+            summary,
+            status,
+            visibility,
+            delete_flag,
+            create_by,
+            create_time,
+            update_by,
+            update_time
+        ) values (
+            #{id},
+            #{title},
+            #{contentFormat},
+            #{content},
+            #{summary},
+            #{status},
+            #{visibility},
+            #{deleteFlag},
+            #{createBy},
+            #{createTime},
+            #{updateBy},
+            #{updateTime}
+        )
+    </insert>
+
+    <update id="updateDocContent" parameterType="com.backstage.system.domain.document.OshDoc">
+        update osh_doc
+        <trim prefix="set" suffixOverrides=",">
+            <if test="title != null and title != ''">title = #{title},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="contentFormat != null and contentFormat != ''">content_format = #{contentFormat},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            update_time = now(),
+        </trim>
+        where id = #{id}
+          and delete_flag = 0
+    </update>
+
+    <select id="selectPrimaryDocIdBySectionId" resultType="java.lang.Long">
+        select doc_id
+        from osh_doc_ref
+        where ref_type = 'course_section'
+          and ref_id = #{sectionId}
+          and is_primary = 1
+          and delete_flag = 0
+        order by create_time desc
+        limit 1
+    </select>
+
+    <select id="selectPrimaryDocContentBySectionId" resultType="java.lang.String">
+        select d.content
+        from osh_doc_ref r
+                 inner join osh_doc d on d.id = r.doc_id and d.delete_flag = 0
+        where r.ref_type = 'course_section'
+          and r.ref_id = #{sectionId}
+          and r.is_primary = 1
+          and r.delete_flag = 0
+        order by r.create_time desc
+        limit 1
+    </select>
+
+    <update id="softDeleteSectionDocRefs">
+        update osh_doc_ref
+        set delete_flag = 1,
+            update_by = #{updateBy},
+            update_time = now()
+        where ref_type = 'course_section'
+          and ref_id = #{sectionId}
+          and delete_flag = 0
+    </update>
+
+    <insert id="insertDocRef" parameterType="com.backstage.system.domain.document.OshDocRef">
+        insert into osh_doc_ref (
+            id,
+            doc_id,
+            ref_type,
+            ref_id,
+            is_primary,
+            sort,
+            anchor_type,
+            anchor_start,
+            anchor_end,
+            excerpt_title,
+            delete_flag,
+            create_by,
+            create_time,
+            update_by,
+            update_time
+        ) values (
+            #{id},
+            #{docId},
+            #{refType},
+            #{refId},
+            #{isPrimary},
+            #{sort},
+            #{anchorType},
+            #{anchorStart},
+            #{anchorEnd},
+            #{excerptTitle},
+            #{deleteFlag},
+            #{createBy},
+            #{createTime},
+            #{updateBy},
+            #{updateTime}
+        )
+    </insert>
+
+</mapper>

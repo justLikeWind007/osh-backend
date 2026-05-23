@@ -380,6 +380,7 @@ public class CourseManageController extends BaseController {
 
     /**
      * 删除文件
+     * TODO S3 删除文件接口 未开发
      */
     @Log(title = "课程资料", businessType = BusinessType.DELETE)
     //@PreAuthorize("@ss.hasPermi('system:course:material:delete')")
@@ -469,9 +470,6 @@ public class CourseManageController extends BaseController {
     }
 
 
-
-    // ==================== 课程章节接口 ====================
-    
     /**
      * 获取课程大纲
      */

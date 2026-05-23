@@ -24,6 +24,16 @@ public class OshCourseSectionVo {
 
     private String textContent;
 
+    private Long docId;
+
+    private String anchorType;
+
+    private String anchorStart;
+
+    private String anchorEnd;
+
+    private String excerptTitle;
+
     private String cover;
 
     private String videoCodec;
@@ -90,6 +100,46 @@ public class OshCourseSectionVo {
 
     public void setTextContent(String textContent) {
         this.textContent = textContent;
+    }
+
+    public Long getDocId() {
+        return docId;
+    }
+
+    public void setDocId(Long docId) {
+        this.docId = docId;
+    }
+
+    public String getAnchorType() {
+        return anchorType;
+    }
+
+    public void setAnchorType(String anchorType) {
+        this.anchorType = anchorType;
+    }
+
+    public String getAnchorStart() {
+        return anchorStart;
+    }
+
+    public void setAnchorStart(String anchorStart) {
+        this.anchorStart = anchorStart;
+    }
+
+    public String getAnchorEnd() {
+        return anchorEnd;
+    }
+
+    public void setAnchorEnd(String anchorEnd) {
+        this.anchorEnd = anchorEnd;
+    }
+
+    public String getExcerptTitle() {
+        return excerptTitle;
+    }
+
+    public void setExcerptTitle(String excerptTitle) {
+        this.excerptTitle = excerptTitle;
     }
 
     public Long getId() {
