@@ -86,7 +86,7 @@ public class ResourceAuditServiceImpl implements IResourceAuditService {
             throw new IllegalArgumentException("审核状态错误");
         }
         ResourceTypeEnum typeEnum = parseResourceType(resourceType);
-        int resourceStatus = Integer.valueOf(1).equals(status) ? 2 : 3;
+        int resourceStatus = status;
         int rows = resourceAuditMapper.updateAuditStatus(typeEnum.getMysqlTableName(), resourceId, resourceStatus, operator, operatorId);
         if (rows <= 0) {
             throw new ServiceException("待审核资源不存在或已处理");
