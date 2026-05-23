@@ -14,4 +14,6 @@ public class KafkaConstants {
     /** 秒杀订单创建 Topic */
     public static final String SECKILL_ORDER_CREATE_TOPIC = "seckill.order.create";
     public static final String TOOL_INDEX_TOPIC = "osh.tool.index";
+    /** 秒杀商品明细索引 Topic */
+    public static final String SECKILL_ITEM_INDEX_TOPIC = "osh.seckill.item.index";
 }

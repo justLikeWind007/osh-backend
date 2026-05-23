@@ -8,6 +8,7 @@ import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.enums.LimitType;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.common.utils.ip.IpUtils;
+import com.backstage.system.config.properties.SearchEsProperties;
 import com.backstage.system.domain.order.enums.PayChannelEnum;
 import com.backstage.system.domain.seckill.OshSeckillOrder;
 import com.backstage.system.domain.user.OshUser;
@@ -20,10 +21,11 @@ import com.backstage.system.service.announcement.ISeckillAnnouncementService;
 import com.backstage.system.service.order.PayService;
 import com.backstage.system.service.seckill.IOshSeckillActivityService;
 import com.backstage.system.service.seckill.IOshSeckillOrderService;
+import com.backstage.system.service.seckill.ISeckillItemEsService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 import java.util.List;
 
@@ -44,6 +46,8 @@ import static com.backstage.system.utils.UserContextUtil.getCurrentUser;
 @RequestMapping("/pc/seckill/user")
 public class SeckillUserController extends BaseController {
 
+    private static final Logger log = LoggerFactory.getLogger(SeckillUserController.class);
+
     @Autowired
     private IOshSeckillActivityService activityService;
 
@@ -56,8 +60,15 @@ public class SeckillUserController extends BaseController {
     @Autowired
     private ISeckillAnnouncementService seckillAnnouncementService;
 
+    @Autowired
+    private ISeckillItemEsService seckillItemEsService;
+
+    @Autowired
+    private SearchEsProperties searchEsProperties;
+
     /**
      * 接口8：查询进行中的秒杀活动列表（用户端）
+     * 优先走 ES 搜索，ES 不可用时降级到 MySQL
      * 支持按商品名称模糊搜索、按商品类型筛选
      */
     @Anonymous
@@ -65,9 +76,37 @@ public class SeckillUserController extends BaseController {
     public TableDataInfo activeList(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) Integer goodsType) {
+        if (searchEsProperties.isEnabled()) {
+            try {
+                log.info("使用 ES 查询秒杀商品列表, keyword={}, goodsType={}", title, goodsType);
+                com.backstage.common.core.page.PageDomain pageDomain =
+                        com.backstage.common.core.page.TableSupport.buildPageRequest();
+                int pageNum = pageDomain.getPageNum() != null ? pageDomain.getPageNum() : 1;
+                int pageSize = pageDomain.getPageSize() != null ? pageDomain.getPageSize() : 10;
+                com.backstage.common.response.PageResponse<?> page =
+                        seckillItemEsService.searchItems(title, goodsType, pageNum, pageSize);
+                TableDataInfo rsp = new TableDataInfo();
+                rsp.setCode(com.backstage.common.constant.HttpStatus.SUCCESS);
+                rsp.setMsg("查询成功");
+                rsp.setRows(page.getRows());
+                rsp.setTotal(page.getTotal());
+                return rsp;
+            } catch (Exception ex) {
+                log.warn("秒杀 ES 查询失败，降级到 MySQL, keyword={}, goodsType={}", title, goodsType, ex);
+            }
+        }
         startPage();
         List<SeckillActivityUserVO> list = activityService.selectActiveActivityList(title, goodsType);
         return getDataTable(list);
+    }
+
+    /**
+     * 全量同步进行中活动的秒杀商品明细到 ES（运维接口）
+     */
+    @Anonymous
+    @PostMapping("/esSync/all")
+    public R<Integer> syncAllItemsToEs() {
+        return R.ok(seckillItemEsService.syncAllItemsToEs(), "ok");
     }
 
     /**

@@ -3,12 +3,14 @@ package com.backstage.system.service.impl.announcement;
 import com.backstage.system.domain.seckill.OshSeckillActivity;
 import com.backstage.system.domain.seckill.OshSeckillActivityItem;
 import com.backstage.system.domain.vo.seckill.SeckillAnnouncementVO;
+import com.backstage.system.domain.websocket.WsNotifyMessage;
 import com.backstage.system.mapper.announcement.OshAnnouncementMapper;
 import com.backstage.system.mapper.seckill.OshSeckillActivityItemMapper;
 import com.backstage.system.mapper.seckill.OshSeckillActivityMapper;
 import com.backstage.system.mapper.seckill.OshSeckillOrderMapper;
 import com.backstage.system.mapper.user.OshUserMapper;
 import com.backstage.system.service.announcement.ISeckillAnnouncementService;
+import com.backstage.system.service.websocket.WebSocketNotifyService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +56,9 @@ public class SeckillAnnouncementServiceImpl implements ISeckillAnnouncementServi
 
     @Autowired
     private OshUserMapper userMapper;
+
+    @Autowired
+    private WebSocketNotifyService webSocketNotifyService;
 
     // ==================== 公告栏同步 ====================
 
@@ -107,6 +112,17 @@ public class SeckillAnnouncementServiceImpl implements ISeckillAnnouncementServi
         }
 
         logger.info("【秒杀公告同步】完成，新增={}，跳过={}", insertCount, skipCount);
+
+        // 有新公告写入时，广播通知所有在线用户刷新公告栏
+        if (insertCount > 0) {
+            WsNotifyMessage msg = new WsNotifyMessage();
+            msg.setType("SECKILL_NOTICE_UPDATE");
+            msg.setTitle("秒杀公告已更新");
+            msg.setContent("有 " + insertCount + " 条新秒杀商品公告，快来看看！");
+            msg.setJumpUrl("/seckill");
+            webSocketNotifyService.broadcast(msg);
+            logger.info("【秒杀公告同步】已广播 WebSocket 通知，新增公告数={}", insertCount);
+        }
     }
 
     // ==================== 动态栏回填 ====================
@@ -162,6 +178,15 @@ public class SeckillAnnouncementServiceImpl implements ISeckillAnnouncementServi
                     title, "", DYNAMIC_ICON, DYNAMIC_ICON_COLOR,
                     goodsId != null ? goodsId : 0L, 0, BIZ_TYPE_DYNAMIC);
             logger.info("【秒杀动态写入】成功，title={}", title);
+
+            // 写入成功后，广播通知所有在线用户刷新动态栏
+            WsNotifyMessage msg = new WsNotifyMessage();
+            msg.setType("SECKILL_DYNAMIC_NEW");
+            msg.setTitle(title);
+            msg.setContent(title);
+            msg.setJumpUrl("/seckill");
+            webSocketNotifyService.broadcast(msg);
+            logger.info("【秒杀动态写入】已广播 WebSocket 通知，title={}", title);
         } catch (Exception e) {
             // 动态写入失败不影响主流程
             logger.error("【秒杀动态写入】失败，title={}, error={}", title, e.getMessage());
