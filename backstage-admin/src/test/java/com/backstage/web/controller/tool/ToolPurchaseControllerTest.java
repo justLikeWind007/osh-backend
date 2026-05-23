@@ -113,11 +113,11 @@ public class ToolPurchaseControllerTest {
 
         mockMvc.perform(post("/pc/tool/purchase/cancel")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"paymentNo\":\"P20260517003\"}"))
+                        .content("{\"orderNo\":\"O20260517003\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.msg").value("关单成功"));
 
-        verify(orderService).cancelPayment("P20260517003");
+        verify(orderService).cancelPaymentByOrderNo("O20260517003");
     }
 }
