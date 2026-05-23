@@ -53,6 +53,27 @@ public class CourseVideoSectionCreateRequest {
     @PositiveOrZero(message = "文件大小不能小于0")
     private Long fileSize;
 
+    @ApiModelProperty(value = "文档模式：CREATE(新建文档) / BIND_EXISTING(绑定已有文档)", example = "CREATE")
+    private String docMode;
+
+    @ApiModelProperty(value = "已有文档ID（docMode=BIND_EXISTING 时可传）", example = "189223901234567890")
+    private Long docId;
+
+    @ApiModelProperty(value = "文档标题（可选，不传默认使用小节标题）", example = "第一节讲义")
+    private String docTitle;
+
+    @ApiModelProperty(value = "片段类型：full(整篇) / range(片段)", example = "full")
+    private String anchorType;
+
+    @ApiModelProperty(value = "片段起始锚点（range 时建议填写）", example = "回调签名校验")
+    private String anchorStart;
+
+    @ApiModelProperty(value = "片段结束锚点（range 时建议填写）", example = "签名算法说明")
+    private String anchorEnd;
+
+    @ApiModelProperty(value = "片段摘要标题", example = "签名校验片段")
+    private String excerptTitle;
+
     @ApiModelProperty(value = "小节ID，有值则更新，无值则新增")
     private Long id;
 
@@ -149,6 +170,62 @@ public class CourseVideoSectionCreateRequest {
 
     public void setFileSize(Long fileSize) {
         this.fileSize = fileSize;
+    }
+
+    public String getDocMode() {
+        return docMode;
+    }
+
+    public void setDocMode(String docMode) {
+        this.docMode = StringUtils.trimToNull(docMode);
+    }
+
+    public Long getDocId() {
+        return docId;
+    }
+
+    public void setDocId(Long docId) {
+        this.docId = docId;
+    }
+
+    public String getDocTitle() {
+        return docTitle;
+    }
+
+    public void setDocTitle(String docTitle) {
+        this.docTitle = StringUtils.trimToNull(docTitle);
+    }
+
+    public String getAnchorType() {
+        return anchorType;
+    }
+
+    public void setAnchorType(String anchorType) {
+        this.anchorType = StringUtils.trimToNull(anchorType);
+    }
+
+    public String getAnchorStart() {
+        return anchorStart;
+    }
+
+    public void setAnchorStart(String anchorStart) {
+        this.anchorStart = StringUtils.trimToNull(anchorStart);
+    }
+
+    public String getAnchorEnd() {
+        return anchorEnd;
+    }
+
+    public void setAnchorEnd(String anchorEnd) {
+        this.anchorEnd = StringUtils.trimToNull(anchorEnd);
+    }
+
+    public String getExcerptTitle() {
+        return excerptTitle;
+    }
+
+    public void setExcerptTitle(String excerptTitle) {
+        this.excerptTitle = StringUtils.trimToNull(excerptTitle);
     }
 
 }

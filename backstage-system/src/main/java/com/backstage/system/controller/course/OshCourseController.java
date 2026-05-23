@@ -200,6 +200,9 @@ public class OshCourseController extends BaseController {
     @Anonymous
     public R<String> getCourseSectionContent(@NotNull @PathVariable Long courseId, @NotNull @PathVariable Long sectionId) throws Exception {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        if (currentOshUser == null) {
+            return R.fail("请先登录");
+        }
         Long userId = currentOshUser.getId();
         Integer userBuyCourseOrFreeCourse = oshCourseService.isUserBuyCourseOrFreeCourse(courseId, userId);
         if (userBuyCourseOrFreeCourse.compareTo(0) > 0) {
