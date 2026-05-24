@@ -184,10 +184,13 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
         items.forEach(item -> item.setActivityId(activityId));
         itemMapper.insertItems(items);
 
+        // 插入后重新查询拿到带 ID 的明细列表，确保 ID 不为 null
+        List<OshSeckillActivityItem> savedItems = itemMapper.selectItemsByActivityId(activityId);
+
         // 触发 ES 索引事件（草稿状态，Flink 侧会因 activityStatus!=2 而执行 delete，不写入 ES）
         // 等活动发布后再由 updateActivityStatus 触发 upsert
         // 此处仍发消息，保持链路完整，Flink 会幂等处理
-        items.forEach(item -> outboxEventService.saveSeckillItemIndexEvent(
+        savedItems.forEach(item -> outboxEventService.saveSeckillItemIndexEvent(
                 item.getId(),
                 buildUpsertMessage(item, activity, SeckillItemIndexEventType.SECKILL_ITEM_INDEX_CREATE),
                 null));
@@ -237,8 +240,11 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
             List<OshSeckillActivityItem> newItems = buildItemsFromUpdateDTO(dto.getItems(), dto.getId());
             itemMapper.insertItems(newItems);
 
+            // 插入后重新查询拿到带 ID 的明细列表
+            List<OshSeckillActivityItem> savedNewItems = itemMapper.selectItemsByActivityId(dto.getId());
+
             // 对新明细发 UPSERT 事件（草稿状态，Flink 侧不写 ES，等发布后再触发）
-            newItems.forEach(item -> outboxEventService.saveSeckillItemIndexEvent(
+            savedNewItems.forEach(item -> outboxEventService.saveSeckillItemIndexEvent(
                     item.getId(),
                     buildUpsertMessage(item, exist, SeckillItemIndexEventType.SECKILL_ITEM_INDEX_UPDATE),
                     null));
@@ -515,6 +521,8 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
         msg.setSoldCount(item.getSoldCount() != null ? item.getSoldCount() : 0);
         msg.setLimitPerUser(item.getLimitPerUser());
         msg.setSort(item.getSort());
+        msg.setActivityTitle(activity.getTitle());
+        msg.setPayTimeoutMin(activity.getPayTimeoutMin());
         msg.setStartTime(activity.getStartTime());
         msg.setEndTime(activity.getEndTime());
         msg.setDeleteFlag(item.getDeleteFlag() != null ? item.getDeleteFlag() : 0);

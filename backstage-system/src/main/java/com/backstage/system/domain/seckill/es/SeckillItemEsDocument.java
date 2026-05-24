@@ -54,6 +54,12 @@ public class SeckillItemEsDocument {
     /** 排序 */
     private Integer sort;
 
+    /** 活动标题 */
+    private String activityTitle;
+
+    /** 支付超时时间（分钟） */
+    private Integer payTimeoutMin;
+
     /** 活动开始时间 */
     @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
     private LocalDateTime startTime;
@@ -112,6 +118,12 @@ public class SeckillItemEsDocument {
 
     public Integer getSort() { return sort; }
     public void setSort(Integer sort) { this.sort = sort; }
+
+    public String getActivityTitle() { return activityTitle; }
+    public void setActivityTitle(String activityTitle) { this.activityTitle = activityTitle; }
+
+    public Integer getPayTimeoutMin() { return payTimeoutMin; }
+    public void setPayTimeoutMin(Integer payTimeoutMin) { this.payTimeoutMin = payTimeoutMin; }
 
     public LocalDateTime getStartTime() { return startTime; }
     public void setStartTime(LocalDateTime startTime) { this.startTime = startTime; }

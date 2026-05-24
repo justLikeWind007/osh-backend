@@ -55,6 +55,12 @@ public class SeckillItemIndexUpsertMessage {
     /** 排序 */
     private Integer sort;
 
+    /** 活动标题 */
+    private String activityTitle;
+
+    /** 支付超时时间（分钟） */
+    private Integer payTimeoutMin;
+
     /** 活动开始时间 */
     @JSONField(format = "yyyy-MM-dd HH:mm:ss.SSS")
     private Date startTime;
@@ -120,6 +126,12 @@ public class SeckillItemIndexUpsertMessage {
 
     public Integer getSort() { return sort; }
     public void setSort(Integer sort) { this.sort = sort; }
+
+    public String getActivityTitle() { return activityTitle; }
+    public void setActivityTitle(String activityTitle) { this.activityTitle = activityTitle; }
+
+    public Integer getPayTimeoutMin() { return payTimeoutMin; }
+    public void setPayTimeoutMin(Integer payTimeoutMin) { this.payTimeoutMin = payTimeoutMin; }
 
     public Date getStartTime() { return startTime; }
     public void setStartTime(Date startTime) { this.startTime = startTime; }

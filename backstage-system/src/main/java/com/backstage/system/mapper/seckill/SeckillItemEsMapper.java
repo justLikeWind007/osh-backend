@@ -188,6 +188,9 @@ public class SeckillItemEsMapper {
         SeckillActivityItemVO vo = new SeckillActivityItemVO();
         vo.setId(doc.getId());
         vo.setActivityId(doc.getActivityId());
+        vo.setActivityStatus(doc.getActivityStatus());
+        vo.setActivityTitle(doc.getActivityTitle());
+        vo.setPayTimeoutMin(doc.getPayTimeoutMin());
         vo.setGoodsId(doc.getGoodsId());
         vo.setGoodsType(doc.getGoodsType());
         vo.setTitle(doc.getTitle());
@@ -199,6 +202,14 @@ public class SeckillItemEsMapper {
         vo.setSoldCount(doc.getSoldCount());
         vo.setLimitPerUser(doc.getLimitPerUser());
         vo.setSort(doc.getSort());
+        if (doc.getStartTime() != null) {
+            vo.setStartTime(java.util.Date.from(
+                    doc.getStartTime().atZone(java.time.ZoneId.systemDefault()).toInstant()));
+        }
+        if (doc.getEndTime() != null) {
+            vo.setEndTime(java.util.Date.from(
+                    doc.getEndTime().atZone(java.time.ZoneId.systemDefault()).toInstant()));
+        }
         return vo;
     }
 }

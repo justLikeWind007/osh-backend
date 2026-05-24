@@ -21,6 +21,16 @@ import java.util.List;
 /**
  * 秒杀公告/动态 Service 实现
  *
+ * <p>表字段说明（osh_announcement 新结构）：</p>
+ * <ul>
+ *   <li>channel=1  系统动态（公告栏，对应原 biz_type='seckill_notice'）</li>
+ *   <li>channel=2  业务动态（动态栏，对应原 biz_type='seckill_dynamic'）</li>
+ *   <li>module='seckill'  归属模块（对应原 scene='seckill'）</li>
+ *   <li>source='system'   来源（对应原 trigger_type='auto'）</li>
+ *   <li>color             图标颜色（对应原 icon_color）</li>
+ *   <li>status=4          已发布（对应原 status=1 启用）</li>
+ * </ul>
+ *
  * @author backstage
  * @date 2026-05-22
  */
@@ -29,18 +39,21 @@ public class SeckillAnnouncementServiceImpl implements ISeckillAnnouncementServi
 
     private static final Logger logger = LoggerFactory.getLogger(SeckillAnnouncementServiceImpl.class);
 
-    /** 公告栏：秒杀商品公告 */
-    private static final String BIZ_TYPE_NOTICE  = "seckill_notice";
-    /** 动态栏：用户购买动态 */
-    private static final String BIZ_TYPE_DYNAMIC = "seckill_dynamic";
+    /** channel=1：系统动态（公告栏） */
+    private static final int CHANNEL_NOTICE  = 1;
+    /** channel=2：业务动态（动态栏） */
+    private static final int CHANNEL_DYNAMIC = 2;
 
     /** 公告栏图标与颜色 */
-    private static final String NOTICE_ICON       = "🔥";
-    private static final String NOTICE_ICON_COLOR = "#ef4444";
+    private static final String NOTICE_ICON  = "🔥";
+    private static final String NOTICE_COLOR = "#ef4444";
 
     /** 动态栏图标与颜色 */
-    private static final String DYNAMIC_ICON       = "💳";
-    private static final String DYNAMIC_ICON_COLOR = "#10b981";
+    private static final String DYNAMIC_ICON  = "💳";
+    private static final String DYNAMIC_COLOR = "#10b981";
+
+    /** 秒杀资源类型 */
+    private static final String RESOURCE_TYPE_SECKILL = "seckill";
 
     @Autowired
     private OshAnnouncementMapper announcementMapper;
@@ -63,7 +76,7 @@ public class SeckillAnnouncementServiceImpl implements ISeckillAnnouncementServi
     // ==================== 公告栏同步 ====================
 
     /**
-     * 同步进行中活动的商品信息到公告栏
+     * 同步进行中活动的商品信息到公告栏（channel=1）
      * 遍历所有进行中（status=2）且未删除的活动，取其商品明细，
      * 按 link 去重，不存在则插入，已存在则跳过。
      */
@@ -105,8 +118,8 @@ public class SeckillAnnouncementServiceImpl implements ISeckillAnnouncementServi
                 int sort = item.getSort() != null ? item.getSort() : 0;
 
                 announcementMapper.insertSeckillAnnouncement(
-                        title, link, NOTICE_ICON, NOTICE_ICON_COLOR,
-                        activity.getId(), sort, BIZ_TYPE_NOTICE);
+                        title, link, NOTICE_ICON, NOTICE_COLOR,
+                        RESOURCE_TYPE_SECKILL, activity.getId(), sort, CHANNEL_NOTICE);
                 insertCount++;
             }
         }
@@ -128,13 +141,12 @@ public class SeckillAnnouncementServiceImpl implements ISeckillAnnouncementServi
     // ==================== 动态栏回填 ====================
 
     /**
-     * 回填历史已支付订单到动态栏（一次性执行，定时任务首次运行时触发）
+     * 回填历史已支付订单到动态栏（channel=2，一次性执行）
      * 查询 osh_seckill_order 中 status=1 的订单，关联用户表脱敏，
      * 按 title 去重后批量写入 osh_announcement。
      */
     @Override
     public void backfillSeckillDynamics() {
-        // 查询所有已支付订单（不限条数，回填用）
         List<com.backstage.system.domain.vo.seckill.SeckillRecentOrderVO> paidOrders =
                 orderMapper.selectRecentPaidOrders(500);
 
@@ -157,8 +169,8 @@ public class SeckillAnnouncementServiceImpl implements ISeckillAnnouncementServi
             }
 
             announcementMapper.insertSeckillAnnouncement(
-                    title, "", DYNAMIC_ICON, DYNAMIC_ICON_COLOR,
-                    0L, 0, BIZ_TYPE_DYNAMIC);
+                    title, "", DYNAMIC_ICON, DYNAMIC_COLOR,
+                    RESOURCE_TYPE_SECKILL, 0L, 0, CHANNEL_DYNAMIC);
             insertCount++;
         }
 
@@ -168,15 +180,15 @@ public class SeckillAnnouncementServiceImpl implements ISeckillAnnouncementServi
     // ==================== 支付成功写入动态 ====================
 
     /**
-     * 支付成功时写入一条动态记录
+     * 支付成功时写入一条动态记录（channel=2）
      */
     @Override
     public void insertSeckillDynamic(String username, String goodsTitle, Long goodsId) {
         String title = buildDynamicTitle(username, goodsTitle);
         try {
             announcementMapper.insertSeckillAnnouncement(
-                    title, "", DYNAMIC_ICON, DYNAMIC_ICON_COLOR,
-                    goodsId != null ? goodsId : 0L, 0, BIZ_TYPE_DYNAMIC);
+                    title, "", DYNAMIC_ICON, DYNAMIC_COLOR,
+                    RESOURCE_TYPE_SECKILL, goodsId != null ? goodsId : 0L, 0, CHANNEL_DYNAMIC);
             logger.info("【秒杀动态写入】成功，title={}", title);
 
             // 写入成功后，广播通知所有在线用户刷新动态栏

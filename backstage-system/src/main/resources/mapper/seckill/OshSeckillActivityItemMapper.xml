@@ -67,7 +67,7 @@
     </select>
 
     <!-- 批量插入 -->
-    <insert id="insertItems">
+    <insert id="insertItems" useGeneratedKeys="true" keyProperty="id">
         insert into osh_seckill_activity_item
         (activity_id, seckill_goods_id, goods_id, goods_type, title, cover,
          origin_price, seckill_price, total_stock, available_stock, sold_count,

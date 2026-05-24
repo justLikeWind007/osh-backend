@@ -69,7 +69,7 @@ public class SeckillUserController extends BaseController {
     /**
      * 接口8：查询进行中的秒杀活动列表（用户端）
      * 优先走 ES 搜索，ES 不可用时降级到 MySQL
-     * 支持按商品名称模糊搜索、按商品类型筛选
+     * 两条路径统一返回活动维度结构（活动 + 嵌套 items），前端无需区分
      */
     @Anonymous
     @GetMapping("/activity/list")
@@ -78,13 +78,13 @@ public class SeckillUserController extends BaseController {
             @RequestParam(required = false) Integer goodsType) {
         if (searchEsProperties.isEnabled()) {
             try {
-                log.info("使用 ES 查询秒杀商品列表, keyword={}, goodsType={}", title, goodsType);
+                log.info("使用 ES 查询秒杀活动列表, keyword={}, goodsType={}", title, goodsType);
                 com.backstage.common.core.page.PageDomain pageDomain =
                         com.backstage.common.core.page.TableSupport.buildPageRequest();
                 int pageNum = pageDomain.getPageNum() != null ? pageDomain.getPageNum() : 1;
                 int pageSize = pageDomain.getPageSize() != null ? pageDomain.getPageSize() : 10;
-                com.backstage.common.response.PageResponse<?> page =
-                        seckillItemEsService.searchItems(title, goodsType, pageNum, pageSize);
+                com.backstage.common.response.PageResponse<com.backstage.system.domain.vo.seckill.SeckillActivityUserVO> page =
+                        seckillItemEsService.searchActivities(title, goodsType, pageNum, pageSize);
                 TableDataInfo rsp = new TableDataInfo();
                 rsp.setCode(com.backstage.common.constant.HttpStatus.SUCCESS);
                 rsp.setMsg("查询成功");
@@ -95,6 +95,7 @@ public class SeckillUserController extends BaseController {
                 log.warn("秒杀 ES 查询失败，降级到 MySQL, keyword={}, goodsType={}", title, goodsType, ex);
             }
         }
+        // 降级：MySQL 路径，原有逻辑不变，返回结构与 ES 路径一致
         startPage();
         List<SeckillActivityUserVO> list = activityService.selectActiveActivityList(title, goodsType);
         return getDataTable(list);

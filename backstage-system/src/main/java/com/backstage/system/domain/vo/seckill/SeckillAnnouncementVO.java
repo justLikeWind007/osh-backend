@@ -30,8 +30,8 @@ public class SeckillAnnouncementVO {
     @ApiModelProperty("图标颜色")
     private String iconColor;
 
-    @ApiModelProperty("业务类型：seckill_notice-秒杀公告 seckill_dynamic-秒杀动态")
-    private String bizType;
+    @ApiModelProperty("栏目：1-系统动态（公告栏） 2-业务动态（动态栏）")
+    private Integer channel;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     @ApiModelProperty("创建时间")
@@ -52,8 +52,8 @@ public class SeckillAnnouncementVO {
     public String getIconColor() { return iconColor; }
     public void setIconColor(String iconColor) { this.iconColor = iconColor; }
 
-    public String getBizType() { return bizType; }
-    public void setBizType(String bizType) { this.bizType = bizType; }
+    public Integer getChannel() { return channel; }
+    public void setChannel(Integer channel) { this.channel = channel; }
 
     public Date getCreateTime() { return createTime; }
     public void setCreateTime(Date createTime) { this.createTime = createTime; }

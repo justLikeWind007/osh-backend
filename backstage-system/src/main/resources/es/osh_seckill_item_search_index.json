@@ -58,6 +58,19 @@
       "sort": {
         "type": "integer"
       },
+      "activityTitle": {
+        "type": "text",
+        "analyzer": "ik_max_word",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "payTimeoutMin": {
+        "type": "integer"
+      },
       "startTime": {
         "type": "date",
         "format": "strict_date_optional_time||epoch_millis"

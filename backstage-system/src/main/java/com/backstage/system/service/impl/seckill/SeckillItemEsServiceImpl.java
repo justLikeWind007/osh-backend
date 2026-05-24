@@ -5,6 +5,7 @@ import com.backstage.system.domain.seckill.OshSeckillActivity;
 import com.backstage.system.domain.seckill.OshSeckillActivityItem;
 import com.backstage.system.domain.seckill.es.SeckillItemEsDocument;
 import com.backstage.system.domain.vo.seckill.SeckillActivityItemVO;
+import com.backstage.system.domain.vo.seckill.SeckillActivityUserVO;
 import com.backstage.system.mapper.seckill.OshSeckillActivityItemMapper;
 import com.backstage.system.mapper.seckill.OshSeckillActivityMapper;
 import com.backstage.system.mapper.seckill.SeckillItemEsMapper;
@@ -16,10 +17,18 @@ import org.springframework.stereotype.Service;
 
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 秒杀商品明细 ES 搜索 Service 实现
+ *
+ * ES 查出平铺的商品明细后，在 Service 层按 activityId 分组，
+ * 组装成 SeckillActivityUserVO（活动维度），与 MySQL 路径结构保持一致。
+ * 分页粒度为活动。
  */
 @Service
 public class SeckillItemEsServiceImpl implements ISeckillItemEsService {
@@ -28,6 +37,13 @@ public class SeckillItemEsServiceImpl implements ISeckillItemEsService {
 
     /** activityStatus=2 表示进行中 */
     private static final int ACTIVITY_STATUS_ONGOING = 2;
+
+    /**
+     * ES 单次最大拉取条数。
+     * 按活动分页时需要先拉全量商品再分组，这里设一个足够大的上限。
+     * 秒杀活动商品数量通常不会很多，1000 条足够覆盖。
+     */
+    private static final int ES_MAX_FETCH_SIZE = 1000;
 
     @Autowired
     private SeckillItemEsMapper seckillItemEsMapper;
@@ -39,14 +55,47 @@ public class SeckillItemEsServiceImpl implements ISeckillItemEsService {
     private OshSeckillActivityItemMapper itemMapper;
 
     @Override
-    public PageResponse<SeckillActivityItemVO> searchItems(
+    public PageResponse<SeckillActivityUserVO> searchActivities(
             String keyword, Integer goodsType, int pageNum, int pageSize) {
+        // 1. 从 ES 一次性拉取所有匹配的商品明细（不分页，后面按活动分页）
+        PageResponse<SeckillActivityItemVO> itemPage;
         try {
-            return seckillItemEsMapper.searchItems(keyword, goodsType, pageNum, pageSize);
+            itemPage = seckillItemEsMapper.searchItems(keyword, goodsType, 1, ES_MAX_FETCH_SIZE);
         } catch (Exception ex) {
             log.error("search seckill items from es failed, keyword={}, goodsType={}", keyword, goodsType, ex);
             throw new IllegalStateException("search seckill items from es failed", ex);
         }
+
+        List<SeckillActivityItemVO> allItems = itemPage.getRows();
+        if (allItems == null || allItems.isEmpty()) {
+            return PageResponse.of(Collections.emptyList(), 0L, pageNum, pageSize);
+        }
+
+        // 2. 按 activityId 分组，保持 ES 返回的顺序（LinkedHashMap 保序）
+        Map<Long, List<SeckillActivityItemVO>> groupedByActivity = new LinkedHashMap<>();
+        for (SeckillActivityItemVO item : allItems) {
+            groupedByActivity
+                    .computeIfAbsent(item.getActivityId(), k -> new ArrayList<>())
+                    .add(item);
+        }
+
+        // 3. 每组构建一个 SeckillActivityUserVO
+        List<SeckillActivityUserVO> allActivities = new ArrayList<>(groupedByActivity.size());
+        for (Map.Entry<Long, List<SeckillActivityItemVO>> entry : groupedByActivity.entrySet()) {
+            SeckillActivityItemVO firstItem = entry.getValue().get(0);
+            allActivities.add(buildActivityVO(firstItem, entry.getValue()));
+        }
+
+        // 4. 按活动维度分页
+        long totalActivities = allActivities.size();
+        int fromIndex = Math.max((pageNum - 1) * pageSize, 0);
+        if (fromIndex >= allActivities.size()) {
+            return PageResponse.of(Collections.emptyList(), totalActivities, pageNum, pageSize);
+        }
+        int toIndex = Math.min(fromIndex + pageSize, allActivities.size());
+        List<SeckillActivityUserVO> pageActivities = new ArrayList<>(allActivities.subList(fromIndex, toIndex));
+
+        return PageResponse.of(pageActivities, totalActivities, pageNum, pageSize);
     }
 
     @Override
@@ -87,11 +136,31 @@ public class SeckillItemEsServiceImpl implements ISeckillItemEsService {
         return total;
     }
 
+    // ==================== 私有方法 ====================
+
+    /**
+     * 用第一条商品明细里冗余的活动字段 + 该活动所有商品，构建活动维度 VO
+     */
+    private SeckillActivityUserVO buildActivityVO(
+            SeckillActivityItemVO firstItem, List<SeckillActivityItemVO> items) {
+        SeckillActivityUserVO vo = new SeckillActivityUserVO();
+        vo.setId(firstItem.getActivityId());
+        vo.setTitle(firstItem.getActivityTitle());
+        vo.setStatus(firstItem.getActivityStatus());
+        vo.setPayTimeoutMin(firstItem.getPayTimeoutMin());
+        vo.setStartTime(firstItem.getStartTime());
+        vo.setEndTime(firstItem.getEndTime());
+        vo.setItems(items);
+        return vo;
+    }
+
     private SeckillItemEsDocument buildEsDocument(OshSeckillActivityItem item, OshSeckillActivity activity) {
         SeckillItemEsDocument doc = new SeckillItemEsDocument();
         doc.setId(item.getId());
         doc.setActivityId(activity.getId());
         doc.setActivityStatus(activity.getStatus());
+        doc.setActivityTitle(activity.getTitle());
+        doc.setPayTimeoutMin(activity.getPayTimeoutMin());
         doc.setGoodsId(item.getGoodsId());
         doc.setGoodsType(item.getGoodsType());
         doc.setTitle(item.getTitle());
