@@ -9,6 +9,7 @@ import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.common.utils.email.EmailUtil;
 import com.backstage.common.utils.generate.GenerateUtil;
 import com.backstage.common.utils.jwt.JwtUtil;
+import com.backstage.common.utils.SecurityUtils;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.system.domain.user.*;
 import com.backstage.system.domain.user.vo.OshUserLoginVO;
@@ -79,7 +80,7 @@ public class OshUserServiceImpl implements IOshUserService {
                 return R.fail(ResultCode.FAILED_USER_UNIQUEID_ERROR.getMsg());
             }
         }else {
-            if (!oshUser.getPassword().equals(password)) {
+            if (!SecurityUtils.matchesPassword(password, oshUser.getPassword())) {
                 return R.fail(ResultCode.FAILED_USER_PASSWORD_ERROR.getMsg());
             }
         }
@@ -145,7 +146,7 @@ public class OshUserServiceImpl implements IOshUserService {
         OshUser oshUser = new OshUser();
         oshUser.setId(userId);
         oshUser.setUsername(userMap.get(OshUserConstants.USERNAME));
-        oshUser.setPassword(userMap.get(OshUserConstants.PASSWORD));
+        oshUser.setPassword(SecurityUtils.encryptPassword(userMap.get(OshUserConstants.PASSWORD)));
         oshUser.setEmail(userMap.get(OshUserConstants.EMAIL));
         oshUser.setDeleteFlag((byte) 0);  // 明确设置，避免拦截器过滤
         ThreadLocalUtil.set(OshUserConstants.USER_ID, userId);
@@ -239,7 +240,7 @@ public class OshUserServiceImpl implements IOshUserService {
         if (!uniqueIdByUserId.equals(uniqueId)) {
             return R.fail(ResultCode.FAILED_USER_UNIQUEID_ERROR.getMsg());
         }
-        oshUser.setPassword(password);
+        oshUser.setPassword(SecurityUtils.encryptPassword(password));
         oshUserMapper.update(oshUser, wrapper);
         return R.ok(ResultCode.SUCCESS.getMsg());
     }
@@ -311,7 +312,7 @@ public class OshUserServiceImpl implements IOshUserService {
         if (user == null) {
             return R.fail(ResultCode.FAILED_USER_NOT_EXISTS.getMsg());
         }
-        if (user.getPassword() != null && !user.getPassword().equals(opassword)) {
+        if (user.getPassword() != null && !SecurityUtils.matchesPassword(opassword, user.getPassword())) {
             return R.fail(ResultCode.FAILED_USER_PASSWORD_ERROR.getMsg());
         }
         if(!password.equals(repassword)){
@@ -322,7 +323,7 @@ public class OshUserServiceImpl implements IOshUserService {
         }
         wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(OshUser::getId, userId);
-        user.setPassword(password);
+        user.setPassword(SecurityUtils.encryptPassword(password));
         oshUserMapper.update(user, wrapper);
         return R.ok(ResultCode.SUCCESS.getMsg());
     }
@@ -330,6 +331,7 @@ public class OshUserServiceImpl implements IOshUserService {
     @Override
     public R<OshUser> getUserInfo() {
         OshUser oshUser = UserContextUtil.getCurrentUser();
+        oshUser.setPassword(null);
         return R.ok(oshUser);
     }
 
