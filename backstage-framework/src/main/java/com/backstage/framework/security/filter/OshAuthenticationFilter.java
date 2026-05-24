@@ -25,11 +25,9 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Created with IntelliJ IDEA.
- * Description:
- * OshUser: 九转苍翎
- * Date: 2026/4/13
- * Time: 14:41
+ * OSH 前台用户认证过滤器
+ * 无 Token 或 Token 无效时拒绝访问（返回 401）
+ * WebSocket 握手请求放行（由 WebSocket 拦截器单独处理认证）
  */
 @Component
 public class OshAuthenticationFilter extends OncePerRequestFilter {
@@ -47,63 +45,99 @@ public class OshAuthenticationFilter extends OncePerRequestFilter {
             "/pc/user/login",
             "/pc/user/register/submit",
             "/pc/user/register/verity",
-            "/pc/user/forget"
+            "/pc/user/forget",
+            "/public/**"
     ));
-
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
         String uri = request.getRequestURI();
 
+        // 白名单放行
         if (isWhiteList(uri)) {
             chain.doFilter(request, response);
             return;
         }
-        String token = request.getHeader(OshUserConstants.TOKEN);
-        Long userId;
-        // 开发阶段，无论登录成功与否，都放行
-        try {
-            userId = JwtUtil.getUserIdByToken(token);
-        } catch (Exception e) {
+
+        // WebSocket 握手请求放行（由 WebSocket 拦截器单独处理认证）
+        if (isWebSocketHandshake(request)) {
             chain.doFilter(request, response);
             return;
         }
 
+        // 解析 Token
+        String token = request.getHeader(OshUserConstants.TOKEN);
+        Long userId;
+        try {
+            userId = JwtUtil.getUserIdByToken(token);
+        } catch (Exception e) {
+            sendUnauthorized(response, "未登录或Token已过期");
+            return;
+        }
 
+        if (userId == null) {
+            sendUnauthorized(response, "未登录或Token已过期");
+            return;
+        }
+
+        // 检查 Redis 登录态
         String loginUserKey = OshUserConstants.LOGIN_USER + userId;
         Map<String, Object> userInfoMap = redisCache.getCacheObject(loginUserKey);
 
-        if (userInfoMap != null) {
-            if (userId != null) {
-                // 前台站点登录态保存在 LoginUser:{userId}，每次有效请求都顺延 TTL，避免长时间编辑后 Redis 会话先过期。
-                redisCache.expire(loginUserKey, LOGIN_EXPIRE_MINUTES, TimeUnit.MINUTES);
-                ThreadLocalUtil.set(OshUserConstants.USER_ID, userId);
-                Map<String, String> role = (Map<String, String>) userInfoMap.get(OshUserConstants.ROLE);
-                ThreadLocalUtil.set(OshUserConstants.LEVEL, role.get(OshUserConstants.LEVEL));
-                ThreadLocalUtil.set(OshUserConstants.ROLE_CODE, role.get(OshUserConstants.ROLE_CODE));
-                LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
-                wrapper.eq(OshUser::getId, userId);
-                OshUser oshUser = oshUserMapper.selectOne(wrapper);
-                ThreadLocalUtil.set(OshUserConstants.USER_INFO, oshUser);
-                ThreadLocalUtil.set(OshUserConstants.USERNAME, oshUser.getUsername());
-                OshUserDetail oshUserDetail = new OshUserDetail();
-                oshUserDetail.setUserInfoMap(userInfoMap);
-
-                UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
-                        oshUserDetail,
-                        null,
-                        oshUserDetail.getAuthorities()
-                );
-                authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-            }
+        if (userInfoMap == null) {
+            sendUnauthorized(response, "登录已过期，请重新登录");
+            return;
         }
+
+        // 顺延 Redis 会话 TTL
+        redisCache.expire(loginUserKey, LOGIN_EXPIRE_MINUTES, TimeUnit.MINUTES);
+
+        // 设置 ThreadLocal 上下文
+        ThreadLocalUtil.set(OshUserConstants.USER_ID, userId);
+        Map<String, String> role = (Map<String, String>) userInfoMap.get(OshUserConstants.ROLE);
+        ThreadLocalUtil.set(OshUserConstants.LEVEL, role.get(OshUserConstants.LEVEL));
+        ThreadLocalUtil.set(OshUserConstants.ROLE_CODE, role.get(OshUserConstants.ROLE_CODE));
+
+        LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(OshUser::getId, userId);
+        OshUser oshUser = oshUserMapper.selectOne(wrapper);
+        ThreadLocalUtil.set(OshUserConstants.USER_INFO, oshUser);
+        ThreadLocalUtil.set(OshUserConstants.USERNAME, oshUser.getUsername());
+
+        // 设置 Spring Security 认证上下文
+        OshUserDetail oshUserDetail = new OshUserDetail();
+        oshUserDetail.setUserInfoMap(userInfoMap);
+
+        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
+                oshUserDetail,
+                null,
+                oshUserDetail.getAuthorities()
+        );
+        authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authenticationToken);
 
         try {
             chain.doFilter(request, response);
         } finally {
             ThreadLocalUtil.remove();
         }
+    }
+
+    /**
+     * 返回 401 未认证响应
+     */
+    private void sendUnauthorized(HttpServletResponse response, String msg) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write("{\"code\":401,\"msg\":\"" + msg + "\"}");
+    }
+
+    /**
+     * 判断是否为 WebSocket 握手请求
+     */
+    private boolean isWebSocketHandshake(HttpServletRequest request) {
+        String upgrade = request.getHeader("Upgrade");
+        return "websocket".equalsIgnoreCase(upgrade);
     }
 
     private boolean isWhiteList(String uri) {
