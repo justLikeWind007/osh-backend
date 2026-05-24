@@ -19,6 +19,10 @@ public class OrderCheckoutRespVO {
 
     private BigDecimal price;
 
+    private String expireTime;
+
+    private Integer closeExpireMinutes;
+
     private OrderPaymentInfo payment;
 
     public boolean isNeedPay() {
@@ -59,6 +63,22 @@ public class OrderCheckoutRespVO {
 
     public void setPrice(BigDecimal price) {
         this.price = price;
+    }
+
+    public String getExpireTime() {
+        return expireTime;
+    }
+
+    public void setExpireTime(String expireTime) {
+        this.expireTime = expireTime;
+    }
+
+    public Integer getCloseExpireMinutes() {
+        return closeExpireMinutes;
+    }
+
+    public void setCloseExpireMinutes(Integer closeExpireMinutes) {
+        this.closeExpireMinutes = closeExpireMinutes;
     }
 
     public OrderPaymentInfo getPayment() {

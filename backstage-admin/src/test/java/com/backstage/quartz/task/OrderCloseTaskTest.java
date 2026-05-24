@@ -1,8 +1,8 @@
-package com.backstage.system.service.order;
+package com.backstage.quartz.task;
 
 import com.backstage.system.domain.order.OshPayment;
 import com.backstage.system.mapper.order.OshPaymentMapper;
-import com.backstage.system.service.order.impl.OrderCloseTask;
+import com.backstage.system.service.order.OrderService;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
@@ -30,26 +30,28 @@ public class OrderCloseTaskTest {
     private OrderService orderService;
 
     @Test
-    public void shouldCloseExpiredPendingPaymentsEveryScan() {
+    public void shouldCloseExpiredPendingPaymentsWhenRunningXxlJobHandler() {
         OshPayment p1 = new OshPayment();
-        p1.setPaymentNo("P20260517010");
+        p1.setPaymentNo("P20260524010");
         OshPayment p2 = new OshPayment();
-        p2.setPaymentNo("P20260517011");
+        p2.setPaymentNo("P20260524011");
 
         when(oshPaymentMapper.selectExpiredPendingPayments(any())).thenReturn(Arrays.asList(p1, p2));
 
         orderCloseTask.closeExpiredPendingPayments();
 
-        verify(orderService).cancelPayment("P20260517010");
-        verify(orderService).cancelPayment("P20260517011");
+        verify(oshPaymentMapper).selectExpiredPendingPayments(any());
+        verify(orderService).cancelPayment("P20260524010");
+        verify(orderService).cancelPayment("P20260524011");
     }
 
     @Test
-    public void shouldSkipWhenNoExpiredPendingPaymentsFound() {
+    public void shouldSkipCloseWhenNoExpiredPendingPaymentsFound() {
         when(oshPaymentMapper.selectExpiredPendingPayments(any())).thenReturn(Collections.emptyList());
 
         orderCloseTask.closeExpiredPendingPayments();
 
+        verify(oshPaymentMapper).selectExpiredPendingPayments(any());
         verify(orderService, never()).cancelPayment(any());
     }
 }

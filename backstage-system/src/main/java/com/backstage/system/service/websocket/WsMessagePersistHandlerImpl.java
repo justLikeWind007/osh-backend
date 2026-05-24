@@ -38,7 +38,8 @@ public class WsMessagePersistHandlerImpl implements WsMessagePersistHandler {
         record.setJumpUrl(src.getJumpUrl());
         record.setBizId(src.getBizId());
 
+        log.info("准备持久化WS消息, targetUserId={}, type={}, title={}", targetUserId, src.getType(), src.getTitle());
         notificationMapper.insert(record);
-        log.debug("WS 消息已持久化，targetUserId={}, type={}", targetUserId, src.getType());
+        log.info("WS 消息已持久化，targetUserId={}, type={}, title={}", targetUserId, src.getType(), src.getTitle());
     }
 }

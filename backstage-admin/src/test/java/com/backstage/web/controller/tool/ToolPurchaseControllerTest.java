@@ -75,6 +75,8 @@ public class ToolPurchaseControllerTest {
         OrderCheckoutRespVO respVO = new OrderCheckoutRespVO();
         respVO.setOrderNo("O20260517003");
         respVO.setPaymentNo("P20260517003");
+        respVO.setExpireTime("2026-05-24 16:30:00");
+        respVO.setCloseExpireMinutes(30);
 
         when(toolPurchaseService.createPurchaseOrder(eq(9L), eq("normal"), any(ToolPurchaseCreateRequest.class))).thenReturn(respVO);
 
@@ -84,7 +86,9 @@ public class ToolPurchaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.orderNo").value("O20260517003"))
-                .andExpect(jsonPath("$.data.paymentNo").value("P20260517003"));
+                .andExpect(jsonPath("$.data.paymentNo").value("P20260517003"))
+                .andExpect(jsonPath("$.data.expireTime").value("2026-05-24 16:30:00"))
+                .andExpect(jsonPath("$.data.closeExpireMinutes").value(30));
     }
 
     @Test
