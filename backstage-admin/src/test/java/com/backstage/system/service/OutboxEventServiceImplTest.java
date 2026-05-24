@@ -5,8 +5,8 @@ import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.mapper.outbox.OshOutboxEventMapper;
 import com.backstage.system.service.course.CourseIndexEventType;
 import com.backstage.system.service.course.CourseIndexUpsertMessage;
-import com.backstage.system.service.impl.outbox.OutboxEventPublishTask;
 import com.backstage.system.service.impl.outbox.OutboxEventServiceImpl;
+import com.backstage.system.service.outbox.OutboxEventPublisher;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,7 +31,7 @@ public class OutboxEventServiceImplTest {
     private OshOutboxEventMapper outboxEventMapper;
 
     @Mock
-    private OutboxEventPublishTask outboxEventPublishTask;
+    private OutboxEventPublisher outboxEventPublisher;
 
     @After
     public void clearTransactionSynchronization() {
@@ -53,11 +53,11 @@ public class OutboxEventServiceImplTest {
 
         outboxEventService.saveCourseIndexEvent(10001L, message, buildOperator());
 
-        verify(outboxEventPublishTask, never()).publishEventById(55L);
+        verify(outboxEventPublisher, never()).publishEventById(55L);
         for (TransactionSynchronization synchronization : TransactionSynchronizationManager.getSynchronizations()) {
             synchronization.afterCommit();
         }
-        verify(outboxEventPublishTask).publishEventById(55L);
+        verify(outboxEventPublisher).publishEventById(55L);
     }
 
     @Test
@@ -72,7 +72,7 @@ public class OutboxEventServiceImplTest {
 
         outboxEventService.saveCourseIndexEvent(10002L, message, buildOperator());
 
-        verify(outboxEventPublishTask).publishEventById(56L);
+        verify(outboxEventPublisher).publishEventById(56L);
     }
 
     private OshUser buildOperator() {

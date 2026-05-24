@@ -13,6 +13,7 @@ import com.backstage.system.service.course.CourseIndexDeleteMessage;
 import com.backstage.system.service.course.CourseIndexUpsertMessage;
 import com.backstage.system.service.seckill.SeckillItemIndexDeleteMessage;
 import com.backstage.system.service.seckill.SeckillItemIndexUpsertMessage;
+import com.backstage.system.service.outbox.OutboxEventPublisher;
 import com.backstage.system.service.tool.ToolIndexDeleteMessage;
 import com.backstage.system.service.tool.ToolIndexMessage;
 import org.apache.commons.lang3.StringUtils;
@@ -41,7 +42,7 @@ public class OutboxEventServiceImpl implements OutboxEventService {
     private OshOutboxEventMapper outboxEventMapper;
 
     @Autowired
-    private OutboxEventPublishTask outboxEventPublishTask;
+    private OutboxEventPublisher outboxEventPublisher;
 
     @Override
     public void saveCourseIndexEvent(Long courseId, CourseIndexUpsertMessage message, OshUser operator) {
@@ -190,7 +191,7 @@ public class OutboxEventServiceImpl implements OutboxEventService {
 
     private void publishSafely(Long eventId) {
         try {
-            outboxEventPublishTask.publishEventById(eventId);
+            outboxEventPublisher.publishEventById(eventId);
             log.info("提交后立即投递outbox事件成功, id={}", eventId);
         } catch (Exception ex) {
             log.warn("提交后立即投递outbox事件异常，等待定时任务兜底, id={}, error={}", eventId, ex.getMessage(), ex);

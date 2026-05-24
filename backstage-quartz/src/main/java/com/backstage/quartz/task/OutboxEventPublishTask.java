@@ -1,20 +1,22 @@
-package com.backstage.system.service.impl.outbox;
+package com.backstage.quartz.task;
 
 import com.backstage.common.utils.kafka.KafkaMessageUtil;
 import com.backstage.system.domain.outbox.OshOutboxEvent;
 import com.backstage.system.mapper.outbox.OshOutboxEventMapper;
+import com.backstage.system.service.outbox.OutboxEventPublisher;
+import com.xxl.job.core.context.XxlJobHelper;
+import com.xxl.job.core.handler.annotation.XxlJob;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
-public class OutboxEventPublishTask {
+public class OutboxEventPublishTask implements OutboxEventPublisher {
 
     private static final Logger log = LoggerFactory.getLogger(OutboxEventPublishTask.class);
     private static final int BATCH_SIZE = 100;
@@ -24,16 +26,33 @@ public class OutboxEventPublishTask {
     @Autowired
     private OshOutboxEventMapper outboxEventMapper;
 
-    @Scheduled(fixedDelay = 1000 * 60 * 10)
+    @XxlJob("outboxJobHandler")
     public void publishPendingEvents() {
-        recoverTimeoutSendingEvents();
-        List<OshOutboxEvent> events = outboxEventMapper.selectPendingEvents(BATCH_SIZE);
-        log.info("本轮扫描待投递outbox事件数量: {}", events == null ? 0 : events.size());
-        for (OshOutboxEvent event : events) {
-            publishEvent(event);
+        String jobParam = XxlJobHelper.getJobParam();
+//        XxlJobHelper.log("outbox消息同步任务开始执行, param={0}", StringUtils.defaultString(jobParam, ""));
+        log.debug("outbox消息同步任务开始执行, param={}", jobParam);
+        try {
+            int recovered = recoverTimeoutSendingEvents();
+//            XxlJobHelper.log("恢复超时SENDING事件数量: {0}", recovered);
+            List<OshOutboxEvent> events = outboxEventMapper.selectPendingEvents(BATCH_SIZE);
+            int eventSize = events == null ? 0 : events.size();
+//            XxlJobHelper.log("本轮扫描待投递outbox事件数量: {0}", eventSize);
+            log.debug("本轮扫描待投递outbox事件数量: {}", eventSize);
+            if (events != null) {
+                for (OshOutboxEvent event : events) {
+                    publishEvent(event);
+                }
+            }
+            XxlJobHelper.log("outbox消息同步任务执行完成, recovered={0}, scanned={1}", recovered, eventSize);
+            log.debug("outbox消息同步任务执行完成, recovered={}, scanned={}", recovered, eventSize);
+        } catch (Exception ex) {
+            XxlJobHelper.log("outbox消息同步任务执行异常: {0}", ex.getMessage());
+            log.error("outbox消息同步任务执行异常", ex);
+            throw ex;
         }
     }
 
+    @Override
     public void publishEventById(Long eventId) {
         OshOutboxEvent event = outboxEventMapper.selectEventById(eventId);
         if (event == null) {
@@ -43,12 +62,13 @@ public class OutboxEventPublishTask {
         publishEvent(event);
     }
 
-    private void recoverTimeoutSendingEvents() {
+    private int recoverTimeoutSendingEvents() {
         LocalDateTime timeoutTime = LocalDateTime.now().minusMinutes(SENDING_TIMEOUT_MINUTES);
         int recovered = outboxEventMapper.recoverTimeoutSendingEvents(timeoutTime);
         if (recovered > 0) {
             log.warn("自动恢复超时SENDING outbox事件数量: {}", recovered);
         }
+        return recovered;
     }
 
     private void publishEvent(OshOutboxEvent event) {

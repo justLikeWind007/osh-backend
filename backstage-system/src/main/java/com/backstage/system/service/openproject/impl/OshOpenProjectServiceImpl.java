@@ -23,6 +23,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -51,6 +52,9 @@ public class OshOpenProjectServiceImpl implements IOshOpenProjectService {
 
     @Autowired
     private WebSocketNotifyService webSocketNotifyService;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @Override
     public Map<String, Object> listPage(OpenProjectQueryDTO queryDTO) {
@@ -382,12 +386,22 @@ public class OshOpenProjectServiceImpl implements IOshOpenProjectService {
         project.setRejectReason(dto.getRejectReason());
         projectMapper.updateById(project);
 
-        // 审核通过时广播公告给所有在线用户
+        // 审核通过时广播公告给所有在线用户，并写入公告表
         if (dto.getStatus() == 1) {
+            String announcementTitle = "「" + project.getProjectName() + "」已上线，快来看看吧！";
+
+            // 写入 osh_announcement 表
+            jdbcTemplate.update(
+                "INSERT INTO osh_announcement (title, link, resource_type, channel, status, delete_flag, create_by, create_time, update_by, update_time) " +
+                "VALUES (?, ?, 'serial', 0, 0, 0, 'system', NOW(), 'system', NOW())",
+                announcementTitle, "/openproject/list"
+            );
+
+            // WebSocket 广播
             WsNotifyMessage broadcast = new WsNotifyMessage();
             broadcast.setType("NEW_OPEN_PROJECT");
             broadcast.setTitle("新开源项目上线");
-            broadcast.setContent("「" + project.getProjectName() + "」已上线，快来看看吧！");
+            broadcast.setContent(announcementTitle);
             broadcast.setJumpUrl("/openproject/list");
             broadcast.setBizId(String.valueOf(project.getId()));
             webSocketNotifyService.broadcast(broadcast);
