@@ -30,6 +30,7 @@ public interface OshInfoGapMapper extends BaseMapper<OshInfoGap> {
 
     List<InfoGapVO> searchInfoGap(@Param("keyword") String keyword,
                                   @Param("tagId") Long tagId,
+                                  @Param("category") String category,
                                   @Param("currentUserId") Long currentUserId);
 
     List<InfoGapVO> selectRecommendList();

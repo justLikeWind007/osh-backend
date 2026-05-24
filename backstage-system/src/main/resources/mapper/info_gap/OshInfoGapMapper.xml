@@ -253,25 +253,26 @@
         on oig.id = oigtr.info_gap_id and oigtr.rn &lt;= 3
         left join osh_info_gap_tag oigt
         on oigtr.gap_tag_id = oigt.id and oigt.delete_flag = 0
-        where oig.status = 2
+        where oig.status = 4
         and oig.delete_flag = 0
-        <choose>
-            <when test="keyword != null and keyword != ''">
-                and (
-                oig.title like concat('%', #{keyword}, '%')
-                or oig.content like concat('%', #{keyword}, '%')
-                )
-            </when>
-            <when test="tagId != null">
-                and exists (
-                select 1
-                from osh_info_gap_tag_rel soigtr
-                where soigtr.info_gap_id = oig.id
-                and soigtr.gap_tag_id = #{tagId}
-                and soigtr.delete_flag = 0
-                )
-            </when>
-        </choose>
+        <if test="keyword != null and keyword != ''">
+            and (
+            oig.title like concat('%', #{keyword}, '%')
+            or oig.content like concat('%', #{keyword}, '%')
+            )
+        </if>
+        <if test="tagId != null">
+            and exists (
+            select 1
+            from osh_info_gap_tag_rel soigtr
+            where soigtr.info_gap_id = oig.id
+            and soigtr.gap_tag_id = #{tagId}
+            and soigtr.delete_flag = 0
+            )
+        </if>
+        <if test="category != null and category != ''">
+            and oig.tag = #{category}
+        </if>
         group by oig.id
         order by oig.update_time desc
     </select>

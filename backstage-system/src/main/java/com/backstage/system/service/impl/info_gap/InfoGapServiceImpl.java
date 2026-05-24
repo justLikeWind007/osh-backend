@@ -218,7 +218,7 @@ public class InfoGapServiceImpl implements InfoGapService {
     @Override
     public List<InfoGapVO> searchInfoGap(InfoGapSearchReqDTO request, Long currentUserId) {
         PageHelper.startPage(request.getPageNum(), request.getPageSize());
-        return infoGapMapper.searchInfoGap(request.getKeyword(), request.getTagId(), currentUserId);
+        return infoGapMapper.searchInfoGap(request.getKeyword(), request.getTagId(), request.getCategory(), currentUserId);
     }
 
     @Override
