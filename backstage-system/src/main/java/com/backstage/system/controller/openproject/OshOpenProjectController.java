@@ -12,6 +12,8 @@ import com.backstage.system.service.openproject.IOshOpenProjectFavoriteService;
 import com.backstage.system.service.openproject.IOshOpenProjectRankService;
 import com.backstage.system.service.openproject.IOshOpenProjectService;
 import com.backstage.system.utils.UserContextUtil;
+import com.backstage.system.domain.vo.tool.ToolAnnouncementVO;
+import com.backstage.system.mapper.openproject.OshOpenProjectAnnouncementMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +32,15 @@ public class OshOpenProjectController {
 
     @Autowired
     private IOshOpenProjectRankService rankService;
+
+    @Autowired
+    private OshOpenProjectAnnouncementMapper announcementMapper;
+
+    /** 获取开源项目最新公告 */
+    @GetMapping("/announcements")
+    public R<List<ToolAnnouncementVO>> getAnnouncements() {
+        return R.ok(announcementMapper.selectLatestOpenProjectAnnouncements());
+    }
 
     /** 分页查询已通过的开源项目列表 */
     @PostMapping("/list")

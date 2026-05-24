@@ -1,121 +1,123 @@
 package com.backstage.system.controller.order;
 
-import java.util.HashMap;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import javax.servlet.http.HttpServletResponse;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
-import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.R;
+import com.backstage.system.domain.order.OshOrder;
+import com.backstage.system.domain.order.enums.OrderStatusEnum;
+import com.backstage.system.domain.order.enums.ProductTypeEnum;
+import com.backstage.system.mapper.order.OshOrderMapper;
+import com.backstage.system.utils.UserContextUtil;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import com.backstage.common.annotation.Log;
 import com.backstage.common.core.controller.BaseController;
-import com.backstage.common.core.domain.AjaxResult;
-import com.backstage.common.enums.BusinessType;
-import com.backstage.system.domain.order.OshOrderList;
-import com.backstage.system.service.order.IOshOrderListService;
-import com.backstage.common.utils.poi.ExcelUtil;
-import com.backstage.common.core.page.TableDataInfo;
+
+import javax.annotation.Resource;
 
 /**
- * 我的订单列Controller
- * 
- * @author ruoyi
- * @date 2026-03-09
+ * 用户中心 - 我的订单记录
  */
 @RestController
 @RequestMapping("/pc/order")
-public class OshOrderListController extends BaseController
-{
-    @Autowired
-    private IOshOrderListService oshOrderListService;
+public class OshOrderListController extends BaseController {
+
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    @Resource
+    private OshOrderMapper oshOrderMapper;
 
     /**
-     * 查询我的订单列列表
+     * 查询当前用户的订单列表（从统一订单表 osh_order 查询）
+     * @param status 订单状态筛选：1-已支付，2-已取消/已关闭，不传则查全部
      */
-//    @PreAuthorize("@ss.hasPermi('system:list:list')")
-//
-    @Anonymous
     @GetMapping("/list")
-    public R list(@RequestParam Integer page, @RequestParam(defaultValue = "20") Integer limit) {
+    public R list(@RequestParam(defaultValue = "1") Integer page,
+                  @RequestParam(defaultValue = "20") Integer limit,
+                  @RequestParam(required = false) Integer status) {
+        Long userId = UserContextUtil.getCurrentUserId();
+        if (userId == null) {
+            return R.fail("请先登录");
+        }
+
         PageHelper.startPage(page, limit);
-        List<OshOrderList> list = oshOrderListService.selectOshOrderListList(new OshOrderList());
+        List<OshOrder> orders = oshOrderMapper.selectByUserIdAndStatus(userId, status);
+        PageInfo<OshOrder> pageInfo = new PageInfo<>(orders);
 
-        // 统计count
-        PageInfo<OshOrderList> pageInfo = new PageInfo<>(list);
+        // 转换为前端期望的格式
+        List<LinkedHashMap<String, Object>> rows = pageInfo.getList().stream()
+                .map(this::toFrontendVO)
+                .collect(Collectors.toList());
 
-        // 保持顺序
-        LinkedHashMap<String, Object> data1 = new LinkedHashMap<>();
-        data1.put("count", pageInfo.getTotal());
-        data1.put("rows", pageInfo.getList());
+        LinkedHashMap<String, Object> data = new LinkedHashMap<>();
+        data.put("count", pageInfo.getTotal());
+        data.put("rows", rows);
 
-
-        R r = new R();
-        r.setMsg("ok");
-        r.setData(data1);
-        r.setCode(20000);
-        return r;
-
+        return R.ok(data);
     }
 
     /**
-     * 导出我的订单列列表
+     * 将 OshOrder 转换为前端 BuyList 组件期望的字段格式
      */
-    @PreAuthorize("@ss.hasPermi('system:list:export')")
-    @Log(title = "我的订单列", businessType = BusinessType.EXPORT)
-    @PostMapping("/export")
-    public void export(HttpServletResponse response, OshOrderList oshOrderList)
-    {
-        List<OshOrderList> list = oshOrderListService.selectOshOrderListList(oshOrderList);
-        ExcelUtil<OshOrderList> util = new ExcelUtil<OshOrderList>(OshOrderList.class);
-        util.exportExcel(response, list, "我的订单列数据");
+    private LinkedHashMap<String, Object> toFrontendVO(OshOrder order) {
+        LinkedHashMap<String, Object> vo = new LinkedHashMap<>();
+        vo.put("no", order.getOrderNo());
+        vo.put("created_time", formatTime(order.getCreatedTime()));
+        vo.put("goods", order.getProductName());
+        vo.put("price", order.getPayableAmount());
+        vo.put("total_price", order.getOriginalAmount());
+        vo.put("status", mapStatus(order.getStatus()));
+        vo.put("type", mapProductType(order.getProductType()));
+        return vo;
     }
 
     /**
-     * 获取我的订单列详细信息
+     * 将订单状态码映射为前端状态字符串
      */
-    @PreAuthorize("@ss.hasPermi('system:list:query')")
-    @GetMapping(value = "/{id}")
-    public AjaxResult getInfo(@PathVariable("id") Long id)
-    {
-        return success(oshOrderListService.selectOshOrderListById(id));
+    private String mapStatus(Integer status) {
+        if (status == null) {
+            return "closed";
+        }
+        if (status == OrderStatusEnum.PENDING.getCode()) {
+            return "pendding";
+        }
+        if (status == OrderStatusEnum.PAID.getCode()) {
+            return "success";
+        }
+        // CANCELED 和 CLOSED 都映射为 closed
+        return "closed";
     }
 
     /**
-     * 新增我的订单列
+     * 将商品类型码映射为前端类型字符串
      */
-    @PreAuthorize("@ss.hasPermi('system:list:add')")
-    @Log(title = "我的订单列", businessType = BusinessType.INSERT)
-    @PostMapping
-    public AjaxResult add(@RequestBody OshOrderList oshOrderList)
-    {
-        return toAjax(oshOrderListService.insertOshOrderList(oshOrderList));
+    private String mapProductType(Integer productType) {
+        if (productType == null) {
+            return "default";
+        }
+        ProductTypeEnum typeEnum = ProductTypeEnum.fromCode(productType);
+        if (typeEnum == null) {
+            return "default";
+        }
+        switch (typeEnum) {
+            case GROUP:
+                return "group";
+            case SECKILL:
+                return "flashsale";
+            default:
+                return "default";
+        }
     }
 
-    /**
-     * 修改我的订单列
-     */
-    @PreAuthorize("@ss.hasPermi('system:list:edit')")
-    @Log(title = "我的订单列", businessType = BusinessType.UPDATE)
-    @PutMapping
-    public AjaxResult edit(@RequestBody OshOrderList oshOrderList)
-    {
-        return toAjax(oshOrderListService.updateOshOrderList(oshOrderList));
-    }
-
-    /**
-     * 删除我的订单列
-     */
-    @PreAuthorize("@ss.hasPermi('system:list:remove')")
-    @Log(title = "我的订单列", businessType = BusinessType.DELETE)
-	@DeleteMapping("/{ids}")
-    public AjaxResult remove(@PathVariable Long[] ids)
-    {
-        return toAjax(oshOrderListService.deleteOshOrderListByIds(ids));
+    private String formatTime(LocalDateTime time) {
+        if (time == null) {
+            return "";
+        }
+        return time.format(TIME_FORMATTER);
     }
 }
