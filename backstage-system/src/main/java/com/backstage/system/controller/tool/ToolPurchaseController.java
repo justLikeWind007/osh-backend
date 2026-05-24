@@ -76,7 +76,7 @@ public class ToolPurchaseController {
         if (currentUser == null) {
             return R.fail("请先登录");
         }
-        orderService.cancelPayment(request.getPaymentNo());
+        orderService.cancelPaymentByOrderNo(request.getOrderNo());
         return R.ok("关单成功");
     }
 }

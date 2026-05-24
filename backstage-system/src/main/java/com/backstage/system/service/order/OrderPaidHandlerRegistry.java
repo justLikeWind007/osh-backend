@@ -2,6 +2,8 @@ package com.backstage.system.service.order;
 
 import com.backstage.common.exception.ServiceException;
 import com.backstage.system.domain.order.enums.ProductTypeEnum;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -14,6 +16,7 @@ import java.util.Map;
 @Component
 public class OrderPaidHandlerRegistry {
 
+    private static final Logger log = LoggerFactory.getLogger(OrderPaidHandlerRegistry.class);
     private final Map<String, OrderPaidHandler> handlerMap;
 
     /**
@@ -31,6 +34,7 @@ public class OrderPaidHandlerRegistry {
                 throw new ServiceException("支付后置处理器业务类型非法, bizType=" + bizType);
             }
             handlerMap.put(bizType, handler);
+            log.info("注册支付后置处理器成功, bizType={}, handler={}", bizType, handler.getClass().getSimpleName());
         }
     }
 
@@ -55,6 +59,7 @@ public class OrderPaidHandlerRegistry {
      * @param orderNo 业务订单号
      */
     public void handle(String bizType, String orderNo) {
+        log.info("准备执行支付后置处理器, bizType={}, orderNo={}", bizType, orderNo);
         getHandler(bizType).handle(orderNo);
     }
 }

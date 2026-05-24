@@ -50,6 +50,7 @@ import javax.validation.Validator;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -75,6 +76,7 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
     private static final String TRADE_SUCCESS = "TRADE_SUCCESS";
     private static final String PAY_CREATE_FAILED_MESSAGE = "发起支付失败";
     private static final int DEFAULT_PAY_EXPIRE_MINUTES = 30;
+    private static final DateTimeFormatter DEFAULT_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @Resource
     private PayConfig payConfig;
@@ -155,7 +157,7 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
         }
 
         // 组装支付参数返回前端
-        return packageOrderCheckoutResult(orderNo, paymentNo, amount, channelEnum.getValue(), payResponse);
+        return packageOrderCheckoutResult(orderNo, paymentNo, amount, channelEnum.getValue(), payResponse, payment);
     }
 
     /**
@@ -608,7 +610,8 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
                                                            String paymentNo,
                                                            BigDecimal amount,
                                                            String channel,
-                                                           PayResponse payResponse) {
+                                                           PayResponse payResponse,
+                                                           OshPayment payment) {
         OrderPaymentInfo paymentInfo = new OrderPaymentInfo();
         paymentInfo.setChannel(channel);
         paymentInfo.setQrcode(payResponse.getQrcode());
@@ -620,6 +623,8 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
         result.setPaymentNo(paymentNo);
         result.setPayStatus(String.valueOf(OrderStatusEnum.PENDING.getCode()));
         result.setPrice(amount);
+        result.setExpireTime(formatDateTime(payment == null ? null : payment.getExpireTime()));
+        result.setCloseExpireMinutes((int) resolvePayExpireMinutes());
         result.setPayment(paymentInfo);
         return result;
     }
@@ -639,6 +644,7 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
         result.setPaymentNo(paymentNo);
         result.setPayStatus(String.valueOf(ORDER_PAID));
         result.setPrice(amount);
+        result.setCloseExpireMinutes((int) resolvePayExpireMinutes());
         return result;
     }
 
@@ -836,5 +842,12 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
             log.warn("序列化支付上下文失败, valueType={}", Objects.isNull(value) ? "null" : value.getClass().getName(), e);
             return String.valueOf(value);
         }
+    }
+
+    private String formatDateTime(LocalDateTime dateTime) {
+        if (dateTime == null) {
+            return null;
+        }
+        return dateTime.format(DEFAULT_TIME_FORMATTER);
     }
 }
