@@ -4,6 +4,7 @@ import com.backstage.system.domain.order.enums.ProductTypeEnum;
 import com.backstage.system.domain.tool.OshToolPurchaseRecord;
 import com.backstage.system.mapper.tool.OshToolPurchaseRecordMapper;
 import com.backstage.system.mapper.tool.OshToolQuotaMapper;
+import com.backstage.system.service.tool.ToolPurchaseAnnouncementPublisher;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
@@ -30,9 +31,12 @@ public class ToolPaidHandlerTest {
     @Mock
     private OshToolQuotaMapper oshToolQuotaMapper;
 
+    @Mock
+    private ToolPurchaseAnnouncementPublisher toolPurchaseAnnouncementPublisher;
+
     @Test
     public void shouldExposeToolBizTypeForPaidHandlerRegistry() {
-        assertEquals(ProductTypeEnum.TOOL.name(), toolPaidHandler.bizType());
+        assertEquals(ProductTypeEnum.TOOL.getName(), toolPaidHandler.bizType());
     }
 
     @Test
@@ -53,6 +57,7 @@ public class ToolPaidHandlerTest {
 
         verify(oshToolQuotaMapper).insertUserToolQuota(9L, 1002L, 50, "system");
         verify(oshToolPurchaseRecordMapper).updateGrantSuccess(org.mockito.ArgumentMatchers.eq(1L), any(LocalDateTime.class), org.mockito.ArgumentMatchers.eq("system"));
+        verify(toolPurchaseAnnouncementPublisher).publishPurchaseSuccess(record);
     }
 
     @Test

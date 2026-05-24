@@ -23,6 +23,10 @@ public class PayCreateRespVO {
 
     private BigDecimal price;
 
+    private String expireTime;
+
+    private Integer closeExpireMinutes;
+
     private String qrcode;
 
     private String payUrl;
@@ -89,6 +93,22 @@ public class PayCreateRespVO {
 
     public void setPrice(BigDecimal price) {
         this.price = price;
+    }
+
+    public String getExpireTime() {
+        return expireTime;
+    }
+
+    public void setExpireTime(String expireTime) {
+        this.expireTime = expireTime;
+    }
+
+    public Integer getCloseExpireMinutes() {
+        return closeExpireMinutes;
+    }
+
+    public void setCloseExpireMinutes(Integer closeExpireMinutes) {
+        this.closeExpireMinutes = closeExpireMinutes;
     }
 
     public String getQrcode() {

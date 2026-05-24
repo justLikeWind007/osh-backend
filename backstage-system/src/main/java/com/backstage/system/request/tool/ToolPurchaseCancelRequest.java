@@ -8,15 +8,15 @@ import javax.validation.constraints.NotBlank;
 @ApiModel(description = "工具购买手动关单请求")
 public class ToolPurchaseCancelRequest {
 
-    @NotBlank(message = "支付流水号不能为空")
-    @ApiModelProperty(value = "支付流水号", required = true, example = "P20260517003")
-    private String paymentNo;
+    @NotBlank(message = "订单号不能为空")
+    @ApiModelProperty(value = "订单号", required = true, example = "O20260517003")
+    private String orderNo;
 
-    public String getPaymentNo() {
-        return paymentNo;
+    public String getOrderNo() {
+        return orderNo;
     }
 
-    public void setPaymentNo(String paymentNo) {
-        this.paymentNo = paymentNo;
+    public void setOrderNo(String orderNo) {
+        this.orderNo = orderNo;
     }
 }
