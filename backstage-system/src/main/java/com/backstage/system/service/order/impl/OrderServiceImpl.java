@@ -119,7 +119,14 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
     @Override
     public OrderCheckoutRespVO checkout(OrderCheckoutReqVO reqVO) {
 
-        String clientIp = IpUtils.getIpAddr();
+        String clientIp = reqVO.getClientIp();
+        if (clientIp == null || clientIp.isEmpty()) {
+            try {
+                clientIp = IpUtils.getIpAddr();
+            } catch (Exception e) {
+                clientIp = "unknown";
+            }
+        }
         // 校验结算参数
         validateCheckoutParam(reqVO);
 

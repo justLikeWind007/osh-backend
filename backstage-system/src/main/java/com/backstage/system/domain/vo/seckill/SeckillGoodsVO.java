@@ -22,6 +22,9 @@ public class SeckillGoodsVO implements Serializable {
     @ApiModelProperty("主键ID")
     private Long id;
 
+    @ApiModelProperty("资源编号")
+    private String no;
+
     @ApiModelProperty("关联商品ID")
     private Long goodsId;
 
@@ -54,6 +57,9 @@ public class SeckillGoodsVO implements Serializable {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public String getNo() { return no; }
+    public void setNo(String no) { this.no = no; }
 
     public Long getGoodsId() { return goodsId; }
     public void setGoodsId(Long goodsId) { this.goodsId = goodsId; }

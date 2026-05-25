@@ -5,6 +5,7 @@ import com.backstage.system.domain.seckill.OshSeckillActivityItem;
 import com.backstage.system.domain.seckill.OshSeckillOrder;
 import com.backstage.system.mapper.seckill.OshSeckillActivityItemMapper;
 import com.backstage.system.mapper.seckill.OshSeckillOrderMapper;
+import com.backstage.system.service.order.OrderService;
 import com.xxl.job.core.context.XxlJobHelper;
 import com.xxl.job.core.handler.annotation.XxlJob;
 import org.slf4j.Logger;
@@ -46,6 +47,9 @@ public class SeckillOrderTimeoutTask {
 
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+
+    @Autowired
+    private OrderService orderService;
 
     /**
      * Lua 脚本：归还 Redis 库存时不超过 totalStock 上限（原子操作）
@@ -117,6 +121,13 @@ public class SeckillOrderTimeoutTask {
 
                 // 4. 删除流程状态 Key（超时后通常已自然过期，显式删除兜底）
                 stringRedisTemplate.delete(orderKey);
+
+                // 5. 同步取消统一订单
+                try {
+                    orderService.cancelPaymentByOrderNo(order.getSeckillNo());
+                } catch (Exception ex) {
+                    logger.warn("【超时取消】取消统一订单失败，seckillNo={}, error={}", order.getSeckillNo(), ex.getMessage());
+                }
 
                 logger.info("【超时取消】订单已取消，seckillNo={}, userId={}, activityId={}, itemId={}",
                         order.getSeckillNo(), order.getUserId(), order.getActivityId(), order.getItemId());

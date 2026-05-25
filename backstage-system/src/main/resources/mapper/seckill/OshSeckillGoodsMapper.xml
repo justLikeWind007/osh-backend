@@ -6,6 +6,7 @@
 
     <resultMap type="com.backstage.system.domain.seckill.OshSeckillGoods" id="OshSeckillGoodsResult">
         <result property="id"               column="id"/>
+        <result property="no"               column="no"/>
         <result property="goodsId"          column="goods_id"/>
         <result property="goodsType"        column="goods_type"/>
         <result property="goodsName"        column="goods_name"/>
@@ -22,7 +23,7 @@
     </resultMap>
 
     <sql id="selectOshSeckillGoodsVo">
-        select id, goods_id, goods_type, goods_name, goods_cover, origin_price,
+        select id, no, goods_id, goods_type, goods_name, goods_cover, origin_price,
                min_seckill_price, status, sort, create_by, create_time, update_by, update_time, delete_flag
         from osh_seckill_goods
         where (delete_flag = 0 or delete_flag is null)
@@ -53,7 +54,7 @@
 
     <!-- 根据 goods_id + goods_type 查询（防重复入池） -->
     <select id="selectByGoodsIdAndType" resultMap="OshSeckillGoodsResult">
-        select id, goods_id, goods_type, goods_name, goods_cover, origin_price,
+        select id, no, goods_id, goods_type, goods_name, goods_cover, origin_price,
                min_seckill_price, status, sort, create_by, create_time, update_by, update_time, delete_flag
         from osh_seckill_goods
         where goods_id = #{goodsId}
@@ -67,6 +68,7 @@
             useGeneratedKeys="true" keyProperty="id">
         insert into osh_seckill_goods
         <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="no != null and no != ''">no,</if>
             <if test="goodsId != null">goods_id,</if>
             <if test="goodsType != null">goods_type,</if>
             <if test="goodsName != null and goodsName != ''">goods_name,</if>
@@ -80,6 +82,7 @@
             delete_flag,
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="no != null and no != ''">#{no},</if>
             <if test="goodsId != null">#{goodsId},</if>
             <if test="goodsType != null">#{goodsType},</if>
             <if test="goodsName != null and goodsName != ''">#{goodsName},</if>

@@ -10,7 +10,6 @@ import com.backstage.system.service.order.OrderPaidHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
@@ -20,8 +19,6 @@ public class SeckillPaidHandler implements OrderPaidHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(SeckillPaidHandler.class);
 
-    private static final String SECKILL_BOUGHT_KEY = "seckill:bought:";
-
     @Autowired
     private OshSeckillOrderMapper seckillOrderMapper;
 
@@ -30,9 +27,6 @@ public class SeckillPaidHandler implements OrderPaidHandler {
 
     @Autowired
     private ISeckillAnnouncementService seckillAnnouncementService;
-
-    @Autowired
-    private StringRedisTemplate stringRedisTemplate;
 
     /**
      * 获取业务类型标识。
@@ -48,19 +42,19 @@ public class SeckillPaidHandler implements OrderPaidHandler {
      * 处理秒杀订单支付成功
      */
     @Override
-    public void handle(String seckillNo) {
+    public void handle(String orderNo) {
         // 幂等校验：已支付则跳过
-        OshSeckillOrder order = seckillOrderMapper.selectOrderBySeckillNo(seckillNo);
+        OshSeckillOrder order = seckillOrderMapper.selectOrderBySeckillNo(orderNo);
         if (order == null) {
-            logger.warn("【支付回调】秒杀订单不存在，seckillNo={}", seckillNo);
+            logger.warn("【支付回调】秒杀订单不存在，orderNo={}", orderNo);
             return;
         }
         if (order.getStatus() == 1) {
-            logger.info("【支付回调】订单已支付，跳过重复处理，seckillNo={}", seckillNo);
+            logger.info("【支付回调】订单已支付，跳过重复处理，orderNo={}", orderNo);
             return;
         }
         if (order.getStatus() != 0) {
-            logger.warn("【支付回调】订单状态异常（非待支付），status={}, seckillNo={}", order.getStatus(), seckillNo);
+            logger.warn("【支付回调】订单状态异常（非待支付），status={}, orderNo={}", order.getStatus(), orderNo);
             return;
         }
 
@@ -71,21 +65,16 @@ public class SeckillPaidHandler implements OrderPaidHandler {
         update.setPayTime(new Date());
         seckillOrderMapper.updateOrder(update);
 
-        // 支付成功后写入已购 Set，永久拦截该用户重复购买同一商品
-        String boughtKey = SECKILL_BOUGHT_KEY + order.getActivityId() + ":" + order.getItemId();
-        stringRedisTemplate.opsForSet().add(boughtKey, String.valueOf(order.getUserId()));
-
         // 支付成功后写入秒杀动态到 osh_announcement
         try {
             String maskedUsername = buildMaskedUsername(order.getUserId());
             seckillAnnouncementService.insertSeckillDynamic(
                     maskedUsername, order.getGoodsTitle(), order.getGoodsId());
         } catch (Exception e) {
-            // 动态写入失败不影响主流程
-            logger.error("【支付回调】写入秒杀动态失败，seckillNo={}, error={}", seckillNo, e.getMessage());
+            logger.error("【支付回调】写入秒杀动态失败，orderNo={}, error={}", orderNo, e.getMessage());
         }
 
-        logger.info("【支付回调】秒杀订单支付成功，seckillNo={}", seckillNo);
+        logger.info("【支付回调】秒杀订单支付成功，orderNo={}", orderNo);
     }
 
     /**

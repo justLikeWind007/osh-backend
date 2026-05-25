@@ -46,7 +46,10 @@ public class OshAuthenticationFilter extends OncePerRequestFilter {
             "/pc/user/register/submit",
             "/pc/user/register/verity",
             "/pc/user/forget",
-            "/public/**"
+            "/public/**",
+            // 秒杀公告栏 & 购买动态，公开展示，无需登录
+            "/pc/seckill/user/announcement/notices",
+            "/pc/seckill/user/recent/orders"
     ));
 
     @Override

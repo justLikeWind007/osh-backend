@@ -1,11 +1,12 @@
 package com.backstage.system.service.impl.seckill;
 
 import com.alibaba.fastjson2.JSON;
-import com.backstage.common.config.PayConfig;
 import com.backstage.common.constant.KafkaConstants;
 import com.backstage.common.constant.SeckillCacheConstants;
 import com.backstage.common.exception.ServiceException;
+import com.backstage.common.utils.ip.IpUtils;
 import com.backstage.common.utils.kafka.KafkaMessageUtil;
+import com.backstage.system.domain.order.OshPayment;
 import com.backstage.system.domain.seckill.OshSeckillActivity;
 import com.backstage.system.domain.seckill.OshSeckillActivityItem;
 import com.backstage.system.domain.seckill.OshSeckillOrder;
@@ -15,6 +16,8 @@ import com.backstage.system.domain.vo.seckill.SeckillResultVO;
 import com.backstage.system.mapper.seckill.OshSeckillActivityItemMapper;
 import com.backstage.system.mapper.seckill.OshSeckillActivityMapper;
 import com.backstage.system.mapper.seckill.OshSeckillOrderMapper;
+import com.backstage.system.mapper.order.OshPaymentMapper;
+import com.backstage.system.service.order.OrderService;
 import com.backstage.system.service.seckill.IOshSeckillOrderService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +57,6 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
      *   seckill:order:{activityId}:{itemId}:{userId}     用户秒杀单号（流程状态标记）
      */
     private static final String SECKILL_STOCK_KEY    = SeckillCacheConstants.SECKILL_STOCK_KEY;
-    private static final String SECKILL_BOUGHT_KEY   = SeckillCacheConstants.SECKILL_BOUGHT_KEY;
     private static final String SECKILL_BOUGHT_CNT_KEY = SeckillCacheConstants.SECKILL_BOUGHT_CNT_KEY;
     private static final String SECKILL_ACTIVITY_KEY = SeckillCacheConstants.SECKILL_ACTIVITY_KEY;
     private static final String SECKILL_ITEM_KEY     = SeckillCacheConstants.SECKILL_ITEM_KEY;
@@ -106,8 +108,11 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
     @Autowired
     private OshSeckillOrderMapper orderMapper;
 
-    @Resource
-    private PayConfig payConfig;
+    @Autowired
+    private OrderService orderService;
+
+    @Autowired
+    private OshPaymentMapper paymentMapper;
 
     /**
      * 接口7：管理端查询秒杀订单列表
@@ -131,51 +136,12 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
     /**
      * 通过秒杀单号查询订单状态（支付完成后前端轮询用）
      * 校验订单归属，防止越权查询
-     * 若订单 status=0，主动调易支付确认是否已付款，避免依赖回调
      */
     @Override
     public SeckillResultVO getOrderStatusBySeckillNo(String seckillNo, Long userId) {
         OshSeckillOrder order = orderMapper.selectOrderBySeckillNo(seckillNo);
         if (order == null || !order.getUserId().equals(userId)) {
             return null;
-        }
-        // status=0（待支付）时，主动查询易支付确认是否已付款
-        if (order.getStatus() == 0) {
-            try {
-                String queryUrl = payConfig.STATUS_URL
-                        + "?act=order"
-                        + "&pid=" + payConfig.PID
-                        + "&key=" + payConfig.KEY
-                        + "&out_trade_no=" + seckillNo;
-                org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
-                java.util.Map<?, ?> res = restTemplate.getForObject(queryUrl, java.util.Map.class);
-                if (res != null
-                        && "1".equals(String.valueOf(res.get("code")))
-                        && "1".equals(String.valueOf(res.get("status")))) {
-                    // 易支付确认已支付，更新订单状态
-                    OshSeckillOrder update = new OshSeckillOrder();
-                    update.setId(order.getId());
-                    update.setStatus(1);
-                    update.setPayTime(new Date());
-                    orderMapper.updateOrder(update);
-                    // 写入已购数量 Key（兜底，防止 Key 过期后用户重复购买超限）
-                    String boughtCntKey = SECKILL_BOUGHT_CNT_KEY + order.getActivityId() + ":" + order.getItemId() + ":" + userId;
-                    String existingCnt = stringRedisTemplate.opsForValue().get(boughtCntKey);
-                    if (existingCnt == null) {
-                        int qty = order.getQuantity() != null ? order.getQuantity() : 1;
-                        OshSeckillActivity act = getActivityFromCache(order.getActivityId());
-                        long expire = SeckillCacheConstants.calcExpireSeconds(
-                                act != null ? act.getEndTime() : null,
-                                SeckillCacheConstants.BOUGHT_CNT_EXPIRE_BUFFER);
-                        stringRedisTemplate.opsForValue().set(boughtCntKey, String.valueOf(qty), expire, TimeUnit.SECONDS);
-                    }
-                    logger.info("【秒杀状态查询】主动确认支付成功，seckillNo={}", seckillNo);
-                    order.setStatus(1);
-                    order.setPayTime(new Date());
-                }
-            } catch (Exception e) {
-                logger.warn("【秒杀状态查询】主动查询支付状态失败，seckillNo={}, error={}", seckillNo, e.getMessage());
-            }
         }
         return toResultVO(order);
     }
@@ -250,103 +216,60 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
             throw new ServiceException("超过限购数量，每人最多购买" + limitPerUser + "件");
         }
 
-        // 5. 生成秒杀订单号
-        String seckillNo = generateSeckillNo();
-
-        // 6. 计算支付截止时间
-        Date payExpireTime = calcPayExpireTime(activity.getPayTimeoutMin());
-
-        // 7. 写入流程状态 Key
+        // 5. 写入流程状态 Key（PENDING 占位，消费者处理完后更新为真实 orderNo）
         long expireSeconds = (activity.getPayTimeoutMin() != null ? activity.getPayTimeoutMin() : 15) * 60L;
-        redisTemplate.opsForValue().set(orderKey, seckillNo, expireSeconds, TimeUnit.SECONDS);
+        redisTemplate.opsForValue().set(orderKey, "PENDING", expireSeconds, TimeUnit.SECONDS);
 
-        // =====================================================================
-        // 【临时方案 - 测试用】直接同步写库，绕过 Kafka
-        // 待 Kafka 依赖冲突（redisson-spring-data 版本问题）修复后，
-        // 删除下方临时代码，恢复下面注释掉的 Kafka 方案
-        // =====================================================================
+        // 6. 发送 Kafka 消息，由消费者异步完成：checkout() + decrStock() + insertOrder()
+        SeckillOrderMessage message = new SeckillOrderMessage();
+        message.setActivityId(activityId);
+        message.setItemId(itemId);
+        message.setUserId(userId);
+        message.setGoodsId(item.getGoodsId());
+        message.setGoodsType(item.getGoodsType());
+        message.setGoodsTitle(item.getTitle());
+        message.setGoodsCover(item.getCover());
+        message.setOriginPrice(item.getOriginPrice());
+        message.setSeckillPrice(item.getSeckillPrice());
+        message.setQuantity(quantity);
+        message.setPayExpireTime(calcPayExpireTime(activity.getPayTimeoutMin()));
+        message.setStockKey(stockKey);
+        message.setBoughtCntKey(boughtCntKey);
+        message.setOrderKey(orderKey);
+        message.setExpireSeconds(expireSeconds);
         try {
-            // 扣减数据库库存
-            int affected = itemMapper.decrStock(itemId, quantity);
-            if (affected == 0) {
-                // 数据库库存不足，回滚 Redis
-                stringRedisTemplate.opsForValue().increment(stockKey, quantity);
-                stringRedisTemplate.opsForValue().increment(boughtCntKey, -quantity);
-                redisTemplate.delete(orderKey);
-                throw new ServiceException("库存不足");
-            }
-            // 直接写入订单表
-            OshSeckillOrder order = new OshSeckillOrder();
-            order.setSeckillNo(seckillNo);
-            order.setActivityId(activityId);
-            order.setItemId(itemId);
-            order.setUserId(userId);
-            order.setGoodsId(item.getGoodsId());
-            order.setGoodsType(item.getGoodsType());
-            order.setGoodsTitle(item.getTitle());
-            order.setGoodsCover(item.getCover());
-            order.setOriginPrice(item.getOriginPrice());
-            order.setSeckillPrice(item.getSeckillPrice());
-            order.setTotalAmount(item.getSeckillPrice().multiply(BigDecimal.valueOf(quantity)));
-            order.setQuantity(quantity);
-            order.setStatus(0); // 待支付
-            order.setPayExpireTime(payExpireTime);
-            orderMapper.insertOrder(order);
-            logger.info("【秒杀-临时】订单同步写库成功，seckillNo={}, userId={}, quantity={}", seckillNo, userId, quantity);
-        } catch (ServiceException e) {
-            throw e;
+            message.setClientIp(IpUtils.getIpAddr());
         } catch (Exception e) {
-            logger.error("【秒杀-临时】订单写库失败，回滚 Redis，seckillNo={}", seckillNo, e);
+            message.setClientIp("unknown");
+        }
+        try {
+            KafkaMessageUtil.sendMessageSync(
+                    KafkaConstants.SECKILL_ORDER_CREATE_TOPIC,
+                    activityId + ":" + itemId + ":" + userId,
+                    JSON.toJSONString(message)
+            );
+            logger.info("【秒杀】发送订单创建消息成功，userId={}, activityId={}, itemId={}", userId, activityId, itemId);
+        } catch (Exception e) {
+            // Kafka 发送失败，回滚 Redis
             stringRedisTemplate.opsForValue().increment(stockKey, quantity);
             stringRedisTemplate.opsForValue().increment(boughtCntKey, -quantity);
             redisTemplate.delete(orderKey);
+            logger.error("【秒杀】Kafka 消息发送失败，回滚 Redis，userId={}, activityId={}, itemId={}", userId, activityId, itemId, e);
             throw new ServiceException("秒杀失败，请重试");
         }
-        // =====================================================================
-        // 【Kafka 方案 - 待恢复】修复 redisson-spring-data 依赖冲突后，
-        // 删除上方临时代码，恢复以下注释
-        // =====================================================================
-//        SeckillOrderMessage message = new SeckillOrderMessage();
-//        message.setSeckillNo(seckillNo);
-//        message.setActivityId(activityId);
-//        message.setItemId(itemId);
-//        message.setUserId(userId);
-//        message.setGoodsId(item.getGoodsId());
-//        message.setGoodsType(item.getGoodsType());
-//        message.setGoodsTitle(item.getTitle());
-//        message.setGoodsCover(item.getCover());
-//        message.setOriginPrice(item.getOriginPrice());
-//        message.setSeckillPrice(item.getSeckillPrice());
-//        message.setQuantity(quantity);
-//        message.setPayExpireTime(payExpireTime);
-//        try {
-//            KafkaMessageUtil.sendMessage(
-//                    KafkaConstants.SECKILL_ORDER_CREATE_TOPIC,
-//                    seckillNo,
-//                    JSON.toJSONString(message)
-//            );
-//            logger.info("【秒杀】发送订单创建消息成功，seckillNo={}, userId={}, activityId={}, itemId={}",
-//                    seckillNo, userId, activityId, itemId);
-//        } catch (Exception e) {
-//            logger.error("【秒杀】Kafka 消息发送失败，回滚 Redis，seckillNo={}", seckillNo, e);
-//            stringRedisTemplate.opsForValue().increment(stockKey, quantity);
-//            stringRedisTemplate.opsForValue().increment(boughtCntKey, -quantity);
-//            redisTemplate.delete(orderKey);
-//            throw new ServiceException("秒杀失败，请重试");
-//        }
 
-        // 8. 立即返回结果给前端
+        // 7. 立即返回，前端通过轮询 getSeckillResult() 获取真实订单信息
         SeckillResultVO vo = new SeckillResultVO();
-        vo.setSeckillNo(seckillNo);
-        vo.setStatus(0); // 待支付
+        vo.setStatus(-1); // 处理中，前端继续轮询
         vo.setGoodsId(item.getGoodsId());
         vo.setGoodsType(item.getGoodsType());
         vo.setGoodsTitle(item.getTitle());
         vo.setGoodsCover(item.getCover());
         vo.setOriginPrice(item.getOriginPrice());
         vo.setSeckillPrice(item.getSeckillPrice());
+        vo.setTotalAmount(item.getSeckillPrice().multiply(BigDecimal.valueOf(quantity)));
         vo.setQuantity(quantity);
-        vo.setPayExpireTime(payExpireTime);
+        vo.setPayExpireTime(calcPayExpireTime(activity.getPayTimeoutMin()));
         return vo;
     }
 
@@ -362,19 +285,54 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
         Object cachedNo = redisTemplate.opsForValue().get(orderKey);
         if (cachedNo == null) {
             // Key 不存在：用户未参与或订单已完结（超时/取消后 Key 自动过期）
+            // 兜底查数据库，防止 Redis Key 过期但订单实际存在
+            OshSeckillOrder dbOrder = orderMapper.selectOrderByActivityAndUser(activityId, itemId, userId);
+            if (dbOrder != null) {
+                SeckillResultVO vo = toResultVO(dbOrder);
+                if (dbOrder.getStatus() == 0) {
+                    try {
+                        OshPayment payment = paymentMapper.selectByOrderNo(dbOrder.getSeckillNo());
+                        if (payment != null) {
+                            vo.setQrcode(payment.getQrcode());
+                            vo.setPayUrl(payment.getPayUrl());
+                        }
+                    } catch (Exception e) {
+                        logger.warn("【秒杀结果查询】获取支付信息失败，orderNo={}", dbOrder.getSeckillNo());
+                    }
+                }
+                return vo;
+            }
             return null;
         }
-        // Key 存在，用单号查订单详情（Kafka 可能还没消费完，order 可能为 null）
-        String seckillNo = cachedNo.toString();
-        OshSeckillOrder order = orderMapper.selectOrderBySeckillNo(seckillNo);
-        if (order == null) {
-            // 订单还未落库（Kafka 消费中），返回一个"处理中"的占位结果
+        String val = cachedNo.toString();
+        // PENDING 表示消费者还在处理中
+        if ("PENDING".equals(val)) {
             SeckillResultVO pending = new SeckillResultVO();
-            pending.setSeckillNo(seckillNo);
-            pending.setStatus(-1); // -1 表示处理中，前端继续轮询
+            pending.setStatus(-1);
             return pending;
         }
-        return toResultVO(order);
+        // Key 存在且非 PENDING，值就是真实 orderNo
+        String orderNo = val;
+        OshSeckillOrder order = orderMapper.selectOrderBySeckillNo(orderNo);
+        if (order == null) {
+            SeckillResultVO pending = new SeckillResultVO();
+            pending.setStatus(-1);
+            return pending;
+        }
+        SeckillResultVO vo = toResultVO(order);
+        // status=0（待支付）时，把支付二维码和链接一起返回给前端
+        if (order.getStatus() == 0) {
+            try {
+                OshPayment payment = paymentMapper.selectByOrderNo(orderNo);
+                if (payment != null) {
+                    vo.setQrcode(payment.getQrcode());
+                    vo.setPayUrl(payment.getPayUrl());
+                }
+            } catch (Exception e) {
+                logger.warn("【秒杀结果查询】获取支付信息失败，orderNo={}, error={}", orderNo, e.getMessage());
+            }
+        }
+        return vo;
     }
 
     /**
@@ -400,6 +358,13 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
         update.setCancelTime(new Date());
         update.setCancelReason("user_cancel");
         orderMapper.updateOrder(update);
+
+        // 同步取消统一订单
+        try {
+            orderService.cancelPaymentByOrderNo(order.getSeckillNo());
+        } catch (Exception e) {
+            logger.warn("【秒杀】取消统一订单失败，seckillNo={}, error={}", seckillNo, e.getMessage());
+        }
 
         // 回滚 Redis 库存、已购数量、流程状态 Key
         String stockKey    = SECKILL_STOCK_KEY     + order.getActivityId() + ":" + order.getItemId();
@@ -482,16 +447,6 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
     }
 
     /**
-     * 生成秒杀订单号：SK + yyyyMMddHHmmss + 3位随机数
-     */
-    private String generateSeckillNo() {
-        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyyMMddHHmmss");
-        String timestamp = sdf.format(new Date());
-        int random = (int) (Math.random() * 900) + 100;
-        return "SK" + timestamp + random;
-    }
-
-    /**
      * 计算支付截止时间
      */
     private Date calcPayExpireTime(Integer payTimeoutMin) {
@@ -519,7 +474,6 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
         vo.setPayExpireTime(order.getPayExpireTime());
         vo.setCancelTime(order.getCancelTime());
         vo.setCancelReason(order.getCancelReason());
-        vo.setOshOrderNo(order.getOshOrderNo());
         vo.setCreateTime(order.getCreateTime());
         return vo;
     }
@@ -528,6 +482,7 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
     private SeckillResultVO toResultVO(OshSeckillOrder order) {
         SeckillResultVO vo = new SeckillResultVO();
         vo.setSeckillNo(order.getSeckillNo());
+        vo.setOrderNo(order.getSeckillNo()); // 方案B中 seckill_no 即 orderNo
         vo.setStatus(order.getStatus());
         vo.setGoodsId(order.getGoodsId());
         vo.setGoodsType(order.getGoodsType());
@@ -547,7 +502,6 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
      * Kafka 消息体（秒杀订单创建消息）
      */
     public static class SeckillOrderMessage {
-        private String seckillNo;
         private Long activityId;
         private Long itemId;
         private Long userId;
@@ -555,13 +509,21 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
         private Integer goodsType;
         private String goodsTitle;
         private String goodsCover;
-        private java.math.BigDecimal originPrice;
-        private java.math.BigDecimal seckillPrice;
+        private BigDecimal originPrice;
+        private BigDecimal seckillPrice;
         private Integer quantity;
         private Date payExpireTime;
+        /** Redis 库存 Key，消费者失败时用于回滚 */
+        private String stockKey;
+        /** Redis 已购数量 Key，消费者失败时用于回滚 */
+        private String boughtCntKey;
+        /** Redis 流程状态 Key，消费者成功后更新为真实 orderNo */
+        private String orderKey;
+        /** orderKey 的过期时间（秒） */
+        private long expireSeconds;
+        /** 用户客户端 IP，从 HTTP 请求线程获取后传入消费者 */
+        private String clientIp;
 
-        public String getSeckillNo() { return seckillNo; }
-        public void setSeckillNo(String seckillNo) { this.seckillNo = seckillNo; }
         public Long getActivityId() { return activityId; }
         public void setActivityId(Long activityId) { this.activityId = activityId; }
         public Long getItemId() { return itemId; }
@@ -576,13 +538,23 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
         public void setGoodsTitle(String goodsTitle) { this.goodsTitle = goodsTitle; }
         public String getGoodsCover() { return goodsCover; }
         public void setGoodsCover(String goodsCover) { this.goodsCover = goodsCover; }
-        public java.math.BigDecimal getOriginPrice() { return originPrice; }
-        public void setOriginPrice(java.math.BigDecimal originPrice) { this.originPrice = originPrice; }
-        public java.math.BigDecimal getSeckillPrice() { return seckillPrice; }
-        public void setSeckillPrice(java.math.BigDecimal seckillPrice) { this.seckillPrice = seckillPrice; }
+        public BigDecimal getOriginPrice() { return originPrice; }
+        public void setOriginPrice(BigDecimal originPrice) { this.originPrice = originPrice; }
+        public BigDecimal getSeckillPrice() { return seckillPrice; }
+        public void setSeckillPrice(BigDecimal seckillPrice) { this.seckillPrice = seckillPrice; }
         public Integer getQuantity() { return quantity; }
         public void setQuantity(Integer quantity) { this.quantity = quantity; }
         public Date getPayExpireTime() { return payExpireTime; }
         public void setPayExpireTime(Date payExpireTime) { this.payExpireTime = payExpireTime; }
+        public String getStockKey() { return stockKey; }
+        public void setStockKey(String stockKey) { this.stockKey = stockKey; }
+        public String getBoughtCntKey() { return boughtCntKey; }
+        public void setBoughtCntKey(String boughtCntKey) { this.boughtCntKey = boughtCntKey; }
+        public String getOrderKey() { return orderKey; }
+        public void setOrderKey(String orderKey) { this.orderKey = orderKey; }
+        public long getExpireSeconds() { return expireSeconds; }
+        public void setExpireSeconds(long expireSeconds) { this.expireSeconds = expireSeconds; }
+        public String getClientIp() { return clientIp; }
+        public void setClientIp(String clientIp) { this.clientIp = clientIp; }
     }
 }

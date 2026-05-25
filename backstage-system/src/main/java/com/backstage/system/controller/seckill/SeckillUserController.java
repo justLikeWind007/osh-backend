@@ -7,18 +7,12 @@ import com.backstage.common.core.domain.R;
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.enums.LimitType;
 import com.backstage.common.exception.ServiceException;
-import com.backstage.common.utils.ip.IpUtils;
 import com.backstage.system.config.properties.SearchEsProperties;
-import com.backstage.system.domain.order.enums.PayChannelEnum;
-import com.backstage.system.domain.seckill.OshSeckillOrder;
-import com.backstage.system.domain.user.OshUser;
-import com.backstage.system.domain.vo.order.PayResponse;
 import com.backstage.system.domain.vo.seckill.SeckillActivityUserVO;
 import com.backstage.system.domain.vo.seckill.SeckillAnnouncementVO;
 import com.backstage.system.domain.vo.seckill.SeckillRecentOrderVO;
 import com.backstage.system.domain.vo.seckill.SeckillResultVO;
 import com.backstage.system.service.announcement.ISeckillAnnouncementService;
-import com.backstage.system.service.order.PayService;
 import com.backstage.system.service.seckill.IOshSeckillActivityService;
 import com.backstage.system.service.seckill.IOshSeckillOrderService;
 import com.backstage.system.service.seckill.ISeckillItemEsService;
@@ -53,9 +47,6 @@ public class SeckillUserController extends BaseController {
 
     @Autowired
     private IOshSeckillOrderService orderService;
-
-    @Autowired
-    private PayService payService;
 
     @Autowired
     private ISeckillAnnouncementService seckillAnnouncementService;
@@ -175,44 +166,6 @@ public class SeckillUserController extends BaseController {
         SeckillResultVO result = orderService.getOrderStatusBySeckillNo(seckillNo, userId);
         return result != null ? R.ok(result) : R.fail("订单不存在");
     }
-    /*
-     * 前端拿到 seckillNo 后调此接口，返回支付链接（payurl）或二维码（qrcode）
-     * channel 可选，支持 wxpay / alipay，默认微信支付
-     */    @PostMapping("/order/pay/{seckillNo}")
-    public R<PayResponse> pay(@PathVariable String seckillNo,
-                              @RequestParam(required = false, defaultValue = "wxpay") String channel) {
-        Long userId = getCurrentUser().getId();
-
-        // 查询秒杀订单
-        OshSeckillOrder order = orderService.getOrderBySeckillNo(seckillNo, userId);
-        if (order == null) {
-            return R.fail("订单不存在");
-        }
-        if (!order.getUserId().equals(userId)) {
-            return R.fail("无权操作此订单");
-        }
-        if (order.getStatus() != 0) {
-            return R.fail("订单状态不正确，无法发起支付");
-        }
-
-        // 校验支付渠道，不合法时降级为微信支付
-        PayChannelEnum channelEnum = PayChannelEnum.fromValue(channel);
-        String channelValue = (channelEnum != null && channelEnum != PayChannelEnum.FREE)
-                ? channelEnum.getValue()
-                : PayChannelEnum.WXPAY.getValue();
-
-        // 发起支付，以 seckillNo 作为外部订单号
-        String clientIp = IpUtils.getIpAddr();
-        String money = order.getTotalAmount().toString();  // 实付总金额（seckillPrice × quantity）
-        String name = order.getGoodsTitle();
-        PayResponse resp = payService.createPay(seckillNo, name, money, clientIp, channelValue);
-
-        if (resp.getCode() != 1) {
-            return R.fail("发起支付失败：" + resp.getMsg());
-        }
-        return R.ok(resp);
-    }
-
     /**
      * 接口15：查询秒杀动态栏（最近成交记录）
      * 数据来源：osh_announcement（biz_type='seckill_dynamic'）
