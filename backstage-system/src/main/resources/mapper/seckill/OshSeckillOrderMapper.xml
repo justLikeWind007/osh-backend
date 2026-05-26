@@ -23,7 +23,6 @@
         <result property="payExpireTime"  column="pay_expire_time"/>
         <result property="cancelTime"     column="cancel_time"/>
         <result property="cancelReason"   column="cancel_reason"/>
-        <result property="oshOrderNo"     column="osh_order_no"/>
         <result property="createTime"     column="create_time"/>
         <result property="updateTime"     column="update_time"/>
     </resultMap>
@@ -32,7 +31,7 @@
         select id, seckill_no, activity_id, item_id, user_id, goods_id, goods_type,
                goods_title, goods_cover, origin_price, seckill_price, total_amount, quantity,
                status, pay_time, pay_expire_time, cancel_time, cancel_reason,
-               osh_order_no, create_time, update_time
+               create_time, update_time
         from osh_seckill_order
     </sql>
 
@@ -90,11 +89,7 @@
     <!-- 查询最近已支付订单，关联用户表取昵称/用户名，用于首页滚动条展示 -->
     <select id="selectRecentPaidOrders" resultType="com.backstage.system.domain.vo.seckill.SeckillRecentOrderVO">
         select
-            CASE
-                WHEN u.nickname IS NOT NULL AND u.nickname != ''
-                    THEN CONCAT(LEFT(u.nickname, 2), '**')
-                ELSE CONCAT(LEFT(u.username, 2), '**')
-            END AS username,
+            CONCAT(LEFT(u.username, 2), '**') AS username,
             o.goods_title  AS goodsTitle,
             o.goods_type   AS goodsType,
             o.create_time  AS createTime
@@ -112,7 +107,6 @@
             <if test="payTime != null">pay_time = #{payTime},</if>
             <if test="cancelTime != null">cancel_time = #{cancelTime},</if>
             <if test="cancelReason != null and cancelReason != ''">cancel_reason = #{cancelReason},</if>
-            <if test="oshOrderNo != null and oshOrderNo != ''">osh_order_no = #{oshOrderNo},</if>
             update_time = CURRENT_TIMESTAMP,
         </trim>
         where id = #{id}

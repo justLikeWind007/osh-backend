@@ -70,9 +70,6 @@ public class SeckillOrderAdminVO implements Serializable {
     @ApiModelProperty("取消原因")
     private String cancelReason;
 
-    @ApiModelProperty("关联主订单编号")
-    private String oshOrderNo;
-
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     @ApiModelProperty("创建时间")
     private Date createTime;
@@ -124,9 +121,6 @@ public class SeckillOrderAdminVO implements Serializable {
 
     public String getCancelReason() { return cancelReason; }
     public void setCancelReason(String cancelReason) { this.cancelReason = cancelReason; }
-
-    public String getOshOrderNo() { return oshOrderNo; }
-    public void setOshOrderNo(String oshOrderNo) { this.oshOrderNo = oshOrderNo; }
 
     public Date getCreateTime() { return createTime; }
     public void setCreateTime(Date createTime) { this.createTime = createTime; }
