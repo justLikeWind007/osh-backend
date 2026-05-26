@@ -113,12 +113,17 @@ public class InfoGapController {
             }
         }
 
-        if (request.getKeyword() != null && request.getTagId() != null) {
-            throw new ServiceException("关键字搜索和标签搜索不能同时传");
+        if (request.getCategory() != null) {
+            request.setCategory(request.getCategory().trim());
+            if (request.getCategory().isEmpty()) {
+                request.setCategory(null);
+            }
         }
 
-        if (request.getKeyword() == null && request.getTagId() == null) {
-            throw new ServiceException("关键字搜索和标签搜索不能同时为空");
+        if (request.getKeyword() == null
+                && request.getTagId() == null
+                && request.getCategory() == null) {
+            throw new ServiceException("关键字、标签、类别不能同时为空");
         }
 
         OshUser currentOshUser = UserContextUtil.getCurrentUser();

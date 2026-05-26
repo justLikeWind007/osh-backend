@@ -4,6 +4,8 @@ import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.service.audit.AuditIndexMessage;
 import com.backstage.system.service.course.CourseIndexDeleteMessage;
 import com.backstage.system.service.course.CourseIndexUpsertMessage;
+import com.backstage.system.service.seckill.SeckillItemIndexDeleteMessage;
+import com.backstage.system.service.seckill.SeckillItemIndexUpsertMessage;
 import com.backstage.system.service.tool.ToolIndexDeleteMessage;
 import com.backstage.system.service.tool.ToolIndexMessage;
 
@@ -26,4 +28,8 @@ public interface OutboxEventService {
      */
     void saveAuditIndexEvent(com.backstage.common.enums.ResourceTypeEnum resourceType,
                              AuditIndexMessage message, String operator);
+
+    void saveSeckillItemIndexEvent(Long itemId, SeckillItemIndexUpsertMessage message, String operator);
+
+    void saveSeckillItemIndexDeleteEvent(Long itemId, SeckillItemIndexDeleteMessage message, String operator);
 }

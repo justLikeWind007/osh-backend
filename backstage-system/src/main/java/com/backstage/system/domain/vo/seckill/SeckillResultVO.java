@@ -22,6 +22,18 @@ public class SeckillResultVO implements Serializable {
     @ApiModelProperty("秒杀订单编号")
     private String seckillNo;
 
+    @ApiModelProperty("统一订单号，前端用于支付状态轮询")
+    private String orderNo;
+
+    @ApiModelProperty("是否需要支付，false 表示免费订单已直接完成")
+    private Boolean needPay;
+
+    @ApiModelProperty("二维码内容")
+    private String qrcode;
+
+    @ApiModelProperty("支付跳转链接")
+    private String payUrl;
+
     @ApiModelProperty("订单状态：-1-处理中(Kafka消费中) 0-待支付 1-已支付 2-已取消 3-已超时 4-已退款")
     private Integer status;
 
@@ -55,6 +67,18 @@ public class SeckillResultVO implements Serializable {
 
     public String getSeckillNo() { return seckillNo; }
     public void setSeckillNo(String seckillNo) { this.seckillNo = seckillNo; }
+
+    public String getOrderNo() { return orderNo; }
+    public void setOrderNo(String orderNo) { this.orderNo = orderNo; }
+
+    public Boolean getNeedPay() { return needPay; }
+    public void setNeedPay(Boolean needPay) { this.needPay = needPay; }
+
+    public String getQrcode() { return qrcode; }
+    public void setQrcode(String qrcode) { this.qrcode = qrcode; }
+
+    public String getPayUrl() { return payUrl; }
+    public void setPayUrl(String payUrl) { this.payUrl = payUrl; }
 
     public Integer getStatus() { return status; }
     public void setStatus(Integer status) { this.status = status; }

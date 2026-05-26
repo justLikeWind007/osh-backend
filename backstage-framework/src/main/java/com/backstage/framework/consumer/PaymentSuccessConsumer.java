@@ -61,6 +61,8 @@ public class PaymentSuccessConsumer {
                 log.warn("权益发放跳过，未知商品类型: orderNo={}, productType={}", orderNo, order.getProductType());
                 return;
             }
+            log.info("权益发放命中商品类型, orderNo={}, productType={}, bizType={}",
+                    orderNo, order.getProductType(), productTypeEnum.getName());
             try {
                 paidHandlerRegistry.handle(productTypeEnum.getName(), orderNo);
             } catch (Exception e) {

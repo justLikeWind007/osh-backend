@@ -11,6 +11,9 @@ import com.backstage.system.service.OutboxEventService;
 import com.backstage.system.service.audit.AuditIndexMessage;
 import com.backstage.system.service.course.CourseIndexDeleteMessage;
 import com.backstage.system.service.course.CourseIndexUpsertMessage;
+import com.backstage.system.service.seckill.SeckillItemIndexDeleteMessage;
+import com.backstage.system.service.seckill.SeckillItemIndexUpsertMessage;
+import com.backstage.system.service.outbox.OutboxEventPublisher;
 import com.backstage.system.service.tool.ToolIndexDeleteMessage;
 import com.backstage.system.service.tool.ToolIndexMessage;
 import org.apache.commons.lang3.StringUtils;
@@ -30,6 +33,7 @@ public class OutboxEventServiceImpl implements OutboxEventService {
     private static final Logger log = LoggerFactory.getLogger(OutboxEventServiceImpl.class);
     private static final String AGGREGATE_TYPE_COURSE = "COURSE";
     private static final String AGGREGATE_TYPE_TOOL = "TOOL";
+    private static final String AGGREGATE_TYPE_SECKILL = "SECKILL";
     private static final int DEFAULT_RETRY_COUNT = 0;
     private static final int DEFAULT_MAX_RETRY_COUNT = 10;
     private static final int NORMAL_DELETE_FLAG = 0;
@@ -38,7 +42,7 @@ public class OutboxEventServiceImpl implements OutboxEventService {
     private OshOutboxEventMapper outboxEventMapper;
 
     @Autowired
-    private OutboxEventPublishTask outboxEventPublishTask;
+    private OutboxEventPublisher outboxEventPublisher;
 
     @Override
     public void saveCourseIndexEvent(Long courseId, CourseIndexUpsertMessage message, OshUser operator) {
@@ -106,6 +110,26 @@ public class OutboxEventServiceImpl implements OutboxEventService {
                 JSON.toJSONString(message), messageKey, operator);
     }
 
+    @Override
+    public void saveSeckillItemIndexEvent(Long itemId, SeckillItemIndexUpsertMessage message, String operator) {
+        if (message == null || StringUtils.isBlank(message.getEventType())) {
+            log.warn("秒杀明细索引消息为空或事件类型为空，跳过outbox写入, itemId={}", itemId);
+            return;
+        }
+        saveEvent(AGGREGATE_TYPE_SECKILL, itemId, message.getEventType(), KafkaConstants.SECKILL_ITEM_INDEX_TOPIC,
+                JSON.toJSONString(message), "seckill-item:" + itemId, operator);
+    }
+
+    @Override
+    public void saveSeckillItemIndexDeleteEvent(Long itemId, SeckillItemIndexDeleteMessage message, String operator) {
+        if (message == null || StringUtils.isBlank(message.getEventType())) {
+            log.warn("秒杀明细索引删除消息为空或事件类型为空，跳过outbox写入, itemId={}", itemId);
+            return;
+        }
+        saveEvent(AGGREGATE_TYPE_SECKILL, itemId, message.getEventType(), KafkaConstants.SECKILL_ITEM_INDEX_TOPIC,
+                JSON.toJSONString(message), "seckill-item:" + itemId, operator);
+    }
+
     /**
      * 根据资源类型路由到对应模块的 Kafka topic，复用已有 topic，不新增。
      */
@@ -167,7 +191,7 @@ public class OutboxEventServiceImpl implements OutboxEventService {
 
     private void publishSafely(Long eventId) {
         try {
-            outboxEventPublishTask.publishEventById(eventId);
+            outboxEventPublisher.publishEventById(eventId);
             log.info("提交后立即投递outbox事件成功, id={}", eventId);
         } catch (Exception ex) {
             log.warn("提交后立即投递outbox事件异常，等待定时任务兜底, id={}, error={}", eventId, ex.getMessage(), ex);

@@ -1,6 +1,8 @@
 package com.backstage.system.service.impl.seckill;
 
+import com.backstage.common.enums.ResourceCodePrefixEnum;
 import com.backstage.common.exception.ServiceException;
+import com.backstage.common.utils.generate.GenerateUtil;
 import com.backstage.system.domain.book.BookDO;
 import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.dto.seckill.SeckillGoodsAddDTO;
@@ -47,6 +49,7 @@ public class OshSeckillGoodsServiceImpl implements IOshSeckillGoodsService {
         if (goods == null) return null;
         SeckillGoodsVO vo = new SeckillGoodsVO();
         vo.setId(goods.getId());
+        vo.setNo(goods.getNo());
         vo.setGoodsId(goods.getGoodsId());
         vo.setGoodsType(goods.getGoodsType());
         vo.setGoodsName(goods.getGoodsName());
@@ -132,6 +135,11 @@ public class OshSeckillGoodsServiceImpl implements IOshSeckillGoodsService {
         SeckillGoodsPreviewVO preview = fetchGoodsPreview(dto.getGoodsType(), dto.getGoodsId());
         // 组装 Entity
         OshSeckillGoods goods = new OshSeckillGoods();
+        // 根据 goodsType 选对应的资源类型前缀生成资源编号
+        ResourceCodePrefixEnum prefix = dto.getGoodsType() == 1
+                ? ResourceCodePrefixEnum.COURSE
+                : ResourceCodePrefixEnum.BOOK;
+        goods.setNo(GenerateUtil.generateResourceCode(prefix));
         goods.setGoodsId(dto.getGoodsId());
         goods.setGoodsType(dto.getGoodsType());
         goods.setGoodsName(preview.getGoodsName());

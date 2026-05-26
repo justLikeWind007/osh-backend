@@ -59,6 +59,23 @@ public class SeckillActivityItemVO implements Serializable {
     @ApiModelProperty("展示排序")
     private Integer sort;
 
+    @ApiModelProperty("活动标题")
+    private String activityTitle;
+
+    @ApiModelProperty("活动状态：1-未开始 2-进行中 3-已结束 4-已下架")
+    private Integer activityStatus;
+
+    @ApiModelProperty("支付超时时间（分钟）")
+    private Integer payTimeoutMin;
+
+    @ApiModelProperty("活动开始时间")
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    private java.util.Date startTime;
+
+    @ApiModelProperty("活动结束时间")
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    private java.util.Date endTime;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -100,4 +117,19 @@ public class SeckillActivityItemVO implements Serializable {
 
     public Integer getSort() { return sort; }
     public void setSort(Integer sort) { this.sort = sort; }
+
+    public String getActivityTitle() { return activityTitle; }
+    public void setActivityTitle(String activityTitle) { this.activityTitle = activityTitle; }
+
+    public Integer getActivityStatus() { return activityStatus; }
+    public void setActivityStatus(Integer activityStatus) { this.activityStatus = activityStatus; }
+
+    public Integer getPayTimeoutMin() { return payTimeoutMin; }
+    public void setPayTimeoutMin(Integer payTimeoutMin) { this.payTimeoutMin = payTimeoutMin; }
+
+    public java.util.Date getStartTime() { return startTime; }
+    public void setStartTime(java.util.Date startTime) { this.startTime = startTime; }
+
+    public java.util.Date getEndTime() { return endTime; }
+    public void setEndTime(java.util.Date endTime) { this.endTime = endTime; }
 }
