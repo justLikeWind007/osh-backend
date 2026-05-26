@@ -73,9 +73,6 @@ public class OshSeckillOrder {
     @ApiModelProperty("取消原因")
     private String cancelReason;
 
-    @ApiModelProperty("关联主订单编号")
-    private String oshOrderNo;
-
     @ApiModelProperty("删除标记：0-正常 1-已删除")
     private Integer deleteFlag;
 
@@ -140,9 +137,6 @@ public class OshSeckillOrder {
 
     public String getCancelReason() { return cancelReason; }
     public void setCancelReason(String cancelReason) { this.cancelReason = cancelReason; }
-
-    public String getOshOrderNo() { return oshOrderNo; }
-    public void setOshOrderNo(String oshOrderNo) { this.oshOrderNo = oshOrderNo; }
 
     public Integer getDeleteFlag() { return deleteFlag; }
     public void setDeleteFlag(Integer deleteFlag) { this.deleteFlag = deleteFlag; }

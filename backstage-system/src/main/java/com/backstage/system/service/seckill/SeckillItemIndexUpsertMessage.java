@@ -1,80 +1,89 @@
-package com.backstage.system.domain.vo.seckill;
+package com.backstage.system.service.seckill;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import com.alibaba.fastjson2.annotation.JSONField;
 
-import java.io.Serializable;
 import java.math.BigDecimal;
+import java.util.Date;
 
 /**
- * 秒杀活动商品明细 VO
- *
- * @author backstage
- * @date 2026-05-04
+ * 秒杀商品明细索引 upsert 消息
+ * 包含 ES 文档所需的全部字段，由 OshSeckillActivityServiceImpl 构建后写入 outbox 表
  */
-@ApiModel(description = "秒杀活动商品明细响应")
-public class SeckillActivityItemVO implements Serializable {
+public class SeckillItemIndexUpsertMessage {
 
-    private static final long serialVersionUID = 1L;
+    private String eventType;
 
-    @ApiModelProperty("明细ID")
+    /** 明细ID，作为 ES 文档 ID */
     private Long id;
 
-    @ApiModelProperty("关联活动ID")
+    /** 关联活动ID */
     private Long activityId;
 
-    @ApiModelProperty("关联秒杀商品池ID")
-    private Long seckillGoodsId;
-
-    @ApiModelProperty("商品ID")
-    private Long goodsId;
-
-    @ApiModelProperty("商品类型：1-课程 2-书籍 3-商品")
-    private Integer goodsType;
-
-    @ApiModelProperty("商品标题")
-    private String title;
-
-    @ApiModelProperty("商品封面图")
-    private String cover;
-
-    @ApiModelProperty("商品原价（划线价）")
-    private BigDecimal originPrice;
-
-    @ApiModelProperty("秒杀价格")
-    private BigDecimal seckillPrice;
-
-    @ApiModelProperty("活动总库存")
-    private Integer totalStock;
-
-    @ApiModelProperty("剩余可用库存")
-    private Integer availableStock;
-
-    @ApiModelProperty("已售数量")
-    private Integer soldCount;
-
-    @ApiModelProperty("每人限购数量")
-    private Integer limitPerUser;
-
-    @ApiModelProperty("展示排序")
-    private Integer sort;
-
-    @ApiModelProperty("活动标题")
-    private String activityTitle;
-
-    @ApiModelProperty("活动状态：1-未开始 2-进行中 3-已结束 4-已下架")
+    /** 活动状态（冗余），Flink 用此字段决定 upsert 还是 delete */
     private Integer activityStatus;
 
-    @ApiModelProperty("支付超时时间（分钟）")
+    /** 商品ID */
+    private Long goodsId;
+
+    /** 商品类型：1-课程 2-书籍 3-商品 */
+    private Integer goodsType;
+
+    /** 商品标题 */
+    private String title;
+
+    /** 商品封面 */
+    private String cover;
+
+    /** 原价 */
+    private BigDecimal originPrice;
+
+    /** 秒杀价 */
+    private BigDecimal seckillPrice;
+
+    /** 总库存 */
+    private Integer totalStock;
+
+    /** 剩余库存 */
+    private Integer availableStock;
+
+    /** 已售数量 */
+    private Integer soldCount;
+
+    /** 每人限购 */
+    private Integer limitPerUser;
+
+    /** 排序 */
+    private Integer sort;
+
+    /** 活动标题 */
+    private String activityTitle;
+
+    /** 支付超时时间（分钟） */
     private Integer payTimeoutMin;
 
-    @ApiModelProperty("活动开始时间")
-    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
-    private java.util.Date startTime;
+    /** 活动开始时间 */
+    @JSONField(format = "yyyy-MM-dd HH:mm:ss.SSS")
+    private Date startTime;
 
-    @ApiModelProperty("活动结束时间")
-    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
-    private java.util.Date endTime;
+    /** 活动结束时间 */
+    @JSONField(format = "yyyy-MM-dd HH:mm:ss.SSS")
+    private Date endTime;
+
+    /** 删除标记 */
+    private Integer deleteFlag;
+
+    @JSONField(format = "yyyy-MM-dd HH:mm:ss.SSS")
+    private Date createTime;
+
+    @JSONField(format = "yyyy-MM-dd HH:mm:ss.SSS")
+    private Date updateTime;
+
+    /** 操作人，不序列化到消息体 */
+    @JSONField(serialize = false)
+    private String operator;
+
+    public String getEventType() { return eventType; }
+    public void setEventType(String eventType) { this.eventType = eventType; }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -82,8 +91,8 @@ public class SeckillActivityItemVO implements Serializable {
     public Long getActivityId() { return activityId; }
     public void setActivityId(Long activityId) { this.activityId = activityId; }
 
-    public Long getSeckillGoodsId() { return seckillGoodsId; }
-    public void setSeckillGoodsId(Long seckillGoodsId) { this.seckillGoodsId = seckillGoodsId; }
+    public Integer getActivityStatus() { return activityStatus; }
+    public void setActivityStatus(Integer activityStatus) { this.activityStatus = activityStatus; }
 
     public Long getGoodsId() { return goodsId; }
     public void setGoodsId(Long goodsId) { this.goodsId = goodsId; }
@@ -121,15 +130,24 @@ public class SeckillActivityItemVO implements Serializable {
     public String getActivityTitle() { return activityTitle; }
     public void setActivityTitle(String activityTitle) { this.activityTitle = activityTitle; }
 
-    public Integer getActivityStatus() { return activityStatus; }
-    public void setActivityStatus(Integer activityStatus) { this.activityStatus = activityStatus; }
-
     public Integer getPayTimeoutMin() { return payTimeoutMin; }
     public void setPayTimeoutMin(Integer payTimeoutMin) { this.payTimeoutMin = payTimeoutMin; }
 
-    public java.util.Date getStartTime() { return startTime; }
-    public void setStartTime(java.util.Date startTime) { this.startTime = startTime; }
+    public Date getStartTime() { return startTime; }
+    public void setStartTime(Date startTime) { this.startTime = startTime; }
 
-    public java.util.Date getEndTime() { return endTime; }
-    public void setEndTime(java.util.Date endTime) { this.endTime = endTime; }
+    public Date getEndTime() { return endTime; }
+    public void setEndTime(Date endTime) { this.endTime = endTime; }
+
+    public Integer getDeleteFlag() { return deleteFlag; }
+    public void setDeleteFlag(Integer deleteFlag) { this.deleteFlag = deleteFlag; }
+
+    public Date getCreateTime() { return createTime; }
+    public void setCreateTime(Date createTime) { this.createTime = createTime; }
+
+    public Date getUpdateTime() { return updateTime; }
+    public void setUpdateTime(Date updateTime) { this.updateTime = updateTime; }
+
+    public String getOperator() { return operator; }
+    public void setOperator(String operator) { this.operator = operator; }
 }

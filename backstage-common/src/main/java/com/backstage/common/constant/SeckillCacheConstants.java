@@ -30,6 +30,11 @@ public class SeckillCacheConstants {
     public static final String SECKILL_ACTIVITY_KEY = "seckill:activity:";
     public static final String SECKILL_ITEM_KEY     = "seckill:item:";
     public static final String SECKILL_ORDER_KEY    = "seckill:order:";
+    /**
+     * 防并发重复提交锁 Key 前缀，完整 Key = 前缀 + activityId:itemId:userId
+     * TTL 建议 8 秒，仅防同一请求并发重复点击，与订单生命周期无关
+     */
+    public static final String SECKILL_SUBMIT_LOCK_KEY = "seckill:submit_lock:";
 
     // ==================== 过期时间（秒） ====================
 
