@@ -144,6 +144,30 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
         return total;
     }
 
+    @Override
+    public void upsertCourseById(Long courseId) {
+        if (courseId == null) {
+            return;
+        }
+        try {
+            CourseSearchRequest request = new CourseSearchRequest();
+            request.setIncludeUnpublished(true);
+            request.setCourseIdFilter(courseId);
+            request.setPageNum(1);
+            request.setPageSize(1);
+            PageHelper.startPage(1, 1);
+            List<CourseSearchLoginVo> rows = oshCourseMapper.pageQuerySearchCourse(request, null);
+            if (StringUtils.isEmpty(rows)) {
+                log.warn("upsert course to es skipped, course not found, courseId={}", courseId);
+                return;
+            }
+            oshCourseEsMapper.bulkUpsertCourses(Collections.singletonList(buildEsDocument(rows.get(0))));
+            log.info("course upserted to es, courseId={}, status={}", courseId, rows.get(0).getStatus());
+        } catch (Exception ex) {
+            log.warn("upsert course to es failed, courseId={}", courseId, ex);
+        }
+    }
+
     private void fillBuyFlag(List<CourseSearchLoginVo> rows, Long userId) {
         if (userId == null || StringUtils.isEmpty(rows)) {
             return;

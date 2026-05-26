@@ -19,6 +19,24 @@
         <result property="updateTime" column="update_time"/>
     </resultMap>
 
+    <resultMap id="OshDocRefResult" type="com.backstage.system.domain.document.OshDocRef">
+        <id property="id" column="id"/>
+        <result property="docId" column="doc_id"/>
+        <result property="refType" column="ref_type"/>
+        <result property="refId" column="ref_id"/>
+        <result property="isPrimary" column="is_primary"/>
+        <result property="sort" column="sort"/>
+        <result property="anchorType" column="anchor_type"/>
+        <result property="anchorStart" column="anchor_start"/>
+        <result property="anchorEnd" column="anchor_end"/>
+        <result property="excerptTitle" column="excerpt_title"/>
+        <result property="deleteFlag" column="delete_flag"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
     <select id="selectDocById" resultMap="OshDocResult">
         select id,
                title,
@@ -91,6 +109,31 @@
         limit 1
     </select>
 
+    <select id="selectActivePrimaryDocRefBySectionId" resultMap="OshDocRefResult">
+        select id,
+               doc_id,
+               ref_type,
+               ref_id,
+               is_primary,
+               sort,
+               anchor_type,
+               anchor_start,
+               anchor_end,
+               excerpt_title,
+               delete_flag,
+               create_by,
+               create_time,
+               update_by,
+               update_time
+        from osh_doc_ref
+        where ref_type = 'course_section'
+          and ref_id = #{sectionId}
+          and is_primary = 1
+          and delete_flag = 0
+        order by create_time desc
+        limit 1
+    </select>
+
     <select id="selectPrimaryDocContentBySectionId" resultType="java.lang.String">
         select d.content
         from osh_doc_ref r
@@ -102,6 +145,13 @@
         order by r.create_time desc
         limit 1
     </select>
+
+    <delete id="purgeSoftDeletedSectionDocRefs">
+        delete from osh_doc_ref
+        where ref_type = 'course_section'
+          and ref_id = #{sectionId}
+          and delete_flag = 1
+    </delete>
 
     <update id="softDeleteSectionDocRefs">
         update osh_doc_ref
