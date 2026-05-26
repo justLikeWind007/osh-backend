@@ -7,6 +7,7 @@ import com.backstage.common.response.PageResponse;
 import com.backstage.system.domain.dto.info_gap.InfoGapCreateDTO;
 import com.backstage.system.domain.dto.info_gap.InfoGapSearchReqDTO;
 import com.backstage.system.domain.dto.info_gap.InfoGapUpdateReqDTO;
+import com.backstage.system.domain.dto.info_gap.InfoGapVoteReqDTO;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.domain.vo.info_gap.InfoGapVO;
 import com.backstage.system.service.info_gap.InfoGapCollectService;
@@ -27,6 +28,10 @@ public class InfoGapController {
     @Autowired
     private InfoGapCollectService infoGapCollectService;
 
+    /**
+     * 信息差列表
+     * @param type hot、latest、follow、collect 四种情况
+     */
     @GetMapping("/list")
     @Anonymous
     public R<PageResponse<InfoGapVO>> list(
@@ -55,20 +60,43 @@ public class InfoGapController {
     }
 
     /**
-     * 评价 (点赞/踩/中评)
+     * 修改我发布的信息差
+     */
+    @PostMapping("/update")
+    public R<Void> updateInfoGap(@RequestBody InfoGapUpdateReqDTO dto) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
+        infoGapService.updateInfoGap(dto, currentUserId);
+
+        return R.ok(null, "修改成功，等待审核");
+    }
+
+    /**
+     * 删除我发布的信息差
+     */
+    @GetMapping("/delete")
+    public R<Void> deleteInfoGap(@RequestParam("infoGapId") Long infoGapId) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
+        infoGapService.deleteInfoGap(infoGapId);
+
+        return R.ok(null, "当前信息差删除成功！");
+    }
+
+    /**
+     * 信息差点评接口，1-好评 2-中评 3-差评
      */
     @PostMapping("/vote")
-    public R<Void> vote(@RequestParam Long id, @RequestParam Integer type) {
+    public R<Void> vote(@RequestBody InfoGapVoteReqDTO request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
 
-        infoGapService.vote(currentUserId, id, type);
+        infoGapService.vote(currentUserId, request.getId(), request.getType());
         return R.ok();
     }
 
     /**
      * 精品推荐
-     * @return
      */
     @GetMapping("/recommend")
     @Anonymous
@@ -82,12 +110,11 @@ public class InfoGapController {
      * 收藏/取消收藏信息差
      */
     @GetMapping("/collect")
-    public R<Void> collect(@RequestParam("infoGapId") Long infoGapId) {
+    public R<String> collect(@RequestParam("infoGapId") Long infoGapId) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
 
-        infoGapCollectService.collectInfoGap(currentUserId, infoGapId);
-        return R.ok();
+        return infoGapCollectService.collectInfoGap(currentUserId, infoGapId);
     }
 
     /**
@@ -101,7 +128,7 @@ public class InfoGapController {
     }
 
     /**
-     * 搜索功能
+     * 搜索信息差，支持关键字、标签、类别搜索信息差
      */
     @PostMapping("/search")
     @Anonymous
@@ -120,42 +147,15 @@ public class InfoGapController {
             }
         }
 
-        if (request.getKeyword() == null
-                && request.getTagId() == null
-                && request.getCategory() == null) {
+        if (request.getKeyword() == null && request.getTagId() == null && request.getCategory() == null) {
             throw new ServiceException("关键字、标签、类别不能同时为空");
         }
 
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
-
         List<InfoGapVO> infoGapSearchList = infoGapService.searchInfoGap(request, currentUserId);
-
         PageInfo<InfoGapVO> pageInfo = new PageInfo<>(infoGapSearchList);
+
         return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()));
-    }
-
-    /**
-     * 修改我发布的信息差
-     */
-    @PostMapping("/update")
-    public R<Void> updateInfoGap(@RequestBody InfoGapUpdateReqDTO dto) {
-        OshUser currentOshUser = UserContextUtil.getCurrentUser();
-        Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
-        infoGapService.updateInfoGap(dto, currentUserId);
-
-        return R.ok((Void) null, "修改成功，等待审核");
-    }
-
-    /**
-     * 删除我发布的信息差
-     */
-    @GetMapping("/delete")
-    public R<Void> deleteInfoGap(@RequestParam("infoGapId") Long infoGapId) {
-        OshUser currentOshUser = UserContextUtil.getCurrentUser();
-        Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
-        infoGapService.deleteInfoGap(infoGapId);
-
-        return R.ok();
     }
 }

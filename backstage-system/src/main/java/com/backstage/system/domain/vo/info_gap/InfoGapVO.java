@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
  */
 public class InfoGapVO {
     private Long id;
+    private String no;
     private Long userId;
     private String title;
     private String content;
@@ -42,6 +43,8 @@ public class InfoGapVO {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+    public String getNo() { return no; }
+    public void setNo(String no) { this.no = no; }
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
     public String getTitle() { return title; }

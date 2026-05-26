@@ -176,7 +176,7 @@ public class SecurityUtils
     }
 
     public static void main(String[] args) {
-        System.out.println(encryptPassword("Aadmin123141"));
+        System.out.println(encryptPassword("liuhao865578077A"));
     }
 
 }
