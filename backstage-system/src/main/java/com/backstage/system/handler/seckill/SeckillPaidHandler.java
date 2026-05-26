@@ -1,5 +1,6 @@
 package com.backstage.system.handler.seckill;
 
+import com.backstage.common.constant.SeckillCacheConstants;
 import com.backstage.system.domain.order.enums.ProductTypeEnum;
 import com.backstage.system.domain.seckill.OshSeckillOrder;
 import com.backstage.system.domain.user.OshUser;
@@ -10,6 +11,7 @@ import com.backstage.system.service.order.OrderPaidHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
@@ -27,6 +29,9 @@ public class SeckillPaidHandler implements OrderPaidHandler {
 
     @Autowired
     private ISeckillAnnouncementService seckillAnnouncementService;
+
+    @Autowired
+    private RedisTemplate<Object, Object> redisTemplate;
 
     /**
      * 获取业务类型标识。
@@ -64,6 +69,17 @@ public class SeckillPaidHandler implements OrderPaidHandler {
         update.setStatus(1);
         update.setPayTime(new Date());
         seckillOrderMapper.updateOrder(update);
+
+        // 支付成功后释放流程状态 Key，允许用户在限购数量内继续购买
+        // orderKey 的职责是防并发重复提交，不应跨越订单生命周期
+        try {
+            String orderKey = SeckillCacheConstants.SECKILL_ORDER_KEY
+                    + order.getActivityId() + ":" + order.getItemId() + ":" + order.getUserId();
+            redisTemplate.delete(orderKey);
+            logger.info("【支付回调】已释放秒杀流程状态 Key，orderNo={}", orderNo);
+        } catch (Exception e) {
+            logger.warn("【支付回调】释放秒杀流程状态 Key 失败，orderNo={}, error={}", orderNo, e.getMessage());
+        }
 
         // 支付成功后写入秒杀动态到 osh_announcement
         try {
