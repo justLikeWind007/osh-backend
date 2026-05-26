@@ -11,6 +11,8 @@ import com.backstage.system.service.OutboxEventService;
 import com.backstage.system.service.audit.AuditIndexMessage;
 import com.backstage.system.service.course.CourseIndexDeleteMessage;
 import com.backstage.system.service.course.CourseIndexUpsertMessage;
+import com.backstage.system.service.seckill.SeckillItemIndexDeleteMessage;
+import com.backstage.system.service.seckill.SeckillItemIndexUpsertMessage;
 import com.backstage.system.service.outbox.OutboxEventPublisher;
 import com.backstage.system.service.tool.ToolIndexDeleteMessage;
 import com.backstage.system.service.tool.ToolIndexMessage;
@@ -31,6 +33,7 @@ public class OutboxEventServiceImpl implements OutboxEventService {
     private static final Logger log = LoggerFactory.getLogger(OutboxEventServiceImpl.class);
     private static final String AGGREGATE_TYPE_COURSE = "COURSE";
     private static final String AGGREGATE_TYPE_TOOL = "TOOL";
+    private static final String AGGREGATE_TYPE_SECKILL = "SECKILL";
     private static final int DEFAULT_RETRY_COUNT = 0;
     private static final int DEFAULT_MAX_RETRY_COUNT = 10;
     private static final int NORMAL_DELETE_FLAG = 0;
@@ -105,6 +108,26 @@ public class OutboxEventServiceImpl implements OutboxEventService {
         String messageKey = resourceType.getType() + ":" + message.getId();
         saveEvent(aggregateType, message.getId(), message.getEventType(), topic,
                 JSON.toJSONString(message), messageKey, operator);
+    }
+
+    @Override
+    public void saveSeckillItemIndexEvent(Long itemId, SeckillItemIndexUpsertMessage message, String operator) {
+        if (message == null || StringUtils.isBlank(message.getEventType())) {
+            log.warn("秒杀明细索引消息为空或事件类型为空，跳过outbox写入, itemId={}", itemId);
+            return;
+        }
+        saveEvent(AGGREGATE_TYPE_SECKILL, itemId, message.getEventType(), KafkaConstants.SECKILL_ITEM_INDEX_TOPIC,
+                JSON.toJSONString(message), "seckill-item:" + itemId, operator);
+    }
+
+    @Override
+    public void saveSeckillItemIndexDeleteEvent(Long itemId, SeckillItemIndexDeleteMessage message, String operator) {
+        if (message == null || StringUtils.isBlank(message.getEventType())) {
+            log.warn("秒杀明细索引删除消息为空或事件类型为空，跳过outbox写入, itemId={}", itemId);
+            return;
+        }
+        saveEvent(AGGREGATE_TYPE_SECKILL, itemId, message.getEventType(), KafkaConstants.SECKILL_ITEM_INDEX_TOPIC,
+                JSON.toJSONString(message), "seckill-item:" + itemId, operator);
     }
 
     /**

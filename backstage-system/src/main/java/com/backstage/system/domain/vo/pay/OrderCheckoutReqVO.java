@@ -41,6 +41,9 @@ public class OrderCheckoutReqVO {
 
     private String channel;
 
+    /** 客户端 IP，由调用方传入；Kafka 消费者等非 HTTP 场景传固定标识 */
+    private String clientIp;
+
     public Long getUserId() {
         return userId;
     }
@@ -128,5 +131,13 @@ public class OrderCheckoutReqVO {
 
     public void setChannel(String channel) {
         this.channel = channel;
+    }
+
+    public String getClientIp() {
+        return clientIp;
+    }
+
+    public void setClientIp(String clientIp) {
+        this.clientIp = clientIp;
     }
 }

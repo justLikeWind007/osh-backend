@@ -1,6 +1,5 @@
 package com.backstage.system.controller.tool;
 
-import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.annotation.DistributeLock;
 import com.backstage.common.core.controller.BaseController;
 import com.backstage.common.core.domain.R;
@@ -56,7 +55,6 @@ public class OshToolController extends BaseController {
 
     @ApiOperation("工具搜索")
     @PostMapping("/search")
-    @Anonymous
     public R<PageResponse<OshTool>> search(@RequestBody ToolSearchRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         Long userId = currentOshUser == null ? null : currentOshUser.getId();
@@ -97,9 +95,15 @@ public class OshToolController extends BaseController {
         return R.ok(oshToolEsService.syncAllToolsToEs(), "ok");
     }
 
+    @ApiOperation("批量补全工具编号")
+    @PostMapping("/fill/no")
+//    @PreAuthorize("hasAuthority('tool:update')")
+    public R<Integer> fillMissingToolNo() {
+        return R.ok(oshToolService.fillMissingToolNo(), "ok");
+    }
+
     @ApiOperation("工具推荐列表")
     @PostMapping("/recommend")
-    @Anonymous
     public R<PageResponse<OshTool>> recommend(@RequestBody ToolRecommendRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         Long userId = currentOshUser == null ? null : currentOshUser.getId();
@@ -113,14 +117,12 @@ public class OshToolController extends BaseController {
 
     @ApiOperation("工具标签选项")
     @GetMapping("/tags")
-    @Anonymous
     public R<List<OshToolTag>> listTags() {
         return R.ok(oshToolService.listAvailableTags());
     }
 
     @ApiOperation("工具详情")
     @GetMapping("/detail/{id}")
-    @Anonymous
     public R<OshTool> getToolDetail(@NotNull @PathVariable("id") Long id) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         Long userId = currentOshUser == null ? null : currentOshUser.getId();
@@ -130,7 +132,6 @@ public class OshToolController extends BaseController {
 
     @ApiOperation("记录工具浏览次数")
     @PostMapping("/view/{id}")
-    @Anonymous
     public R<String> recordToolView(@NotNull @PathVariable("id") Long id) {
         try {
             oshToolService.recordToolView(id);

@@ -16,7 +16,11 @@ import com.backstage.system.domain.vo.seckill.SeckillActivityVO;
 import com.backstage.system.mapper.seckill.OshSeckillActivityItemMapper;
 import com.backstage.system.mapper.seckill.OshSeckillActivityMapper;
 import com.backstage.system.mapper.seckill.OshSeckillGoodsMapper;
+import com.backstage.system.service.OutboxEventService;
 import com.backstage.system.service.seckill.IOshSeckillActivityService;
+import com.backstage.system.service.seckill.SeckillItemIndexDeleteMessage;
+import com.backstage.system.service.seckill.SeckillItemIndexEventType;
+import com.backstage.system.service.seckill.SeckillItemIndexUpsertMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,6 +59,9 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
 
     @Autowired
     private OshSeckillGoodsMapper goodsMapper;
+
+    @Autowired
+    private OutboxEventService outboxEventService;
 
     @Autowired
     private RedisTemplate<Object, Object> redisTemplate;
@@ -177,6 +184,17 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
         items.forEach(item -> item.setActivityId(activityId));
         itemMapper.insertItems(items);
 
+        // 插入后重新查询拿到带 ID 的明细列表，确保 ID 不为 null
+        List<OshSeckillActivityItem> savedItems = itemMapper.selectItemsByActivityId(activityId);
+
+        // 触发 ES 索引事件（草稿状态，Flink 侧会因 activityStatus!=2 而执行 delete，不写入 ES）
+        // 等活动发布后再由 updateActivityStatus 触发 upsert
+        // 此处仍发消息，保持链路完整，Flink 会幂等处理
+        savedItems.forEach(item -> outboxEventService.saveSeckillItemIndexEvent(
+                item.getId(),
+                buildUpsertMessage(item, activity, SeckillItemIndexEventType.SECKILL_ITEM_INDEX_CREATE),
+                null));
+
         return 1;
     }
 
@@ -206,11 +224,30 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
 
         // 全量替换明细
         if (dto.getItems() != null && !dto.getItems().isEmpty()) {
+            // 查出旧明细 ID，用于发送 DELETE 事件
+            List<OshSeckillActivityItem> oldItems = itemMapper.selectItemsByActivityId(dto.getId());
+
             // 逻辑删除旧明细
             itemMapper.deleteItemsByActivityId(dto.getId());
+
+            // 对旧明细发 DELETE 事件
+            oldItems.forEach(oldItem -> outboxEventService.saveSeckillItemIndexDeleteEvent(
+                    oldItem.getId(),
+                    new SeckillItemIndexDeleteMessage(oldItem.getId()),
+                    null));
+
             // 构建并插入新明细
             List<OshSeckillActivityItem> newItems = buildItemsFromUpdateDTO(dto.getItems(), dto.getId());
             itemMapper.insertItems(newItems);
+
+            // 插入后重新查询拿到带 ID 的明细列表
+            List<OshSeckillActivityItem> savedNewItems = itemMapper.selectItemsByActivityId(dto.getId());
+
+            // 对新明细发 UPSERT 事件（草稿状态，Flink 侧不写 ES，等发布后再触发）
+            savedNewItems.forEach(item -> outboxEventService.saveSeckillItemIndexEvent(
+                    item.getId(),
+                    buildUpsertMessage(item, exist, SeckillItemIndexEventType.SECKILL_ITEM_INDEX_UPDATE),
+                    null));
         }
 
         return 1;
@@ -225,6 +262,7 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
      * 已结束(3)、已下架(4) 不可操作
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public int updateActivityStatus(SeckillActivityStatusDTO dto) {
         if (dto.getIds() == null || dto.getIds().isEmpty()) {
             throw new ServiceException("活动ID列表不能为空");
@@ -256,6 +294,30 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
         // 下架活动时清理 Redis 缓存，释放内存
         if (targetStatus == 4) {
             dto.getIds().forEach(this::cleanUpCache);
+        }
+
+        // 发布（status=1）：发 UPSERT 事件，Flink 侧因 activityStatus=1 不写 ES，等定时任务改为进行中后再触发
+        // 进行中（status=2，由定时任务触发）：发 UPSERT 事件，Flink 侧写入 ES
+        // 下架（status=4）：发 DELETE 事件，Flink 侧从 ES 删除
+        if (targetStatus == 1 || targetStatus == 2) {
+            dto.getIds().forEach(activityId -> {
+                OshSeckillActivity activity = activityMapper.selectActivityById(activityId);
+                if (activity == null) return;
+                List<OshSeckillActivityItem> items = itemMapper.selectItemsByActivityId(activityId);
+                items.forEach(item -> outboxEventService.saveSeckillItemIndexEvent(
+                        item.getId(),
+                        buildUpsertMessage(item, activity, SeckillItemIndexEventType.SECKILL_ITEM_INDEX_UPDATE),
+                        null));
+            });
+        }
+        if (targetStatus == 4) {
+            dto.getIds().forEach(activityId -> {
+                List<OshSeckillActivityItem> items = itemMapper.selectItemsByActivityId(activityId);
+                items.forEach(item -> outboxEventService.saveSeckillItemIndexDeleteEvent(
+                        item.getId(),
+                        new SeckillItemIndexDeleteMessage(item.getId()),
+                        null));
+            });
         }
 
         return result;
@@ -326,8 +388,15 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
         if (ids == null || ids.isEmpty()) {
             throw new ServiceException("活动ID列表不能为空");
         }
-        // 逐个删除明细
-        ids.forEach(itemMapper::deleteItemsByActivityId);
+        // 逐个删除明细，并发送 DELETE 事件
+        ids.forEach(activityId -> {
+            List<OshSeckillActivityItem> items = itemMapper.selectItemsByActivityId(activityId);
+            itemMapper.deleteItemsByActivityId(activityId);
+            items.forEach(item -> outboxEventService.saveSeckillItemIndexDeleteEvent(
+                    item.getId(),
+                    new SeckillItemIndexDeleteMessage(item.getId()),
+                    null));
+        });
         return activityMapper.deleteActivityByIds(ids);
     }
 
@@ -429,6 +498,37 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
         vo.setPayTimeoutMin(activity.getPayTimeoutMin());
         vo.setItems(items.stream().map(this::toItemVO).collect(Collectors.toList()));
         return vo;
+    }
+
+    /**
+     * 构建秒杀明细索引 upsert 消息
+     */
+    private SeckillItemIndexUpsertMessage buildUpsertMessage(
+            OshSeckillActivityItem item, OshSeckillActivity activity, String eventType) {
+        SeckillItemIndexUpsertMessage msg = new SeckillItemIndexUpsertMessage();
+        msg.setEventType(eventType);
+        msg.setId(item.getId());
+        msg.setActivityId(activity.getId());
+        msg.setActivityStatus(activity.getStatus());
+        msg.setGoodsId(item.getGoodsId());
+        msg.setGoodsType(item.getGoodsType());
+        msg.setTitle(item.getTitle());
+        msg.setCover(item.getCover());
+        msg.setOriginPrice(item.getOriginPrice());
+        msg.setSeckillPrice(item.getSeckillPrice());
+        msg.setTotalStock(item.getTotalStock());
+        msg.setAvailableStock(item.getAvailableStock());
+        msg.setSoldCount(item.getSoldCount() != null ? item.getSoldCount() : 0);
+        msg.setLimitPerUser(item.getLimitPerUser());
+        msg.setSort(item.getSort());
+        msg.setActivityTitle(activity.getTitle());
+        msg.setPayTimeoutMin(activity.getPayTimeoutMin());
+        msg.setStartTime(activity.getStartTime());
+        msg.setEndTime(activity.getEndTime());
+        msg.setDeleteFlag(item.getDeleteFlag() != null ? item.getDeleteFlag() : 0);
+        msg.setCreateTime(item.getCreateTime());
+        msg.setUpdateTime(item.getUpdateTime());
+        return msg;
     }
 
     /** 明细实体 → 明细 VO，availableStock 优先从 Redis 实时读取 */

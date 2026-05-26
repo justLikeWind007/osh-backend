@@ -35,6 +35,12 @@ public class UserRegisterDTO {
     )
     private String email;
 
+    @ApiModelProperty(
+            value = "邀请码（选填）",
+            required = false
+    )
+    private String inviteCode;
+
     public String getUsername() {
         return username;
     }
@@ -65,6 +71,14 @@ public class UserRegisterDTO {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getInviteCode() {
+        return inviteCode;
+    }
+
+    public void setInviteCode(String inviteCode) {
+        this.inviteCode = inviteCode;
     }
 
     @Override

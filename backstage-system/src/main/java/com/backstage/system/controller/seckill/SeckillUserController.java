@@ -7,21 +7,19 @@ import com.backstage.common.core.domain.R;
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.enums.LimitType;
 import com.backstage.common.exception.ServiceException;
-import com.backstage.common.utils.ip.IpUtils;
-import com.backstage.system.domain.order.enums.PayChannelEnum;
-import com.backstage.system.domain.seckill.OshSeckillOrder;
-import com.backstage.system.domain.user.OshUser;
-import com.backstage.system.domain.vo.order.PayResponse;
+import com.backstage.system.config.properties.SearchEsProperties;
 import com.backstage.system.domain.vo.seckill.SeckillActivityUserVO;
+import com.backstage.system.domain.vo.seckill.SeckillAnnouncementVO;
 import com.backstage.system.domain.vo.seckill.SeckillRecentOrderVO;
 import com.backstage.system.domain.vo.seckill.SeckillResultVO;
-import com.backstage.system.service.order.PayService;
+import com.backstage.system.service.announcement.ISeckillAnnouncementService;
 import com.backstage.system.service.seckill.IOshSeckillActivityService;
 import com.backstage.system.service.seckill.IOshSeckillOrderService;
+import com.backstage.system.service.seckill.ISeckillItemEsService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 import java.util.List;
 
@@ -42,6 +40,8 @@ import static com.backstage.system.utils.UserContextUtil.getCurrentUser;
 @RequestMapping("/pc/seckill/user")
 public class SeckillUserController extends BaseController {
 
+    private static final Logger log = LoggerFactory.getLogger(SeckillUserController.class);
+
     @Autowired
     private IOshSeckillActivityService activityService;
 
@@ -49,20 +49,56 @@ public class SeckillUserController extends BaseController {
     private IOshSeckillOrderService orderService;
 
     @Autowired
-    private PayService payService;
+    private ISeckillAnnouncementService seckillAnnouncementService;
+
+    @Autowired
+    private ISeckillItemEsService seckillItemEsService;
+
+    @Autowired
+    private SearchEsProperties searchEsProperties;
 
     /**
      * 接口8：查询进行中的秒杀活动列表（用户端）
-     * 支持按商品名称模糊搜索、按商品类型筛选
+     * 优先走 ES 搜索，ES 不可用时降级到 MySQL
+     * 两条路径统一返回活动维度结构（活动 + 嵌套 items），前端无需区分
      */
     @Anonymous
     @GetMapping("/activity/list")
     public TableDataInfo activeList(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) Integer goodsType) {
+        if (searchEsProperties.isEnabled()) {
+            try {
+                log.info("使用 ES 查询秒杀活动列表, keyword={}, goodsType={}", title, goodsType);
+                com.backstage.common.core.page.PageDomain pageDomain =
+                        com.backstage.common.core.page.TableSupport.buildPageRequest();
+                int pageNum = pageDomain.getPageNum() != null ? pageDomain.getPageNum() : 1;
+                int pageSize = pageDomain.getPageSize() != null ? pageDomain.getPageSize() : 10;
+                com.backstage.common.response.PageResponse<com.backstage.system.domain.vo.seckill.SeckillActivityUserVO> page =
+                        seckillItemEsService.searchActivities(title, goodsType, pageNum, pageSize);
+                TableDataInfo rsp = new TableDataInfo();
+                rsp.setCode(com.backstage.common.constant.HttpStatus.SUCCESS);
+                rsp.setMsg("查询成功");
+                rsp.setRows(page.getRows());
+                rsp.setTotal(page.getTotal());
+                return rsp;
+            } catch (Exception ex) {
+                log.warn("秒杀 ES 查询失败，降级到 MySQL, keyword={}, goodsType={}", title, goodsType, ex);
+            }
+        }
+        // 降级：MySQL 路径，原有逻辑不变，返回结构与 ES 路径一致
         startPage();
         List<SeckillActivityUserVO> list = activityService.selectActiveActivityList(title, goodsType);
         return getDataTable(list);
+    }
+
+    /**
+     * 全量同步进行中活动的秒杀商品明细到 ES（运维接口）
+     */
+    @Anonymous
+    @PostMapping("/esSync/all")
+    public R<Integer> syncAllItemsToEs() {
+        return R.ok(seckillItemEsService.syncAllItemsToEs(), "ok");
     }
 
     /**
@@ -130,53 +166,27 @@ public class SeckillUserController extends BaseController {
         SeckillResultVO result = orderService.getOrderStatusBySeckillNo(seckillNo, userId);
         return result != null ? R.ok(result) : R.fail("订单不存在");
     }
-    /*
-     * 前端拿到 seckillNo 后调此接口，返回支付链接（payurl）或二维码（qrcode）
-     * channel 可选，支持 wxpay / alipay，默认微信支付
-     */    @PostMapping("/order/pay/{seckillNo}")
-    public R<PayResponse> pay(@PathVariable String seckillNo,
-                              @RequestParam(required = false, defaultValue = "wxpay") String channel) {
-        Long userId = getCurrentUser().getId();
-
-        // 查询秒杀订单
-        OshSeckillOrder order = orderService.getOrderBySeckillNo(seckillNo, userId);
-        if (order == null) {
-            return R.fail("订单不存在");
-        }
-        if (!order.getUserId().equals(userId)) {
-            return R.fail("无权操作此订单");
-        }
-        if (order.getStatus() != 0) {
-            return R.fail("订单状态不正确，无法发起支付");
-        }
-
-        // 校验支付渠道，不合法时降级为微信支付
-        PayChannelEnum channelEnum = PayChannelEnum.fromValue(channel);
-        String channelValue = (channelEnum != null && channelEnum != PayChannelEnum.FREE)
-                ? channelEnum.getValue()
-                : PayChannelEnum.WXPAY.getValue();
-
-        // 发起支付，以 seckillNo 作为外部订单号
-        String clientIp = IpUtils.getIpAddr();
-        String money = order.getTotalAmount().toString();  // 实付总金额（seckillPrice × quantity）
-        String name = order.getGoodsTitle();
-        PayResponse resp = payService.createPay(seckillNo, name, money, clientIp, channelValue);
-
-        if (resp.getCode() != 1) {
-            return R.fail("发起支付失败：" + resp.getMsg());
-        }
-        return R.ok(resp);
-    }
-
     /**
-     * 接口15：查询最近成交记录（用于首页滚动条展示）
+     * 接口15：查询秒杀动态栏（最近成交记录）
+     * 数据来源：osh_announcement（biz_type='seckill_dynamic'）
      * 不需要登录，匿名可访问
-     * limit 默认10条，最大50条
      */
     @Anonymous
     @GetMapping("/recent/orders")
-    public R<List<SeckillRecentOrderVO>> recentOrders(
+    public R<List<SeckillAnnouncementVO>> recentOrders(
             @RequestParam(required = false, defaultValue = "10") int limit) {
-        return R.ok(orderService.getRecentPaidOrders(limit));
+        return R.ok(seckillAnnouncementService.getSeckillDynamics(limit));
+    }
+
+    /**
+     * 接口16：查询秒杀公告栏
+     * 数据来源：osh_announcement（biz_type='seckill_notice'）
+     * 不需要登录，匿名可访问
+     */
+    @Anonymous
+    @GetMapping("/announcement/notices")
+    public R<List<SeckillAnnouncementVO>> seckillNotices(
+            @RequestParam(required = false, defaultValue = "10") int limit) {
+        return R.ok(seckillAnnouncementService.getSeckillNotices(limit));
     }
 }
