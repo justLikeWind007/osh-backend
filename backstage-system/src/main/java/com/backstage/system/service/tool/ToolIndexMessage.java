@@ -11,6 +11,7 @@ public class ToolIndexMessage {
     private String eventType;
     private Long id;
     private String toolName;
+    private String no;
     private String description;
     private String searchText;
     private String routePath;
@@ -61,6 +62,14 @@ public class ToolIndexMessage {
 
     public void setToolName(String toolName) {
         this.toolName = toolName;
+    }
+
+    public String getNo() {
+        return no;
+    }
+
+    public void setNo(String no) {
+        this.no = no;
     }
 
     public String getDescription() {

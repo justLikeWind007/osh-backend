@@ -1,5 +1,7 @@
 package com.backstage.system.service.impl.audit;
 
+import com.backstage.common.async.AsyncExecutorNames;
+import com.backstage.common.async.AsyncTaskSupport;
 import com.backstage.common.enums.ResourceStatusEnum;
 import com.backstage.common.enums.ResourceTypeEnum;
 import com.backstage.common.exception.ServiceException;
@@ -9,21 +11,23 @@ import com.backstage.system.config.properties.SearchEsProperties;
 import com.backstage.system.domain.audit.ResourceAuditItemVO;
 import com.backstage.system.domain.audit.ResourceAuditPageVO;
 import com.backstage.system.domain.audit.ResourceAuditRequest;
-import com.backstage.system.domain.user.OshUser;
-import com.backstage.system.domain.websocket.WsNotifyMessage;
 import com.backstage.system.mapper.audit.ResourceAuditEsMapper;
 import com.backstage.system.mapper.audit.ResourceAuditMapper;
-import com.backstage.system.mapper.user.OshUserMapper;
 import com.backstage.system.service.OutboxEventService;
+import com.backstage.system.service.audit.ResourceAuditCallbackContext;
+import com.backstage.system.service.audit.ResourceAuditCallbackHandlerRegistry;
 import com.backstage.system.service.audit.AuditIndexEventType;
 import com.backstage.system.service.audit.AuditIndexMessage;
 import com.backstage.system.service.audit.IResourceAuditService;
-import com.backstage.system.service.websocket.WebSocketNotifyService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.Resource;
+import java.util.concurrent.Executor;
 
 @Service
 public class ResourceAuditServiceImpl implements IResourceAuditService {
@@ -47,10 +51,14 @@ public class ResourceAuditServiceImpl implements IResourceAuditService {
     private OutboxEventService outboxEventService;
 
     @Autowired
-    private WebSocketNotifyService webSocketNotifyService;
+    private ResourceAuditCallbackHandlerRegistry resourceAuditCallbackHandlerRegistry;
 
-    @Autowired
-    private OshUserMapper oshUserMapper;
+    @Resource
+    private AsyncTaskSupport asyncTaskSupport;
+
+    @Resource
+    @Qualifier(AsyncExecutorNames.NOTIFICATION)
+    private Executor notificationTaskExecutor;
 
     @Override
     public ResourceAuditPageVO pagePending(ResourceAuditRequest request) {
@@ -92,7 +100,7 @@ public class ResourceAuditServiceImpl implements IResourceAuditService {
             throw new ServiceException("待审核资源不存在或已处理");
         }
         syncAuditResourceToEs(typeEnum, resourceId, resourceStatus, operator);
-        notifyResourceCreator(typeEnum, resourceId, resourceStatus);
+        triggerAuditCallbacks(typeEnum, resourceId, resourceStatus, operator, operatorId);
         return rows;
     }
 
@@ -154,64 +162,22 @@ public class ResourceAuditServiceImpl implements IResourceAuditService {
         outboxEventService.saveAuditIndexEvent(resourceType, message, operator);
     }
 
-    private void notifyResourceCreator(ResourceTypeEnum resourceType, Long resourceId, Integer resourceStatus) {
-        try {
-            ResourceAuditItemVO resource = resourceAuditMapper.selectAuditNotifyItem(resourceType.getMysqlTableName(), resourceId);
-            if (resource == null || StringUtils.isEmpty(resource.getCreateBy())) {
-                return;
-            }
-            Long targetUserId = parseTargetUserId(resource.getCreateBy());
-            if (targetUserId == null) {
-                log.warn("审核通知跳过：无法解析资源创建人ID, resourceType={}, resourceId={}, createBy={}",
-                        resourceType.getType(), resourceId, resource.getCreateBy());
-                return;
-            }
-            WsNotifyMessage message = new WsNotifyMessage();
-            message.setType("RESOURCE_AUDIT_RESULT");
-            message.setTitle(ResourceStatusEnum.isPublished(resourceStatus) ? "资源审核通过" : "资源审核未通过");
-            message.setContent(webSocketNotifyService.truncate(buildAuditNotifyContent(resourceType, resource, resourceStatus)));
-            message.setJumpUrl("/audit");
-            message.setBizId(String.valueOf(resourceId));
-            webSocketNotifyService.send(targetUserId, message);
-        } catch (Exception ex) {
-            log.error("审核结果WebSocket通知失败, resourceType={}, resourceId={}, error={}",
-                    resourceType.getType(), resourceId, ex.getMessage(), ex);
-        }
-    }
-
-    private Long parseTargetUserId(String createBy) {
-        try {
-            return Long.valueOf(createBy);
-        } catch (Exception ignored) {
-            OshUser user = oshUserMapper.getUserByUsername(createBy);
-            return user == null ? null : user.getId();
-        }
-    }
-
-    private String buildAuditNotifyContent(ResourceTypeEnum resourceType, ResourceAuditItemVO resource, Integer resourceStatus) {
-        String resourceName = StringUtils.isEmpty(resource.getTitle()) ? String.valueOf(resource.getId()) : resource.getTitle();
-        String statusText = ResourceStatusEnum.isPublished(resourceStatus) ? "已通过" : "已拒绝";
-        return getResourceTypeLabel(resourceType) + "「" + resourceName + "」审核" + statusText;
-    }
-
-    private String getResourceTypeLabel(ResourceTypeEnum resourceType) {
-        switch (resourceType) {
-            case COURSE:
-                return "课程";
-            case QA_QUESTION:
-                return "答疑问题";
-            case QA_ANSWER:
-                return "答疑回答";
-            case BOOK:
-                return "电子书";
-            case TOOL:
-                return "工具";
-            case WEBSITE:
-                return "实用网站";
-            case OPEN_PROJECT:
-                return "开源项目";
-            default:
-                return resourceType.getType();
-        }
+    private void triggerAuditCallbacks(ResourceTypeEnum resourceType,
+                                       Long resourceId,
+                                       Integer resourceStatus,
+                                       String operator,
+                                       Long operatorId) {
+        ResourceAuditCallbackContext context = new ResourceAuditCallbackContext();
+        context.setResourceType(resourceType);
+        context.setResourceId(resourceId);
+        context.setResourceStatus(resourceStatus);
+        context.setOperator(operator);
+        context.setOperatorId(operatorId);
+        asyncTaskSupport.runAsync(() -> resourceAuditCallbackHandlerRegistry.handle(context), notificationTaskExecutor)
+                .exceptionally(ex -> {
+                    log.error("审核回调异步执行失败, resourceType={}, resourceId={}, error={}",
+                            resourceType.getType(), resourceId, ex.getMessage(), ex);
+                    return null;
+                });
     }
 }

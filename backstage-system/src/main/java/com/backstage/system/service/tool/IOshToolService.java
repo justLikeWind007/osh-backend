@@ -33,4 +33,6 @@ public interface IOshToolService {
     Integer voteTool(Long userId, String operator, Long toolId, Integer type);
 
     void recordToolView(Long toolId);
+
+    int fillMissingToolNo();
 }

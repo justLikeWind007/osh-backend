@@ -1,5 +1,6 @@
 package com.backstage.system.service.impl.tool;
 
+import com.backstage.common.enums.ResourceCodePrefixEnum;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.system.domain.tool.OshTool;
 import com.backstage.system.domain.tool.OshToolPackage;
@@ -19,6 +20,7 @@ import com.backstage.system.request.tool.ToolSearchRequest;
 import com.backstage.system.service.OutboxEventService;
 import com.backstage.system.service.tool.IOshToolEsService;
 import com.backstage.system.service.tool.IOshToolService;
+import com.backstage.system.service.tool.ResourceNoGenerator;
 import com.backstage.system.service.tool.ToolIndexDeleteMessage;
 import com.backstage.system.service.tool.ToolIndexEventType;
 import com.backstage.system.service.tool.ToolIndexMessage;
@@ -70,6 +72,9 @@ public class OshToolServiceImpl implements IOshToolService {
     @Autowired
     private OutboxEventService outboxEventService;
 
+    @Autowired
+    private ResourceNoGenerator resourceNoGenerator;
+
     @Override
     public List<OshTool> pageQuerySearchTool(Long userId, ToolSearchRequest request) {
         normalizeSearchRequest(request);
@@ -101,6 +106,7 @@ public class OshToolServiceImpl implements IOshToolService {
         }
         validateToolTags(request.getTags());
         OshTool tool = buildTool(request, operator.getUsername());
+        tool.setNo(generateToolNo());
         if (oshToolMapper.insertTool(tool) <= 0) {
             throw new ServiceException("新增工具失败");
         }
@@ -269,6 +275,28 @@ public class OshToolServiceImpl implements IOshToolService {
         saveToolIndexEvent(toolId, ToolIndexEventType.TOOL_INDEX_COUNTER, (String) null);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int fillMissingToolNo() {
+        List<OshTool> toolList = oshToolMapper.selectToolsWithMissingNo();
+        if (toolList == null || toolList.isEmpty()) {
+            return 0;
+        }
+        int updatedCount = 0;
+        for (OshTool tool : toolList) {
+            if (tool == null || tool.getId() == null) {
+                continue;
+            }
+            String no = generateToolNo();
+            updatedCount += oshToolMapper.updateToolNoById(tool.getId(), no);
+        }
+        return updatedCount;
+    }
+
+    private String generateToolNo() {
+        return resourceNoGenerator.generateUniqueNo(ResourceCodePrefixEnum.TOOL, no -> oshToolMapper.countByNo(no) > 0);
+    }
+
     private OshTool buildTool(ToolSaveRequest request, String operator) {
         validateAccessTarget(request);
         OshTool tool = new OshTool();
@@ -282,7 +310,7 @@ public class OshToolServiceImpl implements IOshToolService {
         tool.setPrice(BigDecimal.ZERO);
         tool.setOriginalPrice(BigDecimal.ZERO);
         tool.setPointCost(0);
-        tool.setStatus(request.getId() == null && request.getStatus() == null ? 2 : request.getStatus());
+        tool.setStatus(request.getId() == null ? 2 : request.getStatus());
         tool.setRemark(request.getRemark());
         tool.setResourceType(request.getId() == null ? StringUtils.defaultIfBlank(request.getResourceType(), DEFAULT_RESOURCE_TYPE) : request.getResourceType());
         tool.setLevel(request.getId() == null && request.getLevel() == null ? 1 : request.getLevel());
@@ -297,6 +325,14 @@ public class OshToolServiceImpl implements IOshToolService {
         }
         if (request.getPageSize() <= 0) {
             request.setPageSize(10);
+        }
+        if (StringUtils.isNotBlank(request.getNo())) {
+            request.setToolId(null);
+            request.setKeyword(null);
+            request.setTags(null);
+            request.setResourceType(null);
+            request.setIsFollowing(false);
+            request.setCollectionFlag(null);
         }
         if (request.getCollectionFlag() == null && Boolean.TRUE.equals(request.getIsFollowing())) {
             request.setCollectionFlag(1);

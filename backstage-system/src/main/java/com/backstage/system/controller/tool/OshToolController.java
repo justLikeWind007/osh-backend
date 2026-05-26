@@ -97,6 +97,13 @@ public class OshToolController extends BaseController {
         return R.ok(oshToolEsService.syncAllToolsToEs(), "ok");
     }
 
+    @ApiOperation("批量补全工具编号")
+    @PostMapping("/fill/no")
+//    @PreAuthorize("hasAuthority('tool:update')")
+    public R<Integer> fillMissingToolNo() {
+        return R.ok(oshToolService.fillMissingToolNo(), "ok");
+    }
+
     @ApiOperation("工具推荐列表")
     @PostMapping("/recommend")
     @Anonymous
