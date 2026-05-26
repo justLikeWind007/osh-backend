@@ -1,5 +1,6 @@
 package com.backstage.system.service.impl;
 
+import com.backstage.system.config.properties.SearchEsProperties;
 import com.backstage.system.constants.CourseConstants;
 import com.backstage.system.constants.CourseSectionConstants;
 import com.backstage.system.domain.course.OshCourse;
@@ -37,6 +38,7 @@ import com.backstage.system.service.course.CourseIndexEventType;
 import com.backstage.system.service.course.CourseIndexMessageMapper;
 import com.backstage.system.service.course.CourseIndexUpsertMessage;
 import com.backstage.system.service.course.ICourseManageService;
+import com.backstage.system.service.course.IOshCourseEsService;
 import com.backstage.system.utils.FileSizeConvertUtil;
 import com.backstage.common.utils.generate.GenerateUtil;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
@@ -46,6 +48,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -78,6 +82,12 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
     @Autowired
     private OutboxEventService outboxEventService;
+
+    @Autowired
+    private IOshCourseEsService oshCourseEsService;
+
+    @Autowired
+    private SearchEsProperties searchEsProperties;
 
     @Autowired
     private OshCourseSectionMapper oshCourseSectionMapper;
@@ -358,9 +368,10 @@ public class OshCourseServiceImpl implements IOshCourseService {
         bindCourseMaterial(course.getId(), request.getMaterial(), operator);
         bindCourseTags(course.getId(), request.getTags(), operator);
         OshCourse latestCourse = ensureCourseExists(course.getId());
-        outboxEventService.saveCourseIndexEvent(course.getId(),
-                buildCourseIndexUpsertMessage(latestCourse, request.getTags(), operator, CourseIndexEventType.COURSE_INDEX_CREATE),
-                operator);
+        CourseIndexUpsertMessage indexMessage = buildCourseIndexUpsertMessage(
+                latestCourse, request.getTags(), operator, CourseIndexEventType.COURSE_INDEX_CREATE);
+        publishCourseIndexOutboxIfNeeded(course.getId(), latestCourse.getStatus(), indexMessage, operator);
+        scheduleCourseEsUpsertAfterCommit(course.getId(), latestCourse.getStatus());
         return course.getId();
     }
 
@@ -380,9 +391,10 @@ public class OshCourseServiceImpl implements IOshCourseService {
             rebuildCourseTags(course.getId(), request.getTags(), operator);
         }
         OshCourse latestCourse = ensureCourseExists(course.getId());
-        outboxEventService.saveCourseIndexEvent(course.getId(),
-                buildCourseIndexUpsertMessage(latestCourse, request.getTags(), operator, CourseIndexEventType.COURSE_INDEX_UPDATE),
-                operator);
+        CourseIndexUpsertMessage indexMessage = buildCourseIndexUpsertMessage(
+                latestCourse, request.getTags(), operator, CourseIndexEventType.COURSE_INDEX_UPDATE);
+        publishCourseIndexOutboxIfNeeded(course.getId(), latestCourse.getStatus(), indexMessage, operator);
+        scheduleCourseEsUpsertAfterCommit(course.getId(), latestCourse.getStatus());
         return course.getId();
     }
 
@@ -404,9 +416,10 @@ public class OshCourseServiceImpl implements IOshCourseService {
             throw new IllegalArgumentException("审核课程失败");
         }
         OshCourse latestCourse = ensureCourseExists(courseId);
-        outboxEventService.saveCourseIndexEvent(courseId,
-                buildCourseIndexUpsertMessage(latestCourse, null, operator, CourseIndexEventType.COURSE_INDEX_UPDATE),
-                operator);
+        CourseIndexUpsertMessage indexMessage = buildCourseIndexUpsertMessage(
+                latestCourse, null, operator, CourseIndexEventType.COURSE_INDEX_UPDATE);
+        publishCourseIndexOutboxIfNeeded(courseId, latestCourse.getStatus(), indexMessage, operator);
+        scheduleCourseEsUpsertAfterCommit(courseId, latestCourse.getStatus());
         return courseId;
     }
 
@@ -1034,32 +1047,30 @@ public class OshCourseServiceImpl implements IOshCourseService {
     }
 
     private void saveOrBindSectionDoc(Long sectionId, CourseTextSectionCreateRequest request, OshUser operator) {
-        Long docId;
         String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
         Date now = new Date();
         Long currentDocId = oshDocMapper.selectPrimaryDocIdBySectionId(sectionId);
+        boolean bindExisting = isBindExistingDocMode(request);
         boolean hasTextUpdate = StringUtils.isNotBlank(request.getTextContent()) || StringUtils.isNotBlank(request.getDocTitle());
         String docTitle = StringUtils.defaultIfBlank(request.getDocTitle(), request.getTitle());
+        Long docId;
 
-        if (request.getDocId() != null) {
+        if (bindExisting) {
+            if (request.getDocId() == null) {
+                throw new IllegalArgumentException("绑定已有文档时 docId 不能为空");
+            }
             OshDoc existingDoc = oshDocMapper.selectDocById(request.getDocId());
             if (existingDoc == null) {
                 throw new IllegalArgumentException("要绑定的文档不存在");
             }
             docId = existingDoc.getId();
-            // 复用模式下允许直接编辑共享文档内容（会影响所有绑定此 doc 的小节）。
+            ensureSectionDocRef(sectionId, docId, request, operatorName, now);
+            return;
+        }
+
+        if (currentDocId != null) {
+            docId = currentDocId;
             if (hasTextUpdate) {
-                OshDoc updateDoc = new OshDoc();
-                updateDoc.setId(docId);
-                updateDoc.setTitle(docTitle);
-                updateDoc.setContent(StringUtils.defaultString(request.getTextContent(), ""));
-                updateDoc.setContentFormat("html");
-                updateDoc.setUpdateBy(operatorName);
-                updateDoc.setUpdateTime(now);
-                oshDocMapper.updateDocContent(updateDoc);
-            }
-        } else {
-            if (currentDocId != null) {
                 OshDoc updateDoc = new OshDoc();
                 updateDoc.setId(currentDocId);
                 updateDoc.setTitle(docTitle);
@@ -1068,27 +1079,52 @@ public class OshCourseServiceImpl implements IOshCourseService {
                 updateDoc.setUpdateBy(operatorName);
                 updateDoc.setUpdateTime(now);
                 oshDocMapper.updateDocContent(updateDoc);
-                docId = currentDocId;
-            } else {
-                OshDoc newDoc = new OshDoc();
-                newDoc.setId(GenerateUtil.generateSnowflakeId());
-                newDoc.setTitle(StringUtils.defaultIfBlank(docTitle, "Section#" + sectionId));
-                newDoc.setContentFormat("html");
-                newDoc.setContent(StringUtils.defaultString(request.getTextContent(), ""));
-                newDoc.setSummary(null);
-                newDoc.setStatus(OshCourseStatusEnum.PUBLISHED.getCode());
-                newDoc.setVisibility(1);
-                newDoc.setDeleteFlag(0);
-                newDoc.setCreateBy(operatorName);
-                newDoc.setCreateTime(now);
-                newDoc.setUpdateBy(operatorName);
-                newDoc.setUpdateTime(now);
-                oshDocMapper.insertDoc(newDoc);
-                docId = newDoc.getId();
             }
+        } else {
+            OshDoc newDoc = new OshDoc();
+            newDoc.setId(GenerateUtil.generateSnowflakeId());
+            newDoc.setTitle(StringUtils.defaultIfBlank(docTitle, "Section#" + sectionId));
+            newDoc.setContentFormat("html");
+            newDoc.setContent(StringUtils.defaultString(request.getTextContent(), ""));
+            newDoc.setSummary(null);
+            newDoc.setStatus(OshCourseStatusEnum.PUBLISHED.getCode());
+            newDoc.setVisibility(1);
+            newDoc.setDeleteFlag(0);
+            newDoc.setCreateBy(operatorName);
+            newDoc.setCreateTime(now);
+            newDoc.setUpdateBy(operatorName);
+            newDoc.setUpdateTime(now);
+            oshDocMapper.insertDoc(newDoc);
+            docId = newDoc.getId();
         }
 
-        oshDocMapper.softDeleteSectionDocRefs(sectionId, operatorName);
+        ensureSectionDocRef(sectionId, docId, request, operatorName, now);
+    }
+
+    private void ensureSectionDocRef(Long sectionId,
+                                     Long docId,
+                                     CourseTextSectionCreateRequest request,
+                                     String operatorName,
+                                     Date now) {
+        OshDocRef activeRef = oshDocMapper.selectActivePrimaryDocRefBySectionId(sectionId);
+        String anchorType = StringUtils.defaultIfBlank(request.getAnchorType(), "full");
+        String anchorStart = StringUtils.defaultString(request.getAnchorStart(), "");
+        String anchorEnd = StringUtils.defaultString(request.getAnchorEnd(), "");
+        String excerptTitle = StringUtils.trimToNull(request.getExcerptTitle());
+
+        if (activeRef != null
+                && Objects.equals(activeRef.getDocId(), docId)
+                && StringUtils.equals(StringUtils.defaultString(activeRef.getAnchorType(), "full"), anchorType)
+                && StringUtils.equals(StringUtils.defaultString(activeRef.getAnchorStart(), ""), anchorStart)
+                && StringUtils.equals(StringUtils.defaultString(activeRef.getAnchorEnd(), ""), anchorEnd)) {
+            return;
+        }
+
+        oshDocMapper.purgeSoftDeletedSectionDocRefs(sectionId);
+        if (activeRef != null) {
+            oshDocMapper.softDeleteSectionDocRefs(sectionId, operatorName);
+        }
+
         OshDocRef ref = new OshDocRef();
         ref.setId(GenerateUtil.generateSnowflakeId());
         ref.setDocId(docId);
@@ -1096,11 +1132,10 @@ public class OshCourseServiceImpl implements IOshCourseService {
         ref.setRefId(sectionId);
         ref.setIsPrimary(1);
         ref.setSort(0);
-        String anchorType = StringUtils.defaultIfBlank(request.getAnchorType(), "full");
         ref.setAnchorType(anchorType);
-        ref.setAnchorStart(StringUtils.defaultString(request.getAnchorStart(), ""));
-        ref.setAnchorEnd(StringUtils.defaultString(request.getAnchorEnd(), ""));
-        ref.setExcerptTitle(StringUtils.trimToNull(request.getExcerptTitle()));
+        ref.setAnchorStart(anchorStart);
+        ref.setAnchorEnd(anchorEnd);
+        ref.setExcerptTitle(excerptTitle);
         ref.setDeleteFlag(0);
         ref.setCreateBy(operatorName);
         ref.setCreateTime(now);
@@ -1157,6 +1192,41 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
     private static Integer defaultFreeFlag(Integer freeFlag) {
         return freeFlag == null ? CourseSectionConstants.DEFAULT_FREE_FLAG : freeFlag;
+    }
+
+    /**
+     * 待审核/已下架课程不走 Outbox upsert：旧版 Flink 会把非已发布文档从 ES 删除，
+     * 导致「手动 esSync 有数据、新建后审核页看不到」的问题。这类状态改由事务提交后直接 upsert。
+     */
+    private void publishCourseIndexOutboxIfNeeded(Long courseId, Integer status,
+                                                  CourseIndexUpsertMessage message, OshUser operator) {
+        if (!OshCourseStatusEnum.PUBLISHED.getCode().equals(status)) {
+            return;
+        }
+        outboxEventService.saveCourseIndexEvent(courseId, message, operator);
+    }
+
+    private void scheduleCourseEsUpsertAfterCommit(Long courseId, Integer status) {
+        if (!searchEsProperties.isEnabled() || courseId == null || !shouldDirectSyncCourseToEs(status)) {
+            return;
+        }
+        Runnable upsertTask = () -> oshCourseEsService.upsertCourseById(courseId);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    upsertTask.run();
+                }
+            });
+        } else {
+            upsertTask.run();
+        }
+    }
+
+    private boolean shouldDirectSyncCourseToEs(Integer status) {
+        return OshCourseStatusEnum.PENDING_AUDIT.getCode().equals(status)
+                || OshCourseStatusEnum.PUBLISHED.getCode().equals(status)
+                || OshCourseStatusEnum.OFF_SHELF.getCode().equals(status);
     }
 
     private CourseIndexUpsertMessage buildCourseIndexUpsertMessage(OshCourse course, List<String> tags, OshUser operator, String eventType) {

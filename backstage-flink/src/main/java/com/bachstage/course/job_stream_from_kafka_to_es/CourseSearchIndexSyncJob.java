@@ -29,6 +29,8 @@ public class CourseSearchIndexSyncJob {
     private static final String EVENT_TYPE_AUDIT_APPROVED = "AUDIT_APPROVED";
     private static final String EVENT_TYPE_AUDIT_REJECTED = "AUDIT_REJECTED";
     private static final Integer PUBLISHED_STATUS = 4;
+    private static final Integer PENDING_AUDIT_STATUS = 2;
+    private static final Integer OFF_SHELF_STATUS = 6;
 
     public static void main(String[] args) throws Exception {
         log.info("========================================");
@@ -64,18 +66,18 @@ public class CourseSearchIndexSyncJob {
                 .addSink(CourseIndexElasticsearchSinkFactory.buildAuditPartialUpdateSink(config))
                 .name("course-index-es-audit-partial-update-sink");
 
-        // 常规 upsert：已发布才写入
+        // 常规 upsert：已发布 / 待审核 / 已下架 写入 ES，供搜索与审核页使用
         eventStream
                 .filter(CourseSearchIndexSyncJob::isUpsertEvent)
                 .name("course-index-upsert-event-filter")
-                .filter(CourseSearchIndexSyncJob::isPublished)
-                .name("course-index-published-filter")
+                .filter(CourseSearchIndexSyncJob::shouldIndexInSearch)
+                .name("course-index-searchable-filter")
                 .addSink(CourseIndexElasticsearchSinkFactory.buildUpsertSink(config))
                 .name("course-index-es-upsert-sink");
 
-        // 常规删除：DELETE 事件或未发布的 upsert
+        // 常规删除：DELETE 事件或不应进入搜索索引的 upsert（如草稿）
         eventStream
-                .filter(message -> isDeleteEvent(message) || isNotPublishedUpsertEvent(message))
+                .filter(message -> isDeleteEvent(message) || isNonSearchableUpsertEvent(message))
                 .name("course-index-es-delete-route-filter")
                 .addSink(CourseIndexElasticsearchSinkFactory.buildDeleteSink(config))
                 .name("course-index-es-delete-sink");
@@ -140,16 +142,19 @@ public class CourseSearchIndexSyncJob {
         return EVENT_TYPE_DELETE.equals(message.getString("eventType"));
     }
 
-    private static boolean isNotPublishedUpsertEvent(JSONObject message)
+    private static boolean isNonSearchableUpsertEvent(JSONObject message)
     {
-        return isUpsertEvent(message) && !isPublished(message);
+        return isUpsertEvent(message) && !shouldIndexInSearch(message);
     }
 
-    private static boolean isPublished(JSONObject message)
+    private static boolean shouldIndexInSearch(JSONObject message)
     {
         Integer status = message.getInteger("status");
-        boolean pass = status != null && PUBLISHED_STATUS.equals(status);
-        log.info("【课程索引】上架过滤 - 课程ID: {}, 状态: {}, 是否通过: {}",
+        boolean pass = status != null && (
+                PUBLISHED_STATUS.equals(status)
+                        || PENDING_AUDIT_STATUS.equals(status)
+                        || OFF_SHELF_STATUS.equals(status));
+        log.info("【课程索引】可检索状态过滤 - 课程ID: {}, 状态: {}, 是否通过: {}",
                 message.getLong("id"), status, pass);
         return pass;
     }

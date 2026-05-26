@@ -24,6 +24,11 @@ public class OshSeckillGoods extends BaseEntity {
     @ApiModelProperty("主键ID")
     private Long id;
 
+    /** 资源编号，格式：前缀(2位) + 2位字母 + 2位数字 + 2位字母，如 coAb34dF */
+    @Excel(name = "资源编号")
+    @ApiModelProperty("资源编号")
+    private String no;
+
     /** 关联商品ID */
     @Excel(name = "商品ID")
     @ApiModelProperty("关联商品ID（课程/书籍等）")
@@ -89,6 +94,9 @@ public class OshSeckillGoods extends BaseEntity {
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
+    public String getNo() { return no; }
+    public void setNo(String no) { this.no = no; }
+
     public Long getGoodsId() { return goodsId; }
     public void setGoodsId(Long goodsId) { this.goodsId = goodsId; }
 
@@ -132,6 +140,7 @@ public class OshSeckillGoods extends BaseEntity {
     public String toString() {
         return "OshSeckillGoods{" +
                 "id=" + id +
+                ", no='" + no + '\'' +
                 ", goodsId=" + goodsId +
                 ", goodsType=" + goodsType +
                 ", goodsName='" + goodsName + '\'' +

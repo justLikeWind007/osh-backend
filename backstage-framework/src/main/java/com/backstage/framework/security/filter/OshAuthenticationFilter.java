@@ -41,18 +41,24 @@ public class OshAuthenticationFilter extends OncePerRequestFilter {
 
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
-    private Set<String> WHITE_LIST = new HashSet<>(Arrays.asList(
+    private static final Set<String> WHITE_LIST = new HashSet<>(Arrays.asList(
             "/pc/user/login",
             "/pc/user/register/submit",
             "/pc/user/register/verity",
             "/pc/user/forget",
             "/public/**",
+            // 课程标签列表（CourseManageController @Anonymous）
+            "/pc/course/tags",
+            // 秒杀公告栏 & 购买动态，公开展示，无需登录
+            "/pc/seckill/user/announcement/notices",
+            "/pc/seckill/user/recent/orders",
             "/pc/openproject/announcements",
             "/pc/openproject/list",
             "/pc/openproject/tags",
             "/api/qna/question/list",
             "/pc/site/friend-link/list"
     ));
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
         String uri = request.getRequestURI();

@@ -1,5 +1,6 @@
 package com.backstage.system.service.impl.info_gap;
 
+import com.backstage.common.core.domain.R;
 import com.backstage.system.domain.info_gap.OshInfoGap;
 import com.backstage.system.domain.info_gap.OshInfoGapCollect;
 import com.backstage.system.mapper.info_gap.OshInfoGapCollectMapper;
@@ -22,7 +23,7 @@ public class InfoGapCollectServiceImpl implements InfoGapCollectService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void collectInfoGap(Long userId, Long infoGapId) {
+    public R<String> collectInfoGap(Long userId, Long infoGapId) {
         OshInfoGap oshInfoGap = infoGapMapper.selectById(infoGapId);
         if (oshInfoGap == null) {
             throw new RuntimeException("信息差不存在!");
@@ -55,7 +56,7 @@ public class InfoGapCollectServiceImpl implements InfoGapCollectService {
                     .setSql("collect_count = collect_count + 1");
             infoGapMapper.update(null, updateWrapper);
 
-            return;
+            return R.ok(null, "信息差收藏成功!");
         }
 
         if (oshInfoGapCollect.getCollectStatus() == 1) {
@@ -70,6 +71,8 @@ public class InfoGapCollectServiceImpl implements InfoGapCollectService {
                     .eq(OshInfoGap::getId, infoGapId)
                     .setSql("collect_count = GREATEST(collect_count - 1, 0)");
             infoGapMapper.update(null, updateWrapperCount);
+
+            return R.ok(null, "信息差取消收藏成功!");
         } else {
             // 3. 已取消 → 重新收藏
             LambdaUpdateWrapper<OshInfoGapCollect> updateWrapper = Wrappers.lambdaUpdate(OshInfoGapCollect.class)
@@ -81,6 +84,8 @@ public class InfoGapCollectServiceImpl implements InfoGapCollectService {
                     .eq(OshInfoGap::getId, infoGapId)
                     .setSql("collect_count = collect_count + 1");
             infoGapMapper.update(null, updateWrapperCount);
+
+            return R.ok(null, "当前信息差重新收藏成功!");
         }
 
     }

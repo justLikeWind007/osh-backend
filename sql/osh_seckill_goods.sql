@@ -1,5 +1,6 @@
 CREATE TABLE `osh_seckill_goods` (
   `id`                BIGINT        NOT NULL AUTO_INCREMENT          COMMENT '主键ID',
+  `no`                VARCHAR(16)   DEFAULT NULL                     COMMENT '资源编号',
   `goods_id`          BIGINT        DEFAULT NULL                     COMMENT '关联商品ID（课程/书籍等）',
   `goods_type`        TINYINT       DEFAULT NULL                     COMMENT '商品类型：1-课程 2-书籍 3-实物商品',
   `goods_name`        VARCHAR(128)  DEFAULT NULL                     COMMENT '商品名称快照',
