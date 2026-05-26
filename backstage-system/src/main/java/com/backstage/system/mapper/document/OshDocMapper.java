@@ -2,6 +2,7 @@ package com.backstage.system.mapper.document;
 
 import com.backstage.system.domain.document.OshDoc;
 import com.backstage.system.domain.document.OshDocRef;
+import com.backstage.system.domain.document.OshDocRef;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -16,7 +17,11 @@ public interface OshDocMapper {
 
     Long selectPrimaryDocIdBySectionId(@Param("sectionId") Long sectionId);
 
+    OshDocRef selectActivePrimaryDocRefBySectionId(@Param("sectionId") Long sectionId);
+
     String selectPrimaryDocContentBySectionId(@Param("sectionId") Long sectionId);
+
+    int purgeSoftDeletedSectionDocRefs(@Param("sectionId") Long sectionId);
 
     int softDeleteSectionDocRefs(@Param("sectionId") Long sectionId, @Param("updateBy") String updateBy);
 

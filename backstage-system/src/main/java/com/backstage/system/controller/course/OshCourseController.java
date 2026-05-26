@@ -79,7 +79,10 @@ public class OshCourseController extends BaseController {
         if (Integer.valueOf(1).equals(request.getCollectionFlag()) && userId == null) {
             return R.ok(PageResponse.of(Collections.emptyList(), 0L, request.getPageNum(), request.getPageSize()), "ok");
         }
-        if (searchEsProperties.isEnabled()) {
+        // 管理员查看未发布课程时直接走 MySQL，避免 ES 索引延迟/缺失导致新建「审核中」课程不可见。
+        boolean useEsSearch = searchEsProperties.isEnabled()
+                && !Boolean.TRUE.equals(request.getIncludeUnpublished());
+        if (useEsSearch) {
             try {
                 log.info("使用es 查询");
                 return R.ok(oshCourseEsService.searchCourses(request, userId), "ok");
@@ -200,10 +203,7 @@ public class OshCourseController extends BaseController {
     @Anonymous
     public R<String> getCourseSectionContent(@NotNull @PathVariable Long courseId, @NotNull @PathVariable Long sectionId) throws Exception {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
-        if (currentOshUser == null) {
-            return R.fail("请先登录");
-        }
-        Long userId = currentOshUser.getId();
+        Long userId = currentOshUser == null ? null : currentOshUser.getId();
         Integer userBuyCourseOrFreeCourse = oshCourseService.isUserBuyCourseOrFreeCourse(courseId, userId);
         if (userBuyCourseOrFreeCourse.compareTo(0) > 0) {
             return R.ok(oshCourseService.getCourseSectionContent(sectionId, userId));
