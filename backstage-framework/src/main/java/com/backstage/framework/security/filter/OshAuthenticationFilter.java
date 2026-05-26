@@ -51,7 +51,12 @@ public class OshAuthenticationFilter extends OncePerRequestFilter {
             "/pc/course/tags",
             // 秒杀公告栏 & 购买动态，公开展示，无需登录
             "/pc/seckill/user/announcement/notices",
-            "/pc/seckill/user/recent/orders"
+            "/pc/seckill/user/recent/orders",
+            "/pc/openproject/announcements",
+            "/pc/openproject/list",
+            "/pc/openproject/tags",
+            "/api/qna/question/list",
+            "/pc/site/friend-link/list"
     ));
 
     @Override

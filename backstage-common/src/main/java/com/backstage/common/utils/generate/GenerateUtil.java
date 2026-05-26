@@ -54,7 +54,20 @@ public class GenerateUtil {
         return sb.toString();
     }
 
-    public static void main(String[] args) {
-        System.out.println(generateResourceCode(ResourceCodePrefixEnum.COURSE));
+    /**
+     * 生成用户邀请码。
+     * 格式：8位大小写字母+数字混合
+     * 示例：Ab3xKm9Q
+     *
+     * @return 8位邀请码
+     */
+    public static String generateInviteCode() {
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        char[] allChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".toCharArray();
+        StringBuilder sb = new StringBuilder(8);
+        for (int i = 0; i < 8; i++) {
+            sb.append(allChars[random.nextInt(allChars.length)]);
+        }
+        return sb.toString();
     }
 }

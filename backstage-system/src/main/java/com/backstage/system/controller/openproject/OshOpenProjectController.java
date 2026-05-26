@@ -1,5 +1,6 @@
 package com.backstage.system.controller.openproject;
 
+import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.annotation.OshUserEvent;
 import com.backstage.common.core.domain.R;
 import com.backstage.system.domain.openproject.OshOpenProjectTag;
@@ -38,6 +39,7 @@ public class OshOpenProjectController {
 
     /** 获取开源项目最新公告 */
     @GetMapping("/announcements")
+    @Anonymous
     public R<List<ToolAnnouncementVO>> getAnnouncements() {
         return R.ok(announcementMapper.selectLatestOpenProjectAnnouncements());
     }
@@ -45,7 +47,7 @@ public class OshOpenProjectController {
     /** 分页查询已通过的开源项目列表 */
     @PostMapping("/list")
     @OshUserEvent(module = "开源项目", actionType = "查询", resourceType = "开源项目")
-    @PreAuthorize("hasAuthority('op:list')")
+    @Anonymous
     public R<Map<String, Object>> list(@RequestBody OpenProjectQueryDTO queryDTO) {
         return R.ok(openProjectService.listPage(queryDTO));
     }
@@ -74,9 +76,9 @@ public class OshOpenProjectController {
     }
 
     /** 查询所有标签 */
-    @PreAuthorize("hasAuthority('op:tags')")
     @OshUserEvent(module = "开源项目", actionType = "查询", resourceType = "开源项目")
     @GetMapping("/tags")
+    @Anonymous
     public R<List<OshOpenProjectTag>> tags() {
         return R.ok(openProjectService.listTags());
     }
@@ -118,6 +120,7 @@ public class OshOpenProjectController {
     /** 收藏项目 */
     @PostMapping("/favorite")
     @PreAuthorize("hasAuthority('op:collection')")
+    @OshUserEvent(module = "开源项目", actionType = "收藏", resourceType = "开源项目")
     public R<Void> favorite(@RequestParam Long projectId) {
         Long userId = UserContextUtil.getCurrentUserId();
         favoriteService.favorite(userId, projectId);
@@ -127,6 +130,7 @@ public class OshOpenProjectController {
     /** 取消收藏 */
     @PostMapping("/favorite/cancel")
     @PreAuthorize("hasAuthority('op:cancel:collection')")
+    @OshUserEvent(module = "开源项目", actionType = "取消收藏", resourceType = "开源项目")
     public R<Void> cancelFavorite(@RequestParam Long projectId) {
         Long userId = UserContextUtil.getCurrentUserId();
         favoriteService.cancelFavorite(userId, projectId);
