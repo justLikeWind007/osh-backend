@@ -50,7 +50,8 @@ public class OshAuthenticationFilter extends OncePerRequestFilter {
             "/pc/openproject/announcements",
             "/pc/openproject/list",
             "/pc/openproject/tags",
-            "/api/qna/question/list"
+            "/api/qna/question/list",
+            "/pc/site/friend-link/list"
     ));
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
