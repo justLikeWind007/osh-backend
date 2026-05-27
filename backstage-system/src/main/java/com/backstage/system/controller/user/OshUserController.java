@@ -154,24 +154,6 @@ public class OshUserController extends BaseController {
         return userService.deleteUser();
     }
 
-    @PostMapping("/violation/record")
-    @PreAuthorize("hasAuthority('user:violation:record')")
-    @OshUserEvent(module = "用户模块", actionType = "违规记录", description = "用户违规记录")
-    public R<String> record(
-            @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
-            @RequestBody UserRecordDTO userRecordDTO) {
-        return userService.record(userRecordDTO.getUserId(), userRecordDTO.getViolationType(), userRecordDTO.getReason());
-    }
-
-    @PostMapping("/violation/record/cancel")
-    @PreAuthorize("hasAuthority('user:violation:record:cancel')")
-    @OshUserEvent(module = "用户模块", actionType = "取消违规记录", description = "用户取消违规记录")
-    public R<String> cancelRecord(
-            @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
-            @RequestBody UserCancelRecordDTO userCancelRecordDTO) {
-        return userService.cancelRecord(userCancelRecordDTO.getUserId(), UserContextUtil.getCurrentUser());
-    }
-
     @PostMapping("/asset/update")
     @PreAuthorize("hasAuthority('user:asset:update')")
     @OshUserEvent(module = "用户模块", actionType = "更新资产", description = "用户更新资产")
