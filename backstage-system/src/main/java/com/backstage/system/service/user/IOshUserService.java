@@ -43,10 +43,6 @@ public interface IOshUserService {
 
     R<String> deleteUser();
 
-    R<String> record(Long userId, Integer violationType, String reason);
-
-    R<String> cancelRecord(Long userId, OshUser currentOshUser);
-
     R<String> updateAsset(Integer changeType, Integer changeSource, Long changeAmount, String remark);
 
 //    /**

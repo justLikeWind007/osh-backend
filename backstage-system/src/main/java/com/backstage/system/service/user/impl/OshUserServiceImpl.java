@@ -408,41 +408,6 @@ public class OshUserServiceImpl implements IOshUserService {
     }
 
     @Override
-    public R<String> record(Long userId, Integer violationType, String reason) {
-        Long operatorId = ThreadLocalUtil.get(OshUserConstants.USER_ID, Long.class);
-        OshUserViolation record = new OshUserViolation();
-        record.setUserId(userId);
-        record.setViolationType(violationType);
-        record.setReason(reason);
-        if (operatorId != null) record.setOperatorId(operatorId);
-        oshUserViolationMapper.insert(record);
-        LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(OshUser::getId, userId);
-        OshUser oshUser = oshUserMapper.selectOne(wrapper);
-        oshUser.setViolationCount(oshUser.getViolationCount() + 1);
-        oshUserMapper.update(oshUser, wrapper);
-        return R.ok(ResultCode.SUCCESS.getMsg());
-    }
-
-    @Override
-    public R<String> cancelRecord(Long userId, OshUser currentOshUser) {
-        LambdaQueryWrapper<OshUserViolation> wrapper = new LambdaQueryWrapper<OshUserViolation>()
-                .eq(OshUserViolation::getUserId, userId);
-        OshUserViolation record = oshUserViolationMapper.selectOne(wrapper);
-        if (record == null) {
-            return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
-        }
-        record.setDeleteFlag((byte) 1);
-        oshUserViolationMapper.update(record, wrapper);
-        LambdaQueryWrapper<OshUser> userWrapper = new LambdaQueryWrapper<>();
-        userWrapper.eq(OshUser::getId, userId);
-        OshUser oshUser = oshUserMapper.selectOne(userWrapper);
-        oshUser.setViolationCount(oshUser.getViolationCount() - 1);
-        oshUserMapper.update(oshUser, userWrapper);
-        return R.ok(ResultCode.SUCCESS.getMsg());
-    }
-
-    @Override
     public R<String> updateAsset(Integer changeType, Integer changeSource, Long changeAmount, String remark) {
         LambdaQueryWrapper<OshUserAsset> wrapper = new LambdaQueryWrapper<>();
         Long userId = UserContextUtil.getCurrentUserId();
