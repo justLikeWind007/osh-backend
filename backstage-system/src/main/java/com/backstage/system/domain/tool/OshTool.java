@@ -22,6 +22,9 @@ public class OshTool {
     @ApiModelProperty("工具名称")
     private String toolName;
 
+    @ApiModelProperty("工具编号")
+    private String no;
+
     @ApiModelProperty("工具描述")
     private String description;
 
@@ -128,6 +131,14 @@ public class OshTool {
 
     public void setToolName(String toolName) {
         this.toolName = toolName;
+    }
+
+    public String getNo() {
+        return no;
+    }
+
+    public void setNo(String no) {
+        this.no = no;
     }
 
     public String getDescription() {

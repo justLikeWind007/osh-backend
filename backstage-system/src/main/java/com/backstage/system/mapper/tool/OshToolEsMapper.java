@@ -100,9 +100,11 @@ public class OshToolEsMapper {
         }
         BulkRequest bulkRequest = new BulkRequest();
         for (ToolIndexMessage document : documents) {
+            Map<String, Object> source = objectMapper.convertValue(document, Map.class);
+            source.remove("eventType");
             bulkRequest.add(new IndexRequest(TOOL_SEARCH_INDEX)
                     .id(String.valueOf(document.getId()))
-                    .source(objectMapper.writeValueAsString(document), XContentType.JSON));
+                    .source(objectMapper.writeValueAsString(source), XContentType.JSON));
         }
         BulkResponse bulkResponse = restHighLevelClient.bulk(bulkRequest, RequestOptions.DEFAULT);
         if (bulkResponse.hasFailures()) {
@@ -142,6 +144,9 @@ public class OshToolEsMapper {
         if (request.getToolId() != null) {
             boolQuery.filter(QueryBuilders.termQuery("id", request.getToolId()));
         }
+        if (StringUtils.isNotEmpty(request.getNo())) {
+            boolQuery.filter(QueryBuilders.termQuery("no", request.getNo().trim()));
+        }
         if (StringUtils.isNotEmpty(request.getKeyword())) {
             boolQuery.must(buildKeywordQuery(request.getKeyword()));
             sourceBuilder.sort(SortBuilders.scoreSort().order(SortOrder.DESC));
@@ -173,6 +178,7 @@ public class OshToolEsMapper {
         OshTool tool = new OshTool();
         tool.setId(document.getId());
         tool.setToolName(document.getToolName());
+        tool.setNo(document.getNo());
         tool.setDescription(document.getDescription());
         tool.setRoutePath(document.getRoutePath());
         tool.setGithubUrl(document.getGithubUrl());

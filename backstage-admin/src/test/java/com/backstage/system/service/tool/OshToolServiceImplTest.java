@@ -4,6 +4,7 @@ import com.backstage.system.domain.tool.OshTool;
 import com.backstage.system.domain.tool.OshToolPackage;
 import com.backstage.system.domain.tool.OshToolTag;
 import com.backstage.system.domain.user.OshUser;
+import com.backstage.common.enums.ResourceCodePrefixEnum;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.system.mapper.tool.OshToolCollectionMapper;
 import com.backstage.system.mapper.tool.OshToolMapper;
@@ -23,14 +24,15 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -57,6 +59,9 @@ public class OshToolServiceImplTest {
     @Mock
     private OutboxEventService outboxEventService;
 
+    @Mock
+    private ResourceNoGenerator resourceNoGenerator;
+
     @Test
     public void shouldCreateMissingTagsWhenCreatingToolWithNewTagNames() {
         ToolSaveRequest request = new ToolSaveRequest();
@@ -72,6 +77,7 @@ public class OshToolServiceImplTest {
             tool.setId(10001L);
             return 1;
         });
+        when(resourceNoGenerator.generateUniqueNo(eq(ResourceCodePrefixEnum.TOOL), any())).thenReturn("tlAb12Cd");
         when(oshToolTagMapper.selectByName("PDF工具")).thenReturn(null);
         when(oshToolTagMapper.selectByName("图片工具")).thenReturn(null);
         when(oshToolTagMapper.insertToolTag(any(OshToolTag.class))).thenAnswer(invocation -> {
@@ -83,7 +89,7 @@ public class OshToolServiceImplTest {
         Long toolId = toolService.createTool(request, operator);
 
         assertEquals(Long.valueOf(10001L), toolId);
-        verify(oshToolMapper).insertTool(argThat(tool -> Integer.valueOf(2).equals(tool.getStatus())));
+        verify(oshToolMapper).insertTool(argThat(tool -> Integer.valueOf(2).equals(tool.getStatus()) && "tlAb12Cd".equals(tool.getNo())));
         verify(oshToolTagMapper, times(2)).insertToolTag(any(OshToolTag.class));
         verify(oshToolTagMapper).insertToolTagRel(eq(10001L), eq(1L), eq("admin"));
         verify(oshToolTagMapper).insertToolTagRel(eq(10001L), eq(2L), eq("admin"));
@@ -112,6 +118,7 @@ public class OshToolServiceImplTest {
             tool.setId(10002L);
             return 1;
         });
+        when(resourceNoGenerator.generateUniqueNo(eq(ResourceCodePrefixEnum.TOOL), any())).thenReturn("tlCd34Ef");
         when(oshToolPackageMapper.insertToolPackage(any(OshToolPackage.class))).thenReturn(1);
 
         Long toolId = toolService.createTool(request, operator);
@@ -139,6 +146,7 @@ public class OshToolServiceImplTest {
             tool.setId(10003L);
             return 1;
         });
+        when(resourceNoGenerator.generateUniqueNo(eq(ResourceCodePrefixEnum.TOOL), any())).thenReturn("tlGh56Ij");
 
         Long toolId = toolService.createTool(request, operator);
 
@@ -147,6 +155,7 @@ public class OshToolServiceImplTest {
                 Integer.valueOf(1).equals(tool.getAccessType())
                         && "/test/test".equals(tool.getRoutePath())
                         && tool.getIframeUrl() == null
+                        && "tlGh56Ij".equals(tool.getNo())
                         && Integer.valueOf(0).equals(tool.getPointCost())
                         && Integer.valueOf(2).equals(tool.getStatus())
         ));
@@ -271,5 +280,25 @@ public class OshToolServiceImplTest {
 
         verify(oshToolMapper).increaseViewCount(10001L);
         verify(oshToolEsService).buildIndexMessage(eq(10001L), eq(ToolIndexEventType.TOOL_INDEX_COUNTER));
+    }
+
+    @Test
+    public void shouldFillMissingToolNoAndReturnUpdatedCount() {
+        OshTool first = new OshTool();
+        first.setId(10001L);
+        OshTool second = new OshTool();
+        second.setId(10002L);
+        when(oshToolMapper.selectToolsWithMissingNo()).thenReturn(Arrays.asList(first, second));
+        when(resourceNoGenerator.generateUniqueNo(eq(ResourceCodePrefixEnum.TOOL), any()))
+                .thenReturn("tlAa11Bb", "tlCc22Dd");
+        when(oshToolMapper.updateToolNoById(eq(10001L), any(String.class))).thenReturn(1);
+        when(oshToolMapper.updateToolNoById(eq(10002L), any(String.class))).thenReturn(1);
+
+        int updatedCount = toolService.fillMissingToolNo();
+
+        assertEquals(2, updatedCount);
+        verify(oshToolMapper).selectToolsWithMissingNo();
+        verify(oshToolMapper).updateToolNoById(eq(10001L), eq("tlAa11Bb"));
+        verify(oshToolMapper).updateToolNoById(eq(10002L), eq("tlCc22Dd"));
     }
 }

@@ -1,6 +1,3 @@
-//DELETE /osh_tool_search
-
-PUT /osh_tool_search
 {
   "settings": {
     "number_of_shards": 1,

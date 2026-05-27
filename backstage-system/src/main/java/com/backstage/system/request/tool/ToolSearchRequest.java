@@ -22,6 +22,9 @@ public class ToolSearchRequest extends PageRequest {
     @ApiModelProperty(value = "搜索关键字，匹配工具名称、描述、标签", example = "图片转PDF")
     private String keyword;
 
+    @ApiModelProperty(value = "工具编号，传入时优先按编号精确查询", example = "tlAb12Cd")
+    private String no;
+
     @ApiModelProperty(value = "资源类型：FREE,CASH_ONLY,CASH_POINT,VIP,SMALL_CLASS,INTERNAL", example = "FREE")
     private String resourceType;
 
@@ -53,6 +56,14 @@ public class ToolSearchRequest extends PageRequest {
 
     public void setKeyword(String keyword) {
         this.keyword = StringUtils.trimToNull(keyword);
+    }
+
+    public String getNo() {
+        return no;
+    }
+
+    public void setNo(String no) {
+        this.no = StringUtils.trimToNull(no);
     }
 
     public String getResourceType() {
