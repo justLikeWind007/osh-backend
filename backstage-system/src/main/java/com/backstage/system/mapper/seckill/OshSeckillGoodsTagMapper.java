@@ -6,35 +6,44 @@ import org.apache.ibatis.annotations.Param;
 import java.util.List;
 
 /**
- * 秒杀商品标签 Mapper 接口
+ * 秒杀商品标签字典 Mapper 接口
  *
  * @author backstage
  */
 public interface OshSeckillGoodsTagMapper {
 
     /**
-     * 查询单个商品的标签名称列表
+     * 根据标签名查询标签（用于新增时判断是否已存在，复用已有标签）
      */
-    List<String> selectTagNamesBySeckillGoodsId(@Param("seckillGoodsId") Long seckillGoodsId);
+    OshSeckillGoodsTag selectByTagName(@Param("tagName") String tagName);
 
     /**
-     * 批量查询多个商品的标签（返回实体，含 seckillGoodsId，供批量回填使用）
-     */
-    List<OshSeckillGoodsTag> selectTagsBySeckillGoodsIds(@Param("ids") List<Long> ids);
-
-    /**
-     * 插入单条标签
+     * 插入新标签
      */
     int insertTag(OshSeckillGoodsTag tag);
 
     /**
-     * 批量插入标签
+     * 根据商品ID查询该商品的标签名称列表（通过 rel 表关联）
      */
-    int insertTags(@Param("tags") List<OshSeckillGoodsTag> tags);
+    List<String> selectTagNamesBySeckillGoodsId(@Param("seckillGoodsId") Long seckillGoodsId);
 
     /**
-     * 软删除某商品的所有标签（修改标签时先删再插）
+     * 批量查询多个商品的标签（含 seckillGoodsId，供批量回填使用，避免 N+1）
      */
-    int softDeleteBySeckillGoodsId(@Param("seckillGoodsId") Long seckillGoodsId,
-                                   @Param("updateBy") String updateBy);
+    List<OshSeckillGoodsTagWithGoodsId> selectTagsBySeckillGoodsIds(@Param("ids") List<Long> ids);
+
+    /**
+     * 批量查询多个商品的标签名称列表（含 seckillGoodsId）
+     * 内部 DTO，仅供 Mapper 使用
+     */
+    class OshSeckillGoodsTagWithGoodsId {
+        private Long seckillGoodsId;
+        private String tagName;
+
+        public Long getSeckillGoodsId() { return seckillGoodsId; }
+        public void setSeckillGoodsId(Long seckillGoodsId) { this.seckillGoodsId = seckillGoodsId; }
+
+        public String getTagName() { return tagName; }
+        public void setTagName(String tagName) { this.tagName = tagName; }
+    }
 }

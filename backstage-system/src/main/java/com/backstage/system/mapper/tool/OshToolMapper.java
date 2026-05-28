@@ -15,6 +15,8 @@ public interface OshToolMapper {
 
     List<OshTool> selectAllToolsForEsSync();
 
+    List<OshTool> selectToolsWithMissingNo();
+
     List<OshTool> selectRecommendTools(@Param("request") ToolRecommendRequest request,
                                        @Param("userId") Long userId);
 
@@ -39,6 +41,10 @@ public interface OshToolMapper {
     int insertTool(OshTool tool);
 
     int updateTool(OshTool tool);
+
+    int updateToolNoById(@Param("id") Long id, @Param("no") String no);
+
+    int countByNo(@Param("no") String no);
 
     int deleteToolsByIds(@Param("ids") List<Long> ids, @Param("operator") String operator);
 

@@ -1,5 +1,6 @@
 package com.backstage.system.controller.user;
 
+import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.annotation.OshUserEvent;
 import com.backstage.common.annotation.OshUserLevel;
 import com.backstage.common.core.controller.BaseController;
@@ -41,6 +42,7 @@ public class OshUserController extends BaseController {
     @ApiOperation("账号登录")
     @PostMapping("/login")
     @OshUserEvent(module = "用户模块", actionType = "登录", description = "用户登录")
+    @Anonymous
     public R<OshUserLoginVO> login(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserLoginDTO userLoginDTO) {
@@ -50,15 +52,17 @@ public class OshUserController extends BaseController {
     @ApiOperation("注册请求")
     @PostMapping("/register/submit")
     @OshUserEvent(module = "用户模块", actionType = "注册", description = "用户提交注册请求")
+    @Anonymous
     public R<String> registerSubmit(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserRegisterDTO userRegisterDTO) throws MessagingException {
-        return userService.registerSubmit(userRegisterDTO.getUsername(),userRegisterDTO.getPassword(),userRegisterDTO.getRepassword(),userRegisterDTO.getEmail());
+        return userService.registerSubmit(userRegisterDTO.getUsername(),userRegisterDTO.getPassword(),userRegisterDTO.getRepassword(),userRegisterDTO.getEmail(),userRegisterDTO.getInviteCode());
     }
 
     @ApiOperation("账号注册")
     @PostMapping("/register/verity")
     @OshUserEvent(module = "用户模块", actionType = "注册", description = "验证用户注册")
+    @Anonymous
     public R<String> registerVerity(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @ApiParam("用户的唯一标识") @RequestBody VerityRequestDTO verityRequestDTO) {
@@ -97,6 +101,7 @@ public class OshUserController extends BaseController {
     @ApiOperation("找回密码")
     @PostMapping("/forget")
     @OshUserEvent(module = "用户模块", actionType = "找回密码", description = "用户找回密码")
+    @Anonymous
     public R<String> forget(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
             @RequestBody UserForgetDTO userForgetDTO) {
@@ -147,24 +152,6 @@ public class OshUserController extends BaseController {
     public R<String> deleteUser(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid) {
         return userService.deleteUser();
-    }
-
-    @PostMapping("/violation/record")
-    @PreAuthorize("hasAuthority('user:violation:record')")
-    @OshUserEvent(module = "用户模块", actionType = "违规记录", description = "用户违规记录")
-    public R<String> record(
-            @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
-            @RequestBody UserRecordDTO userRecordDTO) {
-        return userService.record(userRecordDTO.getUserId(), userRecordDTO.getViolationType(), userRecordDTO.getReason());
-    }
-
-    @PostMapping("/violation/record/cancel")
-    @PreAuthorize("hasAuthority('user:violation:record:cancel')")
-    @OshUserEvent(module = "用户模块", actionType = "取消违规记录", description = "用户取消违规记录")
-    public R<String> cancelRecord(
-            @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
-            @RequestBody UserCancelRecordDTO userCancelRecordDTO) {
-        return userService.cancelRecord(userCancelRecordDTO.getUserId(), UserContextUtil.getCurrentUser());
     }
 
     @PostMapping("/asset/update")

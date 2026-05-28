@@ -4,8 +4,9 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * 秒杀商品标签实体类
+ * 秒杀商品标签字典实体类
  * 对应表名：osh_seckill_goods_tag
+ * 标签字典表，一个标签只存一次，通过 osh_seckill_goods_tag_rel 与商品关联
  *
  * @author backstage
  */
@@ -15,9 +16,6 @@ public class OshSeckillGoodsTag implements Serializable {
 
     /** 主键ID */
     private Long id;
-
-    /** 关联秒杀商品池ID */
-    private Long seckillGoodsId;
 
     /** 标签名称 */
     private String tagName;
@@ -42,9 +40,6 @@ public class OshSeckillGoodsTag implements Serializable {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-
-    public Long getSeckillGoodsId() { return seckillGoodsId; }
-    public void setSeckillGoodsId(Long seckillGoodsId) { this.seckillGoodsId = seckillGoodsId; }
 
     public String getTagName() { return tagName; }
     public void setTagName(String tagName) { this.tagName = tagName; }

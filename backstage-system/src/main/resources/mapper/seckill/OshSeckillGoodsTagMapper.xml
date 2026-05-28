@@ -5,67 +5,59 @@
 <mapper namespace="com.backstage.system.mapper.seckill.OshSeckillGoodsTagMapper">
 
     <resultMap type="com.backstage.system.domain.seckill.OshSeckillGoodsTag" id="OshSeckillGoodsTagResult">
-        <result property="id"               column="id"/>
-        <result property="seckillGoodsId"   column="seckill_goods_id"/>
-        <result property="tagName"          column="tag_name"/>
-        <result property="sortOrder"        column="sort_order"/>
-        <result property="createBy"         column="create_by"/>
-        <result property="createTime"       column="create_time"/>
-        <result property="updateBy"         column="update_by"/>
-        <result property="updateTime"       column="update_time"/>
-        <result property="deleteFlag"       column="delete_flag"/>
+        <result property="id"          column="id"/>
+        <result property="tagName"     column="tag_name"/>
+        <result property="sortOrder"   column="sort_order"/>
+        <result property="createBy"    column="create_by"/>
+        <result property="createTime"  column="create_time"/>
+        <result property="updateBy"    column="update_by"/>
+        <result property="updateTime"  column="update_time"/>
+        <result property="deleteFlag"  column="delete_flag"/>
     </resultMap>
 
-    <!-- 查询单个商品的标签名称列表 -->
-    <select id="selectTagNamesBySeckillGoodsId" resultType="java.lang.String">
-        SELECT tag_name
+    <!-- 根据标签名查询标签（用于复用已有标签） -->
+    <select id="selectByTagName" resultMap="OshSeckillGoodsTagResult">
+        SELECT id, tag_name, sort_order, create_by, create_time, update_by, update_time, delete_flag
         FROM osh_seckill_goods_tag
-        WHERE seckill_goods_id = #{seckillGoodsId}
+        WHERE tag_name = #{tagName}
           AND (delete_flag = 0 OR delete_flag IS NULL)
-        ORDER BY sort_order ASC, id ASC
+        LIMIT 1
     </select>
 
-    <!-- 批量查询多个商品的标签 -->
-    <select id="selectTagsBySeckillGoodsIds" resultMap="OshSeckillGoodsTagResult">
-        SELECT id, seckill_goods_id, tag_name, sort_order
-        FROM osh_seckill_goods_tag
-        WHERE seckill_goods_id IN
-        <foreach collection="ids" item="id" open="(" separator="," close=")">
-            #{id}
-        </foreach>
-          AND (delete_flag = 0 OR delete_flag IS NULL)
-        ORDER BY seckill_goods_id ASC, sort_order ASC, id ASC
-    </select>
-
-    <!-- 插入单条标签 -->
+    <!-- 插入新标签 -->
     <insert id="insertTag" parameterType="com.backstage.system.domain.seckill.OshSeckillGoodsTag"
             useGeneratedKeys="true" keyProperty="id">
         INSERT INTO osh_seckill_goods_tag
-            (seckill_goods_id, tag_name, sort_order, create_by, create_time, update_by, update_time, delete_flag)
+            (tag_name, sort_order, create_by, create_time, update_by, update_time, delete_flag)
         VALUES
-            (#{seckillGoodsId}, #{tagName}, #{sortOrder, jdbcType=INTEGER},
+            (#{tagName}, #{sortOrder, jdbcType=INTEGER},
              #{createBy}, CURRENT_TIMESTAMP, #{updateBy}, CURRENT_TIMESTAMP, 0)
     </insert>
 
-    <!-- 批量插入标签 -->
-    <insert id="insertTags">
-        INSERT INTO osh_seckill_goods_tag
-            (seckill_goods_id, tag_name, sort_order, create_by, create_time, update_by, update_time, delete_flag)
-        VALUES
-        <foreach collection="tags" item="tag" separator=",">
-            (#{tag.seckillGoodsId}, #{tag.tagName}, #{tag.sortOrder, jdbcType=INTEGER},
-             #{tag.createBy}, CURRENT_TIMESTAMP, #{tag.updateBy}, CURRENT_TIMESTAMP, 0)
-        </foreach>
-    </insert>
+    <!-- 根据商品ID查询标签名称列表（通过 rel 表关联） -->
+    <select id="selectTagNamesBySeckillGoodsId" resultType="java.lang.String">
+        SELECT t.tag_name
+        FROM osh_seckill_goods_tag t
+                 INNER JOIN osh_seckill_goods_tag_rel r ON t.id = r.tag_id
+        WHERE r.seckill_goods_id = #{seckillGoodsId}
+          AND (r.delete_flag = 0 OR r.delete_flag IS NULL)
+          AND (t.delete_flag = 0 OR t.delete_flag IS NULL)
+        ORDER BY t.sort_order ASC, t.id ASC
+    </select>
 
-    <!-- 软删除某商品的所有标签 -->
-    <update id="softDeleteBySeckillGoodsId">
-        UPDATE osh_seckill_goods_tag
-        SET delete_flag = 1,
-            update_by   = #{updateBy, jdbcType=VARCHAR},
-            update_time = CURRENT_TIMESTAMP
-        WHERE seckill_goods_id = #{seckillGoodsId}
-          AND (delete_flag = 0 OR delete_flag IS NULL)
-    </update>
+    <!-- 批量查询多个商品的标签（含 seckillGoodsId，供批量回填使用） -->
+    <select id="selectTagsBySeckillGoodsIds"
+            resultType="com.backstage.system.mapper.seckill.OshSeckillGoodsTagMapper$OshSeckillGoodsTagWithGoodsId">
+        SELECT r.seckill_goods_id AS seckillGoodsId, t.tag_name AS tagName
+        FROM osh_seckill_goods_tag t
+                 INNER JOIN osh_seckill_goods_tag_rel r ON t.id = r.tag_id
+        WHERE r.seckill_goods_id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+          AND (r.delete_flag = 0 OR r.delete_flag IS NULL)
+          AND (t.delete_flag = 0 OR t.delete_flag IS NULL)
+        ORDER BY r.seckill_goods_id ASC, t.sort_order ASC, t.id ASC
+    </select>
 
 </mapper>

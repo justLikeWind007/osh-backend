@@ -21,6 +21,8 @@ public interface IOshUserService {
 
     R<String> registerSubmit(String username, String password, String repassword, String email) throws MessagingException;
 
+    R<String> registerSubmit(String username, String password, String repassword, String email, String inviteCode) throws MessagingException;
+
     R<String> registerVerity(String uniqueId);
 
     R<String> logout();
@@ -40,10 +42,6 @@ public interface IOshUserService {
     R<OshUser> getUserInfo();
 
     R<String> deleteUser();
-
-    R<String> record(Long userId, Integer violationType, String reason);
-
-    R<String> cancelRecord(Long userId, OshUser currentOshUser);
 
     R<String> updateAsset(Integer changeType, Integer changeSource, Long changeAmount, String remark);
 

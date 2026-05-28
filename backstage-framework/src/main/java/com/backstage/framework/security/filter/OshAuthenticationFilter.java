@@ -5,6 +5,7 @@ import com.backstage.common.core.redis.RedisCache;
 import com.backstage.common.core.domain.model.OshUserDetail;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.common.utils.jwt.JwtUtil;
+import com.backstage.framework.config.properties.PermitAllUrlProperties;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.mapper.user.OshUserMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -39,22 +40,10 @@ public class OshAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     private OshUserMapper oshUserMapper;
 
-    private final AntPathMatcher pathMatcher = new AntPathMatcher();
+    @Autowired
+    private PermitAllUrlProperties permitAllUrl;
 
-    private static final Set<String> WHITE_LIST = new HashSet<>(Arrays.asList(
-            "/pc/user/login",
-            "/pc/user/register/submit",
-            "/pc/user/register/verity",
-            "/pc/user/forget",
-            "/public/**",
-            // 秒杀公告栏 & 购买动态，公开展示，无需登录
-            "/pc/seckill/user/announcement/notices",
-            "/pc/seckill/user/recent/orders",
-            // 秒杀 ES 运维接口
-            "/pc/seckill/user/esSync/all",
-            "/pc/seckill/es/recreateIndex",
-            "/pc/seckill/es/syncAll"
-    ));
+    private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
@@ -148,7 +137,8 @@ public class OshAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private boolean isWhiteList(String uri) {
-        for (String pattern : WHITE_LIST) {
+        // 匹配 @Anonymous 注解收集的 URL
+        for (String pattern : permitAllUrl.getUrls()) {
             if (pathMatcher.match(pattern, uri)) {
                 return true;
             }

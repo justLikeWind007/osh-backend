@@ -6,7 +6,6 @@ import io.swagger.annotations.ApiModelProperty;
 import javax.validation.constraints.DecimalMin;
 import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
-import java.util.List;
 
 /**
  * 添加商品到秒杀商品池 DTO
@@ -34,9 +33,6 @@ public class SeckillGoodsAddDTO {
     @ApiModelProperty("排序权重，数值越大越靠前，默认0")
     private Integer sort;
 
-    @ApiModelProperty("标签名称列表")
-    private List<String> tagNames;
-
     public Long getGoodsId() { return goodsId; }
     public void setGoodsId(Long goodsId) { this.goodsId = goodsId; }
 
@@ -48,7 +44,4 @@ public class SeckillGoodsAddDTO {
 
     public Integer getSort() { return sort; }
     public void setSort(Integer sort) { this.sort = sort; }
-
-    public List<String> getTagNames() { return tagNames; }
-    public void setTagNames(List<String> tagNames) { this.tagNames = tagNames; }
 }

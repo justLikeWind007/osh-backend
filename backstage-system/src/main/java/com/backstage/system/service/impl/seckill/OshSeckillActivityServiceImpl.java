@@ -17,6 +17,7 @@ import com.backstage.system.mapper.seckill.OshSeckillActivityItemMapper;
 import com.backstage.system.mapper.seckill.OshSeckillActivityMapper;
 import com.backstage.system.mapper.seckill.OshSeckillGoodsMapper;
 import com.backstage.system.mapper.seckill.OshSeckillGoodsTagMapper;
+import com.backstage.system.mapper.seckill.OshSeckillGoodsTagMapper;
 import com.backstage.system.service.OutboxEventService;
 import com.backstage.system.service.seckill.IOshSeckillActivityService;
 import com.backstage.system.service.seckill.SeckillItemIndexDeleteMessage;
@@ -558,6 +559,13 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
         vo.setLimitPerUser(item.getLimitPerUser());
         vo.setSort(item.getSort());
         vo.setSoldCount(item.getSoldCount());
+
+        // 回填标签
+        if (item.getSeckillGoodsId() != null) {
+            vo.setTagNames(seckillGoodsTagMapper.selectTagNamesBySeckillGoodsId(item.getSeckillGoodsId()));
+        } else {
+            vo.setTagNames(java.util.Collections.emptyList());
+        }
 
         // 优先从 Redis 读实时库存，Redis 没有则降级用数据库值
         String stockKey = SECKILL_STOCK_KEY + item.getActivityId() + ":" + item.getId();

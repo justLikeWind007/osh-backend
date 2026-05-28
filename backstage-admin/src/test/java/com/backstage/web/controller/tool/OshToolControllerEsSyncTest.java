@@ -44,4 +44,23 @@ public class OshToolControllerEsSyncTest {
 
         verify(oshToolEsService).syncAllToolsToEs();
     }
+
+    @Test
+    public void shouldFillMissingToolNo() throws Exception {
+        IOshToolService oshToolService = mock(IOshToolService.class);
+        OshToolController controller = new OshToolController();
+        ReflectionTestUtils.setField(controller, "oshToolService", oshToolService);
+        ReflectionTestUtils.setField(controller, "oshToolCollectionService", mock(IOshToolCollectionService.class));
+        ReflectionTestUtils.setField(controller, "oshToolEsService", mock(IOshToolEsService.class));
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+
+        when(oshToolService.fillMissingToolNo()).thenReturn(7);
+
+        mockMvc.perform(post("/pc/tool/fill/no"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data").value(7));
+
+        verify(oshToolService).fillMissingToolNo();
+    }
 }

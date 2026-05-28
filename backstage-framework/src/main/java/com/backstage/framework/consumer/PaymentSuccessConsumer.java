@@ -41,7 +41,7 @@ public class PaymentSuccessConsumer {
 
     @KafkaListener(
             topics = KafkaConstants.PAY_SUCCESS_TOPIC,
-            groupId = "${spring.kafka.consumer.group-id}"
+            groupId = "osh-backend-test"
     )
     public void consumeUserEvent(String message, Acknowledgment ack) {
         log.info("【Kafka消费者】收到支付成功消息：{}", message);
