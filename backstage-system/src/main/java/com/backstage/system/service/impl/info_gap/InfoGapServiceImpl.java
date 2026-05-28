@@ -9,6 +9,7 @@ import com.backstage.system.domain.user.risk.OshUserRiskProfile;
 import com.backstage.system.domain.vo.info_gap.InfoGapVO;
 import com.backstage.system.mapper.info_gap.*;
 import com.backstage.system.mapper.user.OshUserMapper;
+import com.backstage.system.service.info_gap.InfoGapAnnoService;
 import com.backstage.system.service.info_gap.InfoGapService;
 import com.backstage.system.service.info_gap.InfoGapUniqueService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -41,6 +42,8 @@ public class InfoGapServiceImpl implements InfoGapService {
     private OshUserMapper oshUserMapper;
     @Autowired
     private InfoGapUniqueService infoGapUniqueService;
+    @Autowired
+    private InfoGapAnnoService infoGapAnnoService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -103,7 +106,9 @@ public class InfoGapServiceImpl implements InfoGapService {
 
         Long infoGapId = entity.getId();
         // 为当前信息差生成并保存唯一标签记录
-        infoGapUniqueService.createUniqueRecord(infoGapId);
+        String no = infoGapUniqueService.createUniqueRecord(infoGapId);
+        infoGapAnnoService.publishUserNotice(infoGapId, dto.getTitle(), userName, no);
+        infoGapAnnoService.publishSystemNotice(infoGapId, dto.getTitle(), no);
         List<Long> tagIds = dto.getTagIds();
         int sort = 1;
         if (tagIds != null && !tagIds.isEmpty()) {

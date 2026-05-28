@@ -53,8 +53,6 @@ public class OshUserServiceImpl implements IOshUserService {
     @Autowired
     private OshPermissionMapper oshPermissionMapper;
     @Autowired
-    private OshUserViolationMapper oshUserViolationMapper;
-    @Autowired
     private OshUserAssetMapper oshUserAssetMapper;
     @Autowired
     private OshUserAssetRecordMapper oshUserAssetRecordMapper;
@@ -101,7 +99,21 @@ public class OshUserServiceImpl implements IOshUserService {
         map.put(OshUserConstants.ASSET, asset);
         map.put(OshUserConstants.ROLE, role);
         map.put(OshUserConstants.PERMISSION, permissionList);
-        redisCache.setCacheObject(OshUserConstants.LOGIN_USER + oshUser.getId(), map, 500, TimeUnit.MINUTES);
+
+        // 检查是否已登录（限制重复登录）
+        String loginKey = OshUserConstants.LOGIN_USER + oshUser.getId();
+        if (redisCache.hasKey(loginKey)) {
+            // 已有登录态，获取当前登录数
+            Map<String, Object> existingData = redisCache.getCacheObject(loginKey);
+            Integer loginCount = existingData != null ? (Integer) existingData.getOrDefault(OshUserConstants.LOGINCOUNT, 0) : 0;
+            if (loginCount >= 1) {
+                return R.fail("该账号已在其他设备登录，请先退出后再登录");
+            }
+        }
+
+        // 记录登录数
+        map.put(OshUserConstants.LOGINCOUNT, 1);
+        redisCache.setCacheObject(loginKey, map, 500, TimeUnit.MINUTES);
         return R.ok(userLoginVo);
     }
 
@@ -222,7 +234,7 @@ public class OshUserServiceImpl implements IOshUserService {
             redisCache.deleteObject(key);
             return R.ok(ResultCode.SUCCESS.getMsg());
         }
-        return R.fail(ResultCode.FAILED_TOKEN_EXPIRED.getMsg());
+        return R.ok(ResultCode.SUCCESS.getMsg());
     }
 
     @Override
@@ -337,19 +349,40 @@ public class OshUserServiceImpl implements IOshUserService {
         }
         try {
             Long userId = ThreadLocalUtil.get(OshUserConstants.USER_ID, Long.class);
+            
+            // 获取旧头像路径，上传成功后删除旧文件
+            LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(OshUser::getId, userId);
+            OshUser oshUser = oshUserMapper.selectOne(wrapper);
+            String oldAvatar = oshUser.getAvatar();
+            
             // 上传到 OSS，路径：common/image/avatar/{userId}/
             String filePath = ossService.upload(file, UploadPathEnum.AVATAR, String.valueOf(userId));
             if (filePath == null || filePath.contains("不能超过")) {
                 return R.fail(filePath);
             }
-            // 获取完整的公开访问 URL
-            String avatarUrl = ossUtil.getFullFilePath(filePath);
-            // 更新用户头像字段
-            LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(OshUser::getId, userId);
-            OshUser oshUser = oshUserMapper.selectOne(wrapper);
-            oshUser.setAvatar(avatarUrl);
+            
+            // 删除旧头像文件（避免垃圾文件堆积）
+            if (StringUtils.isNotEmpty(oldAvatar)) {
+                String oldKey = oldAvatar;
+                // 兼容旧数据：如果存的是完整URL，提取相对路径
+                if (oldKey.startsWith("http")) {
+                    String publicDomain = ossUtil.getOssProperties().getPublicDomain();
+                    if (oldKey.startsWith(publicDomain)) {
+                        oldKey = oldKey.substring(publicDomain.length());
+                        if (oldKey.startsWith("/")) {
+                            oldKey = oldKey.substring(1);
+                        }
+                    }
+                }
+                ossUtil.deleteFile(oldKey);
+            }
+            
+            // 数据库存储相对路径（不再存完整公开URL，因为Bucket未开放公开访问）
+            oshUser.setAvatar(filePath);
             oshUserMapper.update(oshUser, wrapper);
+            // 返回临时签名URL给前端（有效期30分钟）
+            String avatarUrl = ossService.getLimitedUrl(filePath, 30);
             return R.ok(avatarUrl);
         } catch (Exception e) {
             return R.fail("头像上传失败：" + e.getMessage());
@@ -385,6 +418,23 @@ public class OshUserServiceImpl implements IOshUserService {
     public R<OshUser> getUserInfo() {
         OshUser oshUser = UserContextUtil.getCurrentUser();
         oshUser.setPassword(null);
+        // 将头像相对路径转为临时签名URL（有效期30分钟）
+        if (StringUtils.isNotEmpty(oshUser.getAvatar())) {
+            String avatar = oshUser.getAvatar();
+            // 兼容旧数据：如果存的是完整URL（http开头），提取相对路径
+            if (avatar.startsWith("http")) {
+                // 旧数据存的是完整公开URL，尝试提取相对路径部分
+                String basePath = ossUtil.getOssProperties().getBasePath();
+                String publicDomain = ossUtil.getOssProperties().getPublicDomain();
+                if (avatar.startsWith(publicDomain)) {
+                    avatar = avatar.substring(publicDomain.length());
+                    if (avatar.startsWith("/")) {
+                        avatar = avatar.substring(1);
+                    }
+                }
+            }
+            oshUser.setAvatar(ossService.getLimitedUrl(avatar, 30));
+        }
         return R.ok(oshUser);
     }
 
@@ -526,78 +576,4 @@ public class OshUserServiceImpl implements IOshUserService {
 
         return result;
     }
-
-
-
-
-//    /**
-//     * 查询用户
-//     *
-//     * @param id 用户主键
-//     * @return 用户
-//     */
-//    @Override
-//    public OshUser selectUserById(Long id)
-//    {
-//        return oshUserMapper.selectUserById(id);
-//    }
-//
-    /**
-     * 查询用户列表
-     *
-     * @param req 用户
-     * @return 用户
-     */
-    @Override
-    public List<OshUser> selectUserList(UserListRequest req) {
-        return oshUserMapper.selectList(Wrappers.lambdaQuery());
-    }
-//
-//    /**
-//     * 新增用户
-//     *
-//     * @param oshUser 用户
-//     * @return 结果
-//     */
-//    @Override
-//    public int insertUser(OshUser oshUser)
-//    {
-//        return oshUserMapper.insertUser(oshUser);
-//    }
-//
-//    /**
-//     * 修改用户
-//     *
-//     * @param oshUser 用户
-//     * @return 结果
-//     */
-//    @Override
-//    public int updateUser(OshUser oshUser)
-//    {
-//        return oshUserMapper.updateUser(oshUser);
-//    }
-//
-//    /**
-//     * 批量删除用户
-//     *
-//     * @param ids 需要删除的用户主键
-//     * @return 结果
-//     */
-//    @Override
-//    public int deleteUserByIds(Long[] ids)
-//    {
-//        return oshUserMapper.deleteUserByIds(ids);
-//    }
-//
-//    /**
-//     * 删除用户信息
-//     *
-//     * @param id 用户主键
-//     * @return 结果
-//     */
-//    @Override
-//    public int deleteUserById(Long id)
-//    {
-//        return oshUserMapper.deleteUserById(id);
-//    }
 }

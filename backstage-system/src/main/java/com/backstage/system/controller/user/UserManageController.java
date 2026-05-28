@@ -98,8 +98,9 @@ public class UserManageController {
         return R.ok(data);
     }
 
-    /** 最高可分配角色等级：小班用户 level=3 */
-    private static final int MAX_ASSIGNABLE_LEVEL = 3;
+    /** 最高可分配角色等级：普通管理员及以下为小班用户(level=3)，创始人可分配比自己低一级的角色 */
+    private static final int DEFAULT_MAX_ASSIGNABLE_LEVEL = 3;
+    private static final int FOUNDER_LEVEL = 6;
 
     /**
      * 查询可分配的角色列表
@@ -107,7 +108,10 @@ public class UserManageController {
     @GetMapping("/roles/assignable")
     @OshUserLevel(value = 4)
     public R getRoleOptions() {
-        List<Map<String, Object>> roles = userManageMapper.selectAssignableRoles(MAX_ASSIGNABLE_LEVEL);
+        Integer currentLevel = UserContextUtil.getCurrentLevel();
+        // 创始人可分配到比自己低一级，普通管理员最高到小班用户
+        int maxLevel = currentLevel >= FOUNDER_LEVEL ? currentLevel - 1 : DEFAULT_MAX_ASSIGNABLE_LEVEL;
+        List<Map<String, Object>> roles = userManageMapper.selectAssignableRoles(maxLevel);
         return R.ok(roles);
     }
 
@@ -120,10 +124,13 @@ public class UserManageController {
         Long targetUserId = Long.valueOf(params.get("userId").toString());
         Integer roleId = Integer.valueOf(params.get("roleId").toString());
 
+        Integer currentLevel = UserContextUtil.getCurrentLevel();
+        int maxLevel = currentLevel >= FOUNDER_LEVEL ? currentLevel - 1 : DEFAULT_MAX_ASSIGNABLE_LEVEL;
+
         // 检查角色等级不能超过上限
         OshRole role = findRoleById(roleId);
         if (role == null) return R.fail("角色不存在");
-        if (role.getLevel() > MAX_ASSIGNABLE_LEVEL) return R.fail("无法分配该等级的角色");
+        if (role.getLevel() > maxLevel) return R.fail("无法分配该等级的角色");
 
         // 检查用户角色数量上限
         List<Integer> currentRoleIds = userManageMapper.selectUserRoleIds(targetUserId);
@@ -149,10 +156,13 @@ public class UserManageController {
         // 普通用户角色（role_id=1）不可删除
         if (roleId == 1) return R.fail("普通用户角色不可删除");
 
+        Integer currentLevel = UserContextUtil.getCurrentLevel();
+        int maxLevel = currentLevel >= FOUNDER_LEVEL ? currentLevel - 1 : DEFAULT_MAX_ASSIGNABLE_LEVEL;
+
         // 检查角色等级
         OshRole role = findRoleById(roleId);
         if (role == null) return R.fail("角色不存在");
-        if (role.getLevel() > MAX_ASSIGNABLE_LEVEL) return R.fail("无法操作该等级的角色");
+        if (role.getLevel() > maxLevel) return R.fail("无法操作该等级的角色");
 
         userManageMapper.deleteUserRole(targetUserId, roleId);
         return R.ok("角色已移除");

@@ -30,13 +30,30 @@ public class InfoGapController {
 
     /**
      * 信息差列表
-     * @param type hot、latest、follow、collect 四种情况
+     * @param type hot、latest
      */
     @GetMapping("/list")
     @Anonymous
     public R<PageResponse<InfoGapVO>> list(
             @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "hot") String type) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
+
+        List<InfoGapVO> infoGapList = infoGapService.getInfoGapList(pageNum, 10, type, currentUserId);
+        PageInfo<InfoGapVO> pageInfo = new PageInfo<>(infoGapList);
+
+        return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()));
+    }
+
+    /**
+     * 信息差列表
+     * @param type follow、collect
+     */
+    @GetMapping("/list/user")
+    public R<PageResponse<InfoGapVO>> listUser(
+            @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "follow") String type) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
 
