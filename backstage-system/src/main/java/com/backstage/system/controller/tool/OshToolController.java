@@ -125,8 +125,16 @@ public class OshToolController extends BaseController {
         return R.ok(oshToolService.listAvailableTags());
     }
 
+    @ApiOperation("工具推荐标签")
+    @GetMapping("/tags/recommend")
+    @Anonymous
+    public R<List<OshToolTag>> listRecommendTags() {
+        return R.ok(oshToolService.listRecommendTags(5));
+    }
+
     @ApiOperation("工具详情")
     @GetMapping("/detail/{id}")
+    @Anonymous
     public R<OshTool> getToolDetail(@NotNull @PathVariable("id") Long id) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         Long userId = currentOshUser == null ? null : currentOshUser.getId();
@@ -136,6 +144,7 @@ public class OshToolController extends BaseController {
 
     @ApiOperation("记录工具浏览次数")
     @PostMapping("/view/{id}")
+    @Anonymous
     public R<String> recordToolView(@NotNull @PathVariable("id") Long id) {
         try {
             oshToolService.recordToolView(id);
