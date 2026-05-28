@@ -53,8 +53,6 @@ public class OshUserServiceImpl implements IOshUserService {
     @Autowired
     private OshPermissionMapper oshPermissionMapper;
     @Autowired
-    private OshUserViolationMapper oshUserViolationMapper;
-    @Autowired
     private OshUserAssetMapper oshUserAssetMapper;
     @Autowired
     private OshUserAssetRecordMapper oshUserAssetRecordMapper;
@@ -101,7 +99,21 @@ public class OshUserServiceImpl implements IOshUserService {
         map.put(OshUserConstants.ASSET, asset);
         map.put(OshUserConstants.ROLE, role);
         map.put(OshUserConstants.PERMISSION, permissionList);
-        redisCache.setCacheObject(OshUserConstants.LOGIN_USER + oshUser.getId(), map, 500, TimeUnit.MINUTES);
+
+        // 检查是否已登录（限制重复登录）
+        String loginKey = OshUserConstants.LOGIN_USER + oshUser.getId();
+        if (redisCache.hasKey(loginKey)) {
+            // 已有登录态，获取当前登录数
+            Map<String, Object> existingData = redisCache.getCacheObject(loginKey);
+            Integer loginCount = existingData != null ? (Integer) existingData.getOrDefault(OshUserConstants.LOGINCOUNT, 0) : 0;
+            if (loginCount >= 1) {
+                return R.fail("该账号已在其他设备登录，请先退出后再登录");
+            }
+        }
+
+        // 记录登录数
+        map.put(OshUserConstants.LOGINCOUNT, 1);
+        redisCache.setCacheObject(loginKey, map, 500, TimeUnit.MINUTES);
         return R.ok(userLoginVo);
     }
 
@@ -222,7 +234,7 @@ public class OshUserServiceImpl implements IOshUserService {
             redisCache.deleteObject(key);
             return R.ok(ResultCode.SUCCESS.getMsg());
         }
-        return R.fail(ResultCode.FAILED_TOKEN_EXPIRED.getMsg());
+        return R.ok(ResultCode.SUCCESS.getMsg());
     }
 
     @Override
@@ -564,78 +576,4 @@ public class OshUserServiceImpl implements IOshUserService {
 
         return result;
     }
-
-
-
-
-//    /**
-//     * 查询用户
-//     *
-//     * @param id 用户主键
-//     * @return 用户
-//     */
-//    @Override
-//    public OshUser selectUserById(Long id)
-//    {
-//        return oshUserMapper.selectUserById(id);
-//    }
-//
-    /**
-     * 查询用户列表
-     *
-     * @param req 用户
-     * @return 用户
-     */
-    @Override
-    public List<OshUser> selectUserList(UserListRequest req) {
-        return oshUserMapper.selectList(Wrappers.lambdaQuery());
-    }
-//
-//    /**
-//     * 新增用户
-//     *
-//     * @param oshUser 用户
-//     * @return 结果
-//     */
-//    @Override
-//    public int insertUser(OshUser oshUser)
-//    {
-//        return oshUserMapper.insertUser(oshUser);
-//    }
-//
-//    /**
-//     * 修改用户
-//     *
-//     * @param oshUser 用户
-//     * @return 结果
-//     */
-//    @Override
-//    public int updateUser(OshUser oshUser)
-//    {
-//        return oshUserMapper.updateUser(oshUser);
-//    }
-//
-//    /**
-//     * 批量删除用户
-//     *
-//     * @param ids 需要删除的用户主键
-//     * @return 结果
-//     */
-//    @Override
-//    public int deleteUserByIds(Long[] ids)
-//    {
-//        return oshUserMapper.deleteUserByIds(ids);
-//    }
-//
-//    /**
-//     * 删除用户信息
-//     *
-//     * @param id 用户主键
-//     * @return 结果
-//     */
-//    @Override
-//    public int deleteUserById(Long id)
-//    {
-//        return oshUserMapper.deleteUserById(id);
-//    }
 }
