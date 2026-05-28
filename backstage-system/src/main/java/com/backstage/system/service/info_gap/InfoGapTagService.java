@@ -9,6 +9,9 @@ public interface InfoGapTagService {
     // 获取所有标签
     List<InfoGapTagListRespDTO> getTagList();
 
+    // 获取推荐标签
+    List<InfoGapTagListRespDTO> getRecommendTagList();
+
     void addTag(String tagName);
 
     void deleteTag(Long id);

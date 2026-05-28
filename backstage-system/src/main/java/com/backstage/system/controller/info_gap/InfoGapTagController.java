@@ -29,6 +29,17 @@ public class InfoGapTagController {
     }
 
     /**
+     * 获取推荐标签列表
+     */
+    @Anonymous
+    @GetMapping("/list/recommend")
+    public R<List<InfoGapTagListRespDTO>> recommendTagList() {
+        List<InfoGapTagListRespDTO> tagList = infoGapTagService.getRecommendTagList();
+
+        return R.ok(tagList);
+    }
+
+    /**
      * 新增标签
      */
     @GetMapping("/add")
