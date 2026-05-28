@@ -11,4 +11,9 @@ public interface InfoGapAnnoService {
 
     // 展示用户通知栏内容
     List<InfoGapAnnoRespDTO> listUserNotices();
+
+    /**
+     * 写入信息差动态栏公告
+     */
+    void publishUserNotice(Long infoGapId, String title, String userName, String no);
 }
