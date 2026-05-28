@@ -108,6 +108,7 @@ public class InfoGapServiceImpl implements InfoGapService {
         // 为当前信息差生成并保存唯一标签记录
         String no = infoGapUniqueService.createUniqueRecord(infoGapId);
         infoGapAnnoService.publishUserNotice(infoGapId, dto.getTitle(), userName, no);
+        infoGapAnnoService.publishSystemNotice(infoGapId, dto.getTitle(), no);
         List<Long> tagIds = dto.getTagIds();
         int sort = 1;
         if (tagIds != null && !tagIds.isEmpty()) {

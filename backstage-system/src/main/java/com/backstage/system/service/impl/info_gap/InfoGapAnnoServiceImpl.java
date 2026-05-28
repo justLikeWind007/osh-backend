@@ -20,7 +20,11 @@ public class InfoGapAnnoServiceImpl implements InfoGapAnnoService {
 
     @Override
     public List<InfoGapAnnoRespDTO> listSystemNotices() {
-        return Collections.emptyList();
+        List<InfoGapAnnoRespDTO> list =
+                oshInfoGapAnnouncementMapper.selectLatestInfoGapAnnouncementsByChannel(
+                        AnnouncementChannelEnum.SYSTEM_NOTICE.getCode()
+                );
+        return list == null ? Collections.emptyList() : list;
     }
 
     @Override
@@ -47,6 +51,24 @@ public class InfoGapAnnoServiceImpl implements InfoGapAnnoService {
                 announcementTitle,
                 link,
                 AnnouncementChannelEnum.USER_NOTICE.getCode(),
+                SYSTEM_OPERATOR
+        );
+    }
+
+    @Override
+    public void publishSystemNotice(Long infoGapId, String title, String no) {
+        if (infoGapId == null) {
+            return;
+        }
+
+        String safeTitle = (title == null || title.trim().isEmpty()) ? "未命名信息差" : title.trim();
+        String announcementTitle = "信息差上新：「" + safeTitle + "」已发布";
+        String link = buildLink(infoGapId, no);
+
+        oshInfoGapAnnouncementMapper.insertInfoGapAnnouncement(
+                announcementTitle,
+                link,
+                AnnouncementChannelEnum.SYSTEM_NOTICE.getCode(),
                 SYSTEM_OPERATOR
         );
     }

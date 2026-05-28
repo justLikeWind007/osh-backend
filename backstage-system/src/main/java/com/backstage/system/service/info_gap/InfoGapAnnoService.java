@@ -16,4 +16,9 @@ public interface InfoGapAnnoService {
      * 写入信息差动态栏公告
      */
     void publishUserNotice(Long infoGapId, String title, String userName, String no);
+
+    /**
+     * 写入信息差公告栏公告
+     */
+    void publishSystemNotice(Long infoGapId, String title, String no);
 }
