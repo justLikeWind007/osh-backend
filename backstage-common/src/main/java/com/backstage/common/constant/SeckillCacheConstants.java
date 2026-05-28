@@ -9,10 +9,10 @@ import java.util.Date;
  * Key 规则：
  *   seckill:stock:{activityId}:{itemId}                  库存计数器
  *   seckill:bought:{activityId}:{itemId}                 已购用户 Set（废弃，保留兼容）
- *   seckill:bought_cnt:{activityId}:{itemId}:{userId}    用户已购数量计数器
+ *   seckill:bought_cnt:{activityId}:{itemId}:{userId}    用户当前占用的限购额度（待支付+已支付，取消/超时后回滚）
  *   seckill:activity:{activityId}                        活动基本信息缓存
  *   seckill:item:{itemId}                                明细信息缓存
- *   seckill:order:{activityId}:{itemId}:{userId}         用户秒杀单号（流程状态标记）
+ *   seckill:order:{activityId}:{itemId}:{userId}         当前未完成秒杀尝试号（value=seckillNo，存在即表示有未完成订单）
  *
  * @author backstage
  * @date 2026-05-16

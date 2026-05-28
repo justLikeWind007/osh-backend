@@ -5,6 +5,7 @@ import io.swagger.annotations.ApiModelProperty;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 秒杀活动商品明细 VO
@@ -19,6 +20,9 @@ public class SeckillActivityItemVO implements Serializable {
 
     @ApiModelProperty("明细ID")
     private Long id;
+
+    @ApiModelProperty("资源编号")
+    private String no;
 
     @ApiModelProperty("关联活动ID")
     private Long activityId;
@@ -76,8 +80,14 @@ public class SeckillActivityItemVO implements Serializable {
     @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private java.util.Date endTime;
 
+    @ApiModelProperty("标签名称列表")
+    private List<String> tagNames;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public String getNo() { return no; }
+    public void setNo(String no) { this.no = no; }
 
     public Long getActivityId() { return activityId; }
     public void setActivityId(Long activityId) { this.activityId = activityId; }
@@ -132,4 +142,7 @@ public class SeckillActivityItemVO implements Serializable {
 
     public java.util.Date getEndTime() { return endTime; }
     public void setEndTime(java.util.Date endTime) { this.endTime = endTime; }
+
+    public List<String> getTagNames() { return tagNames; }
+    public void setTagNames(List<String> tagNames) { this.tagNames = tagNames; }
 }

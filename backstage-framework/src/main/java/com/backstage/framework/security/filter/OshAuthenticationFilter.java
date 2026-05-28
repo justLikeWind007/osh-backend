@@ -49,7 +49,11 @@ public class OshAuthenticationFilter extends OncePerRequestFilter {
             "/public/**",
             // 秒杀公告栏 & 购买动态，公开展示，无需登录
             "/pc/seckill/user/announcement/notices",
-            "/pc/seckill/user/recent/orders"
+            "/pc/seckill/user/recent/orders",
+            // 秒杀 ES 运维接口
+            "/pc/seckill/user/esSync/all",
+            "/pc/seckill/es/recreateIndex",
+            "/pc/seckill/es/syncAll"
     ));
 
     @Override

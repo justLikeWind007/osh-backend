@@ -16,6 +16,7 @@ import com.backstage.system.domain.vo.seckill.SeckillActivityVO;
 import com.backstage.system.mapper.seckill.OshSeckillActivityItemMapper;
 import com.backstage.system.mapper.seckill.OshSeckillActivityMapper;
 import com.backstage.system.mapper.seckill.OshSeckillGoodsMapper;
+import com.backstage.system.mapper.seckill.OshSeckillGoodsTagMapper;
 import com.backstage.system.service.OutboxEventService;
 import com.backstage.system.service.seckill.IOshSeckillActivityService;
 import com.backstage.system.service.seckill.SeckillItemIndexDeleteMessage;
@@ -59,6 +60,9 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
 
     @Autowired
     private OshSeckillGoodsMapper goodsMapper;
+
+    @Autowired
+    private OshSeckillGoodsTagMapper seckillGoodsTagMapper;
 
     @Autowired
     private OutboxEventService outboxEventService;
@@ -501,7 +505,7 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
     }
 
     /**
-     * 构建秒杀明细索引 upsert 消息
+     * 构建秒杀明细索引 upsert 消息（含标签）
      */
     private SeckillItemIndexUpsertMessage buildUpsertMessage(
             OshSeckillActivityItem item, OshSeckillActivity activity, String eventType) {
@@ -528,6 +532,12 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
         msg.setDeleteFlag(item.getDeleteFlag() != null ? item.getDeleteFlag() : 0);
         msg.setCreateTime(item.getCreateTime());
         msg.setUpdateTime(item.getUpdateTime());
+        // 写入标签
+        if (item.getSeckillGoodsId() != null) {
+            java.util.List<String> tagNames = seckillGoodsTagMapper.selectTagNamesBySeckillGoodsId(item.getSeckillGoodsId());
+            msg.setTagNames(tagNames);
+            msg.setTagNamesText(tagNames == null || tagNames.isEmpty() ? "" : String.join(" ", tagNames));
+        }
         return msg;
     }
 
@@ -539,6 +549,7 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
         vo.setSeckillGoodsId(item.getSeckillGoodsId());
         vo.setGoodsId(item.getGoodsId());
         vo.setGoodsType(item.getGoodsType());
+        vo.setNo(item.getNo());
         vo.setTitle(item.getTitle());
         vo.setCover(item.getCover());
         vo.setOriginPrice(item.getOriginPrice());
