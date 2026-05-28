@@ -337,19 +337,40 @@ public class OshUserServiceImpl implements IOshUserService {
         }
         try {
             Long userId = ThreadLocalUtil.get(OshUserConstants.USER_ID, Long.class);
+            
+            // 获取旧头像路径，上传成功后删除旧文件
+            LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(OshUser::getId, userId);
+            OshUser oshUser = oshUserMapper.selectOne(wrapper);
+            String oldAvatar = oshUser.getAvatar();
+            
             // 上传到 OSS，路径：common/image/avatar/{userId}/
             String filePath = ossService.upload(file, UploadPathEnum.AVATAR, String.valueOf(userId));
             if (filePath == null || filePath.contains("不能超过")) {
                 return R.fail(filePath);
             }
-            // 获取完整的公开访问 URL
-            String avatarUrl = ossUtil.getFullFilePath(filePath);
-            // 更新用户头像字段
-            LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(OshUser::getId, userId);
-            OshUser oshUser = oshUserMapper.selectOne(wrapper);
-            oshUser.setAvatar(avatarUrl);
+            
+            // 删除旧头像文件（避免垃圾文件堆积）
+            if (StringUtils.isNotEmpty(oldAvatar)) {
+                String oldKey = oldAvatar;
+                // 兼容旧数据：如果存的是完整URL，提取相对路径
+                if (oldKey.startsWith("http")) {
+                    String publicDomain = ossUtil.getOssProperties().getPublicDomain();
+                    if (oldKey.startsWith(publicDomain)) {
+                        oldKey = oldKey.substring(publicDomain.length());
+                        if (oldKey.startsWith("/")) {
+                            oldKey = oldKey.substring(1);
+                        }
+                    }
+                }
+                ossUtil.deleteFile(oldKey);
+            }
+            
+            // 数据库存储相对路径（不再存完整公开URL，因为Bucket未开放公开访问）
+            oshUser.setAvatar(filePath);
             oshUserMapper.update(oshUser, wrapper);
+            // 返回临时签名URL给前端（有效期30分钟）
+            String avatarUrl = ossService.getLimitedUrl(filePath, 30);
             return R.ok(avatarUrl);
         } catch (Exception e) {
             return R.fail("头像上传失败：" + e.getMessage());
@@ -385,6 +406,23 @@ public class OshUserServiceImpl implements IOshUserService {
     public R<OshUser> getUserInfo() {
         OshUser oshUser = UserContextUtil.getCurrentUser();
         oshUser.setPassword(null);
+        // 将头像相对路径转为临时签名URL（有效期30分钟）
+        if (StringUtils.isNotEmpty(oshUser.getAvatar())) {
+            String avatar = oshUser.getAvatar();
+            // 兼容旧数据：如果存的是完整URL（http开头），提取相对路径
+            if (avatar.startsWith("http")) {
+                // 旧数据存的是完整公开URL，尝试提取相对路径部分
+                String basePath = ossUtil.getOssProperties().getBasePath();
+                String publicDomain = ossUtil.getOssProperties().getPublicDomain();
+                if (avatar.startsWith(publicDomain)) {
+                    avatar = avatar.substring(publicDomain.length());
+                    if (avatar.startsWith("/")) {
+                        avatar = avatar.substring(1);
+                    }
+                }
+            }
+            oshUser.setAvatar(ossService.getLimitedUrl(avatar, 30));
+        }
         return R.ok(oshUser);
     }
 
