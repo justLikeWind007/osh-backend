@@ -1,91 +1,65 @@
+//DELETE /osh_tool_search
+
+PUT /osh_tool_search
 {
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0
+  },
   "mappings": {
     "dynamic": false,
     "properties": {
-      "afterServiceDays": {
-        "type": "integer"
-      },
-      "collectionCount": {
-        "type": "integer"
-      },
-      "commentCount": {
-        "type": "integer"
-      },
-      "cover": {
-        "type": "keyword",
-        "ignore_above": 512
-      },
-      "createBy": {
-        "type": "keyword",
-        "ignore_above": 128
-      },
-      "createTime": {
-        "type": "date",
-        "format": "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd HH:mm:ss.SSS||strict_date_optional_time||epoch_millis"
-      },
-      "deleteFlag": {
-        "type": "integer"
-      },
-      "examId": {
-        "type": "integer"
-      },
-      "freeLessonCount": {
-        "type": "integer"
-      },
-      "freeType": {
-        "type": "integer"
-      },
       "id": {
         "type": "long"
       },
-      "intro": {
+      "toolName": {
         "type": "text",
-        "analyzer": "ik_max_word"
+        "analyzer": "ik_max_word",
+        "search_analyzer": "ik_smart",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
       },
-      "level": {
-        "type": "integer"
+      "no": {
+        "type": "keyword",
+        "ignore_above": 64
       },
-      "likeCount": {
-        "type": "integer"
+      "description": {
+        "type": "text",
+        "analyzer": "ik_max_word",
+        "search_analyzer": "ik_smart"
       },
-      "price": {
-        "type": "scaled_float",
-        "scaling_factor": 100.0
+      "searchText": {
+        "type": "text",
+        "analyzer": "ik_max_word",
+        "search_analyzer": "ik_smart"
       },
-      "questionCount": {
-        "type": "integer"
+      "routePath": {
+        "type": "keyword",
+        "ignore_above": 256
       },
-      "ratingScore": {
-        "type": "scaled_float",
-        "scaling_factor": 100.0
-      },
-      "remark": {
-        "type": "text"
+      "githubUrl": {
+        "type": "keyword",
+        "ignore_above": 512
       },
       "resourceType": {
         "type": "keyword",
         "ignore_above": 64
       },
-      "salesCount": {
+      "level": {
         "type": "integer"
-      },
-      "searchText": {
-        "type": "text",
-        "analyzer": "ik_max_word"
-      },
-      "serviceContent": {
-        "type": "text",
-        "analyzer": "ik_max_word"
       },
       "status": {
         "type": "integer"
       },
-      "subCount": {
+      "deleteFlag": {
         "type": "integer"
       },
-      "tPrice": {
-        "type": "scaled_float",
-        "scaling_factor": 100.0
+      "tagIds": {
+        "type": "long"
       },
       "tagNames": {
         "type": "keyword",
@@ -93,38 +67,90 @@
       },
       "tagNamesText": {
         "type": "text",
-        "analyzer": "ik_max_word"
+        "analyzer": "ik_max_word",
+        "search_analyzer": "ik_smart"
       },
-      "title": {
-        "type": "text",
-        "fields": {
-          "keyword": {
-            "type": "keyword",
-            "ignore_above": 256
-          }
-        },
-        "analyzer": "ik_max_word"
+      "minPackagePrice": {
+        "type": "scaled_float",
+        "scaling_factor": 100
       },
-      "totalDuration": {
+      "minPackageUseCount": {
         "type": "integer"
       },
-      "type": {
+      "packageCount": {
+        "type": "integer"
+      },
+      "packages": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "long"
+          },
+          "packageName": {
+            "type": "text",
+            "analyzer": "ik_max_word",
+            "search_analyzer": "ik_smart",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "useCount": {
+            "type": "integer"
+          },
+          "price": {
+            "type": "scaled_float",
+            "scaling_factor": 100
+          },
+          "pointCost": {
+            "type": "integer"
+          },
+          "payType": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "sortOrder": {
+            "type": "integer"
+          }
+        }
+      },
+      "viewCount": {
+        "type": "long"
+      },
+      "totalUsage": {
+        "type": "long"
+      },
+      "collectionCount": {
+        "type": "integer"
+      },
+      "goodCount": {
+        "type": "integer"
+      },
+      "badCount": {
+        "type": "integer"
+      },
+      "hotScore": {
+        "type": "double"
+      },
+      "createBy": {
         "type": "keyword",
-        "ignore_above": 64
+        "ignore_above": 128
       },
       "updateBy": {
         "type": "keyword",
         "ignore_above": 128
       },
-      "updateTime": {
+      "createTime": {
         "type": "date",
         "format": "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd HH:mm:ss.SSS||strict_date_optional_time||epoch_millis"
       },
-      "videoCount": {
-        "type": "integer"
-      },
-      "viewCount": {
-        "type": "long"
+      "updateTime": {
+        "type": "date",
+        "format": "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd HH:mm:ss.SSS||strict_date_optional_time||epoch_millis"
       }
     }
   }

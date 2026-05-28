@@ -55,11 +55,14 @@ public class OshUser extends OSHBaseEntity {
     private Integer violationCount;
 
     /**
-     * 状态：0-禁用，1-正常
+     * 状态：0-正常，1-禁用
      */
     private Integer status;
 
-    private String nickname;
+    /**
+     * 邀请码（唯一）
+     */
+    private String inviteCode;
 
     public Long getId() {
         return id;
@@ -148,11 +151,11 @@ public class OshUser extends OSHBaseEntity {
                 '}';
     }
 
-    public String getNickname() {
-        return nickname;
+    public String getInviteCode() {
+        return inviteCode;
     }
 
-    public void setNickname(String nickname) {
-        this.nickname = nickname;
+    public void setInviteCode(String inviteCode) {
+        this.inviteCode = inviteCode;
     }
 }

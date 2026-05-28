@@ -53,6 +53,7 @@ public class OshToolEsServiceImpl implements IOshToolEsService {
     @Override
     public PageResponse<OshTool> searchTools(ToolSearchRequest request, Long userId) {
         try {
+            normalizeSearchRequest(request);
             PageResponse<OshTool> response;
             if (Integer.valueOf(1).equals(request.getCollectionFlag())) {
                 response = searchCollectedTools(request, userId);
@@ -129,6 +130,7 @@ public class OshToolEsServiceImpl implements IOshToolEsService {
         collectionRequest.setPageNum(1);
         collectionRequest.setPageSize(collectedToolIds.size());
         collectionRequest.setKeyword(request.getKeyword());
+        collectionRequest.setNo(request.getNo());
         collectionRequest.setTags(request.getTags());
         collectionRequest.setResourceType(request.getResourceType());
         PageResponse<OshTool> response = oshToolEsMapper.searchTools(collectionRequest, collectedToolIds);
@@ -155,6 +157,20 @@ public class OshToolEsServiceImpl implements IOshToolEsService {
         return rows.subList(fromIndex, toIndex);
     }
 
+    private void normalizeSearchRequest(ToolSearchRequest request) {
+        if (request == null) {
+            return;
+        }
+        if (StringUtils.isNotEmpty(request.getNo())) {
+            request.setToolId(null);
+            request.setKeyword(null);
+            request.setTags(null);
+            request.setResourceType(null);
+            request.setIsFollowing(false);
+            request.setCollectionFlag(null);
+        }
+    }
+
     private void fillUserState(List<OshTool> rows, Long userId) {
         if (StringUtils.isEmpty(rows) || userId == null) {
             return;
@@ -176,6 +192,7 @@ public class OshToolEsServiceImpl implements IOshToolEsService {
         message.setEventType(eventType);
         message.setId(tool.getId());
         message.setToolName(tool.getToolName());
+        message.setNo(tool.getNo());
         message.setDescription(tool.getDescription());
         message.setRoutePath(tool.getRoutePath());
         message.setGithubUrl(tool.getGithubUrl());
@@ -250,6 +267,7 @@ public class OshToolEsServiceImpl implements IOshToolEsService {
     private String buildSearchText(ToolIndexMessage message) {
         StringBuilder builder = new StringBuilder();
         appendSearchField(builder, message.getToolName());
+        appendSearchField(builder, message.getNo());
         appendSearchField(builder, message.getDescription());
         appendSearchField(builder, message.getTagNamesText());
         return builder.toString().trim();
