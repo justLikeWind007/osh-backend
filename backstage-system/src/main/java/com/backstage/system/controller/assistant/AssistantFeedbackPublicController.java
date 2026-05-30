@@ -25,7 +25,7 @@ import java.util.List;
 @Anonymous
 @Api(tags = "AI助手反馈-公开接口")
 @RestController
-@RequestMapping("/public/feedback")
+@RequestMapping("/pc/public/feedback")
 public class AssistantFeedbackPublicController extends BaseController {
 
     public AssistantFeedbackPublicController(IAssistantFeedbackCategoryService categoryService, IAssistantFeedbackService feedbackService, IAssistantFeedbackCommentService commentService, IAssistantFeedbackTagService feedbackTagService) {
