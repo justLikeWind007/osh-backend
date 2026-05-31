@@ -73,7 +73,7 @@ public class OshCourseController extends BaseController {
     public R<PageResponse<CourseSearchLoginVo>> courseSearch(@RequestBody CourseSearchRequest request) {
         normalizeCollectionFilter(request);
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
-        Long userId = currentOshUser == null ? null : currentOshUser.getId();
+        Long userId = UserContextUtil.getCurrentUserIdSafely();
         request.setIncludeUnpublished(canViewUnpublishedDetail(currentOshUser));
         // 当用户请求查看"收藏"类型的课程（collectionFlag=1）但用户未登录时，直接返回一个空的分页结果，而不是继续执行搜索。
         if (Integer.valueOf(1).equals(request.getCollectionFlag()) && userId == null) {
@@ -134,24 +134,26 @@ public class OshCourseController extends BaseController {
     @PostMapping("/loginSearch/")
     @Anonymous
     public R<PageResponse<CourseSearchLoginVo>> loginCourseSearch(@RequestBody CourseSearchRequest request) {
-        OshUser currentOshUser = UserContextUtil.getCurrentUser();
-        if (currentOshUser == null) {
+        Long userId = UserContextUtil.getCurrentUserIdSafely();
+        if (userId == null) {
             return R.fail("请先登录");
         }
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
         request.setIncludeUnpublished(canViewUnpublishedDetail(currentOshUser));
-        return R.ok(oshCourseEsService.searchCourses(request, currentOshUser.getId()), "ok");
+        return R.ok(oshCourseEsService.searchCourses(request, userId), "ok");
     }
 
     @ApiOperation("收藏课程搜索")
     @PostMapping("/search/collection")
     @Anonymous
     public R<PageResponse<OshCourse>> collectionCourseSearch(@RequestBody CourseSearchRequest request) {
-        OshUser currentOshUser = UserContextUtil.getCurrentUser();
-        if (currentOshUser == null) {
+        Long userId = UserContextUtil.getCurrentUserIdSafely();
+        if (userId == null) {
             return R.fail("请先登录");
         }
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
         request.setIncludeUnpublished(canViewUnpublishedDetail(currentOshUser));
-        List<OshCourse> list = oshCourseService.pageQueryUserCollectionCourse(currentOshUser.getId(), request);
+        List<OshCourse> list = oshCourseService.pageQueryUserCollectionCourse(userId, request);
         PageInfo<OshCourse> pageInfo = new PageInfo<>(list);
         return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
     }
@@ -162,7 +164,7 @@ public class OshCourseController extends BaseController {
     @Anonymous
     public R<OshCourseDetailVo> getCourseDetail(@NotNull @PathVariable("id") Long id) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
-        Long userId = currentOshUser == null ? null : currentOshUser.getId();
+        Long userId = UserContextUtil.getCurrentUserIdSafely();
         boolean includeUnpublished = canViewUnpublishedDetail(currentOshUser);
         OshCourseDetailVo oshCourseDetailVo = oshCourseService.getCourseDetail(id, userId, includeUnpublished);
         if (oshCourseDetailVo == null) {
@@ -202,8 +204,7 @@ public class OshCourseController extends BaseController {
     @GetMapping("/section/content/{courseId}/{sectionId}")
     @Anonymous
     public R<String> getCourseSectionContent(@NotNull @PathVariable Long courseId, @NotNull @PathVariable Long sectionId) throws Exception {
-        OshUser currentOshUser = UserContextUtil.getCurrentUser();
-        Long userId = currentOshUser == null ? null : currentOshUser.getId();
+        Long userId = UserContextUtil.getCurrentUserIdSafely();
         Integer userBuyCourseOrFreeCourse = oshCourseService.isUserBuyCourseOrFreeCourse(courseId, userId);
         if (userBuyCourseOrFreeCourse.compareTo(0) > 0) {
             return R.ok(oshCourseService.getCourseSectionContent(sectionId, userId));
@@ -419,8 +420,7 @@ public class OshCourseController extends BaseController {
     @PostMapping("/section/questions/list")
     @Anonymous
     public R<List<CourseQuestionListItemVo>> getSectionQuestions(@Validated @RequestBody CourseSectionQuestionListRequest request) {
-        OshUser currentOshUser = UserContextUtil.getCurrentUser();
-        Long userId = currentOshUser == null ? null : currentOshUser.getId();
+        Long userId = UserContextUtil.getCurrentUserIdSafely();
         return R.ok(oshCourseQuestionService.listSectionQuestions(userId, request), "ok");
     }
 
