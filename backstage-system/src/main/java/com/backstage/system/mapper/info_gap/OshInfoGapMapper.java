@@ -34,4 +34,6 @@ public interface OshInfoGapMapper extends BaseMapper<OshInfoGap> {
                                   @Param("currentUserId") Long currentUserId);
 
     List<InfoGapVO> selectRecommendList();
+
+    Integer selectHotRankByInfoGapId(@Param("infoGapId") Long infoGapId);
 }
