@@ -2,8 +2,10 @@ package com.backstage.system.service.website.impl;
 
 import com.backstage.common.annotation.DistributeLock;
 import com.backstage.common.core.page.TableDataInfo;
+import com.backstage.common.enums.ResourceCodePrefixEnum;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.common.utils.email.EmailUtil;
+import com.backstage.common.utils.generate.GenerateUtil;
 import com.backstage.common.utils.redis.DistributedLockUtil;
 import com.backstage.system.domain.dto.website.WebsiteAuditDTO;
 import com.backstage.system.domain.dto.website.WebsiteQueryDTO;
@@ -11,13 +13,11 @@ import com.backstage.system.domain.dto.website.WebsiteSubmitDTO;
 import com.backstage.system.domain.vo.website.EsPageResult;
 import com.backstage.system.domain.vo.website.OshPracticalWebsiteVO;
 import com.backstage.system.domain.website.OshPracticalWebsite;
-import com.backstage.system.domain.website.OshWebsiteTag;
 import com.backstage.system.domain.website.WebsiteEsDoc;
-import com.backstage.system.domain.website.OshWebsiteTagRel;
 import com.backstage.system.mapper.website.OshPracticalWebsiteMapper;
-import com.backstage.system.mapper.website.OshWebsiteTagMapper;
 import com.backstage.system.mapper.website.OshWebsiteTagRelMapper;
 import com.backstage.system.service.website.OshPracticalWebsiteService;
+import com.backstage.system.service.website.OshWebsiteTagService;
 import com.backstage.system.utils.WebsiteRatingCalculatorUtil;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
@@ -49,9 +49,9 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
     @Autowired
     private OshPracticalWebsiteMapper oshPracticalWebsiteMapper;
     @Autowired
-    private OshWebsiteTagMapper oshWebsiteTagMapper;
-    @Autowired
     private OshWebsiteTagRelMapper oshWebsiteTagRelMapper;
+    @Autowired
+    private OshWebsiteTagService oshWebsiteTagService;
     @Autowired
     private EmailUtil emailUtil;
     @Autowired
@@ -131,6 +131,7 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
 
         // 3. 构建网站对象
         OshPracticalWebsite website = new OshPracticalWebsite();
+        website.setNo(GenerateUtil.generateResourceCode(ResourceCodePrefixEnum.WEBSITE));
         website.setName(submitDto.getName().trim());
         website.setUrl(url);
         website.setDescription(submitDto.getDescription());
@@ -148,23 +149,13 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
         }
 
         // 5. 处理标签关联（tagNames 可选，为空则跳过）
+        // 参考课程模块：标签不存在时自动创建，并维护 use_count
         if (submitDto.getTagNames() != null && !submitDto.getTagNames().isEmpty()) {
-
-            // 5.1 根据标签名批量查出 tag_id
-            List<OshWebsiteTag> tagList = oshWebsiteTagMapper.selectByTagNames(submitDto.getTagNames());
-
-            if (tagList != null && !tagList.isEmpty()) {
-                // 5.2 构建关联记录，插入 osh_website_tag_rel
-                List<OshWebsiteTagRel> relList = new ArrayList<>();
-                for (OshWebsiteTag tag : tagList) {
-                    OshWebsiteTagRel rel = new OshWebsiteTagRel();
-                    rel.setWebsiteId(website.getId());
-                    rel.setTagId(tag.getId());
-                    rel.setDeleteFlag(0);
-                    relList.add(rel);
-                }
-                oshWebsiteTagRelMapper.batchInsertRel(relList);
-            }
+            oshWebsiteTagService.bindWebsiteTags(
+                    website.getId(),
+                    submitDto.getTagNames(),
+                    website.getCreateBy()
+            );
         }
 
         // 6. 发送邮件通知（失败不影响主流程）

@@ -36,7 +36,7 @@ public interface OshPracticalWebsiteMapper  {
      * @return 影响行数
      */
     @Options(useGeneratedKeys = true, keyColumn = "id", keyProperty = "id")// 返回主键
-    @Insert("insert into osh_practical_website (name, url, description, logo_url, status) values (#{name}, #{url}, #{description}, #{logoUrl}, #{status})")
+    @Insert("insert into osh_practical_website (no, name, url, description, logo_url, status) values (#{no}, #{name}, #{url}, #{description}, #{logoUrl}, #{status})")
     int insertWebsite(OshPracticalWebsite website);
 
     /**

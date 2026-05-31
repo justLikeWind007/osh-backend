@@ -6,6 +6,7 @@
 
     <resultMap id="WebsiteVoResultMap" type="com.backstage.system.domain.vo.website.OshPracticalWebsiteVO">
         <id property="id" column="id" />
+        <result property="no" column="no" />
         <result property="name" column="name" />
         <result property="url" column="url" />
         <result property="description" column="description" />
@@ -47,6 +48,7 @@
     <select id="selectWebsitePage" resultMap="WebsiteVoResultMap">
         SELECT DISTINCT
         w.id,
+        w.no,
         w.name,
         w.url,
         w.description,
@@ -73,7 +75,7 @@
                 #{tagName}
             </foreach>
         </if>
-        GROUP BY w.id, w.name, w.url, w.description, w.logo_url, w.click_count, w.audit_time, w.good_count, w.mid_count, w.bad_count, w.collection_count, w.rating_score
+        GROUP BY w.id, w.no, w.name, w.url, w.description, w.logo_url, w.click_count, w.audit_time, w.good_count, w.mid_count, w.bad_count, w.collection_count, w.rating_score
         ORDER BY w.rating_score DESC
     </select>
 
@@ -88,6 +90,7 @@
     <select id="selectAllPublishedWebsites" resultMap="WebsiteVoResultMap">
         SELECT
             w.id,
+            w.no,
             w.name,
             w.url,
             w.description,
@@ -105,7 +108,7 @@
         LEFT JOIN osh_website_tag t ON wt.tag_id = t.id AND t.delete_flag = 0
         WHERE w.delete_flag = 0
           AND w.status = 1
-        GROUP BY w.id, w.name, w.url, w.description, w.logo_url,
+        GROUP BY w.id, w.no, w.name, w.url, w.description, w.logo_url,
                  w.click_count, w.audit_time, w.good_count, w.mid_count,
                  w.bad_count, w.collection_count, w.rating_score
         ORDER BY w.rating_score DESC

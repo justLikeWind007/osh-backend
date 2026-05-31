@@ -12,6 +12,9 @@ public class OshPracticalWebsiteVO {
     /** 主键 ID */
     private Long id;
 
+    /** 资源编号 */
+    private String no;
+
     /** 网站名称 */
     private String name;
 
@@ -55,6 +58,14 @@ public class OshPracticalWebsiteVO {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getNo() {
+        return no;
+    }
+
+    public void setNo(String no) {
+        this.no = no;
     }
 
     public String getName() {
@@ -155,6 +166,7 @@ public class OshPracticalWebsiteVO {
     public String toString() {
         return "OshPracticalWebsiteVO{" +
                 "id=" + id +
+                ", no='" + no + '\'' +
                 ", name='" + name + '\'' +
                 ", url='" + url + '\'' +
                 ", description='" + description + '\'' +

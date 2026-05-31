@@ -54,6 +54,11 @@ public class OshWebsiteTag {
     private Date updateTime;
 
     /**
+     * 使用次数（关联了该标签的网站数量）
+     */
+    private Integer useCount;
+
+    /**
      * 删除标志：0-正常，1-删除
      */
     private Integer deleteFlag;
@@ -171,6 +176,20 @@ public class OshWebsiteTag {
     }
 
     /**
+     * 使用次数
+     */
+    public Integer getUseCount() {
+        return useCount;
+    }
+
+    /**
+     * 使用次数
+     */
+    public void setUseCount(Integer useCount) {
+        this.useCount = useCount;
+    }
+
+    /**
      * 删除标志：0-正常，1-删除
      */
     public Integer getDeleteFlag() {
@@ -190,6 +209,7 @@ public class OshWebsiteTag {
                 ", tagName='" + tagName + '\'' +
                 ", tagCode='" + tagCode + '\'' +
                 ", sortOrder=" + sortOrder +
+                ", useCount=" + useCount +
                 ", createBy='" + createBy + '\'' +
                 ", createTime=" + createTime +
                 ", updateBy='" + updateBy + '\'' +
