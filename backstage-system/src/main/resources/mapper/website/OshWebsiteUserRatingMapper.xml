@@ -29,4 +29,17 @@
         bad_count,collection_count,rating_score,
         click_count,create_time,update_time
     </sql>
+
+    <!-- 批量查询当前用户对指定网站列表的评价类型 -->
+    <select id="selectRatingTypesByUserAndWebsites" resultType="java.util.Map">
+        SELECT website_id AS websiteId, rating_type AS ratingType
+        FROM osh_website_user_rating
+        WHERE user_id = #{userId}
+          AND delete_flag = 0
+          AND website_id IN
+        <foreach collection="websiteIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
 </mapper>

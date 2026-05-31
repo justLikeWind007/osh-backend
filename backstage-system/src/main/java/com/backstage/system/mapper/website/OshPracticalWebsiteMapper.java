@@ -106,6 +106,20 @@ public interface OshPracticalWebsiteMapper  {
 
     void updateCount(@Param("websiteId") Long websiteId, @Param("oldRatingType") Integer oldRatingType, @Param("ratingType") Integer ratingType);
 
+    /**
+     * 批量查询网站的评价计数（用于 ES 路径回填实时数据）
+     */
+    @Select("<script>" +
+            "SELECT id, good_count, mid_count, bad_count " +
+            "FROM osh_practical_website " +
+            "WHERE id IN " +
+            "<foreach collection='ids' item='id' open='(' separator=',' close=')'>" +
+            "#{id}" +
+            "</foreach>" +
+            " AND delete_flag = 0" +
+            "</script>")
+    List<OshPracticalWebsite> selectCountsByIds(@Param("ids") List<Long> ids);
+
     @Update("UPDATE osh_practical_website SET collection_count = collection_count + 1 WHERE id = #{websiteId} AND delete_flag = 0 AND status = 1")
     void addCollectionCount(Long websiteId);
 

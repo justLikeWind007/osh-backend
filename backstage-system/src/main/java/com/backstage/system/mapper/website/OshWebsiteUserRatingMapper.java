@@ -3,9 +3,13 @@ package com.backstage.system.mapper.website;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.backstage.system.domain.website.OshWebsiteUserRating;
 import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.MapKey;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
+
+import java.util.List;
+import java.util.Map;
 
 /**
 * @author 24333
@@ -23,6 +27,19 @@ public interface OshWebsiteUserRatingMapper extends BaseMapper<OshWebsiteUserRat
 
     @Update("update osh_website_user_rating set rating_type = #{ratingType} where id = #{id} and user_id = #{userId} and website_id = #{websiteId} and rating_type = #{oldRatingType} and delete_flag = 0")
     int handleModifyRating(@Param("id") Long id, @Param("userId") Long userId, @Param("websiteId") Long websiteId, @Param("oldRatingType") Integer oldRatingType, @Param("ratingType") Integer ratingType);
+
+    /**
+     * 批量查询当前用户对指定网站列表的评价类型
+     * 返回 Map<websiteId, ratingType>，未评价的网站不在 Map 里
+     *
+     * @param userId     当前用户 ID
+     * @param websiteIds 网站 ID 列表
+     * @return websiteId -> ratingType 映射
+     */
+    @MapKey("websiteId")
+    List<Map<String, Object>> selectRatingTypesByUserAndWebsites(
+            @Param("userId") Long userId,
+            @Param("websiteIds") List<Long> websiteIds);
 }
 
 

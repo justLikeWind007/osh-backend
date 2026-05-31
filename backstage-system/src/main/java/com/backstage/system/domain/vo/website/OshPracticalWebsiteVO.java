@@ -51,6 +51,9 @@ public class OshPracticalWebsiteVO {
     /** 评分 */
     private BigDecimal ratingScore;
 
+    /** 当前登录用户的评价类型：1-好评 2-中评 3-差评 null-未评价 */
+    private Integer myRatingType;
+
 
     public Long getId() {
         return id;
@@ -162,6 +165,14 @@ public class OshPracticalWebsiteVO {
     public void setRatingScore(BigDecimal ratingScore) {
         this.ratingScore = ratingScore;
     }
+
+    public Integer getMyRatingType() {
+        return myRatingType;
+    }
+
+    public void setMyRatingType(Integer myRatingType) {
+        this.myRatingType = myRatingType;
+    }
     @Override
     public String toString() {
         return "OshPracticalWebsiteVO{" +
@@ -179,6 +190,7 @@ public class OshPracticalWebsiteVO {
                 ", badCount=" + badCount +
                 ", collectionCount=" + collectionCount +
                 ", ratingScore=" + ratingScore +
+                ", myRatingType=" + myRatingType +
                 '}';
     }
 }

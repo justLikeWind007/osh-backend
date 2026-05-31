@@ -38,14 +38,14 @@ public class OshUserFavoriteWebsiteServiceImpl extends ServiceImpl<OshUserFavori
     @Transactional(rollbackFor = Exception.class)
     public int favoriteWebsite(Long websiteId) {
         Long userId = UserContextUtil.getCurrentUserId();
-        // 1. 验证参数
-        if (websiteId == null || userId == null)  throw new IllegalArgumentException("网站 ID 和用户 ID 不能为空");
-        // 2. 检查是否已收藏
+        if (websiteId == null || userId == null) throw new IllegalArgumentException("网站 ID 和用户 ID 不能为空");
+        // 检查是否已收藏（delete_flag=0 的有效记录）
         int count = userFavoriteWebsiteMapper.getFavorited(websiteId, userId);
         if (count > 0) {
             throw new IllegalArgumentException("您已经收藏过该网站了");
         }
         practicalWebsiteMapper.addCollectionCount(websiteId);
+        // ON DUPLICATE KEY UPDATE delete_flag=0，软删除后再收藏不会报唯一键冲突
         return userFavoriteWebsiteMapper.favoriteWebsite(websiteId, userId);
     }
 
