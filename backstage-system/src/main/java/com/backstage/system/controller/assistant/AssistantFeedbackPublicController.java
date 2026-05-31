@@ -32,7 +32,11 @@ import java.util.List;
 @RequestMapping("/pc/feedback")
 public class AssistantFeedbackPublicController extends BaseController {
 
-    public AssistantFeedbackPublicController(IAssistantFeedbackCategoryService categoryService, IAssistantFeedbackService feedbackService, IAssistantFeedbackCommentService commentService, IAssistantFeedbackTagService feedbackTagService, IAnnouncementMarqueeQueryService announcementMarqueeQueryService) {
+    public AssistantFeedbackPublicController(IAssistantFeedbackCategoryService categoryService,
+                                             IAssistantFeedbackService feedbackService,
+                                             IAssistantFeedbackCommentService commentService,
+                                             IAssistantFeedbackTagService feedbackTagService,
+                                             IAnnouncementMarqueeQueryService announcementMarqueeQueryService) {
         this.categoryService = categoryService;
         this.feedbackService = feedbackService;
         this.commentService = commentService;
@@ -78,12 +82,17 @@ public class AssistantFeedbackPublicController extends BaseController {
     }
 
     /**
-     * 分页查询反馈列表
+     * 分页查询反馈列表。
+     * <p>
+     * 本接口标注 {@link Anonymous}，认证过滤器会直接放行而不写入 ThreadLocal。
+     * 这里通过 {@link UserContextUtil#getCurrentUserIdSafely()} 做 Token 软认证回退识别，
+     * 以支撑"我的反馈 / 我的收藏"两个 tab 在同一个匿名接口下识别登录用户。
+     * </p>
      */
     @ApiOperation("分页查询反馈列表")
     @PostMapping("/page")
     public TableDataInfo pageFeedback(@RequestBody AssistantFeedbackPageDTO dto) {
-        dto.setUserId(safeCurrentUserId());
+        dto.setUserId(UserContextUtil.getCurrentUserIdSafely());
         return feedbackService.pageFeedbackList(dto);
     }
 
@@ -123,13 +132,5 @@ public class AssistantFeedbackPublicController extends BaseController {
             @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
         List<AssistantFeedbackCommentVO> comments = commentService.listCommentsByFeedbackId(feedbackId, pageNum, pageSize);
         return R.ok(comments);
-    }
-
-    private Long safeCurrentUserId() {
-        try {
-            return UserContextUtil.getCurrentUserId();
-        } catch (Exception ignore) {
-            return null;
-        }
     }
 }
