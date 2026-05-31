@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 用户管理 - 列表项返回
+ * 用户管理 - 列表项返回（包含用户表所有字段 + 积分 + 角色）
  */
 public class UserManageItemVO {
 
@@ -22,7 +22,14 @@ public class UserManageItemVO {
     private String inviteCode;
     private Integer deleteFlag;
 
-    /** 角色名称 */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime createTime;
+    private Long createBy;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime updateTime;
+    private Long updateBy;
+
+    /** 角色名称（最高角色） */
     private String roleName;
     /** 角色编码 */
     private String roleCode;
@@ -32,11 +39,11 @@ public class UserManageItemVO {
     /** 用户积分 */
     private Long points;
 
+    /** 用户唯一标识 */
+    private String uniqueId;
+
     /** 用户所有角色列表（按等级降序） */
     private List<Map<String, Object>> roles;
-
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime createTime;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -68,6 +75,18 @@ public class UserManageItemVO {
     public Integer getDeleteFlag() { return deleteFlag; }
     public void setDeleteFlag(Integer deleteFlag) { this.deleteFlag = deleteFlag; }
 
+    public LocalDateTime getCreateTime() { return createTime; }
+    public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
+
+    public Long getCreateBy() { return createBy; }
+    public void setCreateBy(Long createBy) { this.createBy = createBy; }
+
+    public LocalDateTime getUpdateTime() { return updateTime; }
+    public void setUpdateTime(LocalDateTime updateTime) { this.updateTime = updateTime; }
+
+    public Long getUpdateBy() { return updateBy; }
+    public void setUpdateBy(Long updateBy) { this.updateBy = updateBy; }
+
     public String getRoleName() { return roleName; }
     public void setRoleName(String roleName) { this.roleName = roleName; }
 
@@ -80,8 +99,8 @@ public class UserManageItemVO {
     public Long getPoints() { return points; }
     public void setPoints(Long points) { this.points = points; }
 
-    public LocalDateTime getCreateTime() { return createTime; }
-    public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
+    public String getUniqueId() { return uniqueId; }
+    public void setUniqueId(String uniqueId) { this.uniqueId = uniqueId; }
 
     public List<Map<String, Object>> getRoles() { return roles; }
     public void setRoles(List<Map<String, Object>> roles) { this.roles = roles; }

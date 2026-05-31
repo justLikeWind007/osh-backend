@@ -41,6 +41,8 @@ public interface IOshUserService {
 
     R<OshUser> getUserInfo();
 
+    R<?> getUserRoles();
+
     R<String> deleteUser();
 
     R<String> updateAsset(Integer changeType, Integer changeSource, Long changeAmount, String remark);

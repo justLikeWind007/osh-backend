@@ -31,6 +31,7 @@ public class JwtUtil {
     {
         String token = Jwts.builder()
                 .setClaims(claims)
+                .setId(java.util.UUID.randomUUID().toString())
                 .signWith(SignatureAlgorithm.HS512, secret).compact();
         return token;
     }
