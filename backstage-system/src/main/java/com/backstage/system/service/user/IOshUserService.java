@@ -41,55 +41,9 @@ public interface IOshUserService {
 
     R<OshUser> getUserInfo();
 
+    R<?> getUserRoles();
+
     R<String> deleteUser();
 
     R<String> updateAsset(Integer changeType, Integer changeSource, Long changeAmount, String remark);
-
-//    /**
-//     * 查询用户
-//     *
-//     * @param id 用户主键
-//     * @return 用户
-//     */
-//    public OshUser selectUserById(Long id);
-//
-    /**
-     * 查询用户列表
-     *
-     * @param req 参数
-     * @return 用户集合
-     */
-    List<OshUser> selectUserList(UserListRequest req);
-//
-//    /**
-//     * 新增用户
-//     *
-//     * @param oshUser 用户
-//     * @return 结果
-//     */
-//    public int insertUser(OshUser oshUser);
-//
-//    /**
-//     * 修改用户
-//     *
-//     * @param oshUser 用户
-//     * @return 结果
-//     */
-//    public int updateUser(OshUser oshUser);
-//
-//    /**
-//     * 批量删除用户
-//     *
-//     * @param ids 需要删除的用户主键集合
-//     * @return 结果
-//     */
-//    public int deleteUserByIds(Long[] ids);
-//
-//    /**
-//     * 删除用户信息
-//     *
-//     * @param id 用户主键
-//     * @return 结果
-//     */
-//    public int deleteUserById(Long id);
 }

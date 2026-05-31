@@ -92,6 +92,10 @@ public class OshSeckillActivityItem {
     @ApiModelProperty("删除标记：0-正常 1-已删除")
     private Integer deleteFlag;
 
+    /** 来自 osh_seckill_goods 的资源编号（查询时 join 带出，非数据库字段） */
+    @ApiModelProperty("资源编号")
+    private String no;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -148,4 +152,7 @@ public class OshSeckillActivityItem {
 
     public Integer getDeleteFlag() { return deleteFlag; }
     public void setDeleteFlag(Integer deleteFlag) { this.deleteFlag = deleteFlag; }
+
+    public String getNo() { return no; }
+    public void setNo(String no) { this.no = no; }
 }

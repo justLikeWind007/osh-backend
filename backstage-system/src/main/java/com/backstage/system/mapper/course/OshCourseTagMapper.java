@@ -84,4 +84,9 @@ public interface OshCourseTagMapper {
      * 增加标签使用次数
      */
     int incrementUsageCount(@Param("tagId") Long tagId);
+
+    /**
+     * 查询课程的标签名称列表（供秒杀模块同步标签使用）
+     */
+    List<String> selectTagNamesByCourseId(@Param("courseId") Long courseId);
 }

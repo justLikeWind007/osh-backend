@@ -60,13 +60,14 @@ public class SeckillItemEsMapper {
      * 搜索秒杀商品明细
      * 固定过滤：deleteFlag=0、endTime > now（方式A，过滤已结束活动）
      *
-     * @param keyword   商品名称关键词（可为 null）
-     * @param goodsType 商品类型过滤（可为 null）
-     * @param pageNum   页码（从 1 开始）
-     * @param pageSize  每页大小
+     * @param keyword     商品名称关键词（可为 null）
+     * @param goodsType   商品类型过滤（可为 null）
+     * @param tagNameList 标签名称列表过滤（可为 null）
+     * @param pageNum     页码（从 1 开始）
+     * @param pageSize    每页大小
      */
     public PageResponse<SeckillActivityItemVO> searchItems(
-            String keyword, Integer goodsType, int pageNum, int pageSize) throws Exception {
+            String keyword, Integer goodsType, List<String> tagNameList, int pageNum, int pageSize) throws Exception {
 
         if (!restHighLevelClient.indices().exists(
                 new GetIndexRequest(SECKILL_ITEM_SEARCH_INDEX), RequestOptions.DEFAULT)) {
@@ -74,7 +75,7 @@ public class SeckillItemEsMapper {
         }
 
         SearchRequest searchRequest = new SearchRequest(SECKILL_ITEM_SEARCH_INDEX);
-        searchRequest.source(buildSearchSource(keyword, goodsType, pageNum, pageSize));
+        searchRequest.source(buildSearchSource(keyword, goodsType, tagNameList, pageNum, pageSize));
 
         SearchResponse searchResponse;
         try {
@@ -154,7 +155,7 @@ public class SeckillItemEsMapper {
     // ==================== 私有方法 ====================
 
     private SearchSourceBuilder buildSearchSource(
-            String keyword, Integer goodsType, int pageNum, int pageSize) {
+            String keyword, Integer goodsType, List<String> tagNameList, int pageNum, int pageSize) {
 
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
                 .from((pageNum - 1) * pageSize)
@@ -177,6 +178,11 @@ public class SeckillItemEsMapper {
             boolQuery.filter(QueryBuilders.termQuery("goodsType", goodsType));
         }
 
+        // 标签过滤
+        if (tagNameList != null && !tagNameList.isEmpty()) {
+            boolQuery.filter(QueryBuilders.termsQuery("tagNames", tagNameList));
+        }
+
         sourceBuilder.query(boolQuery);
         // 默认按 sort 字段升序（运营配置的展示顺序），再按 seckillPrice 升序
         sourceBuilder.sort(SortBuilders.fieldSort("sort").order(SortOrder.ASC));
@@ -193,6 +199,7 @@ public class SeckillItemEsMapper {
         vo.setPayTimeoutMin(doc.getPayTimeoutMin());
         vo.setGoodsId(doc.getGoodsId());
         vo.setGoodsType(doc.getGoodsType());
+        vo.setNo(doc.getNo());
         vo.setTitle(doc.getTitle());
         vo.setCover(doc.getCover());
         vo.setOriginPrice(doc.getOriginPrice());
@@ -202,6 +209,7 @@ public class SeckillItemEsMapper {
         vo.setSoldCount(doc.getSoldCount());
         vo.setLimitPerUser(doc.getLimitPerUser());
         vo.setSort(doc.getSort());
+        vo.setTagNames(doc.getTagNames());
         if (doc.getStartTime() != null) {
             vo.setStartTime(java.util.Date.from(
                     doc.getStartTime().atZone(java.time.ZoneId.systemDefault()).toInstant()));

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 秒杀商品明细 ES 文档实体
@@ -14,6 +15,9 @@ public class SeckillItemEsDocument {
 
     /** 明细ID，作为 ES 文档 ID */
     private Long id;
+
+    /** 资源编号 */
+    private String no;
 
     /** 关联活动ID */
     private Long activityId;
@@ -71,6 +75,12 @@ public class SeckillItemEsDocument {
     /** 删除标记 */
     private Integer deleteFlag;
 
+    /** 标签名称列表（keyword，用于精确过滤） */
+    private List<String> tagNames;
+
+    /** 标签名称文本（text，用于全文检索加权） */
+    private String tagNamesText;
+
     @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
     private LocalDateTime createTime;
 
@@ -79,6 +89,9 @@ public class SeckillItemEsDocument {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public String getNo() { return no; }
+    public void setNo(String no) { this.no = no; }
 
     public Long getActivityId() { return activityId; }
     public void setActivityId(Long activityId) { this.activityId = activityId; }
@@ -133,6 +146,12 @@ public class SeckillItemEsDocument {
 
     public Integer getDeleteFlag() { return deleteFlag; }
     public void setDeleteFlag(Integer deleteFlag) { this.deleteFlag = deleteFlag; }
+
+    public List<String> getTagNames() { return tagNames; }
+    public void setTagNames(List<String> tagNames) { this.tagNames = tagNames; }
+
+    public String getTagNamesText() { return tagNamesText; }
+    public void setTagNamesText(String tagNamesText) { this.tagNamesText = tagNamesText; }
 
     public LocalDateTime getCreateTime() { return createTime; }
     public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }

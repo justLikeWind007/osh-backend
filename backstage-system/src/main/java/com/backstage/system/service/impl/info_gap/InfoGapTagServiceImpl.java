@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -49,6 +50,17 @@ public class InfoGapTagServiceImpl implements InfoGapTagService {
         }).collect(Collectors.toList());
 
         return result;
+    }
+
+    @Override
+    public List<InfoGapTagListRespDTO> getRecommendTagList() {
+        return getTagList().stream()
+                .sorted(Comparator.comparing(
+                        InfoGapTagListRespDTO::getTagUseCount,
+                        Comparator.nullsLast(Comparator.reverseOrder())
+                ))
+                .limit(8)
+                .collect(Collectors.toList());
     }
 
     @Override

@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 public class WsMessagePersistHandlerImpl implements WsMessagePersistHandler {
 
     private static final Logger log = LoggerFactory.getLogger(WsMessagePersistHandlerImpl.class);
+    private static final long SYSTEM_OPERATOR = 0L;
 
     @Autowired
     private OshWsNotificationMapper notificationMapper;
@@ -37,6 +38,9 @@ public class WsMessagePersistHandlerImpl implements WsMessagePersistHandler {
         record.setContent(src.getContent());
         record.setJumpUrl(src.getJumpUrl());
         record.setBizId(src.getBizId());
+        record.setCreateBy(SYSTEM_OPERATOR);
+        record.setUpdateBy(SYSTEM_OPERATOR);
+        record.setDeleteFlag((byte) 0);
 
         log.info("准备持久化WS消息, targetUserId={}, type={}, title={}", targetUserId, src.getType(), src.getTitle());
         notificationMapper.insert(record);

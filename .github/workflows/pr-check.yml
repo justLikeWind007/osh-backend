@@ -11,6 +11,7 @@ concurrency:
   group: pr-check-${{ github.head_ref }}
   cancel-in-progress: true
 
+
 env:
   JAVA_VERSION: '17'
 

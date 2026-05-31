@@ -17,12 +17,17 @@ public interface OshSeckillOrderMapper {
     /** 根据ID查询 */
     OshSeckillOrder selectOrderById(Long id);
 
-    /** 根据秒杀订单号查询 */
+    /** 根据秒杀尝试号查询（消费者幂等判重、秒杀结果轮询、用户取消） */
     OshSeckillOrder selectOrderBySeckillNo(String seckillNo);
 
-    /** 根据活动ID、明细ID和用户ID查询（判断是否已参与该活动内的某个商品） */
-    OshSeckillOrder selectOrderByActivityAndUser(@Param("activityId") Long activityId,
-                                                  @Param("itemId") Long itemId,
+    /** 根据统一订单号查询（支付成功回调、超时取消调支付系统） */
+    OshSeckillOrder selectOrderByOrderNo(String orderNo);
+
+    /**
+     * 查询该用户该 item 当前未完成的订单（status IN (0)，即待支付）
+     * 用于 getSeckillResult() 兜底查询（Redis Key 过期后的降级路径）
+     */
+    OshSeckillOrder selectPendingOrderByItemUser(@Param("itemId") Long itemId,
                                                   @Param("userId") Long userId);
 
     /** 管理端列表查询（支持多条件筛选） */
