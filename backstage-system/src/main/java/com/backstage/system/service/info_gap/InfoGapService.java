@@ -43,4 +43,7 @@ public interface InfoGapService {
 
     // 删除已发布的信息差
     void deleteInfoGap(Long infoGapId);
+
+    // 查询某条信息差在热门信息差中的页码
+    Integer getHotPageNumByInfoGapId(Long infoGapId, Integer pageSize);
 }

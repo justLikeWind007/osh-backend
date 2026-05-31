@@ -21,12 +21,12 @@ public interface IOshSeckillOrderService {
     List<SeckillOrderAdminVO> selectOrderList(OshSeckillOrder order);
 
     /**
-     * 根据秒杀单号查询订单（含归属校验用）
+     * 根据秒杀尝试号查询订单（含归属校验用）
      */
     OshSeckillOrder getOrderBySeckillNo(String seckillNo, Long userId);
 
     /**
-     * 通过秒杀单号查询订单状态（支付完成后前端轮询用）
+     * 通过秒杀尝试号查询订单状态（前端按单号轮询支付结果用）
      */
     SeckillResultVO getOrderStatusBySeckillNo(String seckillNo, Long userId);
 
@@ -55,7 +55,7 @@ public interface IOshSeckillOrderService {
     /**
      * 接口12：取消秒杀订单
      *
-     * @param seckillNo 秒杀订单编号
+     * @param seckillNo 秒杀尝试号
      * @param userId    当前用户ID（校验归属）
      */
     void cancelOrder(String seckillNo, Long userId);

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.seckill.OshSeckillGoodsTagMapper">
+
+    <resultMap type="com.backstage.system.domain.seckill.OshSeckillGoodsTag" id="OshSeckillGoodsTagResult">
+        <result property="id"          column="id"/>
+        <result property="tagName"     column="tag_name"/>
+        <result property="sortOrder"   column="sort_order"/>
+        <result property="createBy"    column="create_by"/>
+        <result property="createTime"  column="create_time"/>
+        <result property="updateBy"    column="update_by"/>
+        <result property="updateTime"  column="update_time"/>
+        <result property="deleteFlag"  column="delete_flag"/>
+    </resultMap>
+
+    <!-- 根据标签名查询标签（用于复用已有标签） -->
+    <select id="selectByTagName" resultMap="OshSeckillGoodsTagResult">
+        SELECT id, tag_name, sort_order, create_by, create_time, update_by, update_time, delete_flag
+        FROM osh_seckill_goods_tag
+        WHERE tag_name = #{tagName}
+          AND (delete_flag = 0 OR delete_flag IS NULL)
+        LIMIT 1
+    </select>
+
+    <!-- 插入新标签 -->
+    <insert id="insertTag" parameterType="com.backstage.system.domain.seckill.OshSeckillGoodsTag"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO osh_seckill_goods_tag
+            (tag_name, sort_order, create_by, create_time, update_by, update_time, delete_flag)
+        VALUES
+            (#{tagName}, #{sortOrder, jdbcType=INTEGER},
+             #{createBy}, CURRENT_TIMESTAMP, #{updateBy}, CURRENT_TIMESTAMP, 0)
+    </insert>
+
+    <!-- 根据商品ID查询标签名称列表（通过 rel 表关联） -->
+    <select id="selectTagNamesBySeckillGoodsId" resultType="java.lang.String">
+        SELECT t.tag_name
+        FROM osh_seckill_goods_tag t
+                 INNER JOIN osh_seckill_goods_tag_rel r ON t.id = r.tag_id
+        WHERE r.seckill_goods_id = #{seckillGoodsId}
+          AND (r.delete_flag = 0 OR r.delete_flag IS NULL)
+          AND (t.delete_flag = 0 OR t.delete_flag IS NULL)
+        ORDER BY t.sort_order ASC, t.id ASC
+    </select>
+
+    <!-- 批量查询多个商品的标签（含 seckillGoodsId，供批量回填使用） -->
+    <select id="selectTagsBySeckillGoodsIds"
+            resultType="com.backstage.system.mapper.seckill.OshSeckillGoodsTagMapper$OshSeckillGoodsTagWithGoodsId">
+        SELECT r.seckill_goods_id AS seckillGoodsId, t.tag_name AS tagName
+        FROM osh_seckill_goods_tag t
+                 INNER JOIN osh_seckill_goods_tag_rel r ON t.id = r.tag_id
+        WHERE r.seckill_goods_id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+          AND (r.delete_flag = 0 OR r.delete_flag IS NULL)
+          AND (t.delete_flag = 0 OR t.delete_flag IS NULL)
+        ORDER BY r.seckill_goods_id ASC, t.sort_order ASC, t.id ASC
+    </select>
+
+</mapper>

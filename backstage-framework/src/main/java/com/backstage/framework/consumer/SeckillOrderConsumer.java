@@ -26,10 +26,11 @@ import java.util.concurrent.TimeUnit;
 /**
  * 秒杀订单创建 Kafka 消费者
  * 消费 seckill.order.create Topic，完成：
- *   1. 调用 OrderCheckoutService.checkout() 写 osh_order + 调支付平台
- *   2. 扣减数据库库存
- *   3. 写入 osh_seckill_order
- *   4. 更新 Redis orderKey 为真实 orderNo
+ *   1. 幂等校验：按 seckillNo 判重，已存在则跳过
+ *   2. 调用 OrderCheckoutService.checkout() 写 osh_order + 调支付平台，得到 orderNo
+ *   3. 扣减数据库库存
+ *   4. 写入 osh_seckill_order（seckillNo + orderNo 同时落库）
+ *   5. 延长 Redis orderKey 的 TTL 到支付超时时间（value 保持 seckillNo 不变）
  * 任意步骤失败时按已完成的步骤逐层回滚。
  */
 @Component
@@ -71,21 +72,11 @@ public class SeckillOrderConsumer {
             return;
         }
 
-        // 幂等校验：orderKey 已经是真实 orderNo（非 PENDING）说明已处理过
-        Object existingVal = redisTemplate.opsForValue().get(msg.getOrderKey());
-        if (existingVal != null && !"PENDING".equals(existingVal.toString())) {
-            logger.warn("【秒杀消费者】订单已处理，跳过重复消费，orderKey={}, val={}", msg.getOrderKey(), existingVal);
-            ack.acknowledge();
-            return;
-        }
-
-        // 也检查数据库，防止 Redis Key 过期后重复消费
-        // 用 activityId + itemId + userId 查是否已有订单
-        OshSeckillOrder existOrder = orderMapper.selectOrderByActivityAndUser(
-                msg.getActivityId(), msg.getItemId(), msg.getUserId());
+        // 幂等校验：按 seckillNo 判重，防止 Kafka 消息重复消费
+        // 不能再按 activityId+itemId+userId 判重，否则会误杀同一用户的第二次、第三次合法购买
+        OshSeckillOrder existOrder = orderMapper.selectOrderBySeckillNo(msg.getSeckillNo());
         if (existOrder != null) {
-            logger.warn("【秒杀消费者】数据库订单已存在，跳过重复消费，activityId={}, itemId={}, userId={}",
-                    msg.getActivityId(), msg.getItemId(), msg.getUserId());
+            logger.warn("【秒杀消费者】seckillNo 已存在，跳过重复消费，seckillNo={}", msg.getSeckillNo());
             ack.acknowledge();
             return;
         }
@@ -135,9 +126,11 @@ public class SeckillOrderConsumer {
         }
 
         // 步骤3：写入秒杀订单表
+        // 秒杀单落库时机在 checkout 成功之后，order_no 必有值，不存在空值问题
         try {
             OshSeckillOrder order = new OshSeckillOrder();
-            order.setSeckillNo(orderNo);
+            order.setSeckillNo(msg.getSeckillNo()); // 秒杀尝试号，来自消息体
+            order.setOrderNo(orderNo);              // 统一订单号，来自 checkout 返回
             order.setActivityId(msg.getActivityId());
             order.setItemId(msg.getItemId());
             order.setUserId(msg.getUserId());
@@ -152,9 +145,9 @@ public class SeckillOrderConsumer {
             order.setStatus(0); // 待支付
             order.setPayExpireTime(msg.getPayExpireTime());
             orderMapper.insertOrder(order);
-            logger.info("【秒杀消费者】秒杀订单写库成功，orderNo={}", orderNo);
+            logger.info("【秒杀消费者】秒杀订单写库成功，seckillNo={}, orderNo={}", msg.getSeckillNo(), orderNo);
         } catch (Exception e) {
-            logger.error("【秒杀消费者】秒杀订单写库失败，回滚，orderNo={}", orderNo, e);
+            logger.error("【秒杀消费者】秒杀订单写库失败，回滚，seckillNo={}, orderNo={}", msg.getSeckillNo(), orderNo, e);
             // 回滚数据库库存 + 统一订单 + Redis
             try { itemMapper.incrStock(msg.getItemId(), quantity); } catch (Exception ex) {
                 logger.error("【秒杀消费者】回滚数据库库存失败，itemId={}", msg.getItemId(), ex);
@@ -164,26 +157,30 @@ public class SeckillOrderConsumer {
             return;
         }
 
-        // 步骤4：更新 orderKey 为真实 orderNo，前端轮询可拿到订单信息
+        // 步骤4：延长 orderKey 的 TTL 到真实支付超时时间
+        // orderKey 的 value 保持 seckillNo 不变，只刷新过期时间
+        // 前端轮询通过 getSeckillResult() 拿到 seckillNo，再查库得到 orderNo
         try {
-            redisTemplate.opsForValue().set(msg.getOrderKey(), orderNo, msg.getExpireSeconds(), TimeUnit.SECONDS);
+            redisTemplate.expire(msg.getOrderKey(), msg.getExpireSeconds(), TimeUnit.SECONDS);
         } catch (Exception e) {
-            // 更新 orderKey 失败不影响主流程，订单已写库，前端可通过数据库查到
-            logger.warn("【秒杀消费者】更新 orderKey 失败，orderNo={}, error={}", orderNo, e.getMessage());
+            // 延长 TTL 失败不影响主流程，订单已写库，前端可通过数据库查到
+            logger.warn("【秒杀消费者】延长 orderKey TTL 失败，seckillNo={}, error={}", msg.getSeckillNo(), e.getMessage());
         }
 
-        logger.info("【秒杀消费者】订单处理完成，orderNo={}, userId={}", orderNo, msg.getUserId());
+        logger.info("【秒杀消费者】订单处理完成，seckillNo={}, orderNo={}, userId={}", msg.getSeckillNo(), orderNo, msg.getUserId());
         ack.acknowledge();
     }
 
     /**
      * 仅回滚 Redis（checkout 失败时使用）
+     * 同时删除 orderKey，释放防重复提交锁，允许用户重新下单
      */
     private void rollbackRedis(SeckillOrderMessage msg, int quantity) {
         try {
             stringRedisTemplate.opsForValue().increment(msg.getStockKey(), quantity);
             stringRedisTemplate.opsForValue().increment(msg.getBoughtCntKey(), -quantity);
             redisTemplate.delete(msg.getOrderKey());
+            logger.info("【秒杀消费者】Redis 回滚完成，orderKey={} 已释放", msg.getOrderKey());
         } catch (Exception e) {
             logger.error("【秒杀消费者】回滚 Redis 失败，orderKey={}", msg.getOrderKey(), e);
         }

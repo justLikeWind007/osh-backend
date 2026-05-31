@@ -15,13 +15,11 @@ import com.backstage.system.domain.user.*;
 import com.backstage.system.domain.user.vo.OshUserLoginVO;
 import com.backstage.system.mapper.user.*;
 import com.backstage.system.mapper.user.OshUserInvitationMapper;
-import com.backstage.system.request.UserListRequest;
 import com.backstage.system.service.common.OssService;
 import com.backstage.system.service.user.IOshUserService;
 import com.backstage.system.utils.OssUtil;
 import com.backstage.system.utils.UserContextUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.stereotype.Service;
@@ -58,6 +56,8 @@ public class OshUserServiceImpl implements IOshUserService {
     private OshUserAssetRecordMapper oshUserAssetRecordMapper;
     @Autowired
     private OshUserInvitationMapper oshUserInvitationMapper;
+    @Autowired
+    private UserManageMapper userManageMapper;
 
     @Override
     public R<OshUserLoginVO> login(String username, String password) {
@@ -100,19 +100,10 @@ public class OshUserServiceImpl implements IOshUserService {
         map.put(OshUserConstants.ROLE, role);
         map.put(OshUserConstants.PERMISSION, permissionList);
 
-        // 检查是否已登录（限制重复登录）
+        // 新登录直接覆盖旧会话（踢掉旧设备）
         String loginKey = OshUserConstants.LOGIN_USER + oshUser.getId();
-        if (redisCache.hasKey(loginKey)) {
-            // 已有登录态，获取当前登录数
-            Map<String, Object> existingData = redisCache.getCacheObject(loginKey);
-            Integer loginCount = existingData != null ? (Integer) existingData.getOrDefault(OshUserConstants.LOGINCOUNT, 0) : 0;
-            if (loginCount >= 1) {
-                return R.fail("该账号已在其他设备登录，请先退出后再登录");
-            }
-        }
-
-        // 记录登录数
         map.put(OshUserConstants.LOGINCOUNT, 1);
+        map.put(OshUserConstants.TOKEN, token); // 存储当前有效 token，用于踢掉旧设备
         redisCache.setCacheObject(loginKey, map, 500, TimeUnit.MINUTES);
         return R.ok(userLoginVo);
     }
@@ -436,6 +427,14 @@ public class OshUserServiceImpl implements IOshUserService {
             oshUser.setAvatar(ossService.getLimitedUrl(avatar, 30));
         }
         return R.ok(oshUser);
+    }
+
+    @Override
+    public R<?> getUserRoles() {
+        Long userId = ThreadLocalUtil.get(OshUserConstants.USER_ID, Long.class);
+        List<Long> userIds = Collections.singletonList(userId);
+        List<Map<String, Object>> roles = userManageMapper.selectUserRolesByUserIds(userIds);
+        return R.ok(roles);
     }
 
     @Override
