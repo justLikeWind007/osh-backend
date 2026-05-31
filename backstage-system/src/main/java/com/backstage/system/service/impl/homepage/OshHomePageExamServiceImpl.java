@@ -1,11 +1,11 @@
 package com.backstage.system.service.impl.homepage;
 
 import com.backstage.common.utils.StringUtils;
-import com.backstage.system.domain.homepage.vo.HotBookVO;
-import com.backstage.system.mapper.homepage.OshHomePageBookMapper;
+import com.backstage.system.domain.homepage.vo.HotExamVO;
+import com.backstage.system.mapper.homepage.OshHomePageExamMapper;
 import com.backstage.system.service.common.OssService;
 import com.backstage.system.service.homepage.IOshHomePageModulePathService;
-import com.backstage.system.service.homepage.IOshHomePageBookService;
+import com.backstage.system.service.homepage.IOshHomePageExamService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -15,15 +15,15 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 首页热门电子书 Service 实现
+ * 首页热门考试 Service 实现
  *
  * @author jayTatum
  */
 @Service
-public class OshHomePageBookServiceImpl implements IOshHomePageBookService {
+public class OshHomePageExamServiceImpl implements IOshHomePageExamService {
 
     @Autowired
-    private OshHomePageBookMapper homePageBookMapper;
+    private OshHomePageExamMapper homePageExamMapper;
 
     @Autowired
     private OssService ossService;
@@ -32,30 +32,30 @@ public class OshHomePageBookServiceImpl implements IOshHomePageBookService {
     private IOshHomePageModulePathService modulePathService;
 
     @Override
-    public List<HotBookVO> getHotBooks(int limit) {
-        List<HotBookVO> books = homePageBookMapper.selectHotBooks(limit);
-        if (books.isEmpty()) {
-            return books;
+    public List<HotExamVO> getHotExams(int limit) {
+        List<HotExamVO> exams = homePageExamMapper.selectHotExams(limit);
+        if (exams.isEmpty()) {
+            return exams;
         }
 
-        List<Long> bookIds = books.stream().map(HotBookVO::getId).collect(Collectors.toList());
-        List<HotBookVO> tagRels = homePageBookMapper.selectTagsByBookIds(bookIds);
+        List<Long> examIds = exams.stream().map(HotExamVO::getId).collect(Collectors.toList());
+        List<HotExamVO> tagRels = homePageExamMapper.selectTagsByExamIds(examIds);
 
         Map<Long, List<String>> tagMap = tagRels.stream()
                 .collect(Collectors.groupingBy(
-                        HotBookVO::getBookId,
-                        Collectors.mapping(HotBookVO::getTagName, Collectors.toList())
+                        HotExamVO::getExamId,
+                        Collectors.mapping(HotExamVO::getTagName, Collectors.toList())
                 ));
 
-        for (HotBookVO vo : books) {
+        for (HotExamVO vo : exams) {
             List<String> tags = tagMap.getOrDefault(vo.getId(), Collections.emptyList());
             vo.setTags(tags.subList(0, Math.min(2, tags.size())));
-            vo.setDetailUrl(modulePathService.getDetailPath("book", vo.getId()));
+            vo.setDetailUrl(modulePathService.getDetailPath("exam", vo.getId()));
             if (StringUtils.isNotEmpty(vo.getCover())) {
                 vo.setCover(ossService.getLimitedUrl(vo.getCover(), 1440));
             }
         }
 
-        return books;
+        return exams;
     }
 }
