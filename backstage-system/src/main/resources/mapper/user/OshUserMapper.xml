@@ -50,7 +50,8 @@
     </insert>
 
     <insert id="addRole">
-        insert into osh_user_role values (#{userId}, 1, now(), #{userId}, now(), #{userId}, 0)
+        insert into osh_user_role (user_id, role_id, expire_time, create_time, create_by, update_time, update_by, delete_flag)
+        values (#{userId}, 1, null, now(), #{userId}, now(), #{userId}, 0)
     </insert>
 
     <select id="getUniqueIdByUserId" resultType="java.lang.String">

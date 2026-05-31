@@ -48,6 +48,7 @@ public class OshToolServiceImpl implements IOshToolService {
     private static final int PAY_TYPE_CASH = 1;
     private static final int PAY_TYPE_CASH_POINT = 3;
     private static final int RECOMMEND_PAGE_SIZE = 5;
+    private static final int RECOMMEND_TAG_LIMIT = 5;
     private static final int VOTE_TYPE_GOOD = 1;
     private static final int VOTE_TYPE_BAD = 3;
 
@@ -96,6 +97,12 @@ public class OshToolServiceImpl implements IOshToolService {
     @Override
     public List<OshToolTag> listAvailableTags() {
         return oshToolTagMapper.selectAvailableTags();
+    }
+
+    @Override
+    public List<OshToolTag> listRecommendTags(int limit) {
+        int safeLimit = limit <= 0 ? RECOMMEND_TAG_LIMIT : Math.min(limit, RECOMMEND_TAG_LIMIT);
+        return oshToolTagMapper.selectRecommendTags(safeLimit);
     }
 
     @Override

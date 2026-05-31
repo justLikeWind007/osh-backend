@@ -46,7 +46,7 @@
     </select>
 
     <select id="getGroupUserListByIds" resultType="com.backstage.system.domain.vo.GroupUserVo">
-        select username,nickname,avatar from osh_user where id in
+        select username, username as nickname, avatar from osh_user where id in
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}
         </foreach>
