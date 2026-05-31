@@ -68,7 +68,7 @@
             <if test="query.deleted != null and query.deleted == true">
                 and u.delete_flag = 1
             </if>
-            <if test="query.deleted == null or query.deleted == false">
+            <if test="query.deleted != null and query.deleted == false">
                 and u.delete_flag = 0
             </if>
         </where>
