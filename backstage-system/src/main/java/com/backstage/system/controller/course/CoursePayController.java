@@ -48,7 +48,7 @@ public class CoursePayController {
     @Anonymous
     @PostMapping("/create")
     public R<Map<String, Object>> create(@RequestBody Map<String, Object> body, HttpServletRequest request) {
-        Long userId = UserContextUtil.getCurrentUserId();
+        Long userId = UserContextUtil.getCurrentUserIdSafely();
         if (userId == null) {
             return R.fail("请先登录后再支付");
         }
@@ -87,7 +87,7 @@ public class CoursePayController {
     @Anonymous
     @GetMapping("/status")
     public R<Map<String, Object>> status(@RequestParam("out_trade_no") String outTradeNo) {
-        Long userId = UserContextUtil.getCurrentUserId();
+        Long userId = UserContextUtil.getCurrentUserIdSafely();
         if (userId == null) {
             return R.fail("请先登录后再查询支付状态");
         }
