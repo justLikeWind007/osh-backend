@@ -7,6 +7,7 @@
     <resultMap type="com.backstage.system.domain.seckill.OshSeckillOrder" id="OshSeckillOrderResult">
         <result property="id"             column="id"/>
         <result property="seckillNo"      column="seckill_no"/>
+        <result property="orderNo"        column="order_no"/>
         <result property="activityId"     column="activity_id"/>
         <result property="itemId"         column="item_id"/>
         <result property="userId"         column="user_id"/>
@@ -28,7 +29,7 @@
     </resultMap>
 
     <sql id="selectOrderVo">
-        select id, seckill_no, activity_id, item_id, user_id, goods_id, goods_type,
+        select id, seckill_no, order_no, activity_id, item_id, user_id, goods_id, goods_type,
                goods_title, goods_cover, origin_price, seckill_price, total_amount, quantity,
                status, pay_time, pay_expire_time, cancel_time, cancel_reason,
                create_time, update_time
@@ -45,12 +46,19 @@
         where seckill_no = #{seckillNo}
     </select>
 
-    <!-- 根据活动ID和用户ID查询（判断是否已参与，兼容多商品场景用 itemId 区分） -->
-    <select id="selectOrderByActivityAndUser" resultMap="OshSeckillOrderResult">
+    <!-- 根据统一订单号查询（支付成功回调、超时取消调支付系统） -->
+    <select id="selectOrderByOrderNo" parameterType="String" resultMap="OshSeckillOrderResult">
         <include refid="selectOrderVo"/>
-        where activity_id = #{activityId}
-          and item_id = #{itemId}
+        where order_no = #{orderNo}
+    </select>
+
+    <!-- 查询该用户该 item 当前未完成的订单（status=0 待支付），用于 getSeckillResult() Redis Key 过期后的兜底降级 -->
+    <select id="selectPendingOrderByItemUser" resultMap="OshSeckillOrderResult">
+        <include refid="selectOrderVo"/>
+        where item_id = #{itemId}
           and user_id = #{userId}
+          and status = 0
+        order by create_time desc
         limit 1
     </select>
 
@@ -70,11 +78,11 @@
     <insert id="insertOrder" parameterType="com.backstage.system.domain.seckill.OshSeckillOrder"
             useGeneratedKeys="true" keyProperty="id">
         insert into osh_seckill_order
-        (seckill_no, activity_id, item_id, user_id, goods_id, goods_type,
+        (seckill_no, order_no, activity_id, item_id, user_id, goods_id, goods_type,
          goods_title, goods_cover, origin_price, seckill_price, total_amount, quantity,
          status, pay_expire_time, create_time)
         values
-        (#{seckillNo}, #{activityId}, #{itemId}, #{userId}, #{goodsId}, #{goodsType},
+        (#{seckillNo}, #{orderNo}, #{activityId}, #{itemId}, #{userId}, #{goodsId}, #{goodsType},
          #{goodsTitle}, #{goodsCover}, #{originPrice}, #{seckillPrice}, #{totalAmount}, #{quantity},
          #{status}, #{payExpireTime}, CURRENT_TIMESTAMP)
     </insert>

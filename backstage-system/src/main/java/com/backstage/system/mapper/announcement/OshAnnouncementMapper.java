@@ -1,5 +1,6 @@
 package com.backstage.system.mapper.announcement;
 
+import com.backstage.system.domain.announcement.vo.AnnouncementMarqueeVO;
 import com.backstage.system.domain.vo.seckill.SeckillAnnouncementVO;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Param;
@@ -9,6 +10,26 @@ import org.apache.ibatis.annotations.Update;
 import java.util.List;
 
 public interface OshAnnouncementMapper {
+
+    // ==================== 公告跑马灯（按模块查询） ====================
+
+    /**
+     * 按模块 + 栏目查询公告跑马灯（status=4 已发布）。
+     * <p>module 由调用方通过 {@code AnnouncementModuleEnum} 传入，不在 SQL 中写死。
+     * 排序口径与秒杀公告一致：sort 倒序 → create_time 倒序。</p>
+     *
+     * @param module  归属模块关键字（见 AnnouncementModuleEnum）
+     * @param channel 栏目：1-公告 2-动态
+     * @param limit   返回条数上限
+     */
+    @Select("SELECT id, title, icon, color, channel, create_time AS createTime " +
+            "FROM osh_announcement " +
+            "WHERE delete_flag = 0 AND status = 4 AND module = #{module} AND channel = #{channel} " +
+            "ORDER BY sort DESC, create_time DESC " +
+            "LIMIT #{limit}")
+    List<AnnouncementMarqueeVO> selectMarqueeByModuleAndChannel(@Param("module") String module,
+                                                                @Param("channel") int channel,
+                                                                @Param("limit") int limit);
 
     // ==================== 秒杀公告/动态 ====================
 

@@ -8,16 +8,26 @@ import com.backstage.system.domain.course.OshCourse;
 import com.backstage.system.domain.dto.seckill.SeckillGoodsAddDTO;
 import com.backstage.system.domain.dto.seckill.SeckillGoodsUpdateDTO;
 import com.backstage.system.domain.seckill.OshSeckillGoods;
+import com.backstage.system.domain.seckill.OshSeckillGoodsTag;
+import com.backstage.system.domain.seckill.OshSeckillGoodsTagRel;
 import com.backstage.system.domain.vo.seckill.SeckillGoodsPreviewVO;
 import com.backstage.system.domain.vo.seckill.SeckillGoodsVO;
 import com.backstage.system.mapper.book.BookMapper;
+import com.backstage.system.mapper.book.BookTagDOMapper;
 import com.backstage.system.mapper.course.OshCourseMapper;
+import com.backstage.system.mapper.course.OshCourseTagMapper;
 import com.backstage.system.mapper.seckill.OshSeckillGoodsMapper;
+import com.backstage.system.mapper.seckill.OshSeckillGoodsTagMapper;
+import com.backstage.system.mapper.seckill.OshSeckillGoodsTagRelMapper;
 import com.backstage.system.service.seckill.IOshSeckillGoodsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -36,7 +46,19 @@ public class OshSeckillGoodsServiceImpl implements IOshSeckillGoodsService {
     private OshCourseMapper courseMapper;
 
     @Autowired
+    private OshCourseTagMapper courseTagMapper;
+
+    @Autowired
     private BookMapper bookMapper;
+
+    @Autowired
+    private BookTagDOMapper bookTagDOMapper;
+
+    @Autowired
+    private OshSeckillGoodsTagMapper seckillGoodsTagMapper;
+
+    @Autowired
+    private OshSeckillGoodsTagRelMapper seckillGoodsTagRelMapper;
 
     // ----------------------------------------------------------------
     // 内部工具方法
@@ -44,6 +66,7 @@ public class OshSeckillGoodsServiceImpl implements IOshSeckillGoodsService {
 
     /**
      * 实体转 VO（过滤 deleteFlag、createBy 等内部字段）
+     * tagNames 需调用方自行填充（避免在此处单条查询造成 N+1）
      */
     private SeckillGoodsVO toVO(OshSeckillGoods goods) {
         if (goods == null) return null;
@@ -100,15 +123,32 @@ public class OshSeckillGoodsServiceImpl implements IOshSeckillGoodsService {
 
     @Override
     public SeckillGoodsVO selectSeckillGoodsById(Long id) {
-        return toVO(seckillGoodsMapper.selectSeckillGoodsById(id));
+        SeckillGoodsVO vo = toVO(seckillGoodsMapper.selectSeckillGoodsById(id));
+        if (vo != null) {
+            vo.setTagNames(seckillGoodsTagMapper.selectTagNamesBySeckillGoodsId(id));
+        }
+        return vo;
     }
 
     @Override
     public List<SeckillGoodsVO> selectSeckillGoodsList(OshSeckillGoods goods) {
-        return seckillGoodsMapper.selectSeckillGoodsList(goods)
-                .stream()
-                .map(this::toVO)
-                .collect(Collectors.toList());
+        List<OshSeckillGoods> list = seckillGoodsMapper.selectSeckillGoodsList(goods);
+        if (list == null || list.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<SeckillGoodsVO> voList = list.stream().map(this::toVO).collect(Collectors.toList());
+
+        // 批量查标签，避免 N+1
+        List<Long> ids = list.stream().map(OshSeckillGoods::getId).collect(Collectors.toList());
+        List<OshSeckillGoodsTagMapper.OshSeckillGoodsTagWithGoodsId> allTags =
+                seckillGoodsTagMapper.selectTagsBySeckillGoodsIds(ids);
+        Map<Long, List<String>> tagMap = allTags.stream()
+                .collect(Collectors.groupingBy(
+                        OshSeckillGoodsTagMapper.OshSeckillGoodsTagWithGoodsId::getSeckillGoodsId,
+                        Collectors.mapping(OshSeckillGoodsTagMapper.OshSeckillGoodsTagWithGoodsId::getTagName,
+                                Collectors.toList())));
+        voList.forEach(vo -> vo.setTagNames(tagMap.getOrDefault(vo.getId(), Collections.emptyList())));
+        return voList;
     }
 
     /**
@@ -124,6 +164,7 @@ public class OshSeckillGoodsServiceImpl implements IOshSeckillGoodsService {
      * goodsName / goodsCover / originPrice 由后端自动从对应表查询填充，前端无需传入
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public int insertSeckillGoods(SeckillGoodsAddDTO dto) {
         // 校验同一商品是否已入池
         OshSeckillGoods exist = seckillGoodsMapper.selectByGoodsIdAndType(
@@ -135,7 +176,6 @@ public class OshSeckillGoodsServiceImpl implements IOshSeckillGoodsService {
         SeckillGoodsPreviewVO preview = fetchGoodsPreview(dto.getGoodsType(), dto.getGoodsId());
         // 组装 Entity
         OshSeckillGoods goods = new OshSeckillGoods();
-        // 根据 goodsType 选对应的资源类型前缀生成资源编号
         ResourceCodePrefixEnum prefix = dto.getGoodsType() == 1
                 ? ResourceCodePrefixEnum.COURSE
                 : ResourceCodePrefixEnum.BOOK;
@@ -148,13 +188,19 @@ public class OshSeckillGoodsServiceImpl implements IOshSeckillGoodsService {
         goods.setMinSeckillPrice(dto.getMinSeckillPrice());
         goods.setSort(dto.getSort() != null ? dto.getSort() : 0);
         goods.setStatus(0); // 默认待审核，不允许前端传入
-        return seckillGoodsMapper.insertSeckillGoods(goods);
+        int rows = seckillGoodsMapper.insertSeckillGoods(goods);
+
+        // 自动从原始商品表同步标签
+        List<String> tagNames = fetchTagsByGoods(dto.getGoodsType(), dto.getGoodsId());
+        saveTagsForGoods(goods.getId(), tagNames, null);
+        return rows;
     }
 
     /**
-     * 修改秒杀商品信息（只允许修改 minSeckillPrice / sort）
+     * 修改秒杀商品信息
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public int updateSeckillGoods(SeckillGoodsUpdateDTO dto) {
         OshSeckillGoods exist = seckillGoodsMapper.selectSeckillGoodsById(dto.getId());
         if (exist == null) {
@@ -167,7 +213,14 @@ public class OshSeckillGoodsServiceImpl implements IOshSeckillGoodsService {
         goods.setOriginPrice(dto.getOriginPrice());
         goods.setMinSeckillPrice(dto.getMinSeckillPrice());
         goods.setSort(dto.getSort());
-        return seckillGoodsMapper.updateSeckillGoods(goods);
+        int rows = seckillGoodsMapper.updateSeckillGoods(goods);
+
+        // 标签全量替换（tagNames 不为 null 时才更新，为 null 表示不修改标签）
+        if (dto.getTagNames() != null) {
+            seckillGoodsTagRelMapper.softDeleteBySeckillGoodsId(dto.getId(), null);
+            saveTagsForGoods(dto.getId(), dto.getTagNames(), null);
+        }
+        return rows;
     }
 
     /**
@@ -187,5 +240,65 @@ public class OshSeckillGoodsServiceImpl implements IOshSeckillGoodsService {
     @Override
     public int deleteSeckillGoodsByIds(Long[] ids) {
         return seckillGoodsMapper.deleteSeckillGoodsByIds(ids);
+    }
+
+    // ----------------------------------------------------------------
+    // 私有工具方法
+    // ----------------------------------------------------------------
+
+    /**
+     * 根据 goodsType + goodsId 从原始商品标签表查出标签名列表
+     * goodsType=1 → osh_course_tag
+     * goodsType=2 → osh_book_tag
+     */
+    private List<String> fetchTagsByGoods(Integer goodsType, Long goodsId) {
+        if (goodsType == null || goodsId == null) {
+            return Collections.emptyList();
+        }
+        if (goodsType == 1) {
+            List<String> tags = courseTagMapper.selectTagNamesByCourseId(goodsId);
+            return tags != null ? tags : Collections.emptyList();
+        } else if (goodsType == 2) {
+            List<String> tags = bookTagDOMapper.selectBookTagListByBookId(goodsId);
+            return tags != null ? tags : Collections.emptyList();
+        }
+        return Collections.emptyList();
+    }
+
+    /**
+     * 批量保存标签（多对多）
+     * 1. 标签名在字典表中不存在则新建，存在则复用
+     * 2. 在关联表中插入 seckillGoodsId + tagId（INSERT IGNORE 幂等）
+     */
+    private void saveTagsForGoods(Long seckillGoodsId, List<String> tagNames, String operator) {
+        if (tagNames == null || tagNames.isEmpty()) {
+            return;
+        }
+        for (int i = 0; i < tagNames.size(); i++) {
+            String name = tagNames.get(i);
+            if (name == null || name.trim().isEmpty()) {
+                continue;
+            }
+            String trimmed = name.trim();
+
+            // 查字典表，不存在则新建
+            OshSeckillGoodsTag tag = seckillGoodsTagMapper.selectByTagName(trimmed);
+            if (tag == null) {
+                tag = new OshSeckillGoodsTag();
+                tag.setTagName(trimmed);
+                tag.setSortOrder(i);
+                tag.setCreateBy(operator);
+                tag.setUpdateBy(operator);
+                seckillGoodsTagMapper.insertTag(tag);
+            }
+
+            // 插入关联关系（INSERT IGNORE，幂等）
+            OshSeckillGoodsTagRel rel = new OshSeckillGoodsTagRel();
+            rel.setSeckillGoodsId(seckillGoodsId);
+            rel.setTagId(tag.getId());
+            rel.setCreateBy(operator);
+            rel.setUpdateBy(operator);
+            seckillGoodsTagRelMapper.insertRel(rel);
+        }
     }
 }

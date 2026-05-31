@@ -23,7 +23,8 @@ public interface OshUserFavoriteWebsiteMapper extends BaseMapper<OshUserFavorite
      * @param userId 用户 ID
      * @return 影响行数（1=成功，0=失败）
      */
-@Insert("insert into osh_user_favorite_website(website_id, user_id) values (#{websiteId}, #{userId})")
+@Insert("INSERT INTO osh_user_favorite_website(website_id, user_id, delete_flag) VALUES (#{websiteId}, #{userId}, 0) " +
+        "ON DUPLICATE KEY UPDATE delete_flag = 0")
     int favoriteWebsite(@Param("websiteId") Long websiteId, @Param("userId") Long userId);
 /**
      * 取消收藏网站

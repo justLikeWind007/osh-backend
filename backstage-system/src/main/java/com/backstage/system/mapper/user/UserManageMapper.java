@@ -38,14 +38,19 @@ public interface UserManageMapper {
     List<Map<String, Object>> selectAssignableRoles(@Param("maxLevel") Integer maxLevel);
 
     /**
-     * 给用户添加角色
+     * 给用户添加角色（支持有效期）
      */
-    void insertUserRole(@Param("userId") Long userId, @Param("roleId") Integer roleId, @Param("operatorId") Long operatorId);
+    void insertUserRole(@Param("userId") Long userId, @Param("roleId") Integer roleId, @Param("operatorId") Long operatorId, @Param("expireTime") String expireTime);
 
     /**
      * 删除用户的某个角色
      */
     void deleteUserRole(@Param("userId") Long userId, @Param("roleId") Integer roleId);
+
+    /**
+     * 修改用户角色有效期
+     */
+    void updateUserRoleExpire(@Param("userId") Long userId, @Param("roleId") Integer roleId, @Param("expireTime") String expireTime);
 
     /**
      * 查询用户当前角色ID列表

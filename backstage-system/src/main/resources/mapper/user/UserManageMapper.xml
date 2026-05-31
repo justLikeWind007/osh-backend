@@ -17,27 +17,34 @@
             u.invite_code as inviteCode,
             u.delete_flag as deleteFlag,
             u.create_time as createTime,
+            u.create_by as createBy,
+            u.update_time as updateTime,
+            u.update_by as updateBy,
             max_role.role_name as roleName,
             max_role.role_code as roleCode,
             max_role.level as roleLevel,
-            IFNULL(a.points, 0) as points
+            IFNULL(a.points, 0) as points,
+            uu.unique_id as uniqueId
         from osh_user u
         left join (
             select ur.user_id, r.role_name, r.role_code, r.level, r.id as role_id
             from osh_user_role ur
             join osh_role r on r.id = ur.role_id and r.delete_flag = 0
             where ur.delete_flag = 0
+            and (ur.expire_time is null or ur.expire_time > now())
             and (ur.user_id, r.level) in (
                 select ur2.user_id, max(r2.level)
                 from osh_user_role ur2
                 join osh_role r2 on r2.id = ur2.role_id and r2.delete_flag = 0
                 where ur2.delete_flag = 0
+                and (ur2.expire_time is null or ur2.expire_time > now())
                 group by ur2.user_id
             )
         ) max_role on max_role.user_id = u.id
         left join osh_user_asset a on a.user_id = u.id
+        left join osh_user_unique uu on uu.user_id = u.id and uu.delete_flag = 0
         <where>
-            <!-- 只能查询比当前用户等级低的用户 -->
+            <!-- 等级过滤：如果 maxLevel 不为空，只查询比当前用户等级低的用户 -->
             <if test="maxLevel != null">
                 and (max_role.level is null or max_role.level &lt; #{maxLevel})
             </if>
@@ -61,7 +68,7 @@
             <if test="query.deleted != null and query.deleted == true">
                 and u.delete_flag = 1
             </if>
-            <if test="query.deleted == null or query.deleted == false">
+            <if test="query.deleted != null and query.deleted == false">
                 and u.delete_flag = 0
             </if>
         </where>
@@ -91,37 +98,47 @@
             u.invite_code as inviteCode,
             u.delete_flag as deleteFlag,
             u.create_time as createTime,
+            u.create_by as createBy,
+            u.update_time as updateTime,
+            u.update_by as updateBy,
             max_role.role_name as roleName,
             max_role.role_code as roleCode,
             max_role.level as roleLevel,
-            IFNULL(a.points, 0) as points
+            IFNULL(a.points, 0) as points,
+            uu.unique_id as uniqueId
         from osh_user u
         left join (
             select ur.user_id, r.role_name, r.role_code, r.level
             from osh_user_role ur
             join osh_role r on r.id = ur.role_id and r.delete_flag = 0
             where ur.delete_flag = 0
+            and (ur.expire_time is null or ur.expire_time > now())
             and (ur.user_id, r.level) in (
                 select ur2.user_id, max(r2.level)
                 from osh_user_role ur2
                 join osh_role r2 on r2.id = ur2.role_id and r2.delete_flag = 0
                 where ur2.delete_flag = 0
+                and (ur2.expire_time is null or ur2.expire_time > now())
                 group by ur2.user_id
             )
         ) max_role on max_role.user_id = u.id
         left join osh_user_asset a on a.user_id = u.id
+        left join osh_user_unique uu on uu.user_id = u.id and uu.delete_flag = 0
         where u.id = #{userId}
     </select>
 
     <select id="selectUserRolesByUserIds" resultType="java.util.LinkedHashMap">
         select
             ur.user_id as userId,
+            ur.role_id as roleId,
             r.role_name as roleName,
             r.role_code as roleCode,
-            r.level as roleLevel
+            r.level as roleLevel,
+            ur.expire_time as expireTime
         from osh_user_role ur
         join osh_role r on r.id = ur.role_id and r.delete_flag = 0
         where ur.delete_flag = 0
+          and (ur.expire_time is null or ur.expire_time > now())
           and ur.user_id in
         <foreach collection="userIds" item="uid" open="(" separator="," close=")">
             #{uid}
@@ -151,16 +168,20 @@
     </select>
 
     <insert id="insertUserRole">
-        insert into osh_user_role (user_id, role_id, create_time, create_by, update_time, update_by, delete_flag)
-        values (#{userId}, #{roleId}, now(), #{operatorId}, now(), #{operatorId}, 0)
-        on duplicate key update delete_flag = 0, update_time = now(), update_by = #{operatorId}
+        insert into osh_user_role (user_id, role_id, expire_time, create_time, create_by, update_time, update_by, delete_flag)
+        values (#{userId}, #{roleId}, #{expireTime}, now(), #{operatorId}, now(), #{operatorId}, 0)
+        on duplicate key update delete_flag = 0, expire_time = #{expireTime}, update_time = now(), update_by = #{operatorId}
     </insert>
 
     <update id="deleteUserRole">
         update osh_user_role set delete_flag = 1 where user_id = #{userId} and role_id = #{roleId} and delete_flag = 0
     </update>
 
+    <update id="updateUserRoleExpire">
+        update osh_user_role set expire_time = #{expireTime}, update_time = now() where user_id = #{userId} and role_id = #{roleId} and delete_flag = 0
+    </update>
+
     <select id="selectUserRoleIds" resultType="java.lang.Integer">
-        select role_id from osh_user_role where user_id = #{userId} and delete_flag = 0
+        select role_id from osh_user_role where user_id = #{userId} and delete_flag = 0 and (expire_time is null or expire_time > now())
     </select>
 </mapper>

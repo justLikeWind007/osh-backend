@@ -6,6 +6,7 @@ import io.swagger.annotations.ApiModelProperty;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
 
 /**
  * 秒杀商品池响应 VO
@@ -55,6 +56,9 @@ public class SeckillGoodsVO implements Serializable {
     @ApiModelProperty("更新时间")
     private Date updateTime;
 
+    @ApiModelProperty("标签名称列表")
+    private List<String> tagNames;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -90,4 +94,7 @@ public class SeckillGoodsVO implements Serializable {
 
     public Date getUpdateTime() { return updateTime; }
     public void setUpdateTime(Date updateTime) { this.updateTime = updateTime; }
+
+    public List<String> getTagNames() { return tagNames; }
+    public void setTagNames(List<String> tagNames) { this.tagNames = tagNames; }
 }

@@ -18,6 +18,8 @@ public interface IOshToolService {
 
     List<OshToolTag> listAvailableTags();
 
+    List<OshToolTag> listRecommendTags(int limit);
+
     Long createTool(ToolSaveRequest request, OshUser operator);
 
     Long updateTool(ToolSaveRequest request, OshUser operator);
