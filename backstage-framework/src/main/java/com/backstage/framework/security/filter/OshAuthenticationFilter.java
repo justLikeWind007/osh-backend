@@ -6,7 +6,9 @@ import com.backstage.common.core.domain.model.OshUserDetail;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.common.utils.jwt.JwtUtil;
 import com.backstage.framework.config.properties.PermitAllUrlProperties;
+import com.backstage.system.domain.user.OshRole;
 import com.backstage.system.domain.user.OshUser;
+import com.backstage.system.mapper.user.OshRoleMapper;
 import com.backstage.system.mapper.user.OshUserMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +41,9 @@ public class OshAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired
     private OshUserMapper oshUserMapper;
+
+    @Autowired
+    private OshRoleMapper oshRoleMapper;
 
     @Autowired
     private PermitAllUrlProperties permitAllUrl;
@@ -90,9 +95,26 @@ public class OshAuthenticationFilter extends OncePerRequestFilter {
 
         // 设置 ThreadLocal 上下文
         ThreadLocalUtil.set(OshUserConstants.USER_ID, userId);
-        Map<String, String> role = (Map<String, String>) userInfoMap.get(OshUserConstants.ROLE);
-        ThreadLocalUtil.set(OshUserConstants.LEVEL, role.get(OshUserConstants.LEVEL));
-        ThreadLocalUtil.set(OshUserConstants.ROLE_CODE, role.get(OshUserConstants.ROLE_CODE));
+        
+        // 实时查询用户有效角色（考虑角色过期），确保过期角色不再生效
+        List<Integer> effectiveRoleIds = oshRoleMapper.getRoleIdsByUserId(userId);
+        String effectiveLevel = "1";
+        String effectiveRoleCode = "";
+        if (effectiveRoleIds != null && !effectiveRoleIds.isEmpty()) {
+            LambdaQueryWrapper<OshRole> roleWrapper = new LambdaQueryWrapper<>();
+            roleWrapper.in(OshRole::getId, effectiveRoleIds).eq(OshRole::getDeleteFlag, 0);
+            List<OshRole> roles = oshRoleMapper.selectList(roleWrapper);
+            if (roles != null && !roles.isEmpty()) {
+                OshRole highest = roles.get(0);
+                for (OshRole r : roles) {
+                    if (r.getLevel() > highest.getLevel()) highest = r;
+                }
+                effectiveLevel = highest.getLevel().toString();
+                effectiveRoleCode = highest.getRoleCode();
+            }
+        }
+        ThreadLocalUtil.set(OshUserConstants.LEVEL, effectiveLevel);
+        ThreadLocalUtil.set(OshUserConstants.ROLE_CODE, effectiveRoleCode);
 
         LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(OshUser::getId, userId);
