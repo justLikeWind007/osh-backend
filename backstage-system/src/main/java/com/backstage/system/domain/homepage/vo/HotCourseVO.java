@@ -56,6 +56,9 @@ public class HotCourseVO {
     @ApiModelProperty("详情页跳转路径")
     private String detailUrl;
 
+    @ApiModelProperty("列表页跳转路径（查看全部）")
+    private String listUrl;
+
     // 标签查询用的临时字段（不序列化到前端）
     @ApiModelProperty(hidden = true)
     private Long courseId;
@@ -106,6 +109,9 @@ public class HotCourseVO {
 
     public String getDetailUrl() { return detailUrl; }
     public void setDetailUrl(String detailUrl) { this.detailUrl = detailUrl; }
+
+    public String getListUrl() { return listUrl; }
+    public void setListUrl(String listUrl) { this.listUrl = listUrl; }
 
     public Long getCourseId() { return courseId; }
     public void setCourseId(Long courseId) { this.courseId = courseId; }

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.homepage.OshHomePageQaMapper">
+
+    <!--
+        热门答疑查询
+        热度公式：0.50*关注数 + 0.30*浏览数 + 0.20*回答数，综合排序
+        关联 osh_user 取提问者用户名，子查询统计回答数
+    -->
+    <select id="selectHotQa" resultType="com.backstage.system.domain.homepage.vo.HotQaVO">
+        SELECT
+            q.id,
+            q.content,
+            q.resource_type                             AS resourceType,
+            CAST(q.status AS SIGNED)                    AS status,
+            q.view_count                                AS viewCount,
+            q.follow_count                              AS followCount,
+            COUNT(a.id)                                 AS answerCount,
+            IFNULL(u.username, '匿名用户')              AS user,
+            DATE_FORMAT(q.create_time, '%Y/%m/%d')      AS time
+        FROM osh_question_answer_question q
+        LEFT JOIN osh_question_answer_answer a
+            ON a.question_id = q.id AND a.status = 0
+        LEFT JOIN osh_user u ON u.id = q.user_id
+        WHERE q.delete_flag = 0
+          AND q.status != 2
+        GROUP BY
+            q.id, q.content, q.resource_type, q.status,
+            q.view_count, q.follow_count, u.username, q.create_time
+        ORDER BY
+            (0.50 * IFNULL(q.follow_count, 0)
+           + 0.30 * IFNULL(q.view_count, 0)
+           + 0.20 * COUNT(a.id)) DESC,
+            q.create_time DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>
