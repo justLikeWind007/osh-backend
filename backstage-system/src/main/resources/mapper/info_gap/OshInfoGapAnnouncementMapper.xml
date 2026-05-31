@@ -23,6 +23,7 @@
         insert into osh_announcement (
             title,
             link,
+            module,
             resource_type,
             channel,
             status,
@@ -34,6 +35,7 @@
         ) values (
             #{title},
             #{link},
+            'info_gap',
             'info_gap',
             #{channel},
             0,
