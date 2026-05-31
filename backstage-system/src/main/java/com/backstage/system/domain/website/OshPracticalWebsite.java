@@ -20,6 +20,11 @@ public class OshPracticalWebsite {
     private Long id;
 
     /**
+     * 资源编号，格式：前缀(2位) + 2位字母 + 2位数字 + 2位字母，如 wsAb34dF
+     */
+    private String no;
+
+    /**
      * 网站名称
      */
     private String name;
@@ -129,6 +134,20 @@ public class OshPracticalWebsite {
      */
     public void setId(Long id) {
         this.id = id;
+    }
+
+    /**
+     * 资源编号
+     */
+    public String getNo() {
+        return no;
+    }
+
+    /**
+     * 资源编号
+     */
+    public void setNo(String no) {
+        this.no = no;
     }
 
     /**
@@ -410,6 +429,7 @@ public class OshPracticalWebsite {
     public String toString() {
         return "OshPracticalWebsite{" +
                 "id=" + id +
+                ", no='" + no + '\'' +
                 ", name='" + name + '\'' +
                 ", url='" + url + '\'' +
                 ", description='" + description + '\'' +

@@ -36,7 +36,7 @@ public interface OshPracticalWebsiteMapper  {
      * @return 影响行数
      */
     @Options(useGeneratedKeys = true, keyColumn = "id", keyProperty = "id")// 返回主键
-    @Insert("insert into osh_practical_website (name, url, description, logo_url, status) values (#{name}, #{url}, #{description}, #{logoUrl}, #{status})")
+    @Insert("insert into osh_practical_website (no, name, url, description, logo_url, status) values (#{no}, #{name}, #{url}, #{description}, #{logoUrl}, #{status})")
     int insertWebsite(OshPracticalWebsite website);
 
     /**
@@ -105,6 +105,20 @@ public interface OshPracticalWebsiteMapper  {
     void addCount(@Param("websiteId") Long websiteId, @Param("ratingType") Integer ratingType);
 
     void updateCount(@Param("websiteId") Long websiteId, @Param("oldRatingType") Integer oldRatingType, @Param("ratingType") Integer ratingType);
+
+    /**
+     * 批量查询网站的评价计数（用于 ES 路径回填实时数据）
+     */
+    @Select("<script>" +
+            "SELECT id, good_count, mid_count, bad_count " +
+            "FROM osh_practical_website " +
+            "WHERE id IN " +
+            "<foreach collection='ids' item='id' open='(' separator=',' close=')'>" +
+            "#{id}" +
+            "</foreach>" +
+            " AND delete_flag = 0" +
+            "</script>")
+    List<OshPracticalWebsite> selectCountsByIds(@Param("ids") List<Long> ids);
 
     @Update("UPDATE osh_practical_website SET collection_count = collection_count + 1 WHERE id = #{websiteId} AND delete_flag = 0 AND status = 1")
     void addCollectionCount(Long websiteId);

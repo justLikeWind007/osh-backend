@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.annotation.JSONField;
 
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
 
 /**
  * 秒杀商品明细索引 upsert 消息
@@ -71,6 +72,12 @@ public class SeckillItemIndexUpsertMessage {
 
     /** 删除标记 */
     private Integer deleteFlag;
+
+    /** 标签名称列表 */
+    private List<String> tagNames;
+
+    /** 标签名称文本（空格拼接，用于全文检索） */
+    private String tagNamesText;
 
     @JSONField(format = "yyyy-MM-dd HH:mm:ss.SSS")
     private Date createTime;
@@ -150,4 +157,10 @@ public class SeckillItemIndexUpsertMessage {
 
     public String getOperator() { return operator; }
     public void setOperator(String operator) { this.operator = operator; }
+
+    public List<String> getTagNames() { return tagNames; }
+    public void setTagNames(List<String> tagNames) { this.tagNames = tagNames; }
+
+    public String getTagNamesText() { return tagNamesText; }
+    public void setTagNamesText(String tagNamesText) { this.tagNamesText = tagNamesText; }
 }

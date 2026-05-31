@@ -24,6 +24,14 @@
         </foreach>
     </insert>
 
+    <!-- 根据单个网站ID软删除关联关系 -->
+    <update id="deleteByWebsiteId">
+        UPDATE osh_website_tag_rel
+        SET delete_flag = 1
+        WHERE website_id = #{websiteId}
+          AND delete_flag = 0
+    </update>
+
     <!-- 根据网站ID批量软删除关联关系 -->
     <update id="deleteByWebsiteIds">
         UPDATE osh_website_tag_rel

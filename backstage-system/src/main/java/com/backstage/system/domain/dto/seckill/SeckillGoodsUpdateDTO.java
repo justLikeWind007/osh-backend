@@ -6,6 +6,7 @@ import io.swagger.annotations.ApiModelProperty;
 import javax.validation.constraints.DecimalMin;
 import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 修改秒杀商品信息 DTO
@@ -37,6 +38,9 @@ public class SeckillGoodsUpdateDTO {
     @ApiModelProperty("排序权重，数值越大越靠前")
     private Integer sort;
 
+    @ApiModelProperty("标签名称列表（全量替换，传空列表则清空标签）")
+    private List<String> tagNames;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -54,4 +58,7 @@ public class SeckillGoodsUpdateDTO {
 
     public Integer getSort() { return sort; }
     public void setSort(Integer sort) { this.sort = sort; }
+
+    public List<String> getTagNames() { return tagNames; }
+    public void setTagNames(List<String> tagNames) { this.tagNames = tagNames; }
 }
