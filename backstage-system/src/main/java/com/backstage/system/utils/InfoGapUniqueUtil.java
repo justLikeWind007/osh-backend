@@ -4,7 +4,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class InfoGapUniqueUtil {
 
-    private static final String PREFIX = "info:";
+    private static final String PREFIX = "info_";
     private static final int SUFFIX_LENGTH = 6;
 
     private static final char[] CHARACTERS = {

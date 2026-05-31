@@ -350,4 +350,19 @@ public class InfoGapServiceImpl implements InfoGapService {
             throw new ServiceException("信息差删除失败！");
         }
     }
+
+    @Override
+    public Integer getHotPageNumByInfoGapId(Long infoGapId, Integer pageSize) {
+        if (infoGapId == null) {
+            throw new ServiceException("信息差ID不能为空");
+        }
+
+        int actualPageSize = (pageSize == null || pageSize <= 0) ? 10 : pageSize;
+        Integer rank = infoGapMapper.selectHotRankByInfoGapId(infoGapId);
+        if (rank == null || rank <= 0) {
+            throw new ServiceException("未找到该信息差对应的热门页码");
+        }
+
+        return (rank - 1) / actualPageSize + 1;
+    }
 }
