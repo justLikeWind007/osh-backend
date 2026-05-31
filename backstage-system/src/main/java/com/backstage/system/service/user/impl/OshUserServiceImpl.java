@@ -100,19 +100,10 @@ public class OshUserServiceImpl implements IOshUserService {
         map.put(OshUserConstants.ROLE, role);
         map.put(OshUserConstants.PERMISSION, permissionList);
 
-        // 检查是否已登录（限制重复登录）
+        // 新登录直接覆盖旧会话（踢掉旧设备）
         String loginKey = OshUserConstants.LOGIN_USER + oshUser.getId();
-        if (redisCache.hasKey(loginKey)) {
-            // 已有登录态，获取当前登录数
-            Map<String, Object> existingData = redisCache.getCacheObject(loginKey);
-            Integer loginCount = existingData != null ? (Integer) existingData.getOrDefault(OshUserConstants.LOGINCOUNT, 0) : 0;
-            if (loginCount >= 1) {
-                return R.fail("该账号已在其他设备登录，请先退出后再登录");
-            }
-        }
-
-        // 记录登录数
         map.put(OshUserConstants.LOGINCOUNT, 1);
+        map.put(OshUserConstants.TOKEN, token); // 存储当前有效 token，用于踢掉旧设备
         redisCache.setCacheObject(loginKey, map, 500, TimeUnit.MINUTES);
         return R.ok(userLoginVo);
     }

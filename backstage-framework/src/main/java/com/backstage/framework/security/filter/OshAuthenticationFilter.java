@@ -53,12 +53,7 @@ public class OshAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
         String uri = request.getRequestURI();
-
-        // 白名单放行
-        if (isWhiteList(uri)) {
-            chain.doFilter(request, response);
-            return;
-        }
+        boolean isAnonymous = isWhiteList(uri);
 
         // WebSocket 握手请求放行（由 WebSocket 拦截器单独处理认证）
         if (isWebSocketHandshake(request)) {
@@ -66,18 +61,28 @@ public class OshAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 解析 Token
+        // 解析 Token（@Anonymous 接口也尝试解析，但失败不拒绝）
         String token = request.getHeader(OshUserConstants.TOKEN);
-        Long userId;
+        Long userId = null;
         try {
-            userId = JwtUtil.getUserIdByToken(token);
+            if (token != null && !token.isEmpty()) {
+                userId = JwtUtil.getUserIdByToken(token);
+            }
         } catch (Exception e) {
-            sendUnauthorized(response, "未登录或Token已过期");
-            return;
+            if (!isAnonymous) {
+                sendUnauthorized(response, "未登录或Token已过期");
+                return;
+            }
+            // @Anonymous 接口 token 解析失败，静默忽略
         }
 
         if (userId == null) {
-            sendUnauthorized(response, "未登录或Token已过期");
+            if (!isAnonymous) {
+                sendUnauthorized(response, "未登录或Token已过期");
+                return;
+            }
+            // @Anonymous 接口无 token，直接放行
+            chain.doFilter(request, response);
             return;
         }
 
@@ -86,7 +91,23 @@ public class OshAuthenticationFilter extends OncePerRequestFilter {
         Map<String, Object> userInfoMap = redisCache.getCacheObject(loginUserKey);
 
         if (userInfoMap == null) {
-            sendUnauthorized(response, "登录已过期，请重新登录");
+            if (!isAnonymous) {
+                sendUnauthorized(response, "登录已过期，请重新登录");
+                return;
+            }
+            // @Anonymous 接口 Redis 登录态失效，静默放行
+            chain.doFilter(request, response);
+            return;
+        }
+
+        // 校验 token 是否为当前有效 token（踢掉旧设备：新登录会覆盖 token）
+        String activeToken = (String) userInfoMap.get(OshUserConstants.TOKEN);
+        if (activeToken != null && !activeToken.equals(token)) {
+            if (!isAnonymous) {
+                sendUnauthorized(response, "账号已在其他设备登录，请重新登录");
+                return;
+            }
+            chain.doFilter(request, response);
             return;
         }
 
