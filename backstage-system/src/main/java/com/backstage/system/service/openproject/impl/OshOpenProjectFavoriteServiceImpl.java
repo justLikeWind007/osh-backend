@@ -1,6 +1,8 @@
 package com.backstage.system.service.openproject.impl;
 
+import com.backstage.system.domain.openproject.OshOpenProject;
 import com.backstage.system.domain.openproject.OshUserFavoriteOpenProject;
+import com.backstage.system.mapper.openproject.OshOpenProjectMapper;
 import com.backstage.system.mapper.openproject.OshUserFavoriteOpenProjectMapper;
 import com.backstage.system.service.openproject.IOshOpenProjectFavoriteService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -19,8 +21,12 @@ public class OshOpenProjectFavoriteServiceImpl implements IOshOpenProjectFavorit
     @Autowired
     private OshUserFavoriteOpenProjectMapper favoriteMapper;
 
+    @Autowired
+    private OshOpenProjectMapper projectMapper;
+
     @Override
     public void favorite(Long userId, Long projectId) {
+        validateUserAndPublishedProject(userId, projectId);
         // 查询是否存在记录（包含已软删除的）
         OshUserFavoriteOpenProject existing = favoriteMapper.selectOne(
                 new LambdaQueryWrapper<OshUserFavoriteOpenProject>()
@@ -49,6 +55,8 @@ public class OshOpenProjectFavoriteServiceImpl implements IOshOpenProjectFavorit
 
     @Override
     public void cancelFavorite(Long userId, Long projectId) {
+        if (userId == null) throw new IllegalArgumentException("请先登录");
+        if (projectId == null) throw new IllegalArgumentException("项目ID不能为空");
         favoriteMapper.update(null,
                 new LambdaUpdateWrapper<OshUserFavoriteOpenProject>()
                         .eq(OshUserFavoriteOpenProject::getUserId, userId)
@@ -67,5 +75,18 @@ public class OshOpenProjectFavoriteServiceImpl implements IOshOpenProjectFavorit
                         .select(OshUserFavoriteOpenProject::getProjectId)
         );
         return list.stream().map(OshUserFavoriteOpenProject::getProjectId).collect(Collectors.toSet());
+    }
+
+    private void validateUserAndPublishedProject(Long userId, Long projectId) {
+        if (userId == null) throw new IllegalArgumentException("请先登录");
+        if (projectId == null) throw new IllegalArgumentException("项目ID不能为空");
+        OshOpenProject project = projectMapper.selectOne(
+                new LambdaQueryWrapper<OshOpenProject>()
+                        .eq(OshOpenProject::getId, projectId)
+                        .eq(OshOpenProject::getStatus, 1)
+                        .eq(OshOpenProject::getDeleteFlag, (byte) 0)
+                        .last("limit 1")
+        );
+        if (project == null) throw new IllegalArgumentException("项目不存在或未上线");
     }
 }
