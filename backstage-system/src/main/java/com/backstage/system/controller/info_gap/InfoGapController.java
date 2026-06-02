@@ -64,6 +64,16 @@ public class InfoGapController {
     }
 
     /**
+     * 查询某条信息差在热门信息差中的页码
+     */
+    @GetMapping("/pageNum")
+    @Anonymous
+    public R<Integer> getHotPageNum(@RequestParam("infoGapId") Long infoGapId,
+                                    @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
+        return R.ok(infoGapService.getHotPageNumByInfoGapId(infoGapId, pageSize));
+    }
+
+    /**
      * 发布信息差
      */
     @PostMapping("/save")

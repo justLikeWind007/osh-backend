@@ -31,21 +31,21 @@
                 ROUND(
                     (0.70 * IFNULL(LN(1 + GREATEST(IFNULL(c.sales_count,0), IFNULL(c.buy_count,0))) /
                             NULLIF((SELECT MAX(LN(1 + GREATEST(IFNULL(x.sales_count,0), IFNULL(x.buy_count,0))))
-                                    FROM osh_course x WHERE x.status=2 AND x.delete_flag=0), 0), 0)
+                                    FROM osh_course x WHERE x.status=4 AND x.delete_flag=0), 0), 0)
                    + 0.20 * IFNULL(LN(1 + IFNULL(c.view_count,0)) /
                             NULLIF((SELECT MAX(LN(1 + IFNULL(x.view_count,0)))
-                                    FROM osh_course x WHERE x.status=2 AND x.delete_flag=0), 0), 0)
+                                    FROM osh_course x WHERE x.status=4 AND x.delete_flag=0), 0), 0)
                    + 0.10 * (
                         0.50 * LEAST(IFNULL(c.rating_score,0), 5) / 5
                       + 0.20 * IFNULL(LN(1 + IFNULL(c.comment_count,0)) /
                                 NULLIF((SELECT MAX(LN(1 + IFNULL(x.comment_count,0)))
-                                        FROM osh_course x WHERE x.status=2 AND x.delete_flag=0), 0), 0)
+                                        FROM osh_course x WHERE x.status=4 AND x.delete_flag=0), 0), 0)
                       + 0.20 * IFNULL(LN(1 + IFNULL(c.collection_count,0)) /
                                 NULLIF((SELECT MAX(LN(1 + IFNULL(x.collection_count,0)))
-                                        FROM osh_course x WHERE x.status=2 AND x.delete_flag=0), 0), 0)
+                                        FROM osh_course x WHERE x.status=4 AND x.delete_flag=0), 0), 0)
                       + 0.10 * IFNULL(LN(1 + IFNULL(c.like_count,0)) /
                                 NULLIF((SELECT MAX(LN(1 + IFNULL(x.like_count,0)))
-                                        FROM osh_course x WHERE x.status=2 AND x.delete_flag=0), 0), 0)
+                                        FROM osh_course x WHERE x.status=4 AND x.delete_flag=0), 0), 0)
                    ))
                    * CASE
                         WHEN TIMESTAMPDIFF(DAY, c.create_time, NOW()) &lt;= 30  THEN 1.20
@@ -56,7 +56,7 @@
                      END
                 , 4) AS hot_score
             FROM osh_course c
-            WHERE c.status = 2 AND c.delete_flag = 0
+            WHERE c.status = 4 AND c.delete_flag = 0
         ) s
         ORDER BY s.hot_score DESC, s.create_time DESC
         LIMIT #{limit}

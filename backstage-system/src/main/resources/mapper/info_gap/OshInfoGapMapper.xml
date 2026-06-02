@@ -333,4 +333,18 @@
             limit 10
     </select>
 
+    <select id="selectHotRankByInfoGapId" resultType="java.lang.Integer">
+        select rank_num
+        from (
+            select oig.id,
+                   row_number() over (
+                       order by oig.good_count desc, oig.create_time desc
+                   ) as rank_num
+            from osh_info_gap oig
+            where oig.status = 4
+              and oig.delete_flag = 0
+        ) t
+        where t.id = #{infoGapId}
+    </select>
+
 </mapper>
