@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.homepage.OshHomePageToolMapper">
+
+    <!--
+        热门工具查询
+        热度公式：0.60*使用次数分 + 0.25*好评分 + 0.15*收藏分，时间衰减加权
+    -->
+    <select id="selectHotTools" resultType="com.backstage.system.domain.homepage.vo.HotToolVO">
+        SELECT
+            t.id,
+            t.tool_name         AS toolName,
+            t.description,
+            t.resource_type     AS resourceType,
+            t.price,
+            t.total_usage       AS totalUsage
+        FROM osh_tool t
+        WHERE t.status = 4
+          AND (t.delete_flag = 0 OR t.delete_flag IS NULL)
+        ORDER BY
+            (0.60 * IFNULL(LN(1 + IFNULL(t.total_usage, 0)) /
+                    NULLIF((SELECT MAX(LN(1 + IFNULL(x.total_usage, 0)))
+                            FROM osh_tool x WHERE x.status = 4 AND (x.delete_flag = 0 OR x.delete_flag IS NULL)), 0), 0)
+           + 0.25 * IFNULL(LN(1 + IFNULL(t.good_count, 0)) /
+                    NULLIF((SELECT MAX(LN(1 + IFNULL(x.good_count, 0)))
+                            FROM osh_tool x WHERE x.status = 4 AND (x.delete_flag = 0 OR x.delete_flag IS NULL)), 0), 0)
+           + 0.15 * IFNULL(LN(1 + IFNULL(t.collection_count, 0)) /
+                    NULLIF((SELECT MAX(LN(1 + IFNULL(x.collection_count, 0)))
+                            FROM osh_tool x WHERE x.status = 4 AND (x.delete_flag = 0 OR x.delete_flag IS NULL)), 0), 0)) DESC,
+            t.create_time DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

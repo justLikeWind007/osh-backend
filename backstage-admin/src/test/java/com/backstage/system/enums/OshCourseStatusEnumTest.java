@@ -17,7 +17,7 @@ public class OshCourseStatusEnumTest {
         assertEquals(Integer.valueOf(4), OshCourseStatusEnum.PUBLISHED.getCode());
         assertEquals("已发布", OshCourseStatusEnum.PUBLISHED.getDesc());
 
-        assertEquals(Integer.valueOf(3), OshCourseStatusEnum.OFF_SHELF.getCode());
+        assertEquals(Integer.valueOf(6), OshCourseStatusEnum.OFF_SHELF.getCode());
         assertEquals("已下架", OshCourseStatusEnum.OFF_SHELF.getDesc());
     }
 }

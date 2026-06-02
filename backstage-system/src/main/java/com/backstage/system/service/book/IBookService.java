@@ -133,9 +133,10 @@ public interface IBookService extends IService<BookDO> {
      * @param bookId 电子书ID
      * @param userId 用户ID
      * @param channel 支付渠道
+     * @param usePoints 是否使用积分抵扣
      * @return 支付结算结果
      */
-    OrderCheckoutRespVO purchaseBook(Long bookId, Long userId, String channel);
+    OrderCheckoutRespVO purchaseBook(Long bookId, Long userId, String channel, Boolean usePoints);
 
     /**
      * 发放电子书访问权限（支付成功后由回调触发）
