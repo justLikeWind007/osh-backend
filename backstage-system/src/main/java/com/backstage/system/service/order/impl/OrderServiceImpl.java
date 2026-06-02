@@ -2,12 +2,16 @@ package com.backstage.system.service.order.impl;
 
 import com.alibaba.fastjson2.JSON;
 import com.backstage.common.config.PayConfig;
+import com.backstage.common.constant.OshUserConstants;
+import com.backstage.common.core.redis.RedisCache;
 import com.backstage.common.constant.KafkaConstants;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.common.utils.ip.IpUtils;
 import com.backstage.common.utils.kafka.KafkaMessageUtil;
 import com.backstage.system.domain.message.order.PaySuccessMessage;
+import com.backstage.system.domain.user.OshUserAsset;
+import com.backstage.system.domain.user.OshUserAssetRecord;
 import com.backstage.system.domain.vo.pay.OrderCheckoutReqVO;
 import com.backstage.system.domain.vo.pay.OrderCheckoutRespVO;
 import com.backstage.system.domain.order.OrderPaymentInfo;
@@ -24,6 +28,8 @@ import com.backstage.system.domain.vo.order.PayResponse;
 import com.backstage.system.mapper.order.OshOrderMapper;
 import com.backstage.system.mapper.order.OshPaymentMapper;
 import com.backstage.system.mapper.order.OshPaymentNotifyLogMapper;
+import com.backstage.system.mapper.user.OshUserAssetMapper;
+import com.backstage.system.mapper.user.OshUserAssetRecordMapper;
 import com.backstage.system.service.order.*;
 import com.backstage.system.service.book.IBookService;
 import com.backstage.system.service.order.OrderNoGenerator;
@@ -41,6 +47,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.annotation.Resource;
@@ -76,6 +84,10 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
     private static final String TRADE_SUCCESS = "TRADE_SUCCESS";
     private static final String PAY_CREATE_FAILED_MESSAGE = "发起支付失败";
     private static final int DEFAULT_PAY_EXPIRE_MINUTES = 30;
+    private static final int ASSET_CHANGE_TYPE_INCOME = 0;
+    private static final int ASSET_CHANGE_TYPE_EXPENSE = 1;
+    private static final int ASSET_CHANGE_SOURCE_BUY_PRODUCT = 3;
+    private static final BigDecimal POINTS_PER_YUAN = BigDecimal.TEN;
     private static final DateTimeFormatter DEFAULT_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @Resource
@@ -108,6 +120,15 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
     @Resource
     private ToolPurchaseService toolPurchaseService;
 
+    @Resource
+    private OshUserAssetMapper oshUserAssetMapper;
+
+    @Resource
+    private OshUserAssetRecordMapper oshUserAssetRecordMapper;
+
+    @Resource
+    private RedisCache redisCache;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
@@ -133,21 +154,23 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
         // 准备订单号、金额和支付渠道
         String orderNo = orderNoGenerator.nextOrderNo(ProductTypeEnum.fromCode(reqVO.getProductType()).getName());
         String paymentNo = orderNoGenerator.nextPaymentNo();
-        BigDecimal amount = money(reqVO.getPayableAmount());
+        BigDecimal originalPayableAmount = money(reqVO.getPayableAmount());
         PayChannelEnum channelEnum = resolvePaymentChannel(reqVO.getChannel());
         int channelCode = channelEnum.getCode();
 
-        // 创建本地待支付订单和支付流水
-        OshOrder order = buildPendingOrder(reqVO, orderNo, amount);
-        OshPayment payment = buildPendingPayment(orderNo, paymentNo, amount, reqVO, clientIp, channelCode);
-        createPendingOrderAndPayment(order, payment);
+        // 创建本地待支付订单和支付流水，必要时在同一事务内扣减积分
+        CheckoutCreateContext checkoutContext = createPendingOrderAndPayment(
+                reqVO, orderNo, paymentNo, originalPayableAmount, clientIp, channelCode);
+        BigDecimal amount = checkoutContext.getCashPayAmount();
+        OshPayment payment = checkoutContext.getPayment();
+        PointDeduction pointDeduction = checkoutContext.getPointDeduction();
 
         // 免费订单直接完成支付状态
         if (isFreeAmount(amount)) {
             LocalDateTime now = LocalDateTime.now();
             completeFreePayment(orderNo, paymentNo, now);
             handleOrderProductPaid(orderNo);
-            return freeCheckoutResult(orderNo, paymentNo, amount);
+            return freeCheckoutResult(orderNo, paymentNo, amount, pointDeduction);
         }
 
         // 请求支付渠道创建付款信息
@@ -164,7 +187,7 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
         }
 
         // 组装支付参数返回前端
-        return packageOrderCheckoutResult(orderNo, paymentNo, amount, channelEnum.getValue(), payResponse, payment);
+        return packageOrderCheckoutResult(orderNo, paymentNo, amount, channelEnum.getValue(), payResponse, payment, pointDeduction);
     }
 
     /**
@@ -298,7 +321,10 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
      * @param amount 订单金额
      * @return 待支付订单
      */
-    private OshOrder buildPendingOrder(OrderCheckoutReqVO param, String orderNo, BigDecimal amount) {
+    private OshOrder buildPendingOrder(OrderCheckoutReqVO param,
+                                       String orderNo,
+                                       BigDecimal amount,
+                                       PointDeduction pointDeduction) {
         OshOrder order = new OshOrder();
         order.setUserId(param.getUserId());
         order.setOrderNo(orderNo);
@@ -311,6 +337,8 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
         order.setOriginalAmount(money(param.getOriginalAmount()));
         order.setDiscountAmount(param.getDiscountAmount());
         order.setPayableAmount(amount);
+        order.setPointsAmount(pointDeduction.getPointsUsed());
+        order.setPointsDeductAmount(pointDeduction.getDeductAmount());
         order.setCouponId(param.getCouponId());
         order.setCreatedTime(LocalDateTime.now());
         order.setUpdatedTime(LocalDateTime.now());
@@ -341,7 +369,7 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
         payment.setChannel(isFreeAmount(amount) ? CHANNEL_FREE : channelCode);
         payment.setAmount(amount);
         payment.setStatus(PAYMENT_PENDING);
-        payment.setRequestPayload(toJson(payRequestSnapshot(paymentNo, param, clientIp, channelCode)));
+        payment.setRequestPayload(toJson(payRequestSnapshot(paymentNo, param, clientIp, channelCode, amount)));
         payment.setExpireTime(LocalDateTime.now().plusMinutes(resolvePayExpireMinutes()));
         payment.setCreatedTime(LocalDateTime.now());
         payment.setUpdatedTime(LocalDateTime.now());
@@ -355,12 +383,62 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
      * @param order 待写入订单
      * @param payment 待写入支付流水
      */
-    private void createPendingOrderAndPayment(OshOrder order, OshPayment payment) {
+    private CheckoutCreateContext createPendingOrderAndPayment(OrderCheckoutReqVO reqVO,
+                                                               String orderNo,
+                                                               String paymentNo,
+                                                               BigDecimal originalPayableAmount,
+                                                               String clientIp,
+                                                               int channelCode) {
+        CheckoutCreateContext context = new CheckoutCreateContext();
         executeInTransaction(() -> {
+            PointDeduction pointDeduction = deductOrderPointsIfNeeded(reqVO, originalPayableAmount, orderNo);
+            BigDecimal cashPayAmount = originalPayableAmount.subtract(pointDeduction.getDeductAmount());
+            cashPayAmount = money(cashPayAmount);
+
+            OshOrder order = buildPendingOrder(reqVO, orderNo, cashPayAmount, pointDeduction);
+            OshPayment payment = buildPendingPayment(orderNo, paymentNo, cashPayAmount, reqVO, clientIp, channelCode);
             orderMapper.insertOshOrder(order);
             payment.setOrderId(order.getId());
             paymentMapper.insertOshPayment(payment);
+            context.setOrder(order);
+            context.setPayment(payment);
+            context.setCashPayAmount(cashPayAmount);
+            context.setPointDeduction(pointDeduction);
         });
+        return context;
+    }
+
+    /**
+     * 按订单金额扣减积分，返回本次抵扣快照。
+     */
+    private PointDeduction deductOrderPointsIfNeeded(OrderCheckoutReqVO reqVO, BigDecimal originalPayableAmount, String orderNo) {
+        if (!Boolean.TRUE.equals(reqVO.getUsePoints()) || isFreeAmount(originalPayableAmount)) {
+            return PointDeduction.none(originalPayableAmount);
+        }
+
+        OshUserAsset userAsset = oshUserAssetMapper.selectByUserIdForUpdate(reqVO.getUserId());
+        if (Objects.isNull(userAsset) || Objects.isNull(userAsset.getPoints()) || userAsset.getPoints() <= 0) {
+            return PointDeduction.none(originalPayableAmount);
+        }
+
+        long beforeBalance = userAsset.getPoints();
+        long maxDeductiblePoints = originalPayableAmount.multiply(POINTS_PER_YUAN)
+                .setScale(0, RoundingMode.DOWN)
+                .longValue();
+        long pointsUsed = Math.min(beforeBalance, maxDeductiblePoints);
+        if (pointsUsed <= 0) {
+            return PointDeduction.none(originalPayableAmount);
+        }
+
+        BigDecimal deductAmount = BigDecimal.valueOf(pointsUsed)
+                .divide(POINTS_PER_YUAN, 2, RoundingMode.DOWN);
+        long afterBalance = beforeBalance - pointsUsed;
+        userAsset.setPoints(afterBalance);
+        oshUserAssetMapper.updateById(userAsset);
+        insertAssetRecord(reqVO.getUserId(), ASSET_CHANGE_TYPE_EXPENSE, pointsUsed, beforeBalance, afterBalance,
+                "订单【" + orderNo + "】积分抵扣");
+        registerAssetCacheRefreshAfterCommit(reqVO.getUserId(), afterBalance);
+        return new PointDeduction(pointsUsed, deductAmount, afterBalance);
     }
 
     /**
@@ -455,7 +533,10 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
     private void failPaymentAndCloseOrder(String paymentNo, String orderNo, PayResponse payResponse) {
         executeInTransaction(() -> {
             paymentMapper.updatePendingToFailed(paymentNo, toJson(payResponse));
-            orderMapper.updatePendingToClosed(orderNo, LocalDateTime.now());
+            int orderUpdated = orderMapper.updatePendingToClosed(orderNo, LocalDateTime.now());
+            if (orderUpdated > 0) {
+                refundOrderPoints(orderNo);
+            }
         });
     }
 
@@ -485,10 +566,55 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
         }
         String paymentNo = payment.getPaymentNo();
         executeInTransaction(() -> {
-            paymentMapper.updatePendingToClosed(paymentNo);
-            orderMapper.updatePendingToClosed(payment.getOrderNo(), LocalDateTime.now());
+            int paymentUpdated = paymentMapper.updatePendingToClosed(paymentNo);
+            int orderUpdated = orderMapper.updatePendingToClosed(payment.getOrderNo(), LocalDateTime.now());
+            if (paymentUpdated > 0 && orderUpdated > 0) {
+                refundOrderPoints(payment.getOrderNo());
+            }
         });
         toolPurchaseService.cancelPendingPurchase(paymentNo);
+    }
+
+    /**
+     * 退回待支付订单已扣减积分。
+     */
+    private void refundOrderPoints(String orderNo) {
+        OshOrder order = orderMapper.selectByOrderNo(orderNo);
+        if (Objects.isNull(order) || Objects.isNull(order.getPointsAmount()) || order.getPointsAmount() <= 0) {
+            return;
+        }
+        OshUserAsset userAsset = oshUserAssetMapper.selectByUserIdForUpdate(order.getUserId());
+        if (Objects.isNull(userAsset)) {
+            throw new ServiceException("用户资产不存在，无法退回订单积分，orderNo=" + orderNo + ", userId=" + order.getUserId());
+        }
+        long beforeBalance = Objects.isNull(userAsset.getPoints()) ? 0L : userAsset.getPoints();
+        long refundPoints = order.getPointsAmount();
+        long afterBalance = beforeBalance + refundPoints;
+        userAsset.setPoints(afterBalance);
+        oshUserAssetMapper.updateById(userAsset);
+        insertAssetRecord(order.getUserId(), ASSET_CHANGE_TYPE_INCOME, refundPoints, beforeBalance, afterBalance,
+                "取消订单【" + orderNo + "】退回积分");
+        registerAssetCacheRefreshAfterCommit(order.getUserId(), afterBalance);
+    }
+
+    /**
+     * 记录用户资产变动流水。
+     */
+    private void insertAssetRecord(Long userId,
+                                   int changeType,
+                                   long changeAmount,
+                                   long beforeBalance,
+                                   long afterBalance,
+                                   String remark) {
+        OshUserAssetRecord assetRecord = new OshUserAssetRecord();
+        assetRecord.setUserId(userId);
+        assetRecord.setChangeType(changeType);
+        assetRecord.setChangeSource(ASSET_CHANGE_SOURCE_BUY_PRODUCT);
+        assetRecord.setChangeAmount(changeAmount);
+        assetRecord.setBeforeBalance(beforeBalance);
+        assetRecord.setAfterBalance(afterBalance);
+        assetRecord.setRemark(remark);
+        oshUserAssetRecordMapper.insert(assetRecord);
     }
 
     /**
@@ -618,7 +744,8 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
                                                            BigDecimal amount,
                                                            String channel,
                                                            PayResponse payResponse,
-                                                           OshPayment payment) {
+                                                           OshPayment payment,
+                                                           PointDeduction pointDeduction) {
         OrderPaymentInfo paymentInfo = new OrderPaymentInfo();
         paymentInfo.setChannel(channel);
         paymentInfo.setQrcode(payResponse.getQrcode());
@@ -630,6 +757,7 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
         result.setPaymentNo(paymentNo);
         result.setPayStatus(String.valueOf(OrderStatusEnum.PENDING.getCode()));
         result.setPrice(amount);
+        fillPointDeductionResult(result, pointDeduction);
         result.setExpireTime(formatDateTime(payment == null ? null : payment.getExpireTime()));
         result.setCloseExpireMinutes((int) resolvePayExpireMinutes());
         result.setPayment(paymentInfo);
@@ -644,15 +772,29 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
      * @param amount 支付金额
      * @return 免费订单结算结果
      */
-    private OrderCheckoutRespVO freeCheckoutResult(String orderNo, String paymentNo, BigDecimal amount) {
+    private OrderCheckoutRespVO freeCheckoutResult(String orderNo,
+                                                   String paymentNo,
+                                                   BigDecimal amount,
+                                                   PointDeduction pointDeduction) {
         OrderCheckoutRespVO result = new OrderCheckoutRespVO();
         result.setNeedPay(false);
         result.setOrderNo(orderNo);
         result.setPaymentNo(paymentNo);
         result.setPayStatus(String.valueOf(ORDER_PAID));
         result.setPrice(amount);
+        fillPointDeductionResult(result, pointDeduction);
         result.setCloseExpireMinutes((int) resolvePayExpireMinutes());
         return result;
+    }
+
+    /**
+     * 填充积分抵扣展示字段。
+     */
+    private void fillPointDeductionResult(OrderCheckoutRespVO result, PointDeduction pointDeduction) {
+        PointDeduction deduction = pointDeduction == null ? PointDeduction.none(BigDecimal.ZERO) : pointDeduction;
+        result.setPointsUsed(deduction.getPointsUsed());
+        result.setPointsDeductAmount(deduction.getDeductAmount());
+        result.setRemainingPoints(deduction.getRemainingPoints());
     }
 
     /**
@@ -690,14 +832,47 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
     private Map<String, Object> payRequestSnapshot(String paymentNo,
                                                    OrderCheckoutReqVO param,
                                                    String clientIp,
-                                                   int channelCode) {
+                                                   int channelCode,
+                                                   BigDecimal amount) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("out_trade_no", paymentNo);
         payload.put("name", param.getProductName());
-        payload.put("money", money(param.getPayableAmount()).toPlainString());
+        payload.put("money", money(amount).toPlainString());
         payload.put("clientip", clientIp);
         payload.put("channel", channelCode);
         return payload;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void refreshUserAssetCache(Long userId, Long points) {
+        if (redisCache == null) {
+            return;
+        }
+        Map<String, Object> userMap = redisCache.getCacheObject(OshUserConstants.LOGIN_USER + userId);
+        if (userMap == null) {
+            return;
+        }
+        Object assetObject = userMap.get(OshUserConstants.ASSET);
+        if (!(assetObject instanceof Map)) {
+            return;
+        }
+        Map<String, String> asset = (Map<String, String>) assetObject;
+        asset.put(OshUserConstants.POINTS, String.valueOf(points));
+        userMap.put(OshUserConstants.ASSET, asset);
+        redisCache.setCacheObject(OshUserConstants.LOGIN_USER + userId, userMap);
+    }
+
+    private void registerAssetCacheRefreshAfterCommit(Long userId, Long points) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            refreshUserAssetCache(userId, points);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                refreshUserAssetCache(userId, points);
+            }
+        });
     }
 
     /**
@@ -856,5 +1031,79 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
             return null;
         }
         return dateTime.format(DEFAULT_TIME_FORMATTER);
+    }
+
+    private static class CheckoutCreateContext {
+
+        private OshOrder order;
+
+        private OshPayment payment;
+
+        private BigDecimal cashPayAmount;
+
+        private PointDeduction pointDeduction;
+
+        public OshOrder getOrder() {
+            return order;
+        }
+
+        public void setOrder(OshOrder order) {
+            this.order = order;
+        }
+
+        public OshPayment getPayment() {
+            return payment;
+        }
+
+        public void setPayment(OshPayment payment) {
+            this.payment = payment;
+        }
+
+        public BigDecimal getCashPayAmount() {
+            return cashPayAmount;
+        }
+
+        public void setCashPayAmount(BigDecimal cashPayAmount) {
+            this.cashPayAmount = cashPayAmount;
+        }
+
+        public PointDeduction getPointDeduction() {
+            return pointDeduction;
+        }
+
+        public void setPointDeduction(PointDeduction pointDeduction) {
+            this.pointDeduction = pointDeduction;
+        }
+    }
+
+    private static class PointDeduction {
+
+        private final long pointsUsed;
+
+        private final BigDecimal deductAmount;
+
+        private final Long remainingPoints;
+
+        private PointDeduction(long pointsUsed, BigDecimal deductAmount, Long remainingPoints) {
+            this.pointsUsed = pointsUsed;
+            this.deductAmount = deductAmount;
+            this.remainingPoints = remainingPoints;
+        }
+
+        private static PointDeduction none(BigDecimal ignoredAmount) {
+            return new PointDeduction(0L, BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP), null);
+        }
+
+        public long getPointsUsed() {
+            return pointsUsed;
+        }
+
+        public BigDecimal getDeductAmount() {
+            return deductAmount;
+        }
+
+        public Long getRemainingPoints() {
+            return remainingPoints;
+        }
     }
 }
