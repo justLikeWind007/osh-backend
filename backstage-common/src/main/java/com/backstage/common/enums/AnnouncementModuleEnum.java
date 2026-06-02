@@ -36,7 +36,12 @@ public enum AnnouncementModuleEnum {
     /**
      * 开源连载 / 项目模块
      */
-    SERIAL("serial", "开源项目公告");
+    SERIAL("serial", "开源项目公告"),
+
+    /**
+     * 实用网站模块
+     */
+    WEBSITE("website", "实用网站公告");
 
     /**
      * 模块关键字，落库 / 查询时写入 module 字段

@@ -85,7 +85,7 @@ public interface OshPracticalWebsiteMapper  {
      * @param websiteId 要查询的网站 ID
      * @return 网站对象
      */
-    @Select("SELECT id, good_count, mid_count, bad_count, click_count, create_time " +
+    @Select("SELECT id, good_count, mid_count, bad_count, click_count, collection_count, create_time " +
             "FROM osh_practical_website " +
             "WHERE id = #{websiteId} AND delete_flag = 0 AND status = 1")
     OshPracticalWebsite selectByIdForUpdate(Long websiteId);
@@ -97,7 +97,7 @@ public interface OshPracticalWebsiteMapper  {
      * 批量查询所有需要更新评分的网站(只查询评分计算需要的字段)
      * @return 网站列表
      */
-    @Select("SELECT id, good_count, mid_count, bad_count, click_count, create_time " +
+    @Select("SELECT id, good_count, mid_count, bad_count, click_count, collection_count, create_time " +
             "FROM osh_practical_website " +
             "WHERE delete_flag = 0 AND status = 1")
     List<OshPracticalWebsite> selectAllWebsitesForRating();
