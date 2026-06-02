@@ -2,6 +2,7 @@ package com.backstage.system.service.website.impl;
 
 import com.backstage.system.domain.website.OshPracticalWebsite;
 import com.backstage.system.mapper.website.OshPracticalWebsiteMapper;
+import com.backstage.system.service.website.IWebsiteAnnouncementService;
 import com.backstage.system.service.website.OshPracticalWebsiteService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.backstage.system.domain.website.OshWebsiteUserRating;
@@ -37,6 +38,9 @@ public class OshWebsiteUserRatingServiceImpl extends ServiceImpl<OshWebsiteUserR
     @Autowired
     private WebsiteEsService websiteEsService;
 
+    @Autowired
+    private IWebsiteAnnouncementService websiteAnnouncementService;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void submitRating(Long userId, Long websiteId, Integer ratingType) {
@@ -64,6 +68,10 @@ public class OshWebsiteUserRatingServiceImpl extends ServiceImpl<OshWebsiteUserR
             if (ratingType == 1 || ratingType == 3) {
                 websiteService.updateWebsiteRatingScore(websiteId);
             }
+            // 好评时写入动态栏
+            if (ratingType == 1) {
+                websiteAnnouncementService.insertWebsiteDynamic(userId, websiteId, website.getName());
+            }
             // 同步最新计数到 ES
             websiteEsService.syncCountsToEs(websiteId);
             log.info("用户{}新增评价成功", userId);
@@ -79,6 +87,10 @@ public class OshWebsiteUserRatingServiceImpl extends ServiceImpl<OshWebsiteUserR
             log.info("用户{}修改评价成功，从{}改为{}", userId, oldRatingType, ratingType);
             if (ratingType == 1 || ratingType == 3) {
                 websiteService.updateWebsiteRatingScore(websiteId);
+            }
+            // 修改为好评时也写入动态栏
+            if (ratingType == 1) {
+                websiteAnnouncementService.insertWebsiteDynamic(userId, websiteId, website.getName());
             }
             // 同步最新计数到 ES
             websiteEsService.syncCountsToEs(websiteId);

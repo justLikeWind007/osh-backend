@@ -11,6 +11,7 @@ import com.backstage.system.domain.dto.website.WebsiteQueryDTO;
 import com.backstage.system.domain.dto.website.WebsiteRatingDTO;
 import com.backstage.system.domain.dto.website.WebsiteSubmitDTO;
 import com.backstage.system.domain.vo.website.OshPracticalWebsiteVO;
+import com.backstage.system.service.website.IWebsiteAnnouncementService;
 import com.backstage.system.service.website.OshPracticalWebsiteService;
 import com.backstage.system.service.website.OshUserFavoriteWebsiteService;
 import com.backstage.system.service.website.OshWebsiteTagService;
@@ -45,6 +46,31 @@ public class OshPracticalWebsiteController extends BaseController {
 
     @Autowired
     private OshWebsiteTagService oshWebsiteTagService;
+
+    @Autowired
+    private IWebsiteAnnouncementService websiteAnnouncementService;
+
+    /**
+     * 查询实用网站公告栏（无需登录）
+     */
+    @Anonymous
+    @ApiOperation("查询实用网站公告栏")
+    @GetMapping("/notices")
+    public R<java.util.List<com.backstage.system.domain.announcement.vo.AnnouncementMarqueeVO>> getNotices(
+            @RequestParam(required = false, defaultValue = "10") int limit) {
+        return R.ok(websiteAnnouncementService.getWebsiteNotices(limit));
+    }
+
+    /**
+     * 查询实用网站动态栏（无需登录）
+     */
+    @Anonymous
+    @ApiOperation("查询实用网站动态栏")
+    @GetMapping("/dynamics")
+    public R<java.util.List<com.backstage.system.domain.announcement.vo.AnnouncementMarqueeVO>> getDynamics(
+            @RequestParam(required = false, defaultValue = "10") int limit) {
+        return R.ok(websiteAnnouncementService.getWebsiteDynamics(limit));
+    }
 
     /**
      * 查询标签列表（公开，支持关键字模糊搜索）

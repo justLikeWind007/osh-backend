@@ -17,6 +17,7 @@ import com.backstage.system.domain.website.WebsiteEsDoc;
 import com.backstage.system.mapper.website.OshPracticalWebsiteMapper;
 import com.backstage.system.mapper.website.OshWebsiteTagRelMapper;
 import com.backstage.system.mapper.website.OshWebsiteUserRatingMapper;
+import com.backstage.system.service.website.IWebsiteAnnouncementService;
 import com.backstage.system.service.website.OshPracticalWebsiteService;
 import com.backstage.system.service.website.OshWebsiteTagService;
 import com.backstage.system.utils.UserContextUtil;
@@ -58,6 +59,8 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
     private OshWebsiteTagService oshWebsiteTagService;
     @Autowired
     private OshWebsiteUserRatingMapper oshWebsiteUserRatingMapper;
+    @Autowired
+    private IWebsiteAnnouncementService websiteAnnouncementService;
     @Autowired
     private EmailUtil emailUtil;
     @Autowired
@@ -279,9 +282,10 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
         // 5. 更新对应数据库
         boolean updateResult = oshPracticalWebsiteMapper.updateStatusById(website);
         if (updateResult) {
+            // 审核通过后写入公告栏
+            websiteAnnouncementService.insertWebsiteNotice(website.getId(), website.getName());
             // MySQL 更新成功后，把数据同步到 ES
             try {
-                // 重新查一次完整数据（包含标签）
                 OshPracticalWebsiteVO vo = oshPracticalWebsiteMapper.selectByIdAndStatus(
                         auditDto.getWebsiteId(), 1);
                 if (vo != null) {
@@ -289,7 +293,6 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
                     websiteEsService.saveToEs(doc);
                 }
             } catch (Exception e) {
-                // ES 同步失败不影响审核结果，只打日志
                 log.error("审核通过后同步 ES 失败，websiteId={}", auditDto.getWebsiteId(), e);
             }
         }
@@ -374,6 +377,7 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
                         websiteEvaluation.getMidCount(),
                         websiteEvaluation.getBadCount(),
                         websiteEvaluation.getClickCount(),
+                        websiteEvaluation.getCollectionCount(),
                         websiteEvaluation.getCreateTime()
                 );
                 oshPracticalWebsiteMapper.updateRatingScoreById(websiteId, ratingScore);
@@ -404,6 +408,7 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
                             website.getMidCount(),
                             website.getBadCount(),
                             website.getClickCount(),
+                            website.getCollectionCount(),
                             website.getCreateTime()
                     );
                     int result = oshPracticalWebsiteMapper.updateRatingScoreById(website.getId(), ratingScore);
