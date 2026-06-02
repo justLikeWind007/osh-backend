@@ -237,7 +237,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             gw.join_time
         FROM osh_group_work gw
         INNER JOIN osh_user u ON gw.user_id = u.id
-        INNER JOIN osh_group_order go ON go.group_work_id = gw.group_activity_id AND go.user_id = gw.user_id
+        INNER JOIN osh_group_order go ON go.group_work_id = gw.id AND go.user_id = gw.user_id
         WHERE gw.group_activity_id = #{initiatedId}
           AND go.status = 'paid'
         ORDER BY gw.join_time ASC
@@ -397,7 +397,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <update id="updateOrderStatus">
         UPDATE osh_group_order
         SET status = #{status},
-            update_time = #{updateTime}
+            updated_time = #{updateTime}
         WHERE id = #{id}
     </update>
 
