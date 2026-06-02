@@ -58,7 +58,7 @@ public class SeckillOrderConsumer {
 
     @KafkaListener(
             topics = KafkaConstants.SECKILL_ORDER_CREATE_TOPIC,
-            groupId = "osh-backend-test"
+            groupId = "${spring.kafka.consumer.group-id}"
     )
     public void consumeSeckillOrder(String message, Acknowledgment ack) {
         logger.info("【秒杀消费者】收到订单创建消息：{}", message);
