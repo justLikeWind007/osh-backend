@@ -39,6 +39,16 @@ import java.util.stream.Collectors;
 @Service
 public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
 
+    private static final byte QUESTION_STATUS_DRAFT = 0;
+    private static final byte QUESTION_STATUS_PUBLISHED = 1;
+    private static final byte QUESTION_STATUS_ANSWERED = 2;
+    private static final byte ANSWER_STATUS_NORMAL = 0;
+    private static final byte ANSWER_IS_NOT_SOLUTION = 0;
+    private static final byte ANSWER_IS_SOLUTION = 1;
+    private static final int DEFAULT_PAGE_NUM = 1;
+    private static final int DEFAULT_PAGE_SIZE = 10;
+    private static final int MAX_PAGE_SIZE = 50;
+
     @Autowired
     private OshQAQuestionMapper oshQaQuestionMapper;
 
@@ -53,7 +63,17 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
 
     @Override
     public R<String> addQuestion(Long userId, Long resourceNo, String resourceType, String content, Byte isPaidOnly, List<String> tags) {
-        if(!ResourcePermissionUtil.hasPermission(ResourceTypeEnum.fromTypeCode(resourceType),resourceNo)) {
+        if (userId == null) return R.fail(ResultCode.FAILED_NOT_LOGIN.getMsg());
+        if (!StringUtils.isNotEmpty(resourceType) || !StringUtils.isNotEmpty(content)) {
+            return R.fail(ResultCode.FAILED_PARAMS_VALIDATE.getMsg());
+        }
+        ResourceTypeEnum resourceTypeEnum;
+        try {
+            resourceTypeEnum = ResourceTypeEnum.fromTypeCode(resourceType);
+        } catch (IllegalArgumentException e) {
+            return R.fail(ResultCode.FAILED_PARAMS_VALIDATE.getMsg());
+        }
+        if(resourceNo != null && !ResourcePermissionUtil.hasPermission(resourceTypeEnum,resourceNo)) {
             return R.fail(ResultCode.FAILED_USER_PERMISSION_DENIED.getMsg());
         }
         Question question = new Question();
@@ -83,12 +103,20 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
 
     @Override
     public R<String> publishQuestion(Long userId, Long questionId) {
-        LambdaQueryWrapper<Question> wrapper = new LambdaQueryWrapper<Question>().select(Question::getUserId).eq(Question::getId, questionId);
+        if (userId == null) return R.fail(ResultCode.FAILED_NOT_LOGIN.getMsg());
+        if (questionId == null) return R.fail(ResultCode.FAILED_PARAMS_VALIDATE.getMsg());
+        LambdaQueryWrapper<Question> wrapper = new LambdaQueryWrapper<Question>()
+                .select(Question::getUserId, Question::getStatus)
+                .eq(Question::getId, questionId)
+                .eq(Question::getDeleteFlag, 0);
         Question question = oshQaQuestionMapper.selectOne(wrapper);
+        if (question == null) {
+            return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
+        }
         if (question.getUserId() == null || !question.getUserId().equals(userId)) {
             return R.fail(ResultCode.FAILED_USER_PERMISSION_DENIED.getMsg());
         }
-        question.setStatus((byte) 1);
+        question.setStatus(QUESTION_STATUS_PUBLISHED);
         oshQaQuestionMapper.update(question, new LambdaQueryWrapper<Question>().eq(Question::getId, questionId));
         return R.ok(ResultCode.SUCCESS.getMsg());
     }
@@ -108,6 +136,13 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
 
     @Override
     public R<String> editQuestion(Long userId, Long questionId, Long resourceNo, String resourceType, String content, Byte isPaidOnly, List<String> tags) {
+        if (userId == null) return R.fail(ResultCode.FAILED_NOT_LOGIN.getMsg());
+        if (questionId == null || resourceNo == null || !StringUtils.isNotEmpty(resourceType) || !StringUtils.isNotEmpty(content)) {
+            return R.fail(ResultCode.FAILED_PARAMS_VALIDATE.getMsg());
+        }
+        if(!ResourcePermissionUtil.hasPermission(ResourceTypeEnum.fromTypeCode(resourceType),resourceNo)) {
+            return R.fail(ResultCode.FAILED_USER_PERMISSION_DENIED.getMsg());
+        }
         LambdaQueryWrapper<Question> wrapper = new LambdaQueryWrapper<Question>().select(Question::getUserId).eq(Question::getId, questionId);
         Question question = oshQaQuestionMapper.selectOne(wrapper);
         if (question == null) {
@@ -135,8 +170,16 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
 
     @Override
     public R<String> deleteQuestion(Long userId, Long questionId) {
-        LambdaQueryWrapper<Question> wrapper = new LambdaQueryWrapper<Question>().select(Question::getUserId).eq(Question::getId, questionId);
+        if (userId == null) return R.fail(ResultCode.FAILED_NOT_LOGIN.getMsg());
+        if (questionId == null) return R.fail(ResultCode.FAILED_PARAMS_VALIDATE.getMsg());
+        LambdaQueryWrapper<Question> wrapper = new LambdaQueryWrapper<Question>()
+                .select(Question::getUserId)
+                .eq(Question::getId, questionId)
+                .eq(Question::getDeleteFlag, 0);
         Question question = oshQaQuestionMapper.selectOne(wrapper);
+        if (question == null) {
+            return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
+        }
         if (question.getUserId() == null || !question.getUserId().equals(userId)) {
             return R.fail(ResultCode.FAILED_USER_PERMISSION_DENIED.getMsg());
         }
@@ -147,35 +190,39 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
 
     @Override
     public R<String> followQuestion(Long userId, Long questionId) {
+        if (userId == null) return R.fail(ResultCode.FAILED_NOT_LOGIN.getMsg());
+        if (questionId == null) return R.fail(ResultCode.FAILED_PARAMS_VALIDATE.getMsg());
         Integer deleteFlag = oshQaQuestionMapper.getFollowInfoByUserIdAndQuestionId(userId, questionId);
         if (deleteFlag != null && deleteFlag == 0) {
             return R.fail(ResultCode.FAILED.getMsg());
         }
         LambdaQueryWrapper<Question> questionWrapper = new LambdaQueryWrapper<Question>()
-                .eq(Question::getId, questionId);
+                .eq(Question::getId, questionId)
+                .eq(Question::getDeleteFlag, 0);
         Question question = oshQaQuestionMapper.selectOne(questionWrapper);
         if (question == null) {
             return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
         }
         oshQaQuestionMapper.followQuestion(userId, questionId, userId);
-        question.setFollowCount(question.getFollowCount() + 1);
-        oshQaQuestionMapper.update(question, questionWrapper);
+        oshQaQuestionMapper.incrementFollowCount(questionId);
         return R.ok(ResultCode.SUCCESS.getMsg());
     }
 
     @Override
     public R<String> cancelFollowQuestion(Long userId, Long questionId) {
+        if (userId == null) return R.fail(ResultCode.FAILED_NOT_LOGIN.getMsg());
+        if (questionId == null) return R.fail(ResultCode.FAILED_PARAMS_VALIDATE.getMsg());
         Integer deleteFlag = oshQaQuestionMapper.getFollowInfoByUserIdAndQuestionId(userId, questionId);
         if (deleteFlag != null && deleteFlag == 0) {
             LambdaQueryWrapper<Question> questionWrapper = new LambdaQueryWrapper<Question>()
-                    .eq(Question::getId, questionId);
+                    .eq(Question::getId, questionId)
+                    .eq(Question::getDeleteFlag, 0);
             Question question = oshQaQuestionMapper.selectOne(questionWrapper);
             if (question == null) {
                 return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
             }
             oshQaQuestionMapper.cancelFollowQuestion(userId, questionId ,userId);
-            question.setFollowCount(question.getFollowCount() - 1);
-            oshQaQuestionMapper.update(question, questionWrapper);
+            oshQaQuestionMapper.decrementFollowCount(questionId);
             return R.ok(ResultCode.SUCCESS.getMsg());
         }
         return R.fail(ResultCode.FAILED.getMsg());
@@ -183,6 +230,8 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
 
     @Override
     public TableDataInfo list(Long userId, Long resourceNo, String resourceType, String type, String keyword, Integer pageNum, Integer pageSize) {
+        pageNum = pageNum == null || pageNum < 1 ? DEFAULT_PAGE_NUM : pageNum;
+        pageSize = pageSize == null || pageSize < 1 ? DEFAULT_PAGE_SIZE : Math.min(pageSize, MAX_PAGE_SIZE);
         // 兼容旧数据：'course' 和 '课程' 都能查到
         final String normalizedResourceType;
         if ("course".equalsIgnoreCase(resourceType)) {
@@ -194,6 +243,7 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
         LambdaQueryWrapper<Question> wrapper = new LambdaQueryWrapper<Question>()
                 // 1. 必须加：只查未删除的数据
                 .eq(Question::getDeleteFlag, 0)
+                .ne(Question::getStatus, QUESTION_STATUS_DRAFT)
                 .eq(resourceNo != null, Question::getResourceNo, resourceNo)
                 .eq(StringUtils.isNotEmpty(normalizedResourceType), Question::getResourceType, normalizedResourceType)
                 .like(StringUtils.isNotEmpty(keyword), Question::getContent, keyword)
@@ -207,8 +257,14 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
         // 2. 这里的 type 判空处理
         if (StringUtils.isNotEmpty(type)) {
             if (QAQuestionSearchType.MY_QUESTIONS.getType().equals(type)) {
+                if (userId == null) {
+                    return new TableDataInfo(new ArrayList<>(), 0L);
+                }
                 wrapper.eq(Question::getUserId, userId);
             } else if (QAQuestionSearchType.MY_FOLLOWS.getType().equals(type)) {
+                if (userId == null) {
+                    return new TableDataInfo(new ArrayList<>(), 0L);
+                }
                 List<Long> followQuestionIds = oshQaQuestionMapper.getFollowQuestionIds(userId);
                 if (CollectionUtils.isNotEmpty(followQuestionIds)) {
                     wrapper.in(Question::getId, followQuestionIds);
@@ -216,9 +272,9 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
                     wrapper.eq(Question::getId, -1L); // 没关注则查不到
                 }
             } else if (QAQuestionSearchType.UNANSWERED.getType().equals(type)) {
-                wrapper.eq(Question::getStatus, (byte)1);
+                wrapper.eq(Question::getStatus, QUESTION_STATUS_PUBLISHED);
             } else if (QAQuestionSearchType.ANSWERED.getType().equals(type)) {
-                wrapper.eq(Question::getStatus, (byte)2);
+                wrapper.eq(Question::getStatus, QUESTION_STATUS_ANSWERED);
             }
         }
 
@@ -243,9 +299,12 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
 
     @Override
     public R<String> solve(Long userId, Long questionId, Long answerId) {
+        if (userId == null) return R.fail(ResultCode.FAILED_NOT_LOGIN.getMsg());
+        if (questionId == null || answerId == null) return R.fail(ResultCode.FAILED_PARAMS_VALIDATE.getMsg());
         LambdaQueryWrapper<Answer> answerWrapper = new LambdaQueryWrapper<Answer>()
-                .select(Answer::getQuestionId, Answer::getIsSolution)
-                .eq(Answer::getId, answerId);
+                .select(Answer::getQuestionId, Answer::getIsSolution, Answer::getStatus)
+                .eq(Answer::getId, answerId)
+                .eq(Answer::getDeleteFlag, 0);
         Answer answer = oshQaAnswerMapper.selectOne(answerWrapper);
         if (answer == null) {
             return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
@@ -253,20 +312,31 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
         if (!answer.getQuestionId().equals(questionId)) {
             return R.fail(ResultCode.FAILED.getMsg());
         }
+        if (answer.getStatus() != null && answer.getStatus() != ANSWER_STATUS_NORMAL) {
+            return R.fail(ResultCode.FAILED.getMsg());
+        }
         LambdaQueryWrapper<Question> questionWrapper = new LambdaQueryWrapper<Question>()
                 .select(Question::getUserId, Question::getStatus)
-                .eq(Question::getId, questionId);
+                .eq(Question::getId, questionId)
+                .eq(Question::getDeleteFlag, 0);
         Question question = oshQaQuestionMapper.selectOne(questionWrapper);
         if (question == null) {
             return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
         }
-        if (answer.getIsSolution() == 1 || question.getStatus() == 2) {
+        if (Byte.valueOf(ANSWER_IS_SOLUTION).equals(answer.getIsSolution())) {
+            return R.fail(ResultCode.FAILED_USER_ANSWER_ALREADY_MARKED.getMsg());
+        }
+        Long solutionCount = oshQaAnswerMapper.selectCount(new LambdaQueryWrapper<Answer>()
+                .eq(Answer::getQuestionId, questionId)
+                .eq(Answer::getIsSolution, ANSWER_IS_SOLUTION)
+                .eq(Answer::getDeleteFlag, 0));
+        if (solutionCount > 0) {
             return R.fail(ResultCode.FAILED_USER_ANSWER_ALREADY_MARKED.getMsg());
         }
         if (question.getUserId().equals(userId) || UserContextUtil.getCurrentLevel() > 4) {
-            answer.setIsSolution((byte)1);
+            answer.setIsSolution(ANSWER_IS_SOLUTION);
             oshQaAnswerMapper.update(answer, answerWrapper);
-            question.setStatus((byte)2);
+            question.setStatus(QUESTION_STATUS_ANSWERED);
             oshQaQuestionMapper.update(question, questionWrapper);
             return R.ok(ResultCode.SUCCESS.getMsg());
         }
@@ -275,33 +345,46 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
 
     @Override
     public R<String> cancelSolve(Long userId, Long questionId, Long answerId) {
+        if (userId == null) return R.fail(ResultCode.FAILED_NOT_LOGIN.getMsg());
+        if (questionId == null || answerId == null) return R.fail(ResultCode.FAILED_PARAMS_VALIDATE.getMsg());
         LambdaQueryWrapper<Answer> answerWrapper = new LambdaQueryWrapper<Answer>()
-                .select(Answer::getIsSolution)
-                .eq(Answer::getId, answerId);
+                .select(Answer::getQuestionId, Answer::getIsSolution)
+                .eq(Answer::getId, answerId)
+                .eq(Answer::getDeleteFlag, 0);
         Answer answer = oshQaAnswerMapper.selectOne(answerWrapper);
         if (answer == null) {
             return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
         }
+        if (!questionId.equals(answer.getQuestionId())) {
+            return R.fail(ResultCode.FAILED.getMsg());
+        }
         LambdaQueryWrapper<Question> questionWrapper = new LambdaQueryWrapper<Question>()
-                .select(Question::getStatus)
-                .eq(Question::getId, questionId);
+                .select(Question::getUserId, Question::getStatus)
+                .eq(Question::getId, questionId)
+                .eq(Question::getDeleteFlag, 0);
         Question question = oshQaQuestionMapper.selectOne(questionWrapper);
         if (question == null) {
             return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
         }
+        if (!question.getUserId().equals(userId) && UserContextUtil.getCurrentLevel() <= 4) {
+            return R.fail(ResultCode.FAILED_USER_PERMISSION_DENIED.getMsg());
+        }
 
-        answer.setIsSolution((byte)0);
+        answer.setIsSolution(ANSWER_IS_NOT_SOLUTION);
         oshQaAnswerMapper.update(answer, answerWrapper);
-        question.setStatus((byte)1);
+        question.setStatus(QUESTION_STATUS_ANSWERED);
         oshQaQuestionMapper.update(question, questionWrapper);
         return R.ok(ResultCode.SUCCESS.getMsg());
     }
 
     @Override
     public R<QueryQuestionDetailVO> detail(Long id, Long questionId) {
+        if (questionId == null) return R.fail(ResultCode.FAILED_PARAMS_VALIDATE.getMsg());
         QueryQuestionDetailVO queryQuestionDetailVO = new QueryQuestionDetailVO();
         LambdaQueryWrapper<Question> questionWrapper = new LambdaQueryWrapper<Question>()
-                .eq(Question::getId, questionId);
+                .eq(Question::getId, questionId)
+                .eq(Question::getDeleteFlag, 0)
+                .ne(Question::getStatus, QUESTION_STATUS_DRAFT);
         Question question = oshQaQuestionMapper.selectOne(questionWrapper);
         if (question == null) {
             return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
@@ -323,47 +406,54 @@ public class OshQAQuestionServiceImpl implements IOshQAQuestionService {
         }
         List<Answer> answers = oshQaAnswerMapper.selectList(new LambdaQueryWrapper<Answer>()
                 .eq(Answer::getQuestionId, questionId)
+                .eq(Answer::getDeleteFlag, 0)
+                .eq(Answer::getStatus, ANSWER_STATUS_NORMAL)
                 .orderByDesc(Answer::getIsSolution)
                 .orderByDesc(Answer::getVoteCount));
         queryQuestionDetailVO.setAnswers(answers);
-        question.setViewCount(question.getViewCount() + 1);
-        oshQaQuestionMapper.update(question, questionWrapper);
+        oshQaQuestionMapper.incrementViewCount(questionId);
         return R.ok(queryQuestionDetailVO);
     }
 
     @Override
     public R<String> vote(Long userId, Long answerId) {
+        if (userId == null) return R.fail(ResultCode.FAILED_NOT_LOGIN.getMsg());
+        if (answerId == null) return R.fail(ResultCode.FAILED_PARAMS_VALIDATE.getMsg());
         Integer deleteFlag = oshQaAnswerMapper.getVoteInfoByUserIdAndAnswerId(userId, answerId);
         if (deleteFlag != null && deleteFlag == 0) {
             return R.fail(ResultCode.FAILED.getMsg());
         }
         LambdaQueryWrapper<Answer> answerWrapper = new LambdaQueryWrapper<Answer>()
-                .select(Answer::getVoteCount)
-                .eq(Answer::getId, answerId);
+                .select(Answer::getId)
+                .eq(Answer::getId, answerId)
+                .eq(Answer::getDeleteFlag, 0)
+                .eq(Answer::getStatus, ANSWER_STATUS_NORMAL);
         Answer answer = oshQaAnswerMapper.selectOne(answerWrapper);
         if (answer == null) {
             return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
         }
         oshQaAnswerMapper.voteAnswer(userId, answerId, userId);
-        answer.setVoteCount(answer.getVoteCount() + 1);
-        oshQaAnswerMapper.update(answer, answerWrapper);
+        oshQaAnswerMapper.incrementVoteCount(answerId);
         return R.ok(ResultCode.SUCCESS.getMsg());
     }
 
     @Override
     public R<String> cancelVote(Long userId, Long answerId) {
+        if (userId == null) return R.fail(ResultCode.FAILED_NOT_LOGIN.getMsg());
+        if (answerId == null) return R.fail(ResultCode.FAILED_PARAMS_VALIDATE.getMsg());
         Integer deleteFlag = oshQaAnswerMapper.getVoteInfoByUserIdAndAnswerId(userId, answerId);
         if (deleteFlag != null && deleteFlag == 0) {
             LambdaQueryWrapper<Answer> answerWrapper = new LambdaQueryWrapper<Answer>()
-                    .select(Answer::getVoteCount)
-                    .eq(Answer::getId, answerId);
+                    .select(Answer::getId)
+                    .eq(Answer::getId, answerId)
+                    .eq(Answer::getDeleteFlag, 0)
+                    .eq(Answer::getStatus, ANSWER_STATUS_NORMAL);
             Answer answer = oshQaAnswerMapper.selectOne(answerWrapper);
             if (answer == null) {
                 return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
             }
             oshQaAnswerMapper.cancelVoteAnswer(userId, answerId, userId);
-            answer.setVoteCount(answer.getVoteCount() - 1);
-            oshQaAnswerMapper.update(answer, answerWrapper);
+            oshQaAnswerMapper.decrementVoteCount(answerId);
             return R.ok(ResultCode.SUCCESS.getMsg());
         }
         return R.fail(ResultCode.FAILED.getMsg());
