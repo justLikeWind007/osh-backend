@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.homepage.OshHomePageFeedbackMapper">
+
+    <!--
+        热门用户反馈查询
+        直接使用 assistant_feedback 表中冗余的 hot_score 字段排序
+        关联 assistant_feedback_category 获取分类名称
+    -->
+    <select id="selectHotFeedback" resultType="com.backstage.system.domain.homepage.vo.HotFeedbackVO">
+        SELECT
+            f.id,
+            f.title,
+            LEFT(f.content, 100)    AS summary,
+            IFNULL(c.name, '其它')  AS category,
+            f.status,
+            f.like_count            AS likeCount,
+            f.comment_count         AS commentCount,
+            f.view_count            AS viewCount,
+            f.hot_score             AS hotScore
+        FROM assistant_feedback f
+        LEFT JOIN assistant_feedback_category c ON c.id = f.category_id
+        WHERE f.delete_flag = 0
+          AND f.status != 'CLOSED'
+        ORDER BY
+            f.hot_score DESC,
+            f.create_time DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

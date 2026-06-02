@@ -50,11 +50,6 @@ public class AssistantFeedbackPageDTO {
     private String queryMode;
 
     /**
-     * 是否仅查询公告（可选，0-否 1-是）
-     */
-    private Integer isAnnouncement;
-
-    /**
      * 排序类型（可选：hot-最热，latest-最新，comment-最多评论）
      */
     private String sortType;
@@ -131,14 +126,6 @@ public class AssistantFeedbackPageDTO {
 
     public void setQueryMode(String queryMode) {
         this.queryMode = queryMode;
-    }
-
-    public Integer getIsAnnouncement() {
-        return isAnnouncement;
-    }
-
-    public void setIsAnnouncement(Integer isAnnouncement) {
-        this.isAnnouncement = isAnnouncement;
     }
 
     public String getSortType() {

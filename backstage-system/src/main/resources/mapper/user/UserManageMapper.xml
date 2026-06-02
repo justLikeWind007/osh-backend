@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.user.UserManageMapper">
+
+    <select id="selectUserManageList" resultType="com.backstage.system.domain.vo.user.UserManageItemVO">
+        select
+            u.id,
+            u.username,
+            u.email,
+            u.avatar,
+            u.sex,
+            u.introduction,
+            u.status,
+            u.violation_count as violationCount,
+            u.invite_code as inviteCode,
+            u.delete_flag as deleteFlag,
+            u.create_time as createTime,
+            u.create_by as createBy,
+            u.update_time as updateTime,
+            u.update_by as updateBy,
+            max_role.role_name as roleName,
+            max_role.role_code as roleCode,
+            max_role.level as roleLevel,
+            IFNULL(a.points, 0) as points,
+            uu.unique_id as uniqueId
+        from osh_user u
+        left join (
+            select ur.user_id, r.role_name, r.role_code, r.level, r.id as role_id
+            from osh_user_role ur
+            join osh_role r on r.id = ur.role_id and r.delete_flag = 0
+            where ur.delete_flag = 0
+            and (ur.expire_time is null or ur.expire_time > now())
+            and (ur.user_id, r.level) in (
+                select ur2.user_id, max(r2.level)
+                from osh_user_role ur2
+                join osh_role r2 on r2.id = ur2.role_id and r2.delete_flag = 0
+                where ur2.delete_flag = 0
+                and (ur2.expire_time is null or ur2.expire_time > now())
+                group by ur2.user_id
+            )
+        ) max_role on max_role.user_id = u.id
+        left join osh_user_asset a on a.user_id = u.id
+        left join osh_user_unique uu on uu.user_id = u.id and uu.delete_flag = 0
+        <where>
+            <!-- 等级过滤：如果 maxLevel 不为空，只查询比当前用户等级低的用户 -->
+            <if test="maxLevel != null">
+                and (max_role.level is null or max_role.level &lt; #{maxLevel})
+            </if>
+            <!-- 搜索条件 -->
+            <if test="query.username != null and query.username != ''">
+                and u.username like concat('%', #{query.username}, '%')
+            </if>
+            <if test="query.email != null and query.email != ''">
+                and u.email like concat('%', #{query.email}, '%')
+            </if>
+            <if test="query.roleId != null">
+                and max_role.role_id = #{query.roleId}
+            </if>
+            <!-- 筛选条件 -->
+            <if test="query.blocked != null and query.blocked == true">
+                and u.status = 1
+            </if>
+            <if test="query.blocked != null and query.blocked == false">
+                and u.status = 0
+            </if>
+            <if test="query.deleted != null and query.deleted == true">
+                and u.delete_flag = 1
+            </if>
+            <if test="query.deleted != null and query.deleted == false">
+                and u.delete_flag = 0
+            </if>
+        </where>
+        <choose>
+            <when test="query.orderBy == 'points'">
+                order by IFNULL(a.points, 0) <if test="query.orderDir == 'asc'">asc</if><if test="query.orderDir != 'asc'">desc</if>
+            </when>
+            <when test="query.orderBy == 'violationCount'">
+                order by u.violation_count <if test="query.orderDir == 'asc'">asc</if><if test="query.orderDir != 'asc'">desc</if>
+            </when>
+            <otherwise>
+                order by u.create_time <if test="query.orderDir == 'asc'">asc</if><if test="query.orderDir != 'asc'">desc</if>
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="selectUserDetail" resultType="com.backstage.system.domain.vo.user.UserManageItemVO">
+        select
+            u.id,
+            u.username,
+            u.email,
+            u.avatar,
+            u.sex,
+            u.introduction,
+            u.status,
+            u.violation_count as violationCount,
+            u.invite_code as inviteCode,
+            u.delete_flag as deleteFlag,
+            u.create_time as createTime,
+            u.create_by as createBy,
+            u.update_time as updateTime,
+            u.update_by as updateBy,
+            max_role.role_name as roleName,
+            max_role.role_code as roleCode,
+            max_role.level as roleLevel,
+            IFNULL(a.points, 0) as points,
+            uu.unique_id as uniqueId
+        from osh_user u
+        left join (
+            select ur.user_id, r.role_name, r.role_code, r.level
+            from osh_user_role ur
+            join osh_role r on r.id = ur.role_id and r.delete_flag = 0
+            where ur.delete_flag = 0
+            and (ur.expire_time is null or ur.expire_time > now())
+            and (ur.user_id, r.level) in (
+                select ur2.user_id, max(r2.level)
+                from osh_user_role ur2
+                join osh_role r2 on r2.id = ur2.role_id and r2.delete_flag = 0
+                where ur2.delete_flag = 0
+                and (ur2.expire_time is null or ur2.expire_time > now())
+                group by ur2.user_id
+            )
+        ) max_role on max_role.user_id = u.id
+        left join osh_user_asset a on a.user_id = u.id
+        left join osh_user_unique uu on uu.user_id = u.id and uu.delete_flag = 0
+        where u.id = #{userId}
+    </select>
+
+    <select id="selectUserRolesByUserIds" resultType="java.util.LinkedHashMap">
+        select
+            ur.user_id as userId,
+            ur.role_id as roleId,
+            r.role_name as roleName,
+            r.role_code as roleCode,
+            r.level as roleLevel,
+            ur.expire_time as expireTime
+        from osh_user_role ur
+        join osh_role r on r.id = ur.role_id and r.delete_flag = 0
+        where ur.delete_flag = 0
+          and (ur.expire_time is null or ur.expire_time > now())
+          and ur.user_id in
+        <foreach collection="userIds" item="uid" open="(" separator="," close=")">
+            #{uid}
+        </foreach>
+        order by ur.user_id, r.level desc
+    </select>
+
+    <select id="selectViolationListAll" resultType="java.util.LinkedHashMap">
+        select
+            id,
+            user_id as userId,
+            violation_type as violationType,
+            reason,
+            operator_id as operatorId,
+            delete_flag as deleteFlag,
+            create_time as createTime
+        from osh_user_violation
+        where user_id = #{userId}
+        order by create_time desc
+    </select>
+
+    <select id="selectAssignableRoles" resultType="java.util.LinkedHashMap">
+        select id as roleId, role_name as roleName, role_code as roleCode, level as roleLevel
+        from osh_role
+        where delete_flag = 0 and status = 1 and level &lt;= #{maxLevel}
+        order by level asc
+    </select>
+
+    <insert id="insertUserRole">
+        insert into osh_user_role (user_id, role_id, expire_time, create_time, create_by, update_time, update_by, delete_flag)
+        values (#{userId}, #{roleId}, #{expireTime}, now(), #{operatorId}, now(), #{operatorId}, 0)
+        on duplicate key update delete_flag = 0, expire_time = #{expireTime}, update_time = now(), update_by = #{operatorId}
+    </insert>
+
+    <update id="deleteUserRole">
+        update osh_user_role set delete_flag = 1 where user_id = #{userId} and role_id = #{roleId} and delete_flag = 0
+    </update>
+
+    <update id="updateUserRoleExpire">
+        update osh_user_role set expire_time = #{expireTime}, update_time = now() where user_id = #{userId} and role_id = #{roleId} and delete_flag = 0
+    </update>
+
+    <select id="selectUserRoleIds" resultType="java.lang.Integer">
+        select role_id from osh_user_role where user_id = #{userId} and delete_flag = 0 and (expire_time is null or expire_time > now())
+    </select>
+</mapper>

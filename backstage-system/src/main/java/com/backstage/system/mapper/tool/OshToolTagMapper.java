@@ -17,6 +17,8 @@ public interface OshToolTagMapper {
 
     List<OshToolTag> selectAvailableTags();
 
+    List<OshToolTag> selectRecommendTags(@Param("limit") int limit);
+
     List<String> selectTagNamesByToolId(@Param("toolId") Long toolId);
 
     List<Long> selectTagIdsByToolId(@Param("toolId") Long toolId);

@@ -19,10 +19,10 @@ public class SeckillResultVO implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @ApiModelProperty("秒杀订单编号")
+    @ApiModelProperty("秒杀尝试号（Lua成功后立即可用，用于秒杀结果轮询）")
     private String seckillNo;
 
-    @ApiModelProperty("统一订单号，前端用于支付状态轮询")
+    @ApiModelProperty("统一订单号（checkout成功后才有值，用于支付状态查询）")
     private String orderNo;
 
     @ApiModelProperty("是否需要支付，false 表示免费订单已直接完成")
@@ -34,7 +34,7 @@ public class SeckillResultVO implements Serializable {
     @ApiModelProperty("支付跳转链接")
     private String payUrl;
 
-    @ApiModelProperty("订单状态：-1-处理中(Kafka消费中) 0-待支付 1-已支付 2-已取消 3-已超时 4-已退款")
+    @ApiModelProperty("订单状态：-1-处理中(Kafka消费中) 0-待支付 1-已支付 2-已取消 3-已超时")
     private Integer status;
 
     @ApiModelProperty("商品ID")

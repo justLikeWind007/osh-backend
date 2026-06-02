@@ -1,5 +1,6 @@
 package com.backstage.system.mapper.announcement;
 
+import com.backstage.system.domain.announcement.vo.AnnouncementMarqueeVO;
 import com.backstage.system.domain.vo.seckill.SeckillAnnouncementVO;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Param;
@@ -9,6 +10,26 @@ import org.apache.ibatis.annotations.Update;
 import java.util.List;
 
 public interface OshAnnouncementMapper {
+
+    // ==================== 公告跑马灯（按模块查询） ====================
+
+    /**
+     * 按模块 + 栏目查询公告跑马灯（status=4 已发布）。
+     * <p>module 由调用方通过 {@code AnnouncementModuleEnum} 传入，不在 SQL 中写死。
+     * 排序口径与秒杀公告一致：sort 倒序 → create_time 倒序。</p>
+     *
+     * @param module  归属模块关键字（见 AnnouncementModuleEnum）
+     * @param channel 栏目：1-公告 2-动态
+     * @param limit   返回条数上限
+     */
+    @Select("SELECT id, title, icon, color, channel, create_time AS createTime " +
+            "FROM osh_announcement " +
+            "WHERE delete_flag = 0 AND status = 4 AND module = #{module} AND channel = #{channel} " +
+            "ORDER BY sort DESC, create_time DESC " +
+            "LIMIT #{limit}")
+    List<AnnouncementMarqueeVO> selectMarqueeByModuleAndChannel(@Param("module") String module,
+                                                                @Param("channel") int channel,
+                                                                @Param("limit") int limit);
 
     // ==================== 秒杀公告/动态 ====================
 
@@ -77,4 +98,53 @@ public interface OshAnnouncementMapper {
             "WHERE module = 'seckill' AND channel = 1 " +
             "AND resource_id = #{activityId} AND delete_flag = 0")
     int deleteSeckillNoticesByActivityId(@Param("activityId") Long activityId);
+
+    // ==================== 实用网站公告/动态 ====================
+
+    /**
+     * 插入一条实用网站公告或动态记录
+     */
+    @Insert("INSERT INTO osh_announcement " +
+            "(title, link, icon, color, status, channel, module, resource_type, resource_id, " +
+            " sort, is_top, delete_flag, source, source_module, create_by, create_time, update_by, update_time) " +
+            "VALUES " +
+            "(#{title}, #{link}, #{icon}, #{color}, 4, #{channel}, 'website', #{resourceType}, #{resourceId}, " +
+            " 0, 0, 0, 'system', 'website', 'system', NOW(), 'system', NOW())")
+    int insertWebsiteAnnouncement(@Param("title") String title,
+                                  @Param("link") String link,
+                                  @Param("icon") String icon,
+                                  @Param("color") String color,
+                                  @Param("resourceType") String resourceType,
+                                  @Param("resourceId") Long resourceId,
+                                  @Param("channel") int channel);
+
+    /**
+     * 查询实用网站公告栏（channel=1），按 sort 降序、create_time 降序
+     */
+    @Select("SELECT id, title, link, icon, color AS iconColor, channel, create_time AS createTime " +
+            "FROM osh_announcement " +
+            "WHERE delete_flag = 0 AND status = 4 AND module = 'website' AND channel = 1 " +
+            "ORDER BY sort DESC, create_time DESC " +
+            "LIMIT #{limit}")
+    List<AnnouncementMarqueeVO> selectWebsiteNotices(@Param("limit") int limit);
+
+    /**
+     * 查询实用网站动态栏（channel=2），按 create_time 降序
+     */
+    @Select("SELECT id, title, link, icon, color AS iconColor, channel, create_time AS createTime " +
+            "FROM osh_announcement " +
+            "WHERE delete_flag = 0 AND status = 4 AND module = 'website' AND channel = 2 " +
+            "ORDER BY create_time DESC " +
+            "LIMIT #{limit}")
+    List<AnnouncementMarqueeVO> selectWebsiteDynamics(@Param("limit") int limit);
+
+    /**
+     * 检查某个网站公告是否已存在（防止重复插入，用 resource_id + channel 去重）
+     */
+    @Select("SELECT COUNT(1) FROM osh_announcement " +
+            "WHERE delete_flag = 0 AND module = 'website' AND channel = #{channel} " +
+            "AND resource_id = #{resourceId} AND title = #{title}")
+    int countWebsiteAnnouncementByResourceAndTitle(@Param("resourceId") Long resourceId,
+                                                   @Param("title") String title,
+                                                   @Param("channel") int channel);
 }

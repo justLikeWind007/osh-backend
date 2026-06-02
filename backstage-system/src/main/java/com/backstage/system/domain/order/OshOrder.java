@@ -72,6 +72,16 @@ public class OshOrder implements Serializable {
     private BigDecimal payableAmount;
 
     /**
+     * 积分抵扣数量
+     */
+    private Long pointsAmount;
+
+    /**
+     * 积分抵扣金额
+     */
+    private BigDecimal pointsDeductAmount;
+
+    /**
      * 优惠券 ID
      */
     private Long couponId;
@@ -196,6 +206,22 @@ public class OshOrder implements Serializable {
 
     public void setPayableAmount(BigDecimal payableAmount) {
         this.payableAmount = payableAmount;
+    }
+
+    public Long getPointsAmount() {
+        return pointsAmount;
+    }
+
+    public void setPointsAmount(Long pointsAmount) {
+        this.pointsAmount = pointsAmount;
+    }
+
+    public BigDecimal getPointsDeductAmount() {
+        return pointsDeductAmount;
+    }
+
+    public void setPointsDeductAmount(BigDecimal pointsDeductAmount) {
+        this.pointsDeductAmount = pointsDeductAmount;
     }
 
     public Long getCouponId() {

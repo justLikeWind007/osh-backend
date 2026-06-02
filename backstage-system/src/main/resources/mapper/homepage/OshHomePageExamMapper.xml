@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.homepage.OshHomePageExamMapper">
+
+    <!--
+        热门考试查询
+        热度公式：0.60*收藏分 + 0.25*题量分 + 0.15*时间衰减
+    -->
+    <select id="selectHotExams" resultType="com.backstage.system.domain.homepage.vo.HotExamVO">
+        SELECT
+            e.id,
+            e.title,
+            e.cover,
+            e.description,
+            e.total_score   AS totalScore,
+            e.pass_score    AS passScore,
+            e.expire,
+            e.question_count AS questionCount,
+            e.collect_count  AS collectCount,
+            ROUND(
+                (0.60 * IFNULL(LN(1 + IFNULL(e.collect_count, 0)) /
+                        NULLIF((SELECT MAX(LN(1 + IFNULL(x.collect_count, 0)))
+                                FROM osh_examination x WHERE x.status = 1 AND x.delete_flag = 0), 0), 0)
+               + 0.25 * IFNULL(LN(1 + IFNULL(e.question_count, 0)) /
+                        NULLIF((SELECT MAX(LN(1 + IFNULL(x.question_count, 0)))
+                                FROM osh_examination x WHERE x.status = 1 AND x.delete_flag = 0), 0), 0)
+               + 0.15 * CASE
+                    WHEN TIMESTAMPDIFF(DAY, e.create_time, NOW()) &lt;= 30  THEN 1.0
+                    WHEN TIMESTAMPDIFF(DAY, e.create_time, NOW()) &lt;= 90  THEN 0.85
+                    WHEN TIMESTAMPDIFF(DAY, e.create_time, NOW()) &lt;= 180 THEN 0.70
+                    ELSE 0.50
+                 END
+            ), 4) AS hotScore
+        FROM osh_examination e
+        WHERE e.status = 1
+          AND e.delete_flag = 0
+        ORDER BY hotScore DESC, e.create_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 根据考试ID批量查询标签 -->
+    <select id="selectTagsByExamIds" resultType="com.backstage.system.domain.homepage.vo.HotExamVO">
+        SELECT
+            rel.exam_id AS examId,
+            t.name      AS tagName
+        FROM osh_exam_tag_rel rel
+        INNER JOIN osh_exam_tag t ON t.id = rel.tag_id
+        WHERE rel.exam_id IN
+        <foreach collection="examIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+          AND rel.delete_flag = 0
+          AND t.delete_flag = 0
+          AND t.status = 1
+        ORDER BY t.sort ASC
+    </select>
+
+</mapper>

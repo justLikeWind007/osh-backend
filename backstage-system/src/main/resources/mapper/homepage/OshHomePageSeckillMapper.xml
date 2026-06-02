@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.homepage.OshHomePageSeckillMapper">
+
+    <!--
+        热门秒杀查询：取当前进行中活动（status=2）的商品明细
+        排序：已售比例 DESC（热度），再按秒杀价 ASC（低价优先）
+    -->
+    <select id="selectHotSeckill" resultType="com.backstage.system.domain.homepage.vo.HotSeckillVO">
+        SELECT
+            i.id                AS itemId,
+            i.goods_id          AS goodsId,
+            i.goods_type        AS goodsType,
+            i.title             AS goodsName,
+            i.cover             AS goodsCover,
+            i.origin_price      AS originPrice,
+            i.seckill_price     AS seckillPrice,
+            i.total_stock       AS stock,
+            i.sold_count        AS soldCount,
+            i.limit_per_user    AS limitPerUser,
+            a.id                AS activityId
+        FROM osh_seckill_activity_item i
+        INNER JOIN osh_seckill_activity a ON a.id = i.activity_id
+        WHERE a.status = 2
+          AND (a.delete_flag = 0 OR a.delete_flag IS NULL)
+          AND (i.delete_flag = 0 OR i.delete_flag IS NULL)
+          AND i.available_stock > 0
+        ORDER BY
+            CASE WHEN i.total_stock > 0
+                 THEN i.sold_count / i.total_stock
+                 ELSE 0
+            END DESC,
+            i.seckill_price ASC,
+            i.sort ASC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

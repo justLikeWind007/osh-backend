@@ -2,8 +2,10 @@ package com.backstage.system.service.website.impl;
 
 import com.backstage.common.annotation.DistributeLock;
 import com.backstage.common.core.page.TableDataInfo;
+import com.backstage.common.enums.ResourceCodePrefixEnum;
 import com.backstage.common.utils.StringUtils;
 import com.backstage.common.utils.email.EmailUtil;
+import com.backstage.common.utils.generate.GenerateUtil;
 import com.backstage.common.utils.redis.DistributedLockUtil;
 import com.backstage.system.domain.dto.website.WebsiteAuditDTO;
 import com.backstage.system.domain.dto.website.WebsiteQueryDTO;
@@ -11,13 +13,14 @@ import com.backstage.system.domain.dto.website.WebsiteSubmitDTO;
 import com.backstage.system.domain.vo.website.EsPageResult;
 import com.backstage.system.domain.vo.website.OshPracticalWebsiteVO;
 import com.backstage.system.domain.website.OshPracticalWebsite;
-import com.backstage.system.domain.website.OshWebsiteTag;
 import com.backstage.system.domain.website.WebsiteEsDoc;
-import com.backstage.system.domain.website.OshWebsiteTagRel;
 import com.backstage.system.mapper.website.OshPracticalWebsiteMapper;
-import com.backstage.system.mapper.website.OshWebsiteTagMapper;
 import com.backstage.system.mapper.website.OshWebsiteTagRelMapper;
+import com.backstage.system.mapper.website.OshWebsiteUserRatingMapper;
+import com.backstage.system.service.website.IWebsiteAnnouncementService;
 import com.backstage.system.service.website.OshPracticalWebsiteService;
+import com.backstage.system.service.website.OshWebsiteTagService;
+import com.backstage.system.utils.UserContextUtil;
 import com.backstage.system.utils.WebsiteRatingCalculatorUtil;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
@@ -33,10 +36,12 @@ import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
-
-import static com.backstage.system.utils.UserContextUtil.getCurrentUser;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author 24333
@@ -49,9 +54,13 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
     @Autowired
     private OshPracticalWebsiteMapper oshPracticalWebsiteMapper;
     @Autowired
-    private OshWebsiteTagMapper oshWebsiteTagMapper;
-    @Autowired
     private OshWebsiteTagRelMapper oshWebsiteTagRelMapper;
+    @Autowired
+    private OshWebsiteTagService oshWebsiteTagService;
+    @Autowired
+    private OshWebsiteUserRatingMapper oshWebsiteUserRatingMapper;
+    @Autowired
+    private IWebsiteAnnouncementService websiteAnnouncementService;
     @Autowired
     private EmailUtil emailUtil;
     @Autowired
@@ -69,29 +78,87 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
         if (queryDTO == null) {
             queryDTO = new WebsiteQueryDTO();
         }
+        // 获取当前用户 ID（游客为 null，不查评价状态）
+        Long currentUserId = UserContextUtil.getCurrentUserId();
+
         // 第一步：先查 ES
         EsPageResult<OshPracticalWebsiteVO> esResult = websiteEsService.searchFromEs(queryDTO);
-        // 第二步：判断 ES 结果
-        // esResult == null  → ES 服务异常，降级走 MySQL
-        // esResult.getTotal() == 0 → ES 正常但没有结果，降级走 MySQL
         if (esResult != null && esResult.getTotal() != 0) {
             int pageNum = queryDTO.getPageNum() == null ? 1 : queryDTO.getPageNum();
             int pageSize = queryDTO.getPageSize() == null ? 10 : queryDTO.getPageSize();
 
-            // 用 PageHelper 的 Page 对象包装，让 PageInfo 能读到正确的 total
-            Page<OshPracticalWebsiteVO> page = new Page<>(pageNum, pageSize);
-            page.addAll(esResult.getList());       // 填入数据
-            page.setTotal(esResult.getTotal());    // 设置 ES 的真实 total
+            List<OshPracticalWebsiteVO> voList = esResult.getList();
+            if (!voList.isEmpty()) {
+                List<Long> ids = voList.stream().map(OshPracticalWebsiteVO::getId).collect(Collectors.toList());
+                // ES 是快照，回填 MySQL 最新计数，保证实时性
+                fillCountsFromDb(voList, ids);
+                fillMyRatingType(voList, ids, currentUserId);
+            }
 
+            Page<OshPracticalWebsiteVO> page = new Page<>(pageNum, pageSize);
+            page.addAll(voList);
+            page.setTotal(esResult.getTotal());
             log.info("ES 搜索命中，共 {} 条", esResult.getTotal());
             return page;
         }
-        // 第三步：ES 查不到或不可用，走 MySQL
+
+        // 第二步：ES 查不到或不可用，走 MySQL
         log.info("ES 未命中或不可用，降级走 MySQL 查询");
         Integer pageNum = queryDTO.getPageNum();
         Integer pageSize = queryDTO.getPageSize();
         PageHelper.startPage(pageNum, pageSize);
-        return oshPracticalWebsiteMapper.selectWebsitePage(queryDTO);
+        List<OshPracticalWebsiteVO> list = oshPracticalWebsiteMapper.selectWebsitePage(queryDTO);
+        if (!list.isEmpty()) {
+            List<Long> ids = list.stream().map(OshPracticalWebsiteVO::getId).collect(Collectors.toList());
+            fillMyRatingType(list, ids, currentUserId);
+        }
+        return list;
+    }
+
+    /**
+     * 从 MySQL 主表批量回填 goodCount/midCount/badCount（用于 ES 路径保证实时性）
+     */
+    private void fillCountsFromDb(List<OshPracticalWebsiteVO> voList, List<Long> ids) {
+        try {
+            List<OshPracticalWebsite> dbList = oshPracticalWebsiteMapper.selectCountsByIds(ids);
+            Map<Long, OshPracticalWebsite> dbMap = dbList.stream()
+                    .collect(Collectors.toMap(OshPracticalWebsite::getId, w -> w));
+            for (OshPracticalWebsiteVO vo : voList) {
+                OshPracticalWebsite db = dbMap.get(vo.getId());
+                if (db != null) {
+                    vo.setGoodCount(db.getGoodCount());
+                    vo.setMidCount(db.getMidCount());
+                    vo.setBadCount(db.getBadCount());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("回填评价计数失败，使用 ES 快照数据", e);
+        }
+    }
+
+    /**
+     * 批量回填当前用户的评价类型（myRatingType）
+     * 游客（userId=null）跳过，所有 VO 的 myRatingType 保持 null
+     */
+    private void fillMyRatingType(List<OshPracticalWebsiteVO> voList, List<Long> ids, Long userId) {
+        if (userId == null || ids.isEmpty()) {
+            return;
+        }
+        try {
+            List<Map<String, Object>> ratingList =
+                    oshWebsiteUserRatingMapper.selectRatingTypesByUserAndWebsites(userId, ids);
+            Map<Long, Integer> ratingMap = new HashMap<>();
+            for (Map<String, Object> row : ratingList) {
+                Long websiteId = ((Number) row.get("websiteId")).longValue();
+                Integer ratingType = ((Number) row.get("ratingType")).intValue();
+                ratingMap.put(websiteId, ratingType);
+            }
+            for (OshPracticalWebsiteVO vo : voList) {
+                vo.setMyRatingType(ratingMap.get(vo.getId()));
+            }
+        } catch (Exception e) {
+            log.warn("回填用户评价状态失败", e);
+        }
     }
     /**
      * 递增点击次数
@@ -131,6 +198,7 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
 
         // 3. 构建网站对象
         OshPracticalWebsite website = new OshPracticalWebsite();
+        website.setNo(GenerateUtil.generateResourceCode(ResourceCodePrefixEnum.WEBSITE));
         website.setName(submitDto.getName().trim());
         website.setUrl(url);
         website.setDescription(submitDto.getDescription());
@@ -138,7 +206,7 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
         website.setStatus(0);  // 0=待审核状态
         website.setClickCount(0); // 初始点击次数为 0
         website.setDeleteFlag(0);
-        website.setCreateBy(getCurrentUser().getUsername());
+        website.setCreateBy(UserContextUtil.getCurrentUser().getUsername());
         //website.setCreateBy("admin");
 
         // 4. 插入网站主表
@@ -148,23 +216,13 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
         }
 
         // 5. 处理标签关联（tagNames 可选，为空则跳过）
+        // 参考课程模块：标签不存在时自动创建，并维护 use_count
         if (submitDto.getTagNames() != null && !submitDto.getTagNames().isEmpty()) {
-
-            // 5.1 根据标签名批量查出 tag_id
-            List<OshWebsiteTag> tagList = oshWebsiteTagMapper.selectByTagNames(submitDto.getTagNames());
-
-            if (tagList != null && !tagList.isEmpty()) {
-                // 5.2 构建关联记录，插入 osh_website_tag_rel
-                List<OshWebsiteTagRel> relList = new ArrayList<>();
-                for (OshWebsiteTag tag : tagList) {
-                    OshWebsiteTagRel rel = new OshWebsiteTagRel();
-                    rel.setWebsiteId(website.getId());
-                    rel.setTagId(tag.getId());
-                    rel.setDeleteFlag(0);
-                    relList.add(rel);
-                }
-                oshWebsiteTagRelMapper.batchInsertRel(relList);
-            }
+            oshWebsiteTagService.bindWebsiteTags(
+                    website.getId(),
+                    submitDto.getTagNames(),
+                    website.getCreateBy()
+            );
         }
 
         // 6. 发送邮件通知（失败不影响主流程）
@@ -224,9 +282,10 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
         // 5. 更新对应数据库
         boolean updateResult = oshPracticalWebsiteMapper.updateStatusById(website);
         if (updateResult) {
+            // 审核通过后写入公告栏
+            websiteAnnouncementService.insertWebsiteNotice(website.getId(), website.getName());
             // MySQL 更新成功后，把数据同步到 ES
             try {
-                // 重新查一次完整数据（包含标签）
                 OshPracticalWebsiteVO vo = oshPracticalWebsiteMapper.selectByIdAndStatus(
                         auditDto.getWebsiteId(), 1);
                 if (vo != null) {
@@ -234,7 +293,6 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
                     websiteEsService.saveToEs(doc);
                 }
             } catch (Exception e) {
-                // ES 同步失败不影响审核结果，只打日志
                 log.error("审核通过后同步 ES 失败，websiteId={}", auditDto.getWebsiteId(), e);
             }
         }
@@ -319,6 +377,7 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
                         websiteEvaluation.getMidCount(),
                         websiteEvaluation.getBadCount(),
                         websiteEvaluation.getClickCount(),
+                        websiteEvaluation.getCollectionCount(),
                         websiteEvaluation.getCreateTime()
                 );
                 oshPracticalWebsiteMapper.updateRatingScoreById(websiteId, ratingScore);
@@ -349,6 +408,7 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
                             website.getMidCount(),
                             website.getBadCount(),
                             website.getClickCount(),
+                            website.getCollectionCount(),
                             website.getCreateTime()
                     );
                     int result = oshPracticalWebsiteMapper.updateRatingScoreById(website.getId(), ratingScore);

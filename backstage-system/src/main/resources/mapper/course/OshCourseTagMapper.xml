@@ -133,4 +133,15 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         WHERE name = #{name} AND delete_flag = 0
     </select>
 
+    <!-- 查询课程的标签名称列表（供秒杀模块同步标签使用） -->
+    <select id="selectTagNamesByCourseId" resultType="java.lang.String">
+        SELECT t.name
+        FROM osh_course_tag t
+        INNER JOIN osh_course_tag_rel r ON t.id = r.tag_id
+        WHERE r.course_id = #{courseId}
+          AND r.delete_flag = 0
+          AND t.delete_flag = 0
+        ORDER BY t.sort DESC, t.id ASC
+    </select>
+
 </mapper>

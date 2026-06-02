@@ -145,6 +145,13 @@ public class OshUserController extends BaseController {
         return userService.getUserInfo();
     }
 
+    @ApiOperation("获取当前用户角色列表（含有效期）")
+    @GetMapping("/roles")
+    public R<?> getUserRoles(
+            @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid) {
+        return userService.getUserRoles();
+    }
+
     @ApiOperation("注销用户")
     @PostMapping("/deleteUser")
     @PreAuthorize("hasAuthority('user:delete')")
@@ -152,24 +159,6 @@ public class OshUserController extends BaseController {
     public R<String> deleteUser(
             @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid) {
         return userService.deleteUser();
-    }
-
-    @PostMapping("/violation/record")
-    @PreAuthorize("hasAuthority('user:violation:record')")
-    @OshUserEvent(module = "用户模块", actionType = "违规记录", description = "用户违规记录")
-    public R<String> record(
-            @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
-            @RequestBody UserRecordDTO userRecordDTO) {
-        return userService.record(userRecordDTO.getUserId(), userRecordDTO.getViolationType(), userRecordDTO.getReason());
-    }
-
-    @PostMapping("/violation/record/cancel")
-    @PreAuthorize("hasAuthority('user:violation:record:cancel')")
-    @OshUserEvent(module = "用户模块", actionType = "取消违规记录", description = "用户取消违规记录")
-    public R<String> cancelRecord(
-            @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid,
-            @RequestBody UserCancelRecordDTO userCancelRecordDTO) {
-        return userService.cancelRecord(userCancelRecordDTO.getUserId(), UserContextUtil.getCurrentUser());
     }
 
     @PostMapping("/asset/update")
@@ -180,71 +169,4 @@ public class OshUserController extends BaseController {
             @RequestBody UserAssetDTO userAssetDTO) {
         return userService.updateAsset(userAssetDTO.getChangeType(), userAssetDTO.getChangeSource(), userAssetDTO.getChangeAmount(), userAssetDTO.getRemark());
     }
-
-    /**
-     * 查询用户列表
-     */
-    @GetMapping("/all")
-    @PreAuthorize("hasAuthority('user:list')")
-    @OshUserLevel(value = 5)
-    @OshUserEvent(module = "用户模块", actionType = "查询", description = "查询用户列表")
-    public R<List<OshUser>> list(UserListRequest req) {
-        return R.ok(userService.selectUserList(req));
-    }
-//
-//    /**
-//     * 导出用户列表
-//     */
-//    @PreAuthorize("@ss.hasPermi('system:user:export')")
-//    @Log(title = "用户", businessType = BusinessType.EXPORT)
-//    @PostMapping("/export")
-//    public void export(HttpServletResponse response, OshUser oshUser)
-//    {
-//        List<OshUser> list = userService.selectUserList(oshUser);
-//        ExcelUtil<OshUser> util = new ExcelUtil<OshUser>(OshUser.class);
-//        util.exportExcel(response, list, "用户数据");
-//    }
-//
-//    /**
-//     * 获取用户详细信息
-//     */
-//    @PreAuthorize("@ss.hasPermi('system:user:query')")
-//    @GetMapping(value = "/{id}")
-//    public AjaxResult getInfo(@PathVariable("id") Long id)
-//    {
-//        return success(userService.selectUserById(id));
-//    }
-//
-//    /**
-//     * 新增用户
-//     */
-//    @PreAuthorize("@ss.hasPermi('system:user:add')")
-//    @Log(title = "用户", businessType = BusinessType.INSERT)
-//    @PostMapping
-//    public AjaxResult add(@RequestBody OshUser oshUser)
-//    {
-//        return toAjax(userService.insertUser(oshUser));
-//    }
-//
-//    /**
-//     * 修改用户
-//     */
-//    @PreAuthorize("@ss.hasPermi('system:user:edit')")
-//    @Log(title = "用户", businessType = BusinessType.UPDATE)
-//    @PutMapping
-//    public AjaxResult edit(@RequestBody OshUser oshUser)
-//    {
-//        return toAjax(userService.updateUser(oshUser));
-//    }
-//
-//    /**
-//     * 删除用户
-//     */
-//    @PreAuthorize("@ss.hasPermi('system:user:remove')")
-//    @Log(title = "用户", businessType = BusinessType.DELETE)
-//    @DeleteMapping("/{ids}")
-//    public AjaxResult remove(@PathVariable Long[] ids)
-//    {
-//        return toAjax(userService.deleteUserByIds(ids));
-//    }
 }

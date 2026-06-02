@@ -30,7 +30,6 @@ public class ToolSearchIndexSyncJob
     private static final String EVENT_TYPE_COUNTER = "TOOL_INDEX_COUNTER";
     private static final String EVENT_TYPE_AUDIT_APPROVED = "AUDIT_APPROVED";
     private static final String EVENT_TYPE_AUDIT_REJECTED = "AUDIT_REJECTED";
-    private static final Integer PUBLISHED_STATUS = 4;
 
     public static void main(String[] args) throws Exception
     {
@@ -66,18 +65,16 @@ public class ToolSearchIndexSyncJob
                 .addSink(ToolIndexElasticsearchSinkFactory.buildAuditPartialUpdateSink(config))
                 .name("tool-index-es-audit-partial-update-sink");
 
-        // 常规 upsert：已发布才写入
+        // 常规 upsert：新增、修改、计数更新都直接写入 ES
         eventStream
                 .filter(ToolSearchIndexSyncJob::isUpsertEvent)
                 .name("tool-index-upsert-event-filter")
-                .filter(ToolSearchIndexSyncJob::isPublished)
-                .name("tool-index-published-filter")
                 .addSink(ToolIndexElasticsearchSinkFactory.buildUpsertSink(config))
                 .name("tool-index-es-upsert-sink");
 
-        // 常规删除：DELETE 事件或未发布的 upsert
+        // 常规删除：只处理明确的 DELETE 事件
         eventStream
-                .filter(message -> isDeleteEvent(message) || isNotPublishedUpsertEvent(message))
+                .filter(ToolSearchIndexSyncJob::isDeleteEvent)
                 .name("tool-index-es-delete-route-filter")
                 .addSink(ToolIndexElasticsearchSinkFactory.buildDeleteSink(config))
                 .name("tool-index-es-delete-sink");
@@ -136,19 +133,5 @@ public class ToolSearchIndexSyncJob
     private static boolean isDeleteEvent(JSONObject message)
     {
         return EVENT_TYPE_DELETE.equals(message.getString("eventType"));
-    }
-
-    private static boolean isNotPublishedUpsertEvent(JSONObject message)
-    {
-        return isUpsertEvent(message) && !isPublished(message);
-    }
-
-    private static boolean isPublished(JSONObject message)
-    {
-        Integer status = message.getInteger("status");
-        boolean pass = status != null && PUBLISHED_STATUS.equals(status);
-        log.info("【工具索引】上架过滤 - 工具ID: {}, 状态: {}, 是否通过: {}",
-                message.getLong("id"), status, pass);
-        return pass;
     }
 }

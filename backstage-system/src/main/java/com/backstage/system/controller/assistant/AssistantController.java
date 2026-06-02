@@ -43,7 +43,9 @@ public class AssistantController extends BaseController {
     @Anonymous
     @GetMapping("/init")
     public R<AssistantInitVO> init(@RequestParam(value = "courseId", required = false) Long courseId) {
-        return R.ok(assistantService.getInit(courseId, safeCurrentUserId(), safeCurrentUserLevel()));
+        return R.ok(assistantService.getInit(courseId,
+                UserContextUtil.getCurrentUserIdSafely(),
+                UserContextUtil.getCurrentLevelSafely()));
     }
 
     //    TODO 等RAG 课程好了之后替换掉这个接口
@@ -55,8 +57,8 @@ public class AssistantController extends BaseController {
 
     @PostMapping("/course-qa/ask")
     public R<AssistantAnswerVO> askCourseQuestion(@Validated @RequestBody AssistantCourseQaAskDTO dto) {
-        Long userId = safeCurrentUserId();
-        Integer userLevel = safeCurrentUserLevel();
+        Long userId = UserContextUtil.getCurrentUserIdSafely();
+        Integer userLevel = UserContextUtil.getCurrentLevelSafely();
         AssistantInitVO init = assistantService.getInit(dto.getCourseId(), userId, userLevel);
 
         if (userId == null) {
@@ -71,7 +73,7 @@ public class AssistantController extends BaseController {
 
     @PostMapping("/feedback/create")
     public R<AssistantFeedbackVO> createFeedback(@Validated @RequestBody AssistantFeedbackCreateDTO dto) {
-        Long userId = safeCurrentUserId();
+        Long userId = UserContextUtil.getCurrentUserIdSafely();
         if (userId == null) {
             return R.fail(HttpStatus.UNAUTHORIZED, "请先登录后再提交反馈");
         }
@@ -80,7 +82,7 @@ public class AssistantController extends BaseController {
 
     @PostMapping("/feedback/tag/create")
     public R<AssistantFeedbackTagVO> createFeedbackTag(@Validated @RequestBody AssistantFeedbackTagCreateDTO dto) {
-        Long userId = safeCurrentUserId();
+        Long userId = UserContextUtil.getCurrentUserIdSafely();
         if (userId == null) {
             return R.fail(HttpStatus.UNAUTHORIZED, "请先登录后再创建标签");
         }
@@ -89,7 +91,7 @@ public class AssistantController extends BaseController {
 
     @PostMapping("/feedback/page")
     public TableDataInfo pageFeedback(@RequestBody AssistantFeedbackPageDTO dto) {
-        Long userId = safeCurrentUserId();
+        Long userId = UserContextUtil.getCurrentUserIdSafely();
         if (userId == null) {
             throw new ServiceException("请先登录后查看反馈", HttpStatus.UNAUTHORIZED);
         }
@@ -99,7 +101,7 @@ public class AssistantController extends BaseController {
 
     @GetMapping("/feedback/pending-confirm/count")
     public R<Long> getPendingConfirmCount() {
-        Long userId = safeCurrentUserId();
+        Long userId = UserContextUtil.getCurrentUserIdSafely();
         if (userId == null) {
             return R.fail(HttpStatus.UNAUTHORIZED, "请先登录后查看待确认工单");
         }
@@ -109,14 +111,14 @@ public class AssistantController extends BaseController {
     @PostMapping("/feedback/{id}/comment")
     public R<Long> createComment(@PathVariable("id") Long feedbackId,
                                   @Validated @RequestBody AssistantFeedbackCommentDTO dto) {
-        Long userId = safeCurrentUserId();
+        Long userId = UserContextUtil.getCurrentUserIdSafely();
         if (userId == null) {
             return R.fail(HttpStatus.UNAUTHORIZED, "请先登录后再发表评论");
         }
 
         // 从路径参数设置反馈ID
         dto.setFeedbackId(feedbackId);
-        dto.setIsAdminReply(Boolean.TRUE.equals(dto.getIsAdminReply()) && safeCurrentUserLevel() >= 4);
+        dto.setIsAdminReply(Boolean.TRUE.equals(dto.getIsAdminReply()) && UserContextUtil.getCurrentLevelSafely() >= 4);
 
         Long commentId = assistantFeedbackCommentService.createComment(dto, userId);
         return R.ok(commentId, "评论成功");
@@ -125,26 +127,10 @@ public class AssistantController extends BaseController {
     @PostMapping("/feedback/{id}/confirm")
     public R<AssistantFeedbackVO> confirmFeedbackStatus(@PathVariable("id") Long feedbackId,
                                                         @Validated @RequestBody AssistantTicketStatusUpdateDTO dto) {
-        Long userId = safeCurrentUserId();
+        Long userId = UserContextUtil.getCurrentUserIdSafely();
         if (userId == null) {
             return R.fail(HttpStatus.UNAUTHORIZED, "请先登录后再确认工单结果");
         }
         return R.ok(assistantFeedbackService.confirmTicketStatus(feedbackId, userId, dto), "操作成功");
-    }
-
-    private Long safeCurrentUserId() {
-        try {
-            return UserContextUtil.getCurrentUserId();
-        } catch (Exception ignore) {
-            return null;
-        }
-    }
-
-    private Integer safeCurrentUserLevel() {
-        try {
-            return UserContextUtil.getCurrentLevel();
-        } catch (Exception ignore) {
-            return 0;
-        }
     }
 }

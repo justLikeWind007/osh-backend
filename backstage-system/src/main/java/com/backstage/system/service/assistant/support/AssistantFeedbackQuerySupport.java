@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
  * <ul>
  *   <li>标签筛选 - 根据标签ID过滤反馈</li>
  *   <li>查询模式 - 支持全部(all)、我的(mine)、收藏(favorite)三种模式</li>
- *   <li>分类筛选 - 按反馈分类查询，特殊处理公告分类</li>
+ *   <li>分类筛选 - 按反馈分类查询（公告已迁出到 osh_announcement，统一不再掺入反馈列表）</li>
  *   <li>状态筛选 - 按工单状态过滤</li>
  *   <li>置顶筛选 - 筛选置顶/非置顶反馈</li>
  *   <li>关键词搜索 - 标题和内容模糊匹配</li>
@@ -95,7 +95,7 @@ public class AssistantFeedbackQuerySupport {
         LambdaQueryWrapper<AssistantFeedback> queryWrapper = Wrappers.lambdaQuery(AssistantFeedback.class)
                 .eq(AssistantFeedback::getDeleteFlag, (byte) 0)
                 .in(filteredFeedbackIds != null && !filteredFeedbackIds.isEmpty(), AssistantFeedback::getId, filteredFeedbackIds)
-                .eq(resolveCategoryIdToQuery(dto) != null, AssistantFeedback::getCategoryId, resolveCategoryIdToQuery(dto))
+                .eq(dto.getCategoryId() != null, AssistantFeedback::getCategoryId, dto.getCategoryId())
                 .eq(StrUtil.isNotBlank(dto.getStatus()), AssistantFeedback::getStatus, AssistantTicketStatus.normalize(dto.getStatus()))
                 .eq(dto.getIsPinned() != null, AssistantFeedback::getIsPinned, dto.getIsPinned())
                 .and(StrUtil.isNotBlank(dto.getKeyword()), wrapper -> wrapper
@@ -104,8 +104,9 @@ public class AssistantFeedbackQuerySupport {
                         .like(AssistantFeedback::getContent, dto.getKeyword()))
                 .last(buildOrderBySql(dto));
 
+        // 公告已迁移至 osh_announcement，反馈列表统一排除遗留公告分类下的数据
         Long announcementCategoryId = resolveAnnouncementCategoryId();
-        if (shouldExcludeAnnouncement(dto, announcementCategoryId)) {
+        if (announcementCategoryId != null) {
             queryWrapper.ne(AssistantFeedback::getCategoryId, announcementCategoryId);
         }
 
@@ -169,27 +170,7 @@ public class AssistantFeedbackQuerySupport {
     }
 
     /**
-     * 解析需要查询的分类ID。
-     * <p>
-     * 特殊处理公告分类：当isAnnouncement=1时，
-     * 自动将分类ID转换为公告分类的ID。
-     * </p>
-     *
-     * @param dto 查询参数
-     * @return 实际要查询的分类ID
-     */
-    private Long resolveCategoryIdToQuery(AssistantFeedbackPageDTO dto) {
-        if (dto.getIsAnnouncement() == null || dto.getIsAnnouncement() != 1) {
-            return dto.getCategoryId();
-        }
-        AssistantFeedbackCategory announcementCategory = categoryService.lambdaQuery()
-                .eq(AssistantFeedbackCategory::getCode, "announcement")
-                .one();
-        return announcementCategory == null ? dto.getCategoryId() : announcementCategory.getId();
-    }
-
-    /**
-     * 获取公告分类的ID。
+     * 获取遗留"公告"反馈分类的 ID（历史数据，反馈页面应永远排除）。
      *
      * @return 公告分类ID，不存在则返回null
      */
@@ -198,22 +179,6 @@ public class AssistantFeedbackQuerySupport {
                 .eq(AssistantFeedbackCategory::getCode, "announcement")
                 .one();
         return announcementCategory == null ? null : announcementCategory.getId();
-    }
-
-    /**
-     * 判断是否需要在查询中排除公告。
-     * <p>
-     * 当isAnnouncement=0且公告分类存在时，需要排除公告。
-     * </p>
-     *
-     * @param dto 查询参数
-     * @param announcementCategoryId 公告分类ID
-     * @return true表示需要排除公告
-     */
-    private boolean shouldExcludeAnnouncement(AssistantFeedbackPageDTO dto, Long announcementCategoryId) {
-        return dto.getIsAnnouncement() != null
-                && dto.getIsAnnouncement() == 0
-                && announcementCategoryId != null;
     }
 
     /**

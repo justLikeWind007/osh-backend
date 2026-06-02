@@ -42,25 +42,6 @@ public class AssistantFeedbackAdminController extends BaseController {
     private final IAssistantFeedbackProcessRecordService processRecordService;
 
     /**
-     * 创建公告（仅管理员）
-     */
-    @ApiOperation("创建公告")
-    @PreAuthorize("hasAuthority('system:feedback:manage')")
-    @PostMapping("/announcement/create")
-    public R<AssistantFeedbackVO> createAnnouncement(@Validated @RequestBody AssistantFeedbackCreateDTO dto) {
-        ensureAdmin();
-        Long userId = getCurrentUserId();
-
-        // 验证分类是否为公告分类
-        if (!categoryService.isAdminOnly(dto.getCategoryId())) {
-            return R.fail("只能创建公告类型的反馈");
-        }
-
-        AssistantFeedbackVO feedback = feedbackService.createFeedback(userId, dto, true);
-        return R.ok(feedback, "公告创建成功");
-    }
-
-    /**
      * 创建反馈标签
      */
     @ApiOperation("创建反馈标签")

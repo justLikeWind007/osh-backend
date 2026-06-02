@@ -205,7 +205,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         SELECT 
             u.id AS user_id,
             u.username,
-            u.nickname,
+            u.username AS nickname,
             u.avatar,
             gw.join_time,
             IF(
@@ -232,7 +232,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         SELECT 
             u.id AS user_id,
             u.username,
-            u.nickname,
+            u.username AS nickname,
             u.avatar,
             gw.join_time
         FROM osh_group_work gw
@@ -416,7 +416,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             ga.title            AS activity_title,
             gw.user_id,
             u.username,
-            u.nickname,
+            u.username          AS nickname,
             gw.actual_price,
             gw.remaining_months,
             gw.group_status,
@@ -449,7 +449,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             '用户发起拼团'      AS activity_title,
             gui.user_id,
             u.username,
-            u.nickname,
+            u.username          AS nickname,
             gui.custom_price    AS actual_price,
             NULL                AS remaining_months,
             gui.group_status,
@@ -493,26 +493,21 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         SELECT 
             id AS userId,
             username,
-            nickname,
+            username AS nickname,
             avatar
         FROM osh_user
         <where>
             delete_flag = 0
             AND status = 0
             <if test="keyword != null and keyword != ''">
-                AND (
-                    username LIKE CONCAT('%', #{keyword}, '%')
-                    OR nickname LIKE CONCAT('%', #{keyword}, '%')
-                )
+                AND username LIKE CONCAT('%', #{keyword}, '%')
             </if>
         </where>
         ORDER BY 
             CASE 
                 WHEN username = #{keyword} THEN 0
                 WHEN username LIKE CONCAT(#{keyword}, '%') THEN 1
-                WHEN nickname = #{keyword} THEN 2
-                WHEN nickname LIKE CONCAT(#{keyword}, '%') THEN 3
-                ELSE 4
+                ELSE 2
             END,
             id ASC
         <if test="limit != null and limit > 0">
