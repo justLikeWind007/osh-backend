@@ -25,6 +25,11 @@ public class Answer extends OSHBaseEntity implements Serializable {
     private Long id;
 
     /**
+     * 资源编号
+     */
+    private String no;
+
+    /**
      * 所属问题id
      */
     private Long questionId;
@@ -65,6 +70,14 @@ public class Answer extends OSHBaseEntity implements Serializable {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getNo() {
+        return no;
+    }
+
+    public void setNo(String no) {
+        this.no = no;
     }
 
     public Long getQuestionId() {

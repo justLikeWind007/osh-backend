@@ -18,12 +18,18 @@ public class OshOpenProjectTag extends OSHBaseEntity implements Serializable {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    /** 资源编号 */
+    private String no;
+
     private String tagName;
     private String tagCode;
     private Integer sortOrder;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public String getNo() { return no; }
+    public void setNo(String no) { this.no = no; }
 
     public String getTagName() { return tagName; }
     public void setTagName(String tagName) { this.tagName = tagName; }

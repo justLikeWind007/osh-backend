@@ -21,6 +21,9 @@ import java.util.stream.Collectors;
 public class OshOpenProjectRankServiceImpl implements IOshOpenProjectRankService {
 
     private static final Logger log = LoggerFactory.getLogger(OshOpenProjectRankServiceImpl.class);
+    private static final int DEFAULT_PERIOD = 7;
+    private static final int DEFAULT_TOP_N = 10;
+    private static final int MAX_TOP_N = 50;
 
     @Autowired
     private OshOpenProjectMapper projectMapper;
@@ -30,6 +33,9 @@ public class OshOpenProjectRankServiceImpl implements IOshOpenProjectRankService
 
     @Override
     public List<OpenProjectRankVO> getRank(String rankType, int period, int topN) {
+        rankType = normalizeRankType(rankType);
+        period = normalizePeriod(period);
+        topN = normalizeTopN(topN);
         LocalDate today = LocalDate.now();
         LocalDate startDate = today.minusDays(period);
 
@@ -69,6 +75,7 @@ public class OshOpenProjectRankServiceImpl implements IOshOpenProjectRankService
         List<OshOpenProject> projects = projectMapper.selectList(
                 new LambdaQueryWrapper<OshOpenProject>()
                         .in(OshOpenProject::getId, projectIds)
+                        .eq(OshOpenProject::getStatus, 1)
                         .eq(OshOpenProject::getDeleteFlag, (byte) 0)
         );
         Map<Long, OshOpenProject> projectMap = projects.stream()
@@ -141,5 +148,20 @@ public class OshOpenProjectRankServiceImpl implements IOshOpenProjectRankService
             }
         }
         log.info("今日快照保存完成，新增={}，更新={}", inserted, updated);
+    }
+
+    private String normalizeRankType(String rankType) {
+        return "fork".equalsIgnoreCase(rankType) ? "fork" : "star";
+    }
+
+    private int normalizePeriod(int period) {
+        return period == 30 ? 30 : DEFAULT_PERIOD;
+    }
+
+    private int normalizeTopN(int topN) {
+        if (topN <= 0) {
+            return DEFAULT_TOP_N;
+        }
+        return Math.min(topN, MAX_TOP_N);
     }
 }
