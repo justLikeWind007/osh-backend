@@ -150,6 +150,69 @@ public class AssistantFeedbackEsMapper {
         return root.path("deleted").asInt(0);
     }
 
+    public void deleteIndex() throws Exception {
+        if (!indexExists()) {
+            return;
+        }
+        Request request = new Request("DELETE", "/" + FEEDBACK_SEARCH_INDEX);
+        restHighLevelClient.getLowLevelClient().performRequest(request);
+    }
+
+    public void createIndexWithMapping() throws Exception {
+        if (indexExists()) {
+            throw new IllegalStateException("feedback search index already exists");
+        }
+        String mappingJson = buildIndexMappingJson();
+        Request request = new Request("PUT", "/" + FEEDBACK_SEARCH_INDEX);
+        request.setJsonEntity(mappingJson);
+        restHighLevelClient.getLowLevelClient().performRequest(request);
+    }
+
+    private String buildIndexMappingJson() {
+        return "{\n" +
+                "  \"settings\": {\n" +
+                "    \"number_of_shards\": 1,\n" +
+                "    \"number_of_replicas\": 1,\n" +
+                "    \"analysis\": {\n" +
+                "      \"analyzer\": {\n" +
+                "        \"ik_max_word\": {\n" +
+                "          \"type\": \"custom\",\n" +
+                "          \"tokenizer\": \"ik_max_word\"\n" +
+                "        },\n" +
+                "        \"ik_smart\": {\n" +
+                "          \"type\": \"custom\",\n" +
+                "          \"tokenizer\": \"ik_smart\"\n" +
+                "        }\n" +
+                "      }\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"mappings\": {\n" +
+                "    \"properties\": {\n" +
+                "      \"id\": { \"type\": \"keyword\" },\n" +
+                "      \"userId\": { \"type\": \"keyword\" },\n" +
+                "      \"categoryId\": { \"type\": \"keyword\" },\n" +
+                "      \"categoryCode\": { \"type\": \"keyword\" },\n" +
+                "      \"ticketNo\": { \"type\": \"keyword\" },\n" +
+                "      \"title\": { \"type\": \"text\", \"analyzer\": \"ik_max_word\", \"search_analyzer\": \"ik_smart\" },\n" +
+                "      \"content\": { \"type\": \"text\", \"analyzer\": \"ik_max_word\", \"search_analyzer\": \"ik_smart\" },\n" +
+                "      \"status\": { \"type\": \"keyword\" },\n" +
+                "      \"isPinned\": { \"type\": \"integer\" },\n" +
+                "      \"pinOrder\": { \"type\": \"integer\" },\n" +
+                "      \"commentCount\": { \"type\": \"integer\" },\n" +
+                "      \"viewCount\": { \"type\": \"integer\" },\n" +
+                "      \"likeCount\": { \"type\": \"integer\" },\n" +
+                "      \"favoriteCount\": { \"type\": \"integer\" },\n" +
+                "      \"hotScore\": { \"type\": \"integer\" },\n" +
+                "      \"tagIds\": { \"type\": \"keyword\" },\n" +
+                "      \"mineStatusPriority\": { \"type\": \"integer\" },\n" +
+                "      \"deleteFlag\": { \"type\": \"integer\" },\n" +
+                "      \"createTime\": { \"type\": \"date\", \"format\": \"yyyy-MM-dd HH:mm:ss||yyyy-MM-dd'T'HH:mm:ss||epoch_millis\" },\n" +
+                "      \"updateTime\": { \"type\": \"date\", \"format\": \"yyyy-MM-dd HH:mm:ss||yyyy-MM-dd'T'HH:mm:ss||epoch_millis\" }\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
+    }
+
     private SearchSourceBuilder buildSearchSource(AssistantFeedbackPageDTO dto,
                                                   int pageNum,
                                                   int pageSize,

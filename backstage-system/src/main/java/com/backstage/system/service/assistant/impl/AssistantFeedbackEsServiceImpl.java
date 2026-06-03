@@ -67,27 +67,9 @@ public class AssistantFeedbackEsServiceImpl implements IAssistantFeedbackEsServi
 
     @Override
     public int syncAllFeedbacksToEs() {
-        int pageNum = 1;
-        int total = 0;
         try {
             assistantFeedbackEsMapper.deleteAllFeedbacks();
-            while (true) {
-                Page<AssistantFeedback> page = assistantFeedbackMapper.selectPage(
-                        new Page<>(pageNum, PAGE_SIZE),
-                        Wrappers.<AssistantFeedback>lambdaQuery()
-                                .eq(AssistantFeedback::getDeleteFlag, (byte) 0)
-                                .orderByAsc(AssistantFeedback::getId));
-                List<AssistantFeedback> records = page.getRecords();
-                if (records == null || records.isEmpty()) {
-                    break;
-                }
-                total += assistantFeedbackEsMapper.bulkUpsertFeedbacks(buildDocuments(records));
-                if (records.size() < PAGE_SIZE) {
-                    break;
-                }
-                pageNum++;
-            }
-            return total;
+            return syncAllFeedbacksFromMysql();
         } catch (Exception exception) {
             throw new IllegalStateException("sync feedbacks to es failed", exception);
         }
@@ -122,6 +104,46 @@ public class AssistantFeedbackEsServiceImpl implements IAssistantFeedbackEsServi
         } catch (Exception exception) {
             throw new IllegalStateException("delete feedback from es failed", exception);
         }
+    }
+
+    @Override
+    public int rebuildIndex() {
+        try {
+            log.info("[feedback-es] start rebuild index");
+            assistantFeedbackEsMapper.deleteIndex();
+            log.info("[feedback-es] old index deleted");
+            assistantFeedbackEsMapper.createIndexWithMapping();
+            log.info("[feedback-es] new index created with correct mapping");
+            int total = syncAllFeedbacksFromMysql();
+            log.info("[feedback-es] rebuild completed, total documents: {}", total);
+            return total;
+        } catch (Exception exception) {
+            log.error("[feedback-es] rebuild index failed", exception);
+            throw new IllegalStateException("rebuild feedback es index failed", exception);
+        }
+    }
+
+    private int syncAllFeedbacksFromMysql() throws Exception {
+        int pageNum = 1;
+        int total = 0;
+        while (true) {
+            Page<AssistantFeedback> page = assistantFeedbackMapper.selectPage(
+                    new Page<>(pageNum, PAGE_SIZE),
+                    Wrappers.<AssistantFeedback>lambdaQuery()
+                            .eq(AssistantFeedback::getDeleteFlag, (byte) 0)
+                            .orderByAsc(AssistantFeedback::getId));
+            List<AssistantFeedback> records = page.getRecords();
+            if (records == null || records.isEmpty()) {
+                break;
+            }
+            total += assistantFeedbackEsMapper.bulkUpsertFeedbacks(buildDocuments(records));
+            log.info("[feedback-es] synced batch {}, count: {}, total: {}", pageNum, records.size(), total);
+            if (records.size() < PAGE_SIZE) {
+                break;
+            }
+            pageNum++;
+        }
+        return total;
     }
 
     private AssistantFeedbackPageDTO normalizeRequest(AssistantFeedbackPageDTO dto) {
