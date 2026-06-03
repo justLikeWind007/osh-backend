@@ -50,7 +50,7 @@ public class AssistantFeedbackPageDTO {
     private String queryMode;
 
     /**
-     * 排序类型（可选：hot-最热，latest-最新，comment-最多评论）
+     * 排序类型（可选：hot-最热，latest-最新，related-最相关，comment-最多评论）
      */
     private String sortType;
 

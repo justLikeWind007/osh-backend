@@ -197,10 +197,15 @@ public class AssistantFeedbackQuerySupport {
      * @return 完整的ORDER BY SQL语句
      */
     private String buildOrderBySql(AssistantFeedbackPageDTO dto) {
-        String resolvedSortType = StrUtil.isBlank(dto.getSortType()) ? "hot" : dto.getSortType();
+        boolean searchMode = StrUtil.isNotBlank(dto.getKeyword());
+        String resolvedSortType = resolveSortType(dto.getSortType(), searchMode);
         String queryMode = normalizeQueryMode(dto.getQueryMode());
-        String minePrioritySql = "mine".equals(queryMode) ? "CASE WHEN status = 'PENDING_CONFIRM' THEN 0 ELSE 1 END ASC, " : "";
-        String pinOrderSql = "ORDER BY " + minePrioritySql + "is_pinned DESC, pin_order ASC, ";
+        String minePrioritySql = !searchMode && "mine".equals(queryMode) ? "CASE WHEN status = 'PENDING_CONFIRM' THEN 0 ELSE 1 END ASC, " : "";
+        String pinOrderSql = !searchMode ? "ORDER BY " + minePrioritySql + "is_pinned DESC, pin_order ASC, " : "ORDER BY ";
+        if ("related".equals(resolvedSortType)) {
+            return pinOrderSql + "CASE WHEN title LIKE CONCAT('%', '" + escapeSqlLike(dto.getKeyword()) + "', '%') THEN 0 ELSE 1 END ASC, "
+                    + "hot_score DESC, create_time DESC";
+        }
         if ("hot".equals(resolvedSortType)) {
             return pinOrderSql + "hot_score DESC, create_time DESC";
         }
@@ -211,6 +216,18 @@ public class AssistantFeedbackQuerySupport {
             return pinOrderSql + "create_time DESC";
         }
         return pinOrderSql + "hot_score DESC, create_time DESC";
+    }
+
+    private String resolveSortType(String sortType, boolean searchMode) {
+        String resolvedSortType = StrUtil.isBlank(sortType) ? "hot" : sortType.trim().toLowerCase();
+        if ("related".equals(resolvedSortType) && !searchMode) {
+            return "hot";
+        }
+        return resolvedSortType;
+    }
+
+    private String escapeSqlLike(String keyword) {
+        return keyword.replace("\\", "\\\\").replace("'", "''");
     }
 
     /**
