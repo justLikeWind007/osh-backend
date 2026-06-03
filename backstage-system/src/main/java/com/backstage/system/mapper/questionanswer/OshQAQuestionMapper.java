@@ -26,4 +26,10 @@ public interface OshQAQuestionMapper extends BaseMapper <Question> {
     int cancelFollowQuestion(@Param("userId")Long userId,@Param("questionId") Long questionId,@Param("updateBy") Long updateBy);
 
     List<Long> getFollowQuestionIds(@Param("userId")Long userId);
+
+    int incrementFollowCount(@Param("questionId") Long questionId);
+
+    int decrementFollowCount(@Param("questionId") Long questionId);
+
+    int incrementViewCount(@Param("questionId") Long questionId);
 }

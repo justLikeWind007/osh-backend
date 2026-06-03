@@ -13,6 +13,9 @@ import org.apache.ibatis.annotations.Select;
  * Time: 21:09
  */
 public interface OshUserAssetMapper extends BaseMapper<OshUserAsset> {
+    int updatePointsAtomic(@Param("userId") Long userId,
+                           @Param("delta") Long delta,
+                           @Param("requireEnough") boolean requireEnough);
 
     /**
      * 按用户锁定资产行，用于订单积分抵扣防止并发超扣。
