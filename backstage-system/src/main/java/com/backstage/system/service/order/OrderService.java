@@ -15,7 +15,7 @@ public interface OrderService extends IService<OshOrder> {
      * @param reqVO
      * @return
      */
-    OrderCheckoutRespVO checkout(OrderCheckoutReqVO reqVO);
+    OrderCheckoutRespVO checkout(OrderCheckoutReqVO reqVO, Boolean enablePointDeduction);
 
     /**
      * 查询订单状态

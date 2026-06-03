@@ -57,10 +57,9 @@ public class PayServiceImpl implements PayService {
             log.info("【支付】发起支付请求,url:{} , params={}", payConfig.API_URL,params);
             // 地址 表单参数 返回类型字符串
             String result = restTemplate.postForObject(payConfig.API_URL, request, String.class);
-
+            log.info("【支付】发起支付请求result={}", result);
             // 把JSON字符串 转成 PayResponse对象 并 返回
             return objectMapper.readValue(result, PayResponse.class);
-
         } catch (Exception e) {
             log.warn("发起支付请求失败, outTradeNo={}", outTradeNo, e);
             PayResponse resp = new PayResponse();
