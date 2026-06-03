@@ -41,7 +41,7 @@ public class OshGroupUserInitiated {
     /** 自定义拼团价格（总价） */
     private BigDecimal customPrice;
     
-    /** 组团状态：0-招募中 1-已成团 2-已取消/过期 */
+    /** 组团状态：0-招募中 1-已成团 2-已结束 */
     private Integer groupStatus;
     
     /** 当前参团人数（含发起人自己） */

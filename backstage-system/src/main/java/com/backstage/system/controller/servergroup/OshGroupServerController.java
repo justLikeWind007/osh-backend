@@ -9,7 +9,10 @@ import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.common.utils.SecurityUtils;
 import com.backstage.system.domain.dto.GroupCreateDTO;
 import com.backstage.system.domain.dto.AddUserToGroupDTO;
+import com.backstage.system.domain.order.enums.OrderStatusEnum;
 import com.backstage.system.domain.servergroup.OshGroupOrder;
+import com.backstage.system.domain.order.OshOrder;
+import com.backstage.system.mapper.order.OshOrderMapper;
 import com.backstage.system.domain.vo.GroupActivityListVO;
 import com.backstage.system.domain.vo.GroupCreateVO;
 import com.backstage.system.domain.vo.GroupDetailVO;
@@ -28,11 +31,13 @@ import io.swagger.annotations.ApiParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -54,6 +59,9 @@ public class OshGroupServerController extends BaseController {
     
     @Autowired
     private PayService payService;
+
+    @Autowired
+    private OshOrderMapper oshOrderMapper;
     
     /**
      * 查询拼团列表
@@ -108,7 +116,7 @@ public class OshGroupServerController extends BaseController {
     @ApiOperation("查询我的拼团列表")
     @GetMapping("/activity/mylist")
     public R<List<MyGroupListVO>> myList(
-            @ApiParam("组团状态：0-进行中 1-已成团 2-已取消/过期") 
+            @ApiParam("组团状态：0-进行中 1-已成团 2-已结束")
             @RequestParam(value = "groupStatus", required = false) Integer groupStatus) {
         // 从 ThreadLocal 获取网校用户ID（OshAuthenticationFilter 已写入）
         Long userId = ThreadLocalUtil.get(OshUserConstants.USER_ID, Long.class);
@@ -220,6 +228,7 @@ public class OshGroupServerController extends BaseController {
      * @return 发起结果
      */
     @ApiOperation("发起拼团")
+    @PreAuthorize("hasAuthority('group:work:create')")
     @PostMapping("/work/create")
     public R<GroupCreateVO> create(
             @ApiParam("发起拼团请求参数") @Validated @RequestBody GroupCreateDTO dto) {
@@ -227,12 +236,6 @@ public class OshGroupServerController extends BaseController {
         Long userId = ThreadLocalUtil.get(OshUserConstants.USER_ID, Long.class);
         if (userId == null) {
             return R.fail("请先登录");
-        }
-        
-        // 权限验证：只有用户角色等级 >= 2 才能发起拼团
-        Integer userLevel = UserContextUtil.getCurrentLevel();
-        if (userLevel == null || userLevel < 2) {
-            return R.fail("权限不足，只有角色等级 >= 2 的用户才能发起拼团");
         }
         
         try {
@@ -249,14 +252,14 @@ public class OshGroupServerController extends BaseController {
      *
      * GET /pc/group/work/list
      *
-     * @param groupStatus 组团状态筛选（可选）：0-进行中 1-已成团 2-已取消/过期
+     * @param groupStatus 组团状态筛选（可选）：0-进行中 1-已成团 2-已结束
      * @return 组团记录列表（分页）
      */
     @Anonymous
     @ApiOperation("查询全量组团记录列表")
     @GetMapping("/work/list")
     public TableDataInfo workList(
-            @ApiParam("组团状态：0-进行中 1-已成团 2-已取消/过期")
+            @ApiParam("组团状态：0-进行中 1-已成团 2-已结束")
             @RequestParam(value = "groupStatus", required = false) Integer groupStatus) {
         startPage();
         List<GroupWorkListVO> list = groupServerService.selectGroupWorkList(groupStatus);
@@ -293,6 +296,7 @@ public class OshGroupServerController extends BaseController {
      * @return 添加结果
      */
     @ApiOperation("手动添加用户到拼团")
+    @PreAuthorize("hasAuthority('group:user:add')")
     @PostMapping("/user/add")
     public R<Map<String, Object>> addUserToGroup(
             @ApiParam("添加用户请求参数") @Validated @RequestBody AddUserToGroupDTO dto) {
@@ -300,12 +304,6 @@ public class OshGroupServerController extends BaseController {
         Long operatorId = ThreadLocalUtil.get(OshUserConstants.USER_ID, Long.class);
         if (operatorId == null) {
             return R.fail("请先登录");
-        }
-        
-        // 权限验证：只有管理员（level <= 2）可以手动添加用户到拼团
-        Integer userLevel = UserContextUtil.getCurrentLevel();
-        if (userLevel == null || userLevel > 2) {
-            return R.fail("权限不足，只有管理员可以手动添加用户到拼团");
         }
         
         try {
@@ -365,7 +363,7 @@ public class OshGroupServerController extends BaseController {
             String money = order.getPrice() != null ? order.getPrice().toString() : "0";
             
             // 5. 创建支付流水记录（必须先创建，才能被回调处理）
-            groupServerService.createGroupPayment(orderNo, money, clientIp);
+            groupServerService.createGroupPayment(orderNo, order.getId(), money, clientIp);
             
             // 6. 调用支付服务创建支付（默认使用微信支付）
             PayResponse response = payService.createPay(orderNo, name, money, clientIp, "wxpay");
@@ -392,7 +390,7 @@ public class OshGroupServerController extends BaseController {
      */
     @ApiOperation("查询拼团订单状态")
     @GetMapping("/order/status")
-    public R<com.backstage.system.domain.servergroup.OshGroupOrder> getOrderStatus(
+    public R<Map<String, Object>> getOrderStatus(
             @ApiParam("订单号") @RequestParam(value = "orderNo") String orderNo) {
         // 从 ThreadLocal 获取网校用户ID（验证登录状态）
         Long userId = ThreadLocalUtil.get(OshUserConstants.USER_ID, Long.class);
@@ -401,11 +399,21 @@ public class OshGroupServerController extends BaseController {
         }
         
         try {
-            OshGroupOrder order = groupServerService.selectGroupOrderByOrderNo(orderNo);
+            // 直接查询 osh_order 表（拼团支付链路已同步写入）
+            OshOrder order = oshOrderMapper.selectByOrderNo(orderNo);
             if (order == null) {
                 return R.fail("订单不存在");
             }
-            return R.ok(order, "查询成功");
+            
+            // 构造返回结果
+            Map<String, Object> result = new HashMap<>();
+            result.put("orderNo", order.getOrderNo());
+            result.put("status", OrderStatusEnum.fromCode(order.getStatus()).getName());
+            result.put("paidTime", order.getPaidTime());
+            result.put("payableAmount", order.getPayableAmount());
+            result.put("productName", order.getProductName());
+            
+            return R.ok(result, "查询成功");
         } catch (Exception e) {
             logger.error("查询订单状态失败", e);
             return R.fail("查询失败: " + e.getMessage());

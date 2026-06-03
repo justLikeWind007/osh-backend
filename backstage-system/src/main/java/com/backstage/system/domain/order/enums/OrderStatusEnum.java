@@ -26,7 +26,23 @@ public enum OrderStatusEnum {
         return code;
     }
 
+    public String getName() {
+        return desc;
+    }
+
     public String getDesc() {
         return desc;
+    }
+
+    public static OrderStatusEnum fromCode(Integer code) {
+        if (code == null) {
+            return null;
+        }
+        for (OrderStatusEnum status : values()) {
+            if (status.code == code) {
+                return status;
+            }
+        }
+        return null;
     }
 }

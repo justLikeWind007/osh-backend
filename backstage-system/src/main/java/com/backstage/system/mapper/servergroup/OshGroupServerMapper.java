@@ -122,7 +122,7 @@ public interface OshGroupServerMapper {
     /**
      * 查询全量组团记录列表（管理端）
      *
-     * @param groupStatus 组团状态筛选（可选）：0-进行中 1-已成团 2-已取消/过期
+     * @param groupStatus 组团状态筛选（可选）：0-进行中 1-已成团 2-已结束
      * @return 组团记录列表
      */
     List<GroupWorkListVO> selectGroupWorkList(@Param("groupStatus") Integer groupStatus);
@@ -244,5 +244,14 @@ public interface OshGroupServerMapper {
      * @return 影响行数
      */
     int insertGroupPayment(@Param("paymentNo") String paymentNo, @Param("orderNo") String orderNo, 
-                           @Param("amount") BigDecimal amount, @Param("clientIp") String clientIp);
+                           @Param("orderId") Long orderId, @Param("amount") BigDecimal amount, @Param("clientIp") String clientIp);
+
+    /**
+     * 校验支付流水是否已存在（按 payment_no，仅统计未逻辑删除的记录）
+     * 用于 createGroupPayment 的幂等校验，避免重复创建支付流水。
+     *
+     * @param paymentNo 支付流水号
+     * @return 已存在的未删除记录数
+     */
+    int existsPaymentByPaymentNo(@Param("paymentNo") String paymentNo);
 }
