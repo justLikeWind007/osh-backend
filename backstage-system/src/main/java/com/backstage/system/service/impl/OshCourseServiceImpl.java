@@ -148,40 +148,9 @@ public class OshCourseServiceImpl implements IOshCourseService {
             vo.setCover(ossService.getLimitedUrl(vo.getCover(), 1440));
         }
 
-        // 3. 处理视频：把所有（包括子章节）的 ID 全部收割出来，走批量接口
-        if (vo.getSections() != null && !vo.getSections().isEmpty()) {
-            List<Long> allIds = new ArrayList<>();
-            for (OshCourseSectionVo section : vo.getSections()) {
-                allIds.add(section.getId()); // 父级 ID
-                if (section.getChildren() != null) {
-                    // 子级 ID 也加进来
-                    section.getChildren().forEach(child -> allIds.add(child.getId()));
-                }
-            }
-
-            // --- 核心点：直接调你指定的 courseManageService 批量接口 ---
-            // 这个方法内部会自动根据 ID 查库、自动调 OSS 加签、自动返回 Map
-            Map<Long, String> videoUrlMap = courseManageService.batchGetSectionVideoUrls(allIds, 360);
-
-            // 4. 把 Map 里的结果回填给 VO
-            for (OshCourseSectionVo section : vo.getSections()) {
-                // 回填父级
-                if (videoUrlMap.containsKey(section.getId())) {
-                    section.setMediaUrl(videoUrlMap.get(section.getId()));
-                }
-                // 回填子级
-                if (section.getChildren() != null) {
-                    for (OshCourseSectionVo child : section.getChildren()) {
-                        if (videoUrlMap.containsKey(child.getId())) {
-                            child.setMediaUrl(videoUrlMap.get(child.getId()));
-                        }
-                    }
-                }
-            }
-        }
-
-        // 5. 计算 accessLevel：FULL=全部章节可看，TRIAL=仅试看
+        // 3. 先计算 accessLevel，再按权限签发/屏蔽小节媒体地址
         vo.setAccessLevel(resolveAccessLevel(vo, userId));
+        applySectionMediaByAccess(vo.getSections(), vo.getAccessLevel());
 
         return vo;
     }
@@ -281,26 +250,91 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
 
     @Override
-    public List<OshCourseSectionVo> getCourseSectionOutline(Long courseId) {
-        // 1. 先调用原有逻辑生成树形结构
+    public List<OshCourseSectionVo> getCourseSectionOutline(Long courseId, Long userId) {
         List<OshCourseSectionVo> sectionTree = buildSectionTree(oshCourseMapper.selectCourseSectionList(courseId));
-
         if (sectionTree == null || sectionTree.isEmpty()) {
             return sectionTree;
         }
-
-        // 2. 收集树中所有节点的 ID (包括父级和子级)
-        List<Long> allIds = new ArrayList<>();
-        collectIds(sectionTree, allIds);
-
-        // 3. 调用你之前的批量接口，统一获取临时访问 URL
-        // 注意：这里用你定义的 courseManageService 或者直接在本类调用该方法
-        Map<Long, String> videoUrlMap = courseManageService.batchGetSectionVideoUrls(allIds, 360);
-
-        // 4. 将拿到的 URL 重新塞回树结构中
-        applyUrls(sectionTree, videoUrlMap);
-
+        String accessLevel = resolveAccessLevel(buildAccessVo(courseId), userId);
+        applySectionMediaByAccess(sectionTree, accessLevel);
         return sectionTree;
+    }
+
+    @Override
+    public boolean canUserAccessSectionContent(Long courseId, Long sectionId, Long userId) {
+        if (courseId == null || sectionId == null) {
+            return false;
+        }
+        OshCourse course = oshCourseMapper.selectCourseById(courseId);
+        if (course == null) {
+            return false;
+        }
+        OshCourseDetailVo accessVo = new OshCourseDetailVo();
+        accessVo.setId(courseId);
+        accessVo.setFreeType(course.getFreeType());
+        if ("FULL".equals(resolveAccessLevel(accessVo, userId))) {
+            return true;
+        }
+        return oshCourseMapper.countFreeSectionInCourse(courseId, sectionId) > 0;
+    }
+
+    private OshCourseDetailVo buildAccessVo(Long courseId) {
+        OshCourseDetailVo vo = new OshCourseDetailVo();
+        vo.setId(courseId);
+        OshCourse course = oshCourseMapper.selectCourseById(courseId);
+        if (course != null) {
+            vo.setFreeType(course.getFreeType());
+        }
+        return vo;
+    }
+
+    private void applySectionMediaByAccess(List<OshCourseSectionVo> sections, String accessLevel) {
+        if (sections == null || sections.isEmpty()) {
+            return;
+        }
+        boolean fullAccess = "FULL".equals(accessLevel);
+        List<Long> accessibleIds = new ArrayList<>();
+        collectAccessibleSectionIds(sections, fullAccess, accessibleIds);
+        Map<Long, String> videoUrlMap = accessibleIds.isEmpty()
+                ? Collections.emptyMap()
+                : courseManageService.batchGetSectionVideoUrls(accessibleIds, 360);
+        applyUrlsWithAccess(sections, videoUrlMap, fullAccess);
+    }
+
+    private void collectAccessibleSectionIds(List<OshCourseSectionVo> nodes, boolean fullAccess, List<Long> ids) {
+        for (OshCourseSectionVo node : nodes) {
+            if (node == null) {
+                continue;
+            }
+            if (fullAccess || isFreePreviewSection(node)) {
+                ids.add(node.getId());
+            }
+            if (node.getChildren() != null && !node.getChildren().isEmpty()) {
+                collectAccessibleSectionIds(node.getChildren(), fullAccess, ids);
+            }
+        }
+    }
+
+    private void applyUrlsWithAccess(List<OshCourseSectionVo> nodes, Map<Long, String> videoUrlMap, boolean fullAccess) {
+        for (OshCourseSectionVo node : nodes) {
+            if (node == null) {
+                continue;
+            }
+            boolean canAccess = fullAccess || isFreePreviewSection(node);
+            if (canAccess && videoUrlMap.containsKey(node.getId())) {
+                node.setMediaUrl(videoUrlMap.get(node.getId()));
+            } else if (!canAccess) {
+                node.setMediaUrl(null);
+                node.setTextContent(null);
+            }
+            if (node.getChildren() != null && !node.getChildren().isEmpty()) {
+                applyUrlsWithAccess(node.getChildren(), videoUrlMap, fullAccess);
+            }
+        }
+    }
+
+    private boolean isFreePreviewSection(OshCourseSectionVo section) {
+        return section != null && section.getFreeFlag() != null && section.getFreeFlag() == 1;
     }
 
     /**
