@@ -150,11 +150,21 @@ public class SeckillItemEsServiceImpl implements ISeckillItemEsService {
         SeckillActivityUserVO vo = new SeckillActivityUserVO();
         vo.setId(firstItem.getActivityId());
         vo.setTitle(firstItem.getActivityTitle());
-        vo.setStatus(firstItem.getActivityStatus());
         vo.setPayTimeoutMin(firstItem.getPayTimeoutMin());
         vo.setStartTime(firstItem.getStartTime());
         vo.setEndTime(firstItem.getEndTime());
         vo.setItems(items);
+
+        // 按当前时间动态推导活动状态，不直接信任 ES 文档里的 activityStatus
+        // 避免定时任务延迟导致返回状态不准确
+        Date now = new Date();
+        if (firstItem.getStartTime() != null && now.before(firstItem.getStartTime())) {
+            vo.setStatus(1); // 未开始
+        } else if (firstItem.getEndTime() != null && now.before(firstItem.getEndTime())) {
+            vo.setStatus(2); // 进行中
+        } else {
+            vo.setStatus(3); // 已结束
+        }
         return vo;
     }
 
