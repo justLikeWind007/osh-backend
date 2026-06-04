@@ -382,8 +382,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             and ct.status = 1
         <where>
             c.delete_flag = 0
-            <if test="request == null or request.includeUnpublished == null or !request.includeUnpublished">
-                and c.status = 4
+            <if test="request != null and request.onlyHidden != null and request.onlyHidden">
+                and c.status = 7
+            </if>
+            <if test="request == null or request.onlyHidden == null or !request.onlyHidden">
+                and c.status != 7
+                <if test="request == null or request.includeUnpublished == null or !request.includeUnpublished">
+                    and c.status = 4
+                </if>
             </if>
             <if test="request.keyword != null and request.keyword != ''">
                 and c.title like concat('%', #{request.keyword}, '%')
@@ -436,6 +442,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             and occ.delete_flag = 0
         <where>
             c.delete_flag = 0
+            and c.status != 7
             <if test="request == null or request.includeUnpublished == null or !request.includeUnpublished">
                 and c.status = 4
             </if>
@@ -478,6 +485,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             and occ.delete_flag = 0
         <where>
             c.delete_flag = 0
+            and c.status != 7
             <if test="request == null or request.includeUnpublished == null or !request.includeUnpublished">
                 and c.status = 4
             </if>

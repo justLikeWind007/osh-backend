@@ -30,6 +30,9 @@ import com.backstage.system.mapper.course.OshCourseOrderMapper;
 import com.backstage.system.service.course.ICourseManageService;
 import com.backstage.system.service.common.OssService;
 import com.backstage.system.utils.OssUtil;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -347,13 +350,13 @@ public class CourseManageServiceImpl implements ICourseManageService {
             throw new ServiceException(CourseUploadConstants.ARCHIVE_FORMAT_ERROR);
         }
 
-        try {
-            // 获取相对路径
-            String relativePath = ossService.upload(file, com.backstage.common.enums.UploadPathEnum.COURSE_MATERIAL, "materials");
+        if (file.getSize() > 1024L * 1024 * 100) {
+            throw new ServiceException("资料大小不能超过100MB");
+        }
 
-            if (relativePath == null || CourseUploadConstants.isUploadError(relativePath)) {
-                throw new ServiceException(relativePath);
-            }
+        try {
+            // 课程资料直传 OSS，不走 OssService.upload（避免 osh_oss_operation_log 写库失败拖垮上传）
+            String relativePath = uploadCourseMaterialToOss(file);
             
             // 生成临时访问URL（有效期12小时 = 720分钟）
             String materialUrl = ossService.getLimitedUrl(relativePath, 720);
@@ -378,6 +381,29 @@ public class CourseManageServiceImpl implements ICourseManageService {
         } catch (Exception e) {
             throw new ServiceException("上传资料失败：" + e.getMessage());
         }
+    }
+
+    /**
+     * 课程资料直传 OSS（路径规则与 OssService 保持一致，但不写 osh_oss_operation_log）。
+     */
+    private String uploadCourseMaterialToOss(MultipartFile file) throws Exception {
+        String ym = DateUtils.getDate().substring(0, 7).replace("-", "");
+        String customPath = UploadPathEnum.COURSE_MATERIAL.getPath() + "materials/" + ym + "/";
+        String objectKey = customPath + UUID.randomUUID() + "_" + file.getOriginalFilename();
+
+        ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setContentLength(file.getSize());
+        metadata.setContentType(file.getContentType());
+
+        AmazonS3Client s3 = ossUtil.createS3Client();
+        PutObjectRequest request = new PutObjectRequest(
+                ossUtil.getOssProperties().getBucketName(),
+                objectKey,
+                file.getInputStream(),
+                metadata
+        );
+        s3.putObject(request);
+        return objectKey;
     }
 
 
@@ -1465,6 +1491,10 @@ public class CourseManageServiceImpl implements ICourseManageService {
      */
     @Override
     public List<Map<String, Object>> searchTags(String keyword) {
+        // 无关键字时返回全部启用标签；有关键字时再走模糊查询（LIMIT 20）
+        if (StringUtils.isBlank(keyword)) {
+            return tagMapper.selectAllTags();
+        }
         return tagMapper.selectTagsByKeyword(keyword);
     }
     

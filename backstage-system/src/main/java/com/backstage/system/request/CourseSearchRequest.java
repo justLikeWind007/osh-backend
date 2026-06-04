@@ -35,6 +35,12 @@ public class CourseSearchRequest extends PageRequest {
      */
     private Boolean includeUnpublished;
 
+    /**
+     * 是否只查已隐藏课程（status=7）。仅创始人有效，由后端控制器赋值。
+     * true: 只返回已隐藏课程；false/null: 正常列表（排除已隐藏）。
+     */
+    private Boolean onlyHidden;
+
     public CourseSearchRequest() {
     }
 
@@ -106,6 +112,14 @@ public class CourseSearchRequest extends PageRequest {
 
     public void setIncludeUnpublished(Boolean includeUnpublished) {
         this.includeUnpublished = includeUnpublished;
+    }
+
+    public Boolean getOnlyHidden() {
+        return onlyHidden;
+    }
+
+    public void setOnlyHidden(Boolean onlyHidden) {
+        this.onlyHidden = onlyHidden;
     }
 
     private Long parseCourseIdFilter(String value) {
