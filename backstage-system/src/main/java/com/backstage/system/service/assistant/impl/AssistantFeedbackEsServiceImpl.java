@@ -1,6 +1,7 @@
 package com.backstage.system.service.assistant.impl;
 
 import cn.hutool.core.util.StrUtil;
+import com.backstage.common.annotation.DistributeLock;
 import com.backstage.common.response.PageResponse;
 import com.backstage.system.domain.assistant.AssistantFeedback;
 import com.backstage.system.domain.assistant.AssistantFeedbackCategory;
@@ -69,7 +70,7 @@ public class AssistantFeedbackEsServiceImpl implements IAssistantFeedbackEsServi
     public int syncAllFeedbacksToEs() {
         try {
             assistantFeedbackEsMapper.deleteAllFeedbacks();
-            return syncAllFeedbacksFromMysql();
+            return syncAllFeedbacksFromMysql(null);
         } catch (Exception exception) {
             throw new IllegalStateException("sync feedbacks to es failed", exception);
         }
@@ -106,16 +107,53 @@ public class AssistantFeedbackEsServiceImpl implements IAssistantFeedbackEsServi
         }
     }
 
+    /**
+     * 重建 ES 索引（删除旧索引 → 创建新索引 → 全量同步数据）
+     * <p>
+     * 适用场景：
+     * 1. mapping 变更（如字段类型从 text 改为 keyword）
+     * 2. 分片数、副本数等 settings 调整
+     * 3. 分析器配置变更
+     * </p>
+     * 执行期间 ES 查询会降级到 MySQL，业务不中断。
+     * <p>
+     * 使用分布式锁（expireTime=10min）防止多实例并发触发：
+     * waitTime=0 表示获取锁失败立即返回，而不是阻塞等待，
+     * 避免第二个请求排队等候第一个执行完再重复执行一次。
+     * </p>
+     *
+     * @return 同步的文档总数
+     */
+    @DistributeLock(
+            scene = "feedback:es",
+            key = "rebuild",
+            includeUserId = false,
+            waitTime = 0,
+            expireTime = 10 * 60 * 1000,
+            releaseImmediately = true
+    )
     @Override
     public int rebuildIndex() {
         try {
-            log.info("[feedback-es] start rebuild index");
-            assistantFeedbackEsMapper.deleteIndex();
-            log.info("[feedback-es] old index deleted");
-            assistantFeedbackEsMapper.createIndexWithMapping();
-            log.info("[feedback-es] new index created with correct mapping");
-            int total = syncAllFeedbacksFromMysql();
-            log.info("[feedback-es] rebuild completed, total documents: {}", total);
+            log.info("[feedback-es] start rebuild index with zero-downtime alias switch");
+            // 1. 加载 mapping 文件（Configuration as Code，版本升级只需换文件）
+            String indexDefinitionJson = AssistantFeedbackEsMapper.loadMappingJson();
+
+            // 2. 记录当前别名指向的旧物理索引，用于后续原子切换
+            String oldIndexName = assistantFeedbackEsMapper.resolveCurrentPhysicalIndex();
+            log.info("[feedback-es] current physical index: {}", oldIndexName == null ? "none" : oldIndexName);
+
+            // 3. 创建新物理索引（此时别名仍指向旧索引，读服务不中断）
+            assistantFeedbackEsMapper.rebuildIndex(indexDefinitionJson);
+            log.info("[feedback-es] new physical index created");
+
+            // 4. 全量写入数据到新物理索引（直接指定物理索引名，绕开别名，避免写到旧索引）
+            int total = syncAllFeedbacksFromMysql(AssistantFeedbackEsMapper.FEEDBACK_INDEX_V1);
+            log.info("[feedback-es] data synced to new index, total: {}", total);
+
+            // 5. 原子切换别名 + 删除旧索引（零停机：切换瞬间完成，业务无感知）
+            assistantFeedbackEsMapper.switchAliasAndDropOldIndex(oldIndexName);
+            log.info("[feedback-es] alias switched, old index dropped, rebuild completed");
             return total;
         } catch (Exception exception) {
             log.error("[feedback-es] rebuild index failed", exception);
@@ -123,7 +161,12 @@ public class AssistantFeedbackEsServiceImpl implements IAssistantFeedbackEsServi
         }
     }
 
-    private int syncAllFeedbacksFromMysql() throws Exception {
+    /**
+     * 从 MySQL 全量同步数据。
+     *
+     * @param targetIndex 目标索引名，null 时写入读别名（数据修复场景），非 null 时写入指定物理索引（重建场景）
+     */
+    private int syncAllFeedbacksFromMysql(String targetIndex) throws Exception {
         int pageNum = 1;
         int total = 0;
         while (true) {
@@ -136,7 +179,10 @@ public class AssistantFeedbackEsServiceImpl implements IAssistantFeedbackEsServi
             if (records == null || records.isEmpty()) {
                 break;
             }
-            total += assistantFeedbackEsMapper.bulkUpsertFeedbacks(buildDocuments(records));
+            List<AssistantFeedbackEsDocument> documents = buildDocuments(records);
+            total += targetIndex == null
+                    ? assistantFeedbackEsMapper.bulkUpsertFeedbacks(documents)
+                    : assistantFeedbackEsMapper.bulkUpsertFeedbacksToIndex(documents, targetIndex);
             log.info("[feedback-es] synced batch {}, count: {}, total: {}", pageNum, records.size(), total);
             if (records.size() < PAGE_SIZE) {
                 break;
