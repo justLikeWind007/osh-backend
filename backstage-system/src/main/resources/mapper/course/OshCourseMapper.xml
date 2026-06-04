@@ -258,7 +258,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="fileSize" column="file_size"/>
         <result property="fileType" column="file_type"/>
         <result property="downloadCount" column="download_count"/>
-        <result property="payOnly" column="pay_only"/>
+        <result property="payOnly" column="is_pay_only"/>
         <result property="sort" column="sort"/>
         <result property="deleteFlag" column="delete_flag"/>
         <result property="createBy" column="create_by"/>
@@ -966,13 +966,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                file_size,
                file_type,
                download_count,
-               pay_only as pay_only,
-               sort,
-               delete_flag,
-               create_by,
-               create_time,
-               update_by,
-               update_time
+               sort
         from osh_course_material
         where course_id = #{courseId}
           and delete_flag = 0

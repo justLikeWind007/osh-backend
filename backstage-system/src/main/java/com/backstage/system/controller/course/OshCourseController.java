@@ -86,7 +86,11 @@ public class OshCourseController extends BaseController {
         if (useEsSearch) {
             try {
                 log.info("使用es 查询");
-                return R.ok(oshCourseEsService.searchCourses(request, userId), "ok");
+                PageResponse<CourseSearchLoginVo> esResult = oshCourseEsService.searchCourses(request, userId);
+                if (esResult != null && esResult.getTotal() > 0) {
+                    return R.ok(esResult, "ok");
+                }
+                log.warn("course search es empty, fallback to mysql, request={}, userId={}", request, userId);
             } catch (Exception ex) {
                 log.warn("course search fallback to mysql after es failure, request={}, userId={}", request, userId, ex);
             }
@@ -227,21 +231,20 @@ public class OshCourseController extends BaseController {
     @ApiOperation("获取小节内容 videoUrl or text")
     @GetMapping("/section/content/{courseId}/{sectionId}")
     @Anonymous
-    public R<String> getCourseSectionContent(@NotNull @PathVariable Long courseId, @NotNull @PathVariable Long sectionId) throws Exception {
+    public R<String> getCourseSectionContent(@NotNull @PathVariable Long courseId, @NotNull @PathVariable Long sectionId) {
         Long userId = UserContextUtil.getCurrentUserIdSafely();
-        Integer userBuyCourseOrFreeCourse = oshCourseService.isUserBuyCourseOrFreeCourse(courseId, userId);
-        if (userBuyCourseOrFreeCourse.compareTo(0) > 0) {
-            return R.ok(oshCourseService.getCourseSectionContent(sectionId, userId));
-        } else {
-            throw new Exception("您没有获取课程内容的权限");
+        if (!oshCourseService.canUserAccessSectionContent(courseId, sectionId, userId)) {
+            return R.fail("您没有获取课程内容的权限，请购买后观看");
         }
+        return R.ok(oshCourseService.getCourseSectionContent(sectionId, userId));
     }
 
     @ApiOperation("获取课程资料数组")
+    @Anonymous
     @GetMapping("/section/materials/{courseId}")
     public R<List<OshCourseMaterial>> getCourseMaterials(@NotNull @PathVariable Long courseId) {
-        OshUser currentOshUser = UserContextUtil.getCurrentUser();
-        if (currentOshUser == null) {
+        Long userId = UserContextUtil.getCurrentUserIdSafely();
+        if (userId == null) {
             return R.fail("请先登录");
         }
         return R.ok(oshCourseService.getCourseMaterials(courseId));
@@ -253,7 +256,8 @@ public class OshCourseController extends BaseController {
     @GetMapping("/section/outline/{courseId}")
     @Anonymous
     public R<List<OshCourseSectionVo>> getSectionOutline(@NotNull @PathVariable Long courseId) {
-        return R.ok(oshCourseService.getCourseSectionOutline(courseId));
+        Long userId = UserContextUtil.getCurrentUserIdSafely();
+        return R.ok(oshCourseService.getCourseSectionOutline(courseId, userId));
     }
 
 
