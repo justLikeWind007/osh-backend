@@ -91,7 +91,7 @@ public class SeckillUserController extends BaseController {
         }
         // 降级：MySQL 路径，原有逻辑不变，返回结构与 ES 路径一致
         startPage();
-        List<SeckillActivityUserVO> list = activityService.selectActiveActivityList(title, goodsType);
+        List<SeckillActivityUserVO> list = activityService.selectActiveActivityList(title, goodsType, tagNameList);
         return getDataTable(list);
     }
 
