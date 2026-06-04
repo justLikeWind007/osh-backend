@@ -54,7 +54,7 @@ public class PayController {
      * 查询订单支付状态（前端轮询）。
      *
      * @param orderNo 订单编号
-     * @return 订单支付状态
+     * @return 订单支付状态mmi
      */
     @GetMapping("/status")
     @PreAuthorize("hasAuthority('pay:status')")

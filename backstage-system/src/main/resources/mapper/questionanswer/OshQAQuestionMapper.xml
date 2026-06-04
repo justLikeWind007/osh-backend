@@ -40,4 +40,25 @@
         where user_id = #{userId} and delete_flag = 0
     </select>
 
+    <update id="incrementFollowCount">
+        update osh_question_answer_question
+        set follow_count = follow_count + 1
+        where id = #{questionId}
+          and delete_flag = 0
+    </update>
+
+    <update id="decrementFollowCount">
+        update osh_question_answer_question
+        set follow_count = greatest(follow_count - 1, 0)
+        where id = #{questionId}
+          and delete_flag = 0
+    </update>
+
+    <update id="incrementViewCount">
+        update osh_question_answer_question
+        set view_count = view_count + 1
+        where id = #{questionId}
+          and delete_flag = 0
+    </update>
+
 </mapper>

@@ -105,4 +105,6 @@ public interface IOshCourseService {
     void updateCourseChapter(CourseChapterCreateRequest request, OshUser currentOshUser);
 
     void deleteCoursesByIds(List<Long> ids, OshUser currentOshUser);
+
+    void hideCoursesByIds(List<Long> ids, OshUser operator);
 }

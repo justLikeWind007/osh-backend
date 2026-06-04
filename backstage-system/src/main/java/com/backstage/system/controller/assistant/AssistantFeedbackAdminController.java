@@ -8,10 +8,7 @@ import com.backstage.common.exception.ServiceException;
 import com.backstage.system.domain.assistant.dto.*;
 import com.backstage.system.domain.assistant.vo.AssistantFeedbackTagVO;
 import com.backstage.system.domain.assistant.vo.AssistantFeedbackVO;
-import com.backstage.system.service.assistant.IAssistantFeedbackCategoryService;
-import com.backstage.system.service.assistant.IAssistantFeedbackProcessRecordService;
-import com.backstage.system.service.assistant.IAssistantFeedbackService;
-import com.backstage.system.service.assistant.IAssistantFeedbackTagService;
+import com.backstage.system.service.assistant.*;
 import com.backstage.system.utils.UserContextUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -29,17 +26,23 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/pc/admin/feedback")
 public class AssistantFeedbackAdminController extends BaseController {
 
-    public AssistantFeedbackAdminController(IAssistantFeedbackService feedbackService, IAssistantFeedbackCategoryService categoryService, IAssistantFeedbackTagService feedbackTagService, IAssistantFeedbackProcessRecordService processRecordService) {
+    public AssistantFeedbackAdminController(IAssistantFeedbackService feedbackService,
+                                            IAssistantFeedbackCategoryService categoryService,
+                                            IAssistantFeedbackTagService feedbackTagService,
+                                            IAssistantFeedbackProcessRecordService processRecordService,
+                                            IAssistantFeedbackEsService feedbackEsService) {
         this.feedbackService = feedbackService;
         this.categoryService = categoryService;
         this.feedbackTagService = feedbackTagService;
         this.processRecordService = processRecordService;
+        this.feedbackEsService = feedbackEsService;
     }
 
     private final IAssistantFeedbackService feedbackService;
     private final IAssistantFeedbackCategoryService categoryService;
     private final IAssistantFeedbackTagService feedbackTagService;
     private final IAssistantFeedbackProcessRecordService processRecordService;
+    private final IAssistantFeedbackEsService feedbackEsService;
 
     /**
      * 创建反馈标签
@@ -167,6 +170,31 @@ public class AssistantFeedbackAdminController extends BaseController {
         ensureAdmin();
         feedbackService.deleteFeedback(feedbackId);
         return R.ok("删除成功");
+    }
+
+    /**
+     * 全量同步反馈数据到 Elasticsearch
+     * <p>
+     * 使用场景：
+     * 1. <b>ES 初始化</b> - 新环境部署或 ES 索引重建时，将历史数据全量同步到 ES
+     * 2. <b>数据修复</b> - 当 ES 数据与 MySQL 不一致时，手动触发同步修复
+     * 3. <b>灾难恢复</b> - ES 数据丢失或损坏后的数据恢复
+     * </p>
+     * <p>
+     * 注意：
+     * - 此接口会<b>先清空 ES 索引</b>，再全量从 MySQL 同步，执行期间 ES 查询可能不完整
+     * - 日常数据同步通过实时写入机制（创建/更新反馈时自动同步），无需调用此接口
+     * - 建议在低峰期执行，避免影响线上搜索服务
+     * </p>
+     *
+     * @return 同步的数据条数
+     */
+    @ApiOperation("全量同步反馈到ES（初始化/修复专用）")
+    @PreAuthorize("hasAuthority('system:feedback:manage')")
+    @PostMapping("/esSync/all")
+    public R<Integer> syncAllFeedbackToEs() {
+        ensureAdmin();
+        return R.ok(feedbackEsService.syncAllFeedbacksToEs(), "ok");
     }
 
     /**

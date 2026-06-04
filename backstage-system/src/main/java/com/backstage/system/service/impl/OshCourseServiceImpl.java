@@ -37,6 +37,7 @@ import com.backstage.system.service.course.CourseIndexDeleteMessage;
 import com.backstage.system.service.course.CourseIndexEventType;
 import com.backstage.system.service.course.CourseIndexMessageMapper;
 import com.backstage.system.service.course.CourseIndexUpsertMessage;
+import com.backstage.system.utils.UserContextUtil;
 import com.backstage.system.service.course.ICourseManageService;
 import com.backstage.system.service.course.IOshCourseEsService;
 import com.backstage.system.utils.FileSizeConvertUtil;
@@ -102,6 +103,9 @@ public class OshCourseServiceImpl implements IOshCourseService {
     private static final Set<String> FULL_ACCESS_ROLE_CODES = new HashSet<>(
             Arrays.asList("vip", "small_class", "manager", "core_developer", "founder")
     );
+
+    /** 创始人 role.level >= 6，课程操作跳过审核直接发布 */
+    private static final int FOUNDER_ROLE_LEVEL = 6;
 
     private static final String DOC_MODE_BIND_EXISTING = "BIND_EXISTING";
     private static final String DOC_REF_TYPE_COURSE_SECTION = "course_section";
@@ -437,6 +441,41 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public void hideCoursesByIds(List<Long> ids, OshUser operator) {
+        if (ids == null || ids.isEmpty()) {
+            return;
+        }
+        String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
+        Integer hiddenStatus = OshCourseStatusEnum.HIDDEN.getCode();
+
+        for (Long courseId : ids) {
+            OshCourse existingCourse = ensureCourseExists(courseId);
+            if (existingCourse.getDeleteFlag() != null && existingCourse.getDeleteFlag() != 0) {
+                throw new IllegalArgumentException("课程不存在");
+            }
+            if (Objects.equals(existingCourse.getStatus(), hiddenStatus)) {
+                continue;
+            }
+
+            OshCourse course = new OshCourse();
+            course.setId(courseId);
+            course.setStatus(hiddenStatus);
+            course.setUpdateBy(operatorName);
+            int rows = oshCourseMapper.updateCourse(course);
+            if (rows <= 0) {
+                throw new IllegalArgumentException("隐藏课程失败");
+            }
+
+            OshCourse latestCourse = ensureCourseExists(courseId);
+            CourseIndexUpsertMessage indexMessage = buildCourseIndexUpsertMessage(
+                    latestCourse, null, operator, CourseIndexEventType.COURSE_INDEX_UPDATE);
+            publishCourseIndexOutboxIfNeeded(courseId, latestCourse.getStatus(), indexMessage, operator);
+            scheduleCourseEsUpsertAfterCommit(courseId, latestCourse.getStatus());
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteCoursesByIds(List<Long> ids, OshUser operator) {
         if (ids == null || ids.isEmpty()) return;
         String operatorName = operator == null ? null : operator.getUsername();
@@ -698,8 +737,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         course.setLikeCount(CourseConstants.DEFAULT_COUNT);
         course.setCommentCount(CourseConstants.DEFAULT_COUNT);
         course.setRatingScore(CourseConstants.DEFAULT_RATING_SCORE);
-        // Editing a course re-enters the audit workflow.
-        course.setStatus(OshCourseStatusEnum.PENDING_AUDIT.getCode());
+        course.setStatus(resolveCourseStatusAfterOperatorAction());
 
         String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
         course.setCreateBy(operatorName);
@@ -709,6 +747,14 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
     private static Integer defaultInteger(Integer value) {
         return value == null ? CourseConstants.DEFAULT_COUNT : value;
+    }
+
+    /** 创始人（level>=6）创建/编辑课程直接发布，其余角色进入待审核 */
+    private static Integer resolveCourseStatusAfterOperatorAction() {
+        if (UserContextUtil.getCurrentLevelSafely() >= FOUNDER_ROLE_LEVEL) {
+            return OshCourseStatusEnum.PUBLISHED.getCode();
+        }
+        return OshCourseStatusEnum.PENDING_AUDIT.getCode();
     }
 
     static OshCourse buildCourseForUpdate(CourseUpdateRequest request, OshUser operator) {
@@ -728,8 +774,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         course.setResourceType(request.getResourceType());
         course.setLevel(request.getLevel());
         if (request.getServicePeriod() != null) course.setServicePeriod(request.getServicePeriod());
-        // Editing a course should re-enter the audit queue.
-        course.setStatus(OshCourseStatusEnum.PENDING_AUDIT.getCode());
+        course.setStatus(resolveCourseStatusAfterOperatorAction());
         String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
         course.setUpdateBy(operatorName);
         return course;
@@ -1226,7 +1271,9 @@ public class OshCourseServiceImpl implements IOshCourseService {
     private boolean shouldDirectSyncCourseToEs(Integer status) {
         return OshCourseStatusEnum.PENDING_AUDIT.getCode().equals(status)
                 || OshCourseStatusEnum.PUBLISHED.getCode().equals(status)
-                || OshCourseStatusEnum.OFF_SHELF.getCode().equals(status);
+                || OshCourseStatusEnum.OFF_SHELF.getCode().equals(status)
+                // 隐藏课程同步写入 ES（status=7），普通用户的 ES 查询按 status=4 过滤后自然不可见
+                || OshCourseStatusEnum.HIDDEN.getCode().equals(status);
     }
 
     private CourseIndexUpsertMessage buildCourseIndexUpsertMessage(OshCourse course, List<String> tags, OshUser operator, String eventType) {

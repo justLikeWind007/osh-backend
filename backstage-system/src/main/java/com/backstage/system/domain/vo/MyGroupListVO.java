@@ -47,7 +47,7 @@ public class MyGroupListVO {
     /** 服务器到期时间（成团后有值） */
     private LocalDateTime serverExpireTime;
     
-    /** 组团状态：0-进行中 1-已成团 2-已取消/过期 */
+    /** 组团状态：0-进行中 1-已成团 2-已结束 */
     private Integer groupStatus;
     
     /** 组团状态文字描述 */

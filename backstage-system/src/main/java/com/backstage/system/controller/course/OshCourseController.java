@@ -2,6 +2,7 @@ package com.backstage.system.controller.course;
 
 import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.annotation.DistributeLock;
+import com.backstage.common.annotation.OshUserLevel;
 import com.backstage.common.core.controller.BaseController;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.response.PageResponse;
@@ -74,7 +75,7 @@ public class OshCourseController extends BaseController {
         normalizeCollectionFilter(request);
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         Long userId = UserContextUtil.getCurrentUserIdSafely();
-        request.setIncludeUnpublished(canViewUnpublishedDetail(currentOshUser));
+        applyCourseListSearchScope(request, currentOshUser);
         // 当用户请求查看"收藏"类型的课程（collectionFlag=1）但用户未登录时，直接返回一个空的分页结果，而不是继续执行搜索。
         if (Integer.valueOf(1).equals(request.getCollectionFlag()) && userId == null) {
             return R.ok(PageResponse.of(Collections.emptyList(), 0L, request.getPageNum(), request.getPageSize()), "ok");
@@ -104,13 +105,36 @@ public class OshCourseController extends BaseController {
         }
     }
 
+    /** 创始人 role.level >= 6，可查看已隐藏（下架）课程 */
+    private static final int FOUNDER_ROLE_LEVEL = 6;
+
+    /**
+     * 列表可见范围：
+     * - 普通用户：仅已发布（status=4），看不到已隐藏（status=7）；
+     * - 有课程管理权限者：可见未发布课程，但正常列表排除已隐藏（status=7）；
+     * - 创始人（level>=6）点「已隐藏课程」：onlyHidden=true 时只返回已隐藏（status=7）。
+     */
+    private void applyCourseListSearchScope(CourseSearchRequest request, OshUser currentOshUser) {
+        if (request == null) {
+            return;
+        }
+        boolean canSeeUnpublished = canViewUnpublishedDetail(currentOshUser);
+        boolean isFounder = UserContextUtil.getCurrentLevelSafely() != null
+                && UserContextUtil.getCurrentLevelSafely() >= FOUNDER_ROLE_LEVEL;
+        // 仅创始人可查看「已隐藏课程」分类，其余一律置空
+        boolean onlyHidden = isFounder && Boolean.TRUE.equals(request.getOnlyHidden());
+        request.setOnlyHidden(onlyHidden);
+        // 查看已隐藏分类时需放开「仅已发布」限制，否则按权限决定
+        request.setIncludeUnpublished(canSeeUnpublished || onlyHidden);
+    }
+
     @ApiOperation("ES课程搜索")
     @PostMapping("/esSearch")
     @PreAuthorize("hasAuthority('course:list')")
     public R esCourseSearch(@RequestBody CourseSearchRequest request) {
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
         Long userId = currentOshUser == null ? null : currentOshUser.getId();
-        request.setIncludeUnpublished(canViewUnpublishedDetail(currentOshUser));
+        applyCourseListSearchScope(request, currentOshUser);
         return R.ok(oshCourseEsService.searchCourses(request, userId), "ok");
     }
 
@@ -139,7 +163,7 @@ public class OshCourseController extends BaseController {
             return R.fail("请先登录");
         }
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
-        request.setIncludeUnpublished(canViewUnpublishedDetail(currentOshUser));
+        applyCourseListSearchScope(request, currentOshUser);
         return R.ok(oshCourseEsService.searchCourses(request, userId), "ok");
     }
 
@@ -152,7 +176,7 @@ public class OshCourseController extends BaseController {
             return R.fail("请先登录");
         }
         OshUser currentOshUser = UserContextUtil.getCurrentUser();
-        request.setIncludeUnpublished(canViewUnpublishedDetail(currentOshUser));
+        applyCourseListSearchScope(request, currentOshUser);
         List<OshCourse> list = oshCourseService.pageQueryUserCollectionCourse(userId, request);
         PageInfo<OshCourse> pageInfo = new PageInfo<>(list);
         return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()), "ok");
@@ -468,6 +492,21 @@ public class OshCourseController extends BaseController {
 
         boolean success = oshCourseService.safeDeleteSection(request.getCourseId(), request.getSectionId(), currentOshUser);
         return success ? R.ok("删除成功") : R.fail("删除失败");
+    }
+
+    @ApiOperation("批量隐藏课程（下架，创始人专属）")
+    @PostMapping("/hide")
+    @OshUserLevel(value = 6)
+    public R<String> hideCourses(@RequestBody CourseDeleteRequest request) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        if (currentOshUser == null) return R.fail("请先登录");
+        if (request.getIds() == null || request.getIds().isEmpty()) return R.fail("请选择要隐藏的课程");
+        try {
+            oshCourseService.hideCoursesByIds(request.getIds(), currentOshUser);
+            return R.ok("隐藏成功");
+        } catch (IllegalArgumentException ex) {
+            return R.fail(ex.getMessage());
+        }
     }
 
     @ApiOperation("批量删除课程")
