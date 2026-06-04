@@ -163,7 +163,8 @@ public class SeckillItemEsMapper {
                 .timeout(TimeValue.timeValueMillis(searchEsProperties.getFallbackTimeoutMillis()));
 
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
-                // 方式A：查询时过滤已结束活动
+                // 方式A：查询时过滤未开始和已结束活动，只返回当前时间窗口内的活动
+                .filter(QueryBuilders.rangeQuery("startTime").lte("now"))
                 .filter(QueryBuilders.rangeQuery("endTime").gt("now"))
                 .filter(QueryBuilders.termQuery("deleteFlag", 0));
 

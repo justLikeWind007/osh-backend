@@ -29,4 +29,20 @@
         where user_id = #{userId}
         and answer_id = #{answerId}
     </update>
+
+    <update id="incrementVoteCount">
+        update osh_question_answer_answer
+        set vote_count = vote_count + 1
+        where id = #{answerId}
+          and delete_flag = 0
+          and status = 0
+    </update>
+
+    <update id="decrementVoteCount">
+        update osh_question_answer_answer
+        set vote_count = greatest(vote_count - 1, 0)
+        where id = #{answerId}
+          and delete_flag = 0
+          and status = 0
+    </update>
 </mapper>

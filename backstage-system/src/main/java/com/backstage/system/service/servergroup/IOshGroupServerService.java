@@ -98,7 +98,7 @@ public interface IOshGroupServerService {
     /**
      * 查询全量组团记录列表（管理端）
      *
-     * @param groupStatus 组团状态筛选（可选）：0-进行中 1-已成团 2-已取消/过期
+     * @param groupStatus 组团状态筛选（可选）：0-进行中 1-已成团 2-已结束
      * @return 组团记录列表
      */
     List<GroupWorkListVO> selectGroupWorkList(Integer groupStatus);
@@ -172,5 +172,5 @@ public interface IOshGroupServerService {
      * @param amount 支付金额
      * @param clientIp 客户端IP
      */
-    void createGroupPayment(String orderNo, String amount, String clientIp);
+    void createGroupPayment(String orderNo, Long orderId, String amount, String clientIp);
 }

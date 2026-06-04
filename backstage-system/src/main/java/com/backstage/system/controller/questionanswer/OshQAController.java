@@ -70,9 +70,9 @@ public class OshQAController {
             hasPermission = userLevel >= 2;
         } catch (Exception ignored) {}
 
+        Long sectionId = addQuestionDTO == null ? null : addQuestionDTO.getResourceNo();
         if (!hasPermission) {
             // 尝试通过 sectionId 查 courseId，判断是否已付费
-            Long sectionId = addQuestionDTO.getResourceNo();
             if (sectionId != null) {
                 try {
                     java.util.Map<String, Object> section = oshCourseSectionMapper.selectSectionById(sectionId);
@@ -87,12 +87,16 @@ public class OshQAController {
             }
         }
 
-        if (!hasPermission) {
+        if (sectionId != null && !hasPermission) {
             return R.fail("需要 VIP 及以上等级，或已购买该课程，才能提问");
         }
 
-        return IOshQAQuestionService.addQuestion(userId, addQuestionDTO.getResourceNo(),
-                addQuestionDTO.getResourceType(), addQuestionDTO.getContent(), addQuestionDTO.getIsPaidOnly(), addQuestionDTO.getTags());
+        return IOshQAQuestionService.addQuestion(userId,
+                addQuestionDTO == null ? null : addQuestionDTO.getResourceNo(),
+                addQuestionDTO == null ? null : addQuestionDTO.getResourceType(),
+                addQuestionDTO == null ? null : addQuestionDTO.getContent(),
+                addQuestionDTO == null ? null : addQuestionDTO.getIsPaidOnly(),
+                addQuestionDTO == null ? null : addQuestionDTO.getTags());
     }
 
     @ApiOperation("发布问题")
@@ -101,7 +105,7 @@ public class OshQAController {
     @PreAuthorize("hasAuthority('qna:question:publish')")
     public R<String> publishQuestion(
             @RequestBody PublishQuestionDTO publishQuestionDTO) {
-        return IOshQAQuestionService.publishQuestion(UserContextUtil.getCurrentUserId(), publishQuestionDTO.getQuestionId());
+        return IOshQAQuestionService.publishQuestion(UserContextUtil.getCurrentUserId(), publishQuestionDTO == null ? null : publishQuestionDTO.getQuestionId());
     }
 
     @ApiOperation("我的草稿")
@@ -118,8 +122,13 @@ public class OshQAController {
     @PreAuthorize("hasAuthority('qna:question:myDraftEdit')")
     public R<String> editQuestion(
             @RequestBody EditQuestionDTO editQuestionDTO) {
-        return IOshQAQuestionService.editQuestion(UserContextUtil.getCurrentUserId(), editQuestionDTO.getQuestionId(), editQuestionDTO.getResourceNo(),
-                editQuestionDTO.getResourceType(), editQuestionDTO.getContent(), editQuestionDTO.getIsPaidOnly(), editQuestionDTO.getTags());
+        return IOshQAQuestionService.editQuestion(UserContextUtil.getCurrentUserId(),
+                editQuestionDTO == null ? null : editQuestionDTO.getQuestionId(),
+                editQuestionDTO == null ? null : editQuestionDTO.getResourceNo(),
+                editQuestionDTO == null ? null : editQuestionDTO.getResourceType(),
+                editQuestionDTO == null ? null : editQuestionDTO.getContent(),
+                editQuestionDTO == null ? null : editQuestionDTO.getIsPaidOnly(),
+                editQuestionDTO == null ? null : editQuestionDTO.getTags());
     }
 
     @ApiOperation("删除问题")
@@ -128,7 +137,7 @@ public class OshQAController {
     @PreAuthorize("hasAuthority('qna:question:delete')")
     public R<String> deleteQuestion(
             @RequestBody DeleteQuestionDTO deleteQuestionDTO) {
-        return IOshQAQuestionService.deleteQuestion(UserContextUtil.getCurrentUserId(), deleteQuestionDTO.getQuestionId());
+        return IOshQAQuestionService.deleteQuestion(UserContextUtil.getCurrentUserId(), deleteQuestionDTO == null ? null : deleteQuestionDTO.getQuestionId());
     }
 
     @ApiOperation("关注问题")
@@ -137,7 +146,7 @@ public class OshQAController {
     @PreAuthorize("hasAuthority('qna:question:follow')")
     public R<String> followQuestion(
             @RequestBody FollowQuestionDTO followQuestionDTO) {
-        return IOshQAQuestionService.followQuestion(UserContextUtil.getCurrentUserId(), followQuestionDTO.getQuestionId());
+        return IOshQAQuestionService.followQuestion(UserContextUtil.getCurrentUserId(), followQuestionDTO == null ? null : followQuestionDTO.getQuestionId());
     }
 
     @ApiOperation("取消关注问题")
@@ -146,15 +155,18 @@ public class OshQAController {
     @PreAuthorize("hasAuthority('qna:question:cancelFollow')")
     public R<String> cancelFollowQuestion(
             @RequestBody FollowQuestionDTO followQuestionDTO) {
-        return IOshQAQuestionService.cancelFollowQuestion(UserContextUtil.getCurrentUserId(), followQuestionDTO.getQuestionId());
+        return IOshQAQuestionService.cancelFollowQuestion(UserContextUtil.getCurrentUserId(), followQuestionDTO == null ? null : followQuestionDTO.getQuestionId());
     }
 
     @ApiOperation("问题列表")
     @PostMapping("/question/list")
     @OshUserEvent(module = "答疑模块", actionType = "查询", description = "问题列表", resourceType = ResourceType.QA_QUESTION_TYPE)
     @Anonymous
-    public TableDataInfo list(@RequestBody QueryQuestionListDTO queryQuestionListDTO) {
-        return IOshQAQuestionService.list(UserContextUtil.getCurrentUserId(), queryQuestionListDTO.getResourceNo(),
+    public TableDataInfo list(@RequestBody(required = false) QueryQuestionListDTO queryQuestionListDTO) {
+        if (queryQuestionListDTO == null) {
+            queryQuestionListDTO = new QueryQuestionListDTO();
+        }
+        return IOshQAQuestionService.list(UserContextUtil.getCurrentUserIdSafely(), queryQuestionListDTO.getResourceNo(),
                 queryQuestionListDTO.getResourceType(), queryQuestionListDTO.getType(), queryQuestionListDTO.getKeyword(), queryQuestionListDTO.getPageNum(), queryQuestionListDTO.getPageSize());
     }
 
@@ -163,7 +175,7 @@ public class OshQAController {
     @OshUserEvent(module = "答疑模块", actionType = "新增", description = "回答", resourceType = ResourceType.QA_ANSWER_TYPE)
     @OshUserLevel(value = 2)
     public R<String> answer(@RequestBody AnswerDTO answerDTO) {
-        return iOshQAAnswerService.answer(UserContextUtil.getCurrentUserId(), answerDTO.getQuestionId(), answerDTO.getContent());
+        return iOshQAAnswerService.answer(UserContextUtil.getCurrentUserId(), answerDTO == null ? null : answerDTO.getQuestionId(), answerDTO == null ? null : answerDTO.getContent());
     }
 
     @ApiOperation("采纳回答")
@@ -171,7 +183,7 @@ public class OshQAController {
     @OshUserEvent(module = "答疑模块", actionType = "修改", description = "采纳回答", resourceType = ResourceType.QA_ANSWER_TYPE)
     @OshUserLevel(value = 2)
     public R<String> solve(@RequestBody SolveQuestionDTO solveQuestionDTO) {
-        return IOshQAQuestionService.solve(UserContextUtil.getCurrentUserId(), solveQuestionDTO.getQuestionId(), solveQuestionDTO.getAnswerId());
+        return IOshQAQuestionService.solve(UserContextUtil.getCurrentUserId(), solveQuestionDTO == null ? null : solveQuestionDTO.getQuestionId(), solveQuestionDTO == null ? null : solveQuestionDTO.getAnswerId());
     }
 
     @ApiOperation("取消采纳回答")
@@ -179,15 +191,16 @@ public class OshQAController {
     @OshUserEvent(module = "答疑模块", actionType = "修改", description = "取消采纳回答", resourceType = ResourceType.QA_ANSWER_TYPE)
     @OshUserLevel(value = 2)
     public R<String> cancelSolve(@RequestBody SolveQuestionDTO solveQuestionDTO) {
-        return IOshQAQuestionService.cancelSolve(UserContextUtil.getCurrentUserId(), solveQuestionDTO.getQuestionId(), solveQuestionDTO.getAnswerId());
+        return IOshQAQuestionService.cancelSolve(UserContextUtil.getCurrentUserId(), solveQuestionDTO == null ? null : solveQuestionDTO.getQuestionId(), solveQuestionDTO == null ? null : solveQuestionDTO.getAnswerId());
     }
 
     @ApiOperation("问题详情")
     @PostMapping("/question/detail")
     @OshUserEvent(module = "答疑模块", actionType = "查询", description = "查询问题详情", resourceType = ResourceType.QA_QUESTION_TYPE)
     @Anonymous
-    public R<QueryQuestionDetailVO> detail(@RequestBody QueryQuestionDetailDTO queryQuestionDetailDTO) {
-        return IOshQAQuestionService.detail(UserContextUtil.getCurrentUserId(), queryQuestionDetailDTO.getQuestionId());
+    public R<QueryQuestionDetailVO> detail(@RequestBody(required = false) QueryQuestionDetailDTO queryQuestionDetailDTO) {
+        Long questionId = queryQuestionDetailDTO == null ? null : queryQuestionDetailDTO.getQuestionId();
+        return IOshQAQuestionService.detail(UserContextUtil.getCurrentUserIdSafely(), questionId);
     }
 
     @ApiOperation("给回答点赞")
@@ -195,7 +208,7 @@ public class OshQAController {
     @OshUserEvent(module = "答疑模块", actionType = "点赞", description = "给回答点赞", resourceType = ResourceType.QA_ANSWER_TYPE)
     @OshUserLevel(value = 2)
     public R<String> vote(@RequestBody AnswerVoteDTO answerVoteDTO) {
-        return IOshQAQuestionService.vote(UserContextUtil.getCurrentUserId(), answerVoteDTO.getAnswerId());
+        return IOshQAQuestionService.vote(UserContextUtil.getCurrentUserId(), answerVoteDTO == null ? null : answerVoteDTO.getAnswerId());
     }
 
     @ApiOperation("取消给回答点赞")
@@ -203,6 +216,6 @@ public class OshQAController {
     @OshUserEvent(module = "答疑模块", actionType = "取消点赞", description = "取消给回答点赞", resourceType = ResourceType.QA_ANSWER_TYPE)
     @OshUserLevel(value = 2)
     public R<String> cancelVote(@RequestBody AnswerVoteDTO answerVoteDTO) {
-        return IOshQAQuestionService.cancelVote(UserContextUtil.getCurrentUserId(), answerVoteDTO.getAnswerId());
+        return IOshQAQuestionService.cancelVote(UserContextUtil.getCurrentUserId(), answerVoteDTO == null ? null : answerVoteDTO.getAnswerId());
     }
 }

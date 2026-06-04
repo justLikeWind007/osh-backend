@@ -21,6 +21,9 @@ import com.backstage.system.domain.vo.UserSearchVO;
 import com.backstage.system.domain.vo.group.JoinGroupVO;
 import com.backstage.system.domain.vo.group.ServerTutorialVO;
 import com.backstage.system.domain.vo.group.ServerSshInfoVO;
+import com.backstage.system.domain.order.enums.OrderStatusEnum;
+import com.backstage.system.domain.order.enums.ProductTypeEnum;
+import com.backstage.system.mapper.order.OshOrderMapper;
 import com.backstage.system.mapper.servergroup.OshGroupServerMapper;
 import com.backstage.system.mapper.servergroup.OshGroupUserInitiatedMapper;
 import com.backstage.system.service.servergroup.IOshGroupServerService;
@@ -56,7 +59,14 @@ public class OshGroupServerServiceImpl implements IOshGroupServerService {
     
     @Autowired
     private OshGroupUserInitiatedMapper userInitiatedMapper;
-    
+
+    /**
+     * 通用订单 Mapper：拼团支付链路要在 osh_order 同步写入对应记录，
+     * 否则 PaymentSuccessConsumer 找不到订单 productType，无法路由到 GroupPaidHandler。
+     */
+    @Autowired
+    private OshOrderMapper oshOrderMapper;
+
     @Autowired
     private OssUtil ossUtil;
     
@@ -242,7 +252,7 @@ public class OshGroupServerServiceImpl implements IOshGroupServerService {
         // 状态映射：group_status -> status
         // 0-招募中 -> 1-进行中
         // 1-已成团 -> 2-拼团成功
-        // 2-已取消/过期 -> 3-已结束
+        // 2-已结束 -> 3-已结束
         int status;
         if (initiated.getGroupStatus() == 0) {
             status = 1; // 进行中
@@ -745,7 +755,7 @@ public class OshGroupServerServiceImpl implements IOshGroupServerService {
             case 1:
                 return "已成团";
             case 2:
-                return "已取消/过期";
+                return "已结束";
             default:
                 return "未知";
         }
@@ -1351,19 +1361,86 @@ public class OshGroupServerServiceImpl implements IOshGroupServerService {
      * 支付流水用于记录支付状态，与 osh_group_order 订单表配合使用。
      */
     @Override
-    public void createGroupPayment(String orderNo, String amount, String clientIp) {
+    @Transactional(rollbackFor = Exception.class)
+    public void createGroupPayment(String orderNo, Long orderId, String amount, String clientIp) {
         // 生成支付流水号（与订单号一致，易支付使用 out_trade_no 作为支付流水号）
         String paymentNo = orderNo;
-        
+
+        // 幂等校验：若同一 payment_no 的未删除流水已存在，直接跳过插入，
+        // 避免重复点击/重新发起支付时产生多条 osh_payment 记录，
+        // 进而触发 selectGroupOrderByOrderNo 的 TooManyResultsException。
+        int existed = groupServerMapper.existsPaymentByPaymentNo(paymentNo);
+        if (existed > 0) {
+            logger.info("【拼团支付】支付流水已存在，跳过创建（幂等），orderNo={}, paymentNo={}, existed={}",
+                    orderNo, paymentNo, existed);
+            return;
+        }
+
         // 将金额字符串转换为 BigDecimal
         BigDecimal amountDecimal = new BigDecimal(amount);
-        
+
+        // 同步在 osh_order 写入一条对应记录（productType=group），确保支付回调链路：
+        //   /notify/pay → handlePayNotify → Kafka → PaymentSuccessConsumer
+        // 能根据 osh_order.product_type 正确路由到 GroupPaidHandler，
+        // 进而触发 handlePaymentSuccess 把 osh_group_order.status 推进到 paid。
+        ensureOshOrderRecord(orderNo, amountDecimal);
+
         // 插入支付流水记录
-        int result = groupServerMapper.insertGroupPayment(paymentNo, orderNo, amountDecimal, clientIp);
+        int result = groupServerMapper.insertGroupPayment(paymentNo, orderNo, orderId, amountDecimal, clientIp);
         if (result <= 0) {
             logger.warn("【拼团支付】创建支付流水失败，orderNo={}, paymentNo={}", orderNo, paymentNo);
         } else {
             logger.info("【拼团支付】创建支付流水成功，orderNo={}, paymentNo={}, amount={}", orderNo, paymentNo, amount);
+        }
+    }
+
+    /**
+     * 在 osh_order 表中幂等写入拼团订单的通用订单记录。
+     * 仅在 osh_order 不存在该 orderNo 时插入，已存在则跳过。
+     *
+     * @param orderNo        拼团订单号（与 osh_payment.payment_no 一致）
+     * @param payableAmount  应付金额
+     */
+    private void ensureOshOrderRecord(String orderNo, BigDecimal payableAmount) {
+        com.backstage.system.domain.order.OshOrder existedOrder = oshOrderMapper.selectByOrderNo(orderNo);
+        if (existedOrder != null) {
+            logger.info("【拼团支付】osh_order 已存在，跳过写入，orderNo={}, existedId={}", orderNo, existedOrder.getId());
+            return;
+        }
+
+        OshGroupOrder groupOrder = groupServerMapper.selectGroupOrderByOrderNo(orderNo);
+        if (groupOrder == null) {
+            logger.warn("【拼团支付】未找到拼团订单，跳过 osh_order 写入，orderNo={}", orderNo);
+            return;
+        }
+
+        com.backstage.system.domain.order.OshOrder oshOrder = new com.backstage.system.domain.order.OshOrder();
+        oshOrder.setUserId(groupOrder.getUserId());
+        oshOrder.setOrderNo(orderNo);
+        oshOrder.setStatus(OrderStatusEnum.PENDING.getCode());
+        oshOrder.setProductType(ProductTypeEnum.GROUP.getCode());
+        // product_id 优先取参团记录ID（group_work_id），缺失时退化为活动ID
+        Long productId = groupOrder.getGroupWorkId() != null
+                ? groupOrder.getGroupWorkId()
+                : groupOrder.getGroupActivityId();
+        oshOrder.setProductId(productId);
+        oshOrder.setProductName("拼团订单-" + orderNo);
+        oshOrder.setActivityId(groupOrder.getGroupActivityId());
+        BigDecimal originalAmount = groupOrder.getBasePrice() != null ? groupOrder.getBasePrice() : payableAmount;
+        oshOrder.setOriginalAmount(originalAmount);
+        oshOrder.setDiscountAmount(BigDecimal.ZERO);
+        oshOrder.setPayableAmount(payableAmount);
+        LocalDateTime now = LocalDateTime.now();
+        oshOrder.setCreatedTime(now);
+        oshOrder.setUpdatedTime(now);
+        oshOrder.setDeleteFlag(0);
+
+        int inserted = oshOrderMapper.insertOshOrder(oshOrder);
+        if (inserted > 0) {
+            logger.info("【拼团支付】写入 osh_order 成功，orderNo={}, oshOrderId={}, userId={}, productType={}",
+                    orderNo, oshOrder.getId(), oshOrder.getUserId(), oshOrder.getProductType());
+        } else {
+            logger.warn("【拼团支付】写入 osh_order 影响行数为 0，orderNo={}", orderNo);
         }
     }
 }

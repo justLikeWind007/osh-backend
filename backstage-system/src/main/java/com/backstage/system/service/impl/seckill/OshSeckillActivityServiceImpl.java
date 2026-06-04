@@ -17,7 +17,6 @@ import com.backstage.system.mapper.seckill.OshSeckillActivityItemMapper;
 import com.backstage.system.mapper.seckill.OshSeckillActivityMapper;
 import com.backstage.system.mapper.seckill.OshSeckillGoodsMapper;
 import com.backstage.system.mapper.seckill.OshSeckillGoodsTagMapper;
-import com.backstage.system.mapper.seckill.OshSeckillGoodsTagMapper;
 import com.backstage.system.service.OutboxEventService;
 import com.backstage.system.service.seckill.IOshSeckillActivityService;
 import com.backstage.system.service.seckill.SeckillItemIndexDeleteMessage;
@@ -81,67 +80,134 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
         OshSeckillActivity activity = activityMapper.selectActivityById(id);
         if (activity == null) return null;
         List<OshSeckillActivityItem> items = itemMapper.selectItemsByActivityId(id);
-        return toVO(activity, items);
+        java.util.Map<Long, List<String>> tagMap = buildTagMap(items);
+        return toVO(activity, items, tagMap);
     }
 
     @Override
     public List<SeckillActivityVO> selectActivityList(OshSeckillActivity activity) {
         List<OshSeckillActivity> activities = activityMapper.selectActivityList(activity);
+        if (activities == null || activities.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        // 批量查明细，避免 N+1
+        List<Long> activityIds = activities.stream().map(OshSeckillActivity::getId).collect(Collectors.toList());
+        List<OshSeckillActivityItem> allItems = itemMapper.selectItemsByActivityIds(activityIds);
+
+        // 批量查标签，避免 N+1
+        List<Long> seckillGoodsIds = allItems.stream()
+                .map(OshSeckillActivityItem::getSeckillGoodsId)
+                .filter(id -> id != null)
+                .distinct()
+                .collect(Collectors.toList());
+        java.util.Map<Long, List<String>> tagMap = seckillGoodsIds.isEmpty()
+                ? java.util.Collections.emptyMap()
+                : seckillGoodsTagMapper.selectTagsBySeckillGoodsIds(seckillGoodsIds)
+                        .stream()
+                        .collect(Collectors.groupingBy(
+                                OshSeckillGoodsTagMapper.OshSeckillGoodsTagWithGoodsId::getSeckillGoodsId,
+                                Collectors.mapping(
+                                        OshSeckillGoodsTagMapper.OshSeckillGoodsTagWithGoodsId::getTagName,
+                                        Collectors.toList())));
+
+        // 按 activityId 分组明细
+        java.util.Map<Long, List<OshSeckillActivityItem>> itemsByActivity = allItems.stream()
+                .collect(Collectors.groupingBy(OshSeckillActivityItem::getActivityId));
+
         return activities.stream()
-                .map(a -> toVO(a, itemMapper.selectItemsByActivityId(a.getId())))
+                .map(a -> toVO(a, itemsByActivity.getOrDefault(a.getId(), java.util.Collections.emptyList()), tagMap))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<SeckillActivityUserVO> selectActiveActivityList(String title, Integer goodsType) {
+    public List<SeckillActivityUserVO> selectActiveActivityList(String title, Integer goodsType, List<String> tagNameList) {
+        boolean hasCondition = (title != null && !title.isEmpty())
+                || goodsType != null
+                || (tagNameList != null && !tagNameList.isEmpty());
+
+        // 第一步：一次 SQL 拿到符合时间窗口 + 搜索条件的活动 ID 列表
         List<Long> activityIds;
-        Date now = new Date();
-        // 有搜索条件时，先从明细表找符合条件的活动ID
-        if ((title != null && !title.isEmpty()) || goodsType != null) {
-            activityIds = itemMapper.selectActiveActivityIdsByCondition(title, goodsType);
-            if (activityIds.isEmpty()) {
-                return java.util.Collections.emptyList();
-            }
+        if (hasCondition) {
+            activityIds = itemMapper.selectActiveActivityIdsByCondition(title, goodsType, tagNameList);
         } else {
-            // 无搜索条件，查所有已发布（非草稿、非下架）的活动，再用时间过滤
-            OshSeckillActivity query = new OshSeckillActivity();
-            activityIds = activityMapper.selectActivityList(query)
+            activityIds = activityMapper.selectActivityList(new OshSeckillActivity())
                     .stream()
-                    .filter(a -> a.getStatus() != 0 && a.getStatus() != 4) // 排除草稿和下架
+                    .filter(a -> a.getStatus() != 0 && a.getStatus() != 4)
                     .map(OshSeckillActivity::getId)
                     .collect(Collectors.toList());
-            if (activityIds.isEmpty()) {
-                return java.util.Collections.emptyList();
-            }
         }
-        // 根据活动ID列表查活动详情 + 明细，以时间窗口判断是否进行中
-        return activityIds.stream()
-                .map(id -> {
-                    OshSeckillActivity activity = activityMapper.selectActivityById(id);
-                    if (activity == null) return null;
-                    // 下架直接跳过
-                    if (activity.getStatus() == 4) return null;
-                    // 时间窗口判断
-                    if (activity.getStartTime() == null || now.before(activity.getStartTime())) return null;
-                    if (activity.getEndTime() == null || now.after(activity.getEndTime())) return null;
-                    List<OshSeckillActivityItem> items = itemMapper.selectItemsByActivityId(id);
-                    // 有搜索条件时，明细只展示匹配的商品
-                    if ((title != null && !title.isEmpty()) || goodsType != null) {
+        if (activityIds.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+
+        // 第二步：批量查活动详情（一次 SQL）
+        List<OshSeckillActivity> activities = activityIds.stream()
+                .map(id -> activityMapper.selectActivityById(id))
+                .filter(a -> a != null && a.getStatus() != 4)
+                .collect(Collectors.toList());
+        if (activities.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+
+        // 第三步：时间窗口过滤
+        Date now = new Date();
+        activities = activities.stream()
+                .filter(a -> a.getStartTime() != null && !now.before(a.getStartTime()))
+                .filter(a -> a.getEndTime() != null && !now.after(a.getEndTime()))
+                .collect(Collectors.toList());
+        if (activities.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+
+        // 第四步：批量查明细（一次 SQL）
+        List<Long> validActivityIds = activities.stream().map(OshSeckillActivity::getId).collect(Collectors.toList());
+        List<OshSeckillActivityItem> allItems = itemMapper.selectItemsByActivityIds(validActivityIds);
+
+        // 第五步：批量查标签（一次 SQL）
+        List<Long> seckillGoodsIds = allItems.stream()
+                .map(OshSeckillActivityItem::getSeckillGoodsId)
+                .filter(id -> id != null)
+                .distinct()
+                .collect(Collectors.toList());
+        final java.util.Map<Long, List<String>> tagMap = seckillGoodsIds.isEmpty()
+                ? java.util.Collections.emptyMap()
+                : seckillGoodsTagMapper.selectTagsBySeckillGoodsIds(seckillGoodsIds)
+                        .stream()
+                        .collect(Collectors.groupingBy(
+                                OshSeckillGoodsTagMapper.OshSeckillGoodsTagWithGoodsId::getSeckillGoodsId,
+                                Collectors.mapping(
+                                        OshSeckillGoodsTagMapper.OshSeckillGoodsTagWithGoodsId::getTagName,
+                                        Collectors.toList())));
+
+        // 第六步：按 activityId 分组明细，有搜索条件时在内存过滤
+        java.util.Map<Long, List<OshSeckillActivityItem>> itemsByActivity = allItems.stream()
+                .collect(Collectors.groupingBy(OshSeckillActivityItem::getActivityId));
+
+        return activities.stream()
+                .map(activity -> {
+                    List<OshSeckillActivityItem> items = new java.util.ArrayList<>(
+                            itemsByActivity.getOrDefault(activity.getId(), java.util.Collections.emptyList()));
+
+                    // 有搜索条件时在内存做进一步过滤
+                    if (hasCondition) {
                         items = items.stream()
                                 .filter(item -> {
-                                    boolean match = true;
                                     if (title != null && !title.isEmpty()) {
-                                        match = item.getTitle() != null && item.getTitle().contains(title);
+                                        if (item.getTitle() == null || !item.getTitle().contains(title)) return false;
                                     }
-                                    if (match && goodsType != null) {
-                                        match = goodsType.equals(item.getGoodsType());
+                                    if (goodsType != null && !goodsType.equals(item.getGoodsType())) return false;
+                                    if (tagNameList != null && !tagNameList.isEmpty()) {
+                                        List<String> itemTags = tagMap.getOrDefault(
+                                                item.getSeckillGoodsId(), java.util.Collections.emptyList());
+                                        if (tagNameList.stream().noneMatch(itemTags::contains)) return false;
                                     }
-                                    return match;
+                                    return true;
                                 })
                                 .collect(Collectors.toList());
                     }
+
                     if (items.isEmpty()) return null;
-                    return toUserVO(activity, items);
+                    return toUserVO(activity, items, tagMap);
                 })
                 .filter(vo -> vo != null)
                 .collect(Collectors.toList());
@@ -153,12 +219,12 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
         if (activity == null || activity.getStatus() == 4) {
             return null;
         }
-        // 以时间窗口判断是否进行中，不依赖 status=2
         Date now = new Date();
         if (activity.getStartTime() == null || now.before(activity.getStartTime())) return null;
         if (activity.getEndTime() == null || now.after(activity.getEndTime())) return null;
         List<OshSeckillActivityItem> items = itemMapper.selectItemsByActivityId(id);
-        return toUserVO(activity, items);
+        java.util.Map<Long, List<String>> tagMap = buildTagMap(items);
+        return toUserVO(activity, items, tagMap);
     }
 
     // ==================== 写操作 ====================
@@ -192,13 +258,8 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
         // 插入后重新查询拿到带 ID 的明细列表，确保 ID 不为 null
         List<OshSeckillActivityItem> savedItems = itemMapper.selectItemsByActivityId(activityId);
 
-        // 触发 ES 索引事件（草稿状态，Flink 侧会因 activityStatus!=2 而执行 delete，不写入 ES）
-        // 等活动发布后再由 updateActivityStatus 触发 upsert
-        // 此处仍发消息，保持链路完整，Flink 会幂等处理
-        savedItems.forEach(item -> outboxEventService.saveSeckillItemIndexEvent(
-                item.getId(),
-                buildUpsertMessage(item, activity, SeckillItemIndexEventType.SECKILL_ITEM_INDEX_CREATE),
-                null));
+        // 草稿阶段不发索引消息，等活动发布（status=1）时再由 updateActivityStatus 触发首次 upsert
+        // 避免产生"明知不会入 ES 还要过一遍 Kafka/Flink"的无效消息
 
         return 1;
     }
@@ -235,7 +296,8 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
             // 逻辑删除旧明细
             itemMapper.deleteItemsByActivityId(dto.getId());
 
-            // 对旧明细发 DELETE 事件
+            // 草稿阶段不发索引消息，等活动发布时再触发
+            // 旧明细仍需发 DELETE 事件（可能已发布过后回退到草稿，ES 里有残留文档）
             oldItems.forEach(oldItem -> outboxEventService.saveSeckillItemIndexDeleteEvent(
                     oldItem.getId(),
                     new SeckillItemIndexDeleteMessage(oldItem.getId()),
@@ -244,15 +306,6 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
             // 构建并插入新明细
             List<OshSeckillActivityItem> newItems = buildItemsFromUpdateDTO(dto.getItems(), dto.getId());
             itemMapper.insertItems(newItems);
-
-            // 插入后重新查询拿到带 ID 的明细列表
-            List<OshSeckillActivityItem> savedNewItems = itemMapper.selectItemsByActivityId(dto.getId());
-
-            // 对新明细发 UPSERT 事件（草稿状态，Flink 侧不写 ES，等发布后再触发）
-            savedNewItems.forEach(item -> outboxEventService.saveSeckillItemIndexEvent(
-                    item.getId(),
-                    buildUpsertMessage(item, exist, SeckillItemIndexEventType.SECKILL_ITEM_INDEX_UPDATE),
-                    null));
         }
 
         return 1;
@@ -357,8 +410,9 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
                     activityExpire, TimeUnit.SECONDS);
 
             String stockKey = SECKILL_STOCK_KEY + activityId + ":" + item.getId();
-            // 只在 Key 不存在时写入，避免覆盖已有库存（防止重复发布）
-            stringRedisTemplate.opsForValue().setIfAbsent(
+        // 写入库存 Key（setIfAbsent 防止重复发布覆盖已有库存）
+        // ⚠️ 注意：若未来支持已发布活动修改库存，需先 delete(stockKey) 再写入，否则会保留旧值
+        stringRedisTemplate.opsForValue().setIfAbsent(
                     stockKey, String.valueOf(item.getAvailableStock()),
                     stockExpire, TimeUnit.SECONDS);
         }
@@ -477,8 +531,9 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
         return result;
     }
 
-    /** 活动 + 明细列表 → 管理端 VO */
-    private SeckillActivityVO toVO(OshSeckillActivity activity, List<OshSeckillActivityItem> items) {
+    /** 活动 + 明细列表 → 管理端 VO（tagMap 批量回填标签，避免 N+1） */
+    private SeckillActivityVO toVO(OshSeckillActivity activity, List<OshSeckillActivityItem> items,
+                                   java.util.Map<Long, List<String>> tagMap) {
         SeckillActivityVO vo = new SeckillActivityVO();
         vo.setId(activity.getId());
         vo.setTitle(activity.getTitle());
@@ -488,12 +543,13 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
         vo.setPayTimeoutMin(activity.getPayTimeoutMin());
         vo.setCreateTime(activity.getCreateTime());
         vo.setUpdateTime(activity.getUpdateTime());
-        vo.setItems(items.stream().map(this::toItemVO).collect(Collectors.toList()));
+        vo.setItems(items.stream().map(item -> toItemVO(item, tagMap)).collect(Collectors.toList()));
         return vo;
     }
 
-    /** 活动 + 明细列表 → 用户端 VO */
-    private SeckillActivityUserVO toUserVO(OshSeckillActivity activity, List<OshSeckillActivityItem> items) {
+    /** 活动 + 明细列表 → 用户端 VO（tagMap 批量回填标签，避免 N+1） */
+    private SeckillActivityUserVO toUserVO(OshSeckillActivity activity, List<OshSeckillActivityItem> items,
+                                           java.util.Map<Long, List<String>> tagMap) {
         SeckillActivityUserVO vo = new SeckillActivityUserVO();
         vo.setId(activity.getId());
         vo.setTitle(activity.getTitle());
@@ -501,7 +557,7 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
         vo.setEndTime(activity.getEndTime());
         vo.setStatus(activity.getStatus());
         vo.setPayTimeoutMin(activity.getPayTimeoutMin());
-        vo.setItems(items.stream().map(this::toItemVO).collect(Collectors.toList()));
+        vo.setItems(items.stream().map(item -> toItemVO(item, tagMap)).collect(Collectors.toList()));
         return vo;
     }
 
@@ -542,8 +598,31 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
         return msg;
     }
 
-    /** 明细实体 → 明细 VO，availableStock 优先从 Redis 实时读取 */
-    private SeckillActivityItemVO toItemVO(OshSeckillActivityItem item) {
+    /**
+     * 根据明细列表批量查标签，返回 Map<seckillGoodsId, List<tagName>>
+     * 供单条活动详情查询使用，避免 N+1
+     */
+    private java.util.Map<Long, List<String>> buildTagMap(List<OshSeckillActivityItem> items) {
+        List<Long> seckillGoodsIds = items.stream()
+                .map(OshSeckillActivityItem::getSeckillGoodsId)
+                .filter(id -> id != null)
+                .distinct()
+                .collect(Collectors.toList());
+        if (seckillGoodsIds.isEmpty()) {
+            return java.util.Collections.emptyMap();
+        }
+        return seckillGoodsTagMapper.selectTagsBySeckillGoodsIds(seckillGoodsIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        OshSeckillGoodsTagMapper.OshSeckillGoodsTagWithGoodsId::getSeckillGoodsId,
+                        Collectors.mapping(
+                                OshSeckillGoodsTagMapper.OshSeckillGoodsTagWithGoodsId::getTagName,
+                                Collectors.toList())));
+    }
+
+    /** 明细实体 → 明细 VO，tagMap 批量回填标签，availableStock 优先从 Redis 实时读取 */
+    private SeckillActivityItemVO toItemVO(OshSeckillActivityItem item,
+                                           java.util.Map<Long, List<String>> tagMap) {
         SeckillActivityItemVO vo = new SeckillActivityItemVO();
         vo.setId(item.getId());
         vo.setActivityId(item.getActivityId());
@@ -560,12 +639,8 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
         vo.setSort(item.getSort());
         vo.setSoldCount(item.getSoldCount());
 
-        // 回填标签
-        if (item.getSeckillGoodsId() != null) {
-            vo.setTagNames(seckillGoodsTagMapper.selectTagNamesBySeckillGoodsId(item.getSeckillGoodsId()));
-        } else {
-            vo.setTagNames(java.util.Collections.emptyList());
-        }
+        // 从批量查询结果的 tagMap 回填标签，避免 N+1
+        vo.setTagNames(tagMap.getOrDefault(item.getSeckillGoodsId(), java.util.Collections.emptyList()));
 
         // 优先从 Redis 读实时库存，Redis 没有则降级用数据库值
         String stockKey = SECKILL_STOCK_KEY + item.getActivityId() + ":" + item.getId();
@@ -577,7 +652,6 @@ public class OshSeckillActivityServiceImpl implements IOshSeckillActivityService
                 vo.setAvailableStock(item.getAvailableStock());
             }
         } else {
-            // Redis 没有（活动未开始或缓存过期），降级用数据库值
             vo.setAvailableStock(item.getAvailableStock());
         }
 

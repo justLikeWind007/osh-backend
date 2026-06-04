@@ -150,6 +150,12 @@ public class OshCourseEsMapper {
         if (request == null || request.getIncludeUnpublished() == null || !request.getIncludeUnpublished()) {
             boolQuery.filter(QueryBuilders.termQuery("status", 4));
         }
+        // 已隐藏课程（status=7）：仅「已隐藏课程」分类返回，其余视图一律排除
+        if (request != null && Boolean.TRUE.equals(request.getOnlyHidden())) {
+            boolQuery.filter(QueryBuilders.termQuery("status", 7));
+        } else {
+            boolQuery.mustNot(QueryBuilders.termQuery("status", 7));
+        }
 
         if (courseIds != null && !courseIds.isEmpty()) {
             boolQuery.filter(QueryBuilders.termsQuery("id", courseIds));

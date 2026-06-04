@@ -3,6 +3,7 @@ package com.backstage.system.service.assistant.impl;
 import cn.hutool.core.util.StrUtil;
 import com.backstage.common.core.page.TableDataInfo;
 import com.backstage.common.exception.ServiceException;
+import com.backstage.system.config.properties.SearchEsProperties;
 import com.backstage.system.domain.assistant.AssistantFeedback;
 import com.backstage.system.domain.assistant.AssistantFeedbackCategory;
 import com.backstage.system.domain.assistant.AssistantFeedbackProcessRecord;
@@ -63,29 +64,35 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
     private final IAssistantFeedbackFavoriteService favoriteService;
     private final IAssistantFeedbackProcessRecordService processRecordService;
     private final IAssistantFeedbackTagService feedbackTagService;
+    private final IAssistantFeedbackEsService feedbackEsService;
     private final OshUserMapper oshUserMapper;
     private final AssistantFeedbackQuerySupport feedbackQuerySupport;
     private final AssistantFeedbackViewAssembler feedbackViewAssembler;
     private final WebSocketNotifyService webSocketNotifyService;
+    private final SearchEsProperties searchEsProperties;
 
     public AssistantFeedbackServiceImpl(IAssistantFeedbackCategoryService categoryService,
                                         IAssistantFeedbackLikeService likeService,
                                         IAssistantFeedbackFavoriteService favoriteService,
                                         IAssistantFeedbackProcessRecordService processRecordService,
                                         IAssistantFeedbackTagService feedbackTagService,
+                                        IAssistantFeedbackEsService feedbackEsService,
                                         OshUserMapper oshUserMapper,
                                         AssistantFeedbackQuerySupport feedbackQuerySupport,
                                         AssistantFeedbackViewAssembler feedbackViewAssembler,
-                                        WebSocketNotifyService webSocketNotifyService) {
+                                        WebSocketNotifyService webSocketNotifyService,
+                                        SearchEsProperties searchEsProperties) {
         this.categoryService = categoryService;
         this.likeService = likeService;
         this.favoriteService = favoriteService;
         this.processRecordService = processRecordService;
         this.feedbackTagService = feedbackTagService;
+        this.feedbackEsService = feedbackEsService;
         this.oshUserMapper = oshUserMapper;
         this.feedbackQuerySupport = feedbackQuerySupport;
         this.feedbackViewAssembler = feedbackViewAssembler;
         this.webSocketNotifyService = webSocketNotifyService;
+        this.searchEsProperties = searchEsProperties;
     }
 
     @Override
@@ -136,6 +143,7 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         feedbackTagService.bindFeedbackTags(feedback.getId(), dto.getTagIds(), userId);
         safeCreateProcessRecord(feedback.getId(), null, AssistantTicketStatus.PENDING.getCode(),
                 userId, getUserDisplayName(getUserById(userId), "匿名用户"), "用户提交反馈");
+        syncFeedbackToEs(feedback.getId());
         return feedbackViewAssembler.toFeedbackVO(feedback);
     }
 
@@ -207,6 +215,7 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         feedback.setHandledTime(handledTime);
         feedback.setCloseReason(AssistantTicketStatus.CLOSED.getCode().equals(targetStatus) ? StrUtil.blankToDefault(remark, "") : null);
         notifySubmitterStatusChanged(feedback, currentStatus, targetStatus, remark);
+        syncFeedbackToEs(ticketId);
         return feedbackViewAssembler.toFeedbackVO(feedback);
     }
 
@@ -268,6 +277,7 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         updateById(feedback);
         safeCreateProcessRecord(feedbackId, currentStatus, targetStatus, userId, operatorName, remark);
         notifySubmitterStatusChanged(feedback, currentStatus, targetStatus, remark);
+        syncFeedbackToEs(feedbackId);
         return feedbackViewAssembler.toFeedbackVO(feedback);
     }
 
@@ -319,6 +329,42 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
 
     @Override
     public TableDataInfo pageFeedbackList(AssistantFeedbackPageDTO dto) {
+        if (searchEsProperties.isEnabled()) {
+            try {
+                return buildFeedbackListTableDataByEs(dto);
+            } catch (Exception exception) {
+                log.warn("feedback page fallback to mysql after es failure, dto={}", dto, exception);
+            }
+        }
+        return buildFeedbackListTableDataByDb(dto);
+    }
+
+    /**
+     * 基于 Elasticsearch 构建反馈列表分页数据
+     * <p>
+     * 该方法通过 ES 搜索引擎进行反馈数据的分页查询，相比数据库查询具有以下优势：
+     * 1. 支持全文检索、分词匹配，搜索性能更高
+     * 2. 支持复杂的聚合分析场景
+     * 3. 减轻数据库压力，提升系统整体吞吐量
+     * </p>
+     *
+     * @param dto 反馈分页查询参数，包含关键词、状态、分类等筛选条件
+     * @return 分页结果，包含反馈列表视图对象及总记录数
+     */
+    private TableDataInfo buildFeedbackListTableDataByEs(AssistantFeedbackPageDTO dto) {
+        com.backstage.common.response.PageResponse<AssistantFeedback> pageResponse = feedbackEsService.searchFeedbacks(dto);
+        Map<Long, OshUser> userMap = feedbackViewAssembler.buildUserMap(pageResponse.getRows());
+        Map<Long, AssistantFeedbackCategory> categoryMap = feedbackViewAssembler.buildCategoryMap(pageResponse.getRows());
+        Map<Long, List<AssistantFeedbackTagVO>> feedbackTagMap = feedbackViewAssembler.buildFeedbackTagMap(pageResponse.getRows());
+
+        List<?> rows = pageResponse.getRows().stream()
+                .map(feedback -> feedbackViewAssembler.toFeedbackListVO(feedback, userMap, categoryMap, feedbackTagMap))
+                .collect(Collectors.toList());
+
+        return new TableDataInfo(rows, pageResponse.getTotal());
+    }
+
+    private TableDataInfo buildFeedbackListTableDataByDb(AssistantFeedbackPageDTO dto) {
         Page<AssistantFeedback> page = feedbackQuerySupport.pageFeedback(dto);
         Map<Long, OshUser> userMap = feedbackViewAssembler.buildUserMap(page.getRecords());
         Map<Long, AssistantFeedbackCategory> categoryMap = feedbackViewAssembler.buildCategoryMap(page.getRecords());
@@ -440,6 +486,7 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         safeCreateProcessRecord(feedback.getId(), currentStatus, AssistantTicketStatus.RESOLVED.getCode(), 0L, "系统", remark);
         notifySubmitterStatusChanged(feedback, currentStatus, AssistantTicketStatus.RESOLVED.getCode(), remark);
         sendAutoConfirmedNotification(feedback);
+        syncFeedbackToEs(feedback.getId());
     }
 
     private AssistantFeedbackProcessRecord resolveLatestRecordByToStatus(Long feedbackId, String toStatus) {
@@ -535,7 +582,9 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         feedback.setId(feedbackId);
         feedback.setIsPinned(1);
         feedback.setPinOrder(pinOrder);
-        return updateById(feedback);
+        boolean updated = updateById(feedback);
+        syncFeedbackToEs(feedbackId);
+        return updated;
     }
 
     @Override
@@ -548,7 +597,9 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         feedback.setId(feedbackId);
         feedback.setIsPinned(0);
         feedback.setPinOrder(0);
-        return updateById(feedback);
+        boolean updated = updateById(feedback);
+        syncFeedbackToEs(feedbackId);
+        return updated;
     }
 
     @Override
@@ -570,6 +621,7 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         updateEntity.setCommentCount(newCommentCount);
         updateEntity.setHotScore(newHotScore);
         updateById(updateEntity);
+        syncFeedbackToEs(feedbackId);
     }
 
     @Override
@@ -591,6 +643,7 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         updateEntity.setCommentCount(newCommentCount);
         updateEntity.setHotScore(newHotScore);
         updateById(updateEntity);
+        syncFeedbackToEs(feedbackId);
     }
 
     @Override
@@ -612,6 +665,7 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
         updateEntity.setViewCount(newViewCount);
         updateEntity.setHotScore(newHotScore);
         updateById(updateEntity);
+        syncFeedbackToEs(feedbackId);
     }
 
     /**
@@ -642,6 +696,30 @@ public class AssistantFeedbackServiceImpl extends ServiceImpl<AssistantFeedbackM
             throw new ServiceException("反馈不存在");
         }
         feedback.setDeleted(true);
-        return updateById(feedback);
+        boolean updated = updateById(feedback);
+        deleteFeedbackFromEs(feedbackId);
+        return updated;
+    }
+
+    private void syncFeedbackToEs(Long feedbackId) {
+        if (!searchEsProperties.isEnabled() || feedbackId == null) {
+            return;
+        }
+        try {
+            feedbackEsService.upsertFeedbackById(feedbackId);
+        } catch (Exception exception) {
+            log.warn("sync feedback to es failed, feedbackId={}", feedbackId, exception);
+        }
+    }
+
+    private void deleteFeedbackFromEs(Long feedbackId) {
+        if (!searchEsProperties.isEnabled() || feedbackId == null) {
+            return;
+        }
+        try {
+            feedbackEsService.deleteFeedbackById(feedbackId);
+        } catch (Exception exception) {
+            log.warn("delete feedback from es failed, feedbackId={}", feedbackId, exception);
+        }
     }
 }
