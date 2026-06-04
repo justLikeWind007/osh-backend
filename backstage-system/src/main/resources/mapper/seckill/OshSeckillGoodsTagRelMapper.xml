@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.seckill.OshSeckillGoodsTagRelMapper">
+
+    <!-- 插入关联关系（忽略唯一键冲突，幂等） -->
+    <insert id="insertRel" parameterType="com.backstage.system.domain.seckill.OshSeckillGoodsTagRel">
+        INSERT IGNORE INTO osh_seckill_goods_tag_rel
+            (seckill_goods_id, tag_id, delete_flag, create_by, create_time, update_by, update_time)
+        VALUES
+            (#{seckillGoodsId}, #{tagId}, 0,
+             #{createBy}, CURRENT_TIMESTAMP, #{updateBy}, CURRENT_TIMESTAMP)
+    </insert>
+
+    <!-- 软删除某商品的所有标签关联 -->
+    <update id="softDeleteBySeckillGoodsId">
+        UPDATE osh_seckill_goods_tag_rel
+        SET delete_flag = 1,
+            update_by   = #{updateBy, jdbcType=VARCHAR},
+            update_time = CURRENT_TIMESTAMP
+        WHERE seckill_goods_id = #{seckillGoodsId}
+          AND (delete_flag = 0 OR delete_flag IS NULL)
+    </update>
+
+</mapper>

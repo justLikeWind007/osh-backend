@@ -23,6 +23,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import java.util.List;
+
 import static com.backstage.system.utils.UserContextUtil.getCurrentUser;
 
 /**
@@ -66,16 +68,17 @@ public class SeckillUserController extends BaseController {
     @GetMapping("/activity/list")
     public TableDataInfo activeList(
             @RequestParam(required = false) String title,
-            @RequestParam(required = false) Integer goodsType) {
+            @RequestParam(required = false) Integer goodsType,
+            @RequestParam(required = false) List<String> tagNameList) {
         if (searchEsProperties.isEnabled()) {
             try {
-                log.info("使用 ES 查询秒杀活动列表, keyword={}, goodsType={}", title, goodsType);
+                log.info("使用 ES 查询秒杀活动列表, keyword={}, goodsType={}, tagNameList={}", title, goodsType, tagNameList);
                 com.backstage.common.core.page.PageDomain pageDomain =
                         com.backstage.common.core.page.TableSupport.buildPageRequest();
                 int pageNum = pageDomain.getPageNum() != null ? pageDomain.getPageNum() : 1;
                 int pageSize = pageDomain.getPageSize() != null ? pageDomain.getPageSize() : 10;
                 com.backstage.common.response.PageResponse<com.backstage.system.domain.vo.seckill.SeckillActivityUserVO> page =
-                        seckillItemEsService.searchActivities(title, goodsType, pageNum, pageSize);
+                        seckillItemEsService.searchActivities(title, goodsType, tagNameList, pageNum, pageSize);
                 TableDataInfo rsp = new TableDataInfo();
                 rsp.setCode(com.backstage.common.constant.HttpStatus.SUCCESS);
                 rsp.setMsg("查询成功");
@@ -115,6 +118,7 @@ public class SeckillUserController extends BaseController {
      * 接口10：执行秒杀（核心接口）
      * userId 从登录 Token 中获取，无需前端传参
      * quantity 为本次购买数量，可选，默认为 1
+     * 返回：seckillNo 立即可用；orderNo 在消费者 checkout 成功后才有值，前端需轮询 getSeckillResult() 获取
      */
     @RateLimiter(key = "seckill:doSeckill:", time = 5, count = 3, limitType = LimitType.IP)
     @PostMapping("/do/{activityId}/{itemId}")
@@ -144,6 +148,7 @@ public class SeckillUserController extends BaseController {
 
     /**
      * 接口12：取消秒杀订单
+     * 外部按 seckillNo（秒杀尝试号）取消，内部通过秒杀单查到 orderNo 再调支付系统
      * userId 从登录 Token 中获取，无需前端传参
      */
     @PostMapping("/order/cancel/{seckillNo}")
@@ -158,7 +163,8 @@ public class SeckillUserController extends BaseController {
     }
 
     /**
-     * 接口14：通过秒杀单号查询订单状态（支付完成后前端轮询用）
+     * 接口14：通过秒杀尝试号查询订单状态（支付完成后前端轮询用）
+     * seckillNo 是秒杀尝试号，唯一标识一次有效秒杀尝试
      */
     @GetMapping("/order/status/{seckillNo}")
     public R<SeckillResultVO> getOrderStatus(@PathVariable String seckillNo) {

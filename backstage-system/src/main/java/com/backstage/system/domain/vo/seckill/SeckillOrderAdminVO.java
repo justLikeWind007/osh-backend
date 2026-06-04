@@ -22,8 +22,11 @@ public class SeckillOrderAdminVO implements Serializable {
     @ApiModelProperty("订单主键ID")
     private Long id;
 
-    @ApiModelProperty("秒杀订单编号")
+    @ApiModelProperty("秒杀尝试号（唯一标识一次有效秒杀尝试）")
     private String seckillNo;
+
+    @ApiModelProperty("统一订单号（对接支付系统，checkout成功后生成）")
+    private String orderNo;
 
     @ApiModelProperty("关联活动ID")
     private Long activityId;
@@ -52,7 +55,7 @@ public class SeckillOrderAdminVO implements Serializable {
     @ApiModelProperty("购买数量")
     private Integer quantity;
 
-    @ApiModelProperty("订单状态：0-待支付 1-已支付 2-已取消 3-已超时 4-已退款")
+    @ApiModelProperty("订单状态：0-待支付 1-已支付 2-已取消 3-已超时")
     private Integer status;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
@@ -79,6 +82,9 @@ public class SeckillOrderAdminVO implements Serializable {
 
     public String getSeckillNo() { return seckillNo; }
     public void setSeckillNo(String seckillNo) { this.seckillNo = seckillNo; }
+
+    public String getOrderNo() { return orderNo; }
+    public void setOrderNo(String orderNo) { this.orderNo = orderNo; }
 
     public Long getActivityId() { return activityId; }
     public void setActivityId(Long activityId) { this.activityId = activityId; }

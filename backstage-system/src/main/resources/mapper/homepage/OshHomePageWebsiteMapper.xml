@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.homepage.OshHomePageWebsiteMapper">
+
+    <!--
+        热门实用网站查询
+        热度公式：0.50*点击分 + 0.30*好评分 + 0.20*收藏分，时间衰减加权
+    -->
+    <select id="selectHotWebsites" resultType="com.backstage.system.domain.homepage.vo.HotWebsiteVO">
+        SELECT
+            w.id,
+            w.name,
+            w.url,
+            w.description,
+            w.logo_url          AS logoUrl,
+            w.click_count       AS clickCount,
+            w.good_count        AS goodCount,
+            w.collection_count  AS collectionCount
+        FROM osh_practical_website w
+        WHERE w.status = 1
+          AND (w.delete_flag = 0 OR w.delete_flag IS NULL)
+        ORDER BY
+            (0.50 * IFNULL(LN(1 + IFNULL(w.click_count, 0)) /
+                    NULLIF((SELECT MAX(LN(1 + IFNULL(x.click_count, 0)))
+                            FROM osh_practical_website x WHERE x.status = 1 AND (x.delete_flag = 0 OR x.delete_flag IS NULL)), 0), 0)
+           + 0.30 * IFNULL(LN(1 + IFNULL(w.good_count, 0)) /
+                    NULLIF((SELECT MAX(LN(1 + IFNULL(x.good_count, 0)))
+                            FROM osh_practical_website x WHERE x.status = 1 AND (x.delete_flag = 0 OR x.delete_flag IS NULL)), 0), 0)
+           + 0.20 * IFNULL(LN(1 + IFNULL(w.collection_count, 0)) /
+                    NULLIF((SELECT MAX(LN(1 + IFNULL(x.collection_count, 0)))
+                            FROM osh_practical_website x WHERE x.status = 1 AND (x.delete_flag = 0 OR x.delete_flag IS NULL)), 0), 0)) DESC,
+            w.create_time DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

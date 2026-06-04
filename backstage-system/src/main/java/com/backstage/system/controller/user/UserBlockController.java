@@ -4,14 +4,11 @@ import com.backstage.common.annotation.OshUserEvent;
 import com.backstage.common.annotation.OshUserLevel;
 import com.backstage.common.core.domain.R;
 import com.backstage.system.domain.user.OshUser;
-import com.backstage.system.domain.user.OshRole;
 import com.backstage.system.domain.user.OshUserViolation;
-import com.backstage.system.mapper.user.OshRoleMapper;
 import com.backstage.system.mapper.user.OshUserMapper;
 import com.backstage.system.mapper.user.OshUserViolationMapper;
 import com.backstage.system.mapper.user.UserManageMapper;
 import com.backstage.system.utils.UserContextUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 用户违规管理（标记违规/撤销违规/查询违规记录）
+ * 用户违规管理（仅创始人 level=6 可访问）
  */
 @RestController
 @RequestMapping("/pc/admin/user")
@@ -36,25 +33,18 @@ public class UserBlockController {
     private OshUserViolationMapper oshUserViolationMapper;
 
     @Resource
-    private OshRoleMapper oshRoleMapper;
-
-    @Resource
     private UserManageMapper userManageMapper;
 
     /**
      * 标记用户违规（违规次数达到3次自动拉黑）
      */
     @PostMapping("/violation/record")
-    @OshUserLevel(value = 4)
+    @OshUserLevel(value = 6)
     @OshUserEvent(module = "用户模块", actionType = "违规记录", description = "用户违规记录")
     public R<String> recordViolation(@RequestBody Map<String, Object> params) {
         Long targetUserId = Long.valueOf(params.get("userId").toString());
         Integer violationType = Integer.valueOf(params.get("violationType").toString());
         String reason = params.get("reason") != null ? params.get("reason").toString() : "";
-
-        // 等级校验
-        String levelCheck = checkTargetLevel(targetUserId);
-        if (levelCheck != null) return R.fail(levelCheck);
 
         Long operatorId = UserContextUtil.getCurrentUserId();
 
@@ -88,7 +78,7 @@ public class UserBlockController {
      * 查询用户违规记录列表（包含已撤销的，通过 deleteFlag 区分）
      */
     @GetMapping("/violation/list")
-    @OshUserLevel(value = 4)
+    @OshUserLevel(value = 6)
     public R<List<Map<String, Object>>> getViolationList(@RequestParam Long userId) {
         List<Map<String, Object>> list = userManageMapper.selectViolationListAll(userId);
         return R.ok(list);
@@ -98,17 +88,13 @@ public class UserBlockController {
      * 撤销违规记录
      */
     @PostMapping("/violation/revoke")
-    @OshUserLevel(value = 4)
+    @OshUserLevel(value = 6)
     public R<String> revokeViolation(@RequestBody Map<String, Object> params) {
         Long violationId = Long.valueOf(params.get("violationId").toString());
 
         OshUserViolation record = oshUserViolationMapper.selectById(violationId);
         if (record == null) return R.fail("违规记录不存在");
         if (record.getDeleteFlag() != null && record.getDeleteFlag() == 1) return R.fail("该记录已被撤销");
-
-        // 等级校验
-        String levelCheck = checkTargetLevel(record.getUserId());
-        if (levelCheck != null) return R.fail(levelCheck);
 
         // 标记为已撤销
         LambdaUpdateWrapper<OshUserViolation> updateWrapper = new LambdaUpdateWrapper<>();
@@ -130,22 +116,5 @@ public class UserBlockController {
         }
 
         return R.ok("违规记录已撤销");
-    }
-
-    /**
-     * 校验目标用户等级：不能操作等级 >= 自己的用户
-     */
-    private String checkTargetLevel(Long targetUserId) {
-        Integer currentLevel = UserContextUtil.getCurrentLevel();
-        List<Integer> targetRoleIds = oshRoleMapper.getRoleIdsByUserId(targetUserId);
-        if (targetRoleIds != null && !targetRoleIds.isEmpty()) {
-            for (Integer roleId : targetRoleIds) {
-                OshRole role = oshRoleMapper.selectById(roleId);
-                if (role != null && role.getLevel() != null && role.getLevel() >= currentLevel) {
-                    return "无法操作等级等于或高于自己的用户";
-                }
-            }
-        }
-        return null;
     }
 }

@@ -45,11 +45,12 @@ public class SeckillPaidHandler implements OrderPaidHandler {
 
     /**
      * 处理秒杀订单支付成功
+     * 传入的 orderNo 是统一订单号，需通过 order_no 字段查秒杀单
      */
     @Override
     public void handle(String orderNo) {
-        // 幂等校验：已支付则跳过
-        OshSeckillOrder order = seckillOrderMapper.selectOrderBySeckillNo(orderNo);
+        // 按统一订单号查秒杀单（不能用 seckillNo，支付回调传的是 orderNo）
+        OshSeckillOrder order = seckillOrderMapper.selectOrderByOrderNo(orderNo);
         if (order == null) {
             logger.warn("【支付回调】秒杀订单不存在，orderNo={}", orderNo);
             return;
@@ -90,7 +91,7 @@ public class SeckillPaidHandler implements OrderPaidHandler {
             logger.error("【支付回调】写入秒杀动态失败，orderNo={}, error={}", orderNo, e.getMessage());
         }
 
-        logger.info("【支付回调】秒杀订单支付成功，orderNo={}", orderNo);
+        logger.info("【支付回调】秒杀订单支付成功，seckillNo={}, orderNo={}", order.getSeckillNo(), orderNo);
     }
 
     /**

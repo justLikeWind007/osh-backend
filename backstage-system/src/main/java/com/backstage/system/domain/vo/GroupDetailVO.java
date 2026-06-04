@@ -59,7 +59,7 @@ public class GroupDetailVO {
     /** 活动状态：1-进行中 2-拼团成功 3-已结束 */
     private Integer status;
     
-    /** 组团状态：0-进行中（未成团） 1-已成团 2-已取消/过期 */
+    /** 组团状态：0-进行中（未成团） 1-已成团 2-已结束 */
     private Integer groupStatus;
     
     /** 组团状态文字描述 */

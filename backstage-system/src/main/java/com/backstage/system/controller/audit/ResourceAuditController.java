@@ -1,5 +1,6 @@
 package com.backstage.system.controller.audit;
 
+import com.backstage.common.annotation.OshUserLevel;
 import com.backstage.common.enums.ResourceStatusEnum;
 import com.backstage.common.core.domain.R;
 import com.backstage.common.exception.ServiceException;
@@ -12,7 +13,6 @@ import com.backstage.system.utils.UserContextUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -29,7 +29,7 @@ public class ResourceAuditController {
 
     @ApiOperation("分页查询待审核资源")
     @PostMapping("/pending")
-    @PreAuthorize("hasAuthority('audit:list')")
+    @OshUserLevel(value = 5)
     public R<ResourceAuditPageVO> pending(@Validated @RequestBody ResourceAuditRequest request) {
         try {
             return R.ok(resourceAuditService.pagePending(request));
@@ -40,7 +40,7 @@ public class ResourceAuditController {
 
     @ApiOperation("审核资源")
     @PostMapping("/auditResource")
-    @PreAuthorize("hasAuthority('audit:auditResource')")
+    @OshUserLevel(value = 5)
     public R<String> audit(@Validated @RequestBody ResourceAuditApproveRequest request) {
         OshUser currentUser = UserContextUtil.getCurrentUser();
         if (currentUser == null) {

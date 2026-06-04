@@ -145,6 +145,13 @@ public class OshUserController extends BaseController {
         return userService.getUserInfo();
     }
 
+    @ApiOperation("获取当前用户角色列表（含有效期）")
+    @GetMapping("/roles")
+    public R<?> getUserRoles(
+            @ApiParam("网校 appid") @RequestHeader(value = "appid", required = false) String appid) {
+        return userService.getUserRoles();
+    }
+
     @ApiOperation("注销用户")
     @PostMapping("/deleteUser")
     @PreAuthorize("hasAuthority('user:delete')")

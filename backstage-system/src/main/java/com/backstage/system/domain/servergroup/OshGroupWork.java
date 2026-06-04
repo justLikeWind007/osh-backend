@@ -32,7 +32,7 @@ public class OshGroupWork {
     /** 参团时剩余可使用月数 */
     private BigDecimal remainingMonths;
     
-    /** 组团状态：0-进行中（未成团） 1-已成团 2-已取消/过期 */
+    /** 组团状态：0-进行中（未成团） 1-已成团 2-已结束 */
     private Integer groupStatus;
     
     /** 参团时间 */

@@ -10,7 +10,9 @@ import com.backstage.common.utils.generate.GenerateUtil;
 import com.backstage.common.constant.OshUserConstants;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.system.domain.user.OshUser;
+import com.backstage.system.domain.user.OshRole;
 import com.backstage.system.domain.user.OshUserAsset;
+import com.backstage.system.mapper.user.OshRoleMapper;
 import com.backstage.system.mapper.user.OshUserAssetMapper;
 import com.backstage.system.mapper.user.OshUserMapper;
 import com.backstage.system.mapper.user.UserManageMapper;
@@ -29,8 +31,8 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 管理员邀请注册（仅创始人 level=6 可用）
- * 邀请普通管理员(level=4) 或 核心开发者(level=5)
+ * 邀请用户注册（仅创始人 level=6 可用）
+ * 可邀请任意角色的用户（普通用户到核心开发者，level 1~5）
  */
 @RestController
 @RequestMapping("/pc/admin/invite")
@@ -52,28 +54,30 @@ public class AdminInviteController {
     @Resource
     private UserManageMapper userManageMapper;
     @Resource
+    private OshRoleMapper oshRoleMapper;
+    @Resource
     private JavaMailSender javaMailSender;
 
     private static final String MAIL_FROM = "18482663265@163.com";
 
     /**
-     * 创建管理员邀请（创始人专属）
-     * @param params: username, email, roleId (5=普通管理员对应role_id, 6=核心开发者对应role_id)
+     * 创建用户邀请（创始人专属）
+     * @param params: email, roleId (任意有效角色ID，level 2~5)
      */
     @PostMapping("/create")
     @OshUserLevel(value = 6)
     public R createInvite(@RequestBody Map<String, Object> params, HttpServletRequest request) {
-        String username = (String) params.get("username");
         String email = (String) params.get("email");
         Integer roleId = Integer.valueOf(params.get("roleId").toString());
-
-        if (StringUtils.isEmpty(username) || StringUtils.isEmpty(email)) {
-            return R.fail("用户名和邮箱不能为空");
+        // 自定义积分，默认188
+        Long points = 188L;
+        if (params.get("points") != null) {
+            points = Long.valueOf(params.get("points").toString());
+            if (points < 0) points = 0L;
         }
 
-        // 用户名格式校验：4-20位，字母开头，字母数字下划线
-        if (!username.matches(OshUserConstants.USERNAME_PATTERN)) {
-            return R.fail("用户名必须是4-20位字母、数字、下划线组成，且以字母开头");
+        if (StringUtils.isEmpty(email)) {
+            return R.fail("邮箱不能为空");
         }
 
         // 邮箱格式校验
@@ -81,18 +85,31 @@ public class AdminInviteController {
             return R.fail("邮箱格式不正确");
         }
 
-        // 只允许邀请普通管理员(role_id=5) 或 核心开发者(role_id=6)
-        if (roleId != 5 && roleId != 6) {
-            return R.fail("只能邀请普通管理员或核心开发者");
+        // 校验角色ID有效性（只允许 level 2~5 的角色）
+        OshRole role = findRoleById(roleId);
+        if (role == null) {
+            return R.fail("角色不存在");
+        }
+        if (role.getLevel() == null || role.getLevel() < 2 || role.getLevel() > 5) {
+            return R.fail("不能邀请该等级的角色");
         }
 
-        // 检查用户名和邮箱是否已存在
-        LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(OshUser::getUsername, username);
-        if (oshUserMapper.selectOne(wrapper) != null) {
-            return R.fail("用户名已存在");
+        // VIP用户(role_id=3)和小班用户(role_id=4)需要指定有效期
+        String expireTime = null;
+        if (roleId == 3 || roleId == 4) {
+            Object expireObj = params.get("expireTime");
+            Boolean permanent = params.get("permanent") != null && Boolean.parseBoolean(params.get("permanent").toString());
+            if (permanent) {
+                expireTime = "2099-12-31 23:59:59";
+            } else if (expireObj != null && !expireObj.toString().isEmpty()) {
+                expireTime = expireObj.toString();
+            } else {
+                return R.fail("VIP用户和小班用户角色需要指定有效期");
+            }
         }
-        wrapper = new LambdaQueryWrapper<>();
+
+        // 检查邮箱是否已存在
+        LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(OshUser::getEmail, email);
         if (oshUserMapper.selectOne(wrapper) != null) {
             return R.fail("邮箱已被注册");
@@ -103,14 +120,17 @@ public class AdminInviteController {
 
         // 存入 Redis
         Map<String, String> inviteData = new HashMap<>();
-        inviteData.put("username", username);
         inviteData.put("email", email);
         inviteData.put("roleId", roleId.toString());
+        inviteData.put("points", points.toString());
         inviteData.put("inviterId", UserContextUtil.getCurrentUserId().toString());
+        if (expireTime != null) {
+            inviteData.put("expireTime", expireTime);
+        }
         redisCache.setCacheObject(INVITE_KEY_PREFIX + inviteToken, inviteData, (int)(INVITE_EXPIRE_DAYS * 24 * 60), TimeUnit.MINUTES);
 
         // 发送邮件通知被邀请人
-        String roleName = roleId == 5 ? "普通管理员" : "核心开发者";
+        String roleName = role.getRoleName();
         // 动态获取前端域名：优先从 Origin/Referer 头获取
         String origin = request.getHeader("Origin");
         if (StringUtils.isEmpty(origin)) {
@@ -128,7 +148,7 @@ public class AdminInviteController {
         }
         String inviteLink = origin + "/admin-register?token=" + inviteToken;
         String subject = "您被邀请成为平台" + roleName;
-        String content = "您好 " + username + "，\n\n"
+        String content = "您好，\n\n"
                 + "您已被邀请注册为平台「" + roleName + "」。\n"
                 + "请点击以下链接完成注册（7天内有效）：\n\n"
                 + inviteLink + "\n\n"
@@ -162,10 +182,10 @@ public class AdminInviteController {
             return R.fail("邀请链接无效或已过期");
         }
         LinkedHashMap<String, Object> data = new LinkedHashMap<>();
-        data.put("username", inviteData.get("username"));
         data.put("email", inviteData.get("email"));
-        String roleId = inviteData.get("roleId");
-        data.put("roleName", "5".equals(roleId) ? "普通管理员" : "核心开发者");
+        Integer roleId = Integer.valueOf(inviteData.get("roleId"));
+        OshRole role = findRoleById(roleId);
+        data.put("roleName", role != null ? role.getRoleName() : "未知角色");
         return R.ok(data);
     }
 
@@ -176,14 +196,20 @@ public class AdminInviteController {
     @PostMapping("/confirm")
     public R confirmInvite(@RequestBody Map<String, Object> params) {
         String token = (String) params.get("token");
+        String username = (String) params.get("username");
         String password = (String) params.get("password");
         String repassword = (String) params.get("repassword");
 
-        if (StringUtils.isEmpty(token) || StringUtils.isEmpty(password)) {
+        if (StringUtils.isEmpty(token) || StringUtils.isEmpty(username) || StringUtils.isEmpty(password)) {
             return R.fail("参数不完整");
         }
         if (!password.equals(repassword)) {
             return R.fail("两次密码不一致");
+        }
+
+        // 用户名格式校验
+        if (!username.matches(OshUserConstants.USERNAME_PATTERN)) {
+            return R.fail("用户名必须是4-20位字母、数字、下划线组成，且以字母开头");
         }
 
         // 从 Redis 获取邀请数据
@@ -192,11 +218,10 @@ public class AdminInviteController {
             return R.fail("邀请链接无效或已过期");
         }
 
-        String username = inviteData.get("username");
         String email = inviteData.get("email");
         Integer roleId = Integer.valueOf(inviteData.get("roleId"));
 
-        // 再次检查用户名和邮箱
+        // 检查用户名和邮箱
         LambdaQueryWrapper<OshUser> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(OshUser::getUsername, username);
         if (oshUserMapper.selectOne(wrapper) != null) {
@@ -220,20 +245,28 @@ public class AdminInviteController {
         ThreadLocalUtil.set(OshUserConstants.USER_ID, userId);
         oshUserMapper.insert(oshUser);
 
-        // 生成唯一标识并发送邮件
-        String uniqueId = UUID.randomUUID().toString().replace("-", "").substring(0, 20);
+        // 生成唯一标识（与正常注册格式一致：UUID-时间戳）
+        String uniqueId = UUID.randomUUID() + "-" + System.currentTimeMillis();
         oshUserMapper.addUniqueId(userId, uniqueId);
 
         // 添加普通用户角色（默认）
         oshUserMapper.addRole(userId);
 
-        // 添加管理员角色
+        // 添加邀请指定的角色（如果不是普通用户角色）
         Long operatorId = Long.valueOf(inviteData.get("inviterId"));
-        userManageMapper.insertUserRole(userId, roleId, operatorId);
+        if (roleId != 1) {
+            // 从邀请数据中读取有效期（创建邀请时已指定）
+            String expireTime = inviteData.get("expireTime");
+            userManageMapper.insertUserRole(userId, roleId, operatorId, expireTime);
+        }
 
-        // 初始化用户资产
+        // 初始化用户资产（使用邀请时设定的积分，默认188）
+        Long points = 188L;
+        if (inviteData.get("points") != null) {
+            points = Long.valueOf(inviteData.get("points"));
+        }
         OshUserAsset oshUserAsset = new OshUserAsset();
-        oshUserAsset.setPoints(188L);
+        oshUserAsset.setPoints(points);
         oshUserAsset.setUserId(userId);
         oshUserAssetMapper.insert(oshUserAsset);
 
@@ -242,7 +275,8 @@ public class AdminInviteController {
 
         // 发送注册成功邮件
         try {
-            String roleName = roleId == 5 ? "普通管理员" : "核心开发者";
+            OshRole role = findRoleById(roleId);
+            String roleName = role != null ? role.getRoleName() : "用户";
             String successContent = "恭喜 " + username + "，\n\n"
                     + "您已成功注册为平台「" + roleName + "」。\n"
                     + "您的唯一标识为：" + uniqueId + "\n"
@@ -259,6 +293,25 @@ public class AdminInviteController {
         }
 
         return R.ok("注册成功");
+    }
+
+    /**
+     * 查询可邀请的角色列表（level 2~5）
+     */
+    @GetMapping("/roles")
+    @OshUserLevel(value = 6)
+    public R getInviteRoles() {
+        List<Map<String, Object>> roles = userManageMapper.selectAssignableRoles(5);
+        // 过滤掉普通用户角色（level=1）
+        roles.removeIf(r -> {
+            Object level = r.get("roleLevel");
+            return level != null && Integer.parseInt(level.toString()) < 2;
+        });
+        return R.ok(roles);
+    }
+
+    private OshRole findRoleById(Integer roleId) {
+        return oshRoleMapper.selectById(roleId);
     }
 
     /**

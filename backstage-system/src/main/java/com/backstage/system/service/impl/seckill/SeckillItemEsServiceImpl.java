@@ -8,6 +8,7 @@ import com.backstage.system.domain.vo.seckill.SeckillActivityItemVO;
 import com.backstage.system.domain.vo.seckill.SeckillActivityUserVO;
 import com.backstage.system.mapper.seckill.OshSeckillActivityItemMapper;
 import com.backstage.system.mapper.seckill.OshSeckillActivityMapper;
+import com.backstage.system.mapper.seckill.OshSeckillGoodsTagMapper;
 import com.backstage.system.mapper.seckill.SeckillItemEsMapper;
 import com.backstage.system.service.seckill.ISeckillItemEsService;
 import org.slf4j.Logger;
@@ -54,15 +55,18 @@ public class SeckillItemEsServiceImpl implements ISeckillItemEsService {
     @Autowired
     private OshSeckillActivityItemMapper itemMapper;
 
+    @Autowired
+    private OshSeckillGoodsTagMapper seckillGoodsTagMapper;
+
     @Override
     public PageResponse<SeckillActivityUserVO> searchActivities(
-            String keyword, Integer goodsType, int pageNum, int pageSize) {
+            String keyword, Integer goodsType, List<String> tagNameList, int pageNum, int pageSize) {
         // 1. 从 ES 一次性拉取所有匹配的商品明细（不分页，后面按活动分页）
         PageResponse<SeckillActivityItemVO> itemPage;
         try {
-            itemPage = seckillItemEsMapper.searchItems(keyword, goodsType, 1, ES_MAX_FETCH_SIZE);
+            itemPage = seckillItemEsMapper.searchItems(keyword, goodsType, tagNameList, 1, ES_MAX_FETCH_SIZE);
         } catch (Exception ex) {
-            log.error("search seckill items from es failed, keyword={}, goodsType={}", keyword, goodsType, ex);
+            log.error("search seckill items from es failed, keyword={}, goodsType={}, tagNameList={}", keyword, goodsType, tagNameList, ex);
             throw new IllegalStateException("search seckill items from es failed", ex);
         }
 
@@ -163,6 +167,7 @@ public class SeckillItemEsServiceImpl implements ISeckillItemEsService {
         doc.setPayTimeoutMin(activity.getPayTimeoutMin());
         doc.setGoodsId(item.getGoodsId());
         doc.setGoodsType(item.getGoodsType());
+        doc.setNo(item.getNo());
         doc.setTitle(item.getTitle());
         doc.setCover(item.getCover());
         doc.setOriginPrice(item.getOriginPrice());
@@ -188,6 +193,12 @@ public class SeckillItemEsServiceImpl implements ISeckillItemEsService {
         if (item.getUpdateTime() != null) {
             doc.setUpdateTime(item.getUpdateTime().toInstant()
                     .atZone(ZoneId.systemDefault()).toLocalDateTime());
+        }
+        // 写入标签
+        if (item.getSeckillGoodsId() != null) {
+            List<String> tagNames = seckillGoodsTagMapper.selectTagNamesBySeckillGoodsId(item.getSeckillGoodsId());
+            doc.setTagNames(tagNames);
+            doc.setTagNamesText(tagNames == null || tagNames.isEmpty() ? "" : String.join(" ", tagNames));
         }
         return doc;
     }

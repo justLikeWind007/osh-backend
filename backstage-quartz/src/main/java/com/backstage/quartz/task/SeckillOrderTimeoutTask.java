@@ -85,10 +85,10 @@ public class SeckillOrderTimeoutTask {
         int success = 0, fail = 0;
         for (OshSeckillOrder order : timeoutOrders) {
             try {
-                // 1. 更新订单状态为已取消
+                // 1. 更新订单状态为已超时（status=3，与用户主动取消 status=2 区分）
                 OshSeckillOrder update = new OshSeckillOrder();
                 update.setId(order.getId());
-                update.setStatus(2);
+                update.setStatus(3);
                 update.setCancelTime(new Date());
                 update.setCancelReason("pay_timeout");
                 orderMapper.updateOrder(update);
@@ -105,8 +105,9 @@ public class SeckillOrderTimeoutTask {
 
                 // 2b. 归还 Redis 库存，用 Lua 脚本原子归还，不超过 totalStock 上限
                 OshSeckillActivityItem item = itemMapper.selectItemById(order.getItemId());
+                Long stockAfter = null;
                 if (item != null && Boolean.TRUE.equals(stringRedisTemplate.hasKey(stockKey))) {
-                    stringRedisTemplate.execute(
+                    stockAfter = stringRedisTemplate.execute(
                             RETURN_STOCK_SCRIPT,
                             Arrays.asList(stockKey),
                             String.valueOf(qty),
@@ -115,22 +116,25 @@ public class SeckillOrderTimeoutTask {
                 }
 
                 // 3. 减少用户已购数量，允许用户重新下单
+                Long boughtAfter = null;
                 if (Boolean.TRUE.equals(stringRedisTemplate.hasKey(boughtCntKey))) {
-                    stringRedisTemplate.opsForValue().increment(boughtCntKey, -qty);
+                    boughtAfter = stringRedisTemplate.opsForValue().increment(boughtCntKey, -qty);
                 }
+                logger.info("【超时取消】回滚完成，seckillNo={}, qty={}, Redis库存归还后={}, bought_cnt归还后={}",
+                        order.getSeckillNo(), qty, stockAfter, boughtAfter);
 
                 // 4. 删除流程状态 Key（超时后通常已自然过期，显式删除兜底）
                 stringRedisTemplate.delete(orderKey);
 
-                // 5. 同步取消统一订单
+                // 5. 同步取消统一订单（用 orderNo 调支付系统，不能用 seckillNo）
                 try {
-                    orderService.cancelPaymentByOrderNo(order.getSeckillNo());
+                    orderService.cancelPaymentByOrderNo(order.getOrderNo());
                 } catch (Exception ex) {
-                    logger.warn("【超时取消】取消统一订单失败，seckillNo={}, error={}", order.getSeckillNo(), ex.getMessage());
+                    logger.warn("【超时取消】取消统一订单失败，seckillNo={}, orderNo={}, error={}", order.getSeckillNo(), order.getOrderNo(), ex.getMessage());
                 }
 
-                logger.info("【超时取消】订单已取消，seckillNo={}, userId={}, activityId={}, itemId={}",
-                        order.getSeckillNo(), order.getUserId(), order.getActivityId(), order.getItemId());
+                logger.info("【超时取消】订单已取消，seckillNo={}, orderNo={}, userId={}, activityId={}, itemId={}",
+                        order.getSeckillNo(), order.getOrderNo(), order.getUserId(), order.getActivityId(), order.getItemId());
                 success++;
 
             } catch (Exception e) {
