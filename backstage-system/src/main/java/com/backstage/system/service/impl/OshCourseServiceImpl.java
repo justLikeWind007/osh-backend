@@ -818,28 +818,45 @@ public class OshCourseServiceImpl implements IOshCourseService {
         if (materialRequest == null) {
             return;
         }
-        // 新增资料时校验必填字段
-        if (materialRequest.getMaterialId() == null) {
-            if (org.apache.commons.lang3.StringUtils.isBlank(materialRequest.getFileName())) {
-                throw new com.backstage.common.exception.ServiceException("资料文件名称不能为空");
-            }
-            if (org.apache.commons.lang3.StringUtils.isBlank(materialRequest.getFileUrl())) {
-                throw new com.backstage.common.exception.ServiceException("资料文件地址不能为空");
-            }
-            if (org.apache.commons.lang3.StringUtils.isBlank(materialRequest.getFileType())) {
-                throw new com.backstage.common.exception.ServiceException("资料文件类型不能为空");
-            }
-            if (materialRequest.getFileSize() == null || materialRequest.getFileSize().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-                throw new com.backstage.common.exception.ServiceException("资料文件大小不能为空");
-            }
+        if (materialRequest.getMaterialId() != null) {
+            return;
+        }
+        if (org.apache.commons.lang3.StringUtils.isBlank(materialRequest.getFileName())) {
+            throw new com.backstage.common.exception.ServiceException("资料文件名称不能为空");
+        }
+        if (org.apache.commons.lang3.StringUtils.isBlank(materialRequest.getFileUrl())) {
+            throw new com.backstage.common.exception.ServiceException("资料文件地址不能为空");
+        }
+        if (org.apache.commons.lang3.StringUtils.isBlank(materialRequest.getFileType())) {
+            throw new com.backstage.common.exception.ServiceException("资料文件类型不能为空");
+        }
+        if (materialRequest.getFileSize() == null || materialRequest.getFileSize().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+            throw new com.backstage.common.exception.ServiceException("资料文件大小不能为空");
         }
         OshCourseMaterial material = buildCourseMaterialForCreate(courseId, materialRequest, operator);
         oshCourseMaterialMapper.insertMaterialEntity(material);
     }
 
+    static String normalizeMaterialRelativePath(String fileUrl) {
+        if (StringUtils.isBlank(fileUrl) || "keep".equalsIgnoreCase(fileUrl.trim())) {
+            return null;
+        }
+        String trimmed = fileUrl.trim();
+        if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+            throw new com.backstage.common.exception.ServiceException("资料地址必须为OSS相对路径，请重新上传资料");
+        }
+        while (trimmed.startsWith("/")) {
+            trimmed = trimmed.substring(1);
+        }
+        return trimmed;
+    }
+
     static OshCourseMaterial buildCourseMaterialForCreate(Long courseId, CourseMaterialCreateRequest materialRequest, OshUser operator) {
         String fileName = StringUtils.trimToNull(materialRequest.getFileName());
-        String fileUrl = StringUtils.trimToNull(materialRequest.getFileUrl());
+        String fileUrl = normalizeMaterialRelativePath(materialRequest.getFileUrl());
+        if (StringUtils.isBlank(fileUrl)) {
+            throw new com.backstage.common.exception.ServiceException("资料文件地址不能为空");
+        }
         String fileType = StringUtils.trimToNull(materialRequest.getFileType());
 
         OshCourseMaterial material = new OshCourseMaterial();

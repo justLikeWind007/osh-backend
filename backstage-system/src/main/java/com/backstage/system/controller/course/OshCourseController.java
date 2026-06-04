@@ -240,10 +240,11 @@ public class OshCourseController extends BaseController {
     }
 
     @ApiOperation("获取课程资料数组")
+    @Anonymous
     @GetMapping("/section/materials/{courseId}")
     public R<List<OshCourseMaterial>> getCourseMaterials(@NotNull @PathVariable Long courseId) {
-        OshUser currentOshUser = UserContextUtil.getCurrentUser();
-        if (currentOshUser == null) {
+        Long userId = UserContextUtil.getCurrentUserIdSafely();
+        if (userId == null) {
             return R.fail("请先登录");
         }
         return R.ok(oshCourseService.getCourseMaterials(courseId));
