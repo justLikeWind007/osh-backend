@@ -105,12 +105,7 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
         int pageSize = 200;
         int total = 0;
 
-        try {
-            oshCourseEsMapper.deleteAllCourses();
-        } catch (Exception ex) {
-            throw new IllegalStateException("clear courses in es failed", ex);
-        }
-
+        // 增量 upsert，避免先 deleteAll 后写回失败导致 ES 索引被清空
         while (true) {
             CourseSearchRequest request = new CourseSearchRequest();
             request.setPageNum(pageNum);
