@@ -342,7 +342,6 @@ public class OshToolServiceImplTest {
         request.setToolName("测试工具-" + resourceType);
         request.setRoutePath("/test/" + resourceType.toLowerCase());
         request.setResourceType(resourceType);
-        request.setLevel(999);
 
         OshUser operator = new OshUser();
         operator.setUsername("admin");
