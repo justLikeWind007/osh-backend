@@ -19,6 +19,9 @@ public class OshOpenProject extends OSHBaseEntity implements Serializable {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    /** 资源编号 */
+    private String no;
+
     /** 项目名称 */
     private String projectName;
 
@@ -60,6 +63,9 @@ public class OshOpenProject extends OSHBaseEntity implements Serializable {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public String getNo() { return no; }
+    public void setNo(String no) { this.no = no; }
 
     public String getProjectName() { return projectName; }
     public void setProjectName(String projectName) { this.projectName = projectName; }

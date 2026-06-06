@@ -38,7 +38,7 @@ public class MyInitiatedGroupVO {
     /** 自定义拼团价格 */
     private BigDecimal customPrice;
     
-    /** 组团状态：0-招募中 1-已成团 2-已取消/过期 */
+    /** 组团状态：0-招募中 1-已成团 2-已结束 */
     private Integer groupStatus;
     
     /** 组团状态文字 */

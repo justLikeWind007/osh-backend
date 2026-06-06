@@ -23,8 +23,8 @@ public interface IOshSeckillActivityService {
     /** 查询活动列表（含商品明细列表） */
     List<SeckillActivityVO> selectActivityList(OshSeckillActivity activity);
 
-    /** 用户端：查询进行中的活动列表（固定 status=2，含商品明细，支持按商品名称/类型筛选） */
-    List<SeckillActivityUserVO> selectActiveActivityList(String title, Integer goodsType);
+    /** 用户端：查询进行中的活动列表（固定 status=2，含商品明细，支持按商品名称/类型/标签筛选） */
+    List<SeckillActivityUserVO> selectActiveActivityList(String title, Integer goodsType, List<String> tagNameList);
 
     /** 用户端：查询进行中的活动详情（固定 status=2，含商品明细） */
     SeckillActivityUserVO selectActiveActivityById(Long id);

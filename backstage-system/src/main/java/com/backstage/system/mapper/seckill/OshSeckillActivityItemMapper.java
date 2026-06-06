@@ -20,11 +20,17 @@ public interface OshSeckillActivityItemMapper {
     List<OshSeckillActivityItem> selectItemsByActivityId(Long activityId);
 
     /**
+     * 批量查询多个活动的明细（按 sort 升序），供批量回填使用，避免 N+1
+     */
+    List<OshSeckillActivityItem> selectItemsByActivityIds(@Param("activityIds") List<Long> activityIds);
+
+    /**
      * 查询符合搜索条件的进行中活动ID列表
-     * 用于用户端按商品名称、商品类型筛选活动
+     * 用于用户端按商品名称、商品类型、标签筛选活动（tagNameList 为 OR 语义）
      */
     List<Long> selectActiveActivityIdsByCondition(@Param("title") String title,
-                                                   @Param("goodsType") Integer goodsType);
+                                                   @Param("goodsType") Integer goodsType,
+                                                   @Param("tagNameList") List<String> tagNameList);
 
     /** 批量插入明细 */
     int insertItems(@Param("items") List<OshSeckillActivityItem> items);

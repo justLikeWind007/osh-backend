@@ -6,8 +6,10 @@ import com.backstage.common.core.domain.model.OshUserDetail;
 import com.backstage.common.threadlocal.ThreadLocalUtil;
 import com.backstage.common.utils.jwt.JwtUtil;
 import com.backstage.framework.config.properties.PermitAllUrlProperties;
+import com.backstage.system.domain.user.OshPermission;
 import com.backstage.system.domain.user.OshRole;
 import com.backstage.system.domain.user.OshUser;
+import com.backstage.system.mapper.user.OshPermissionMapper;
 import com.backstage.system.mapper.user.OshRoleMapper;
 import com.backstage.system.mapper.user.OshUserMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -26,6 +28,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * OSH 前台用户认证过滤器
@@ -44,6 +47,9 @@ public class OshAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired
     private OshRoleMapper oshRoleMapper;
+
+    @Autowired
+    private OshPermissionMapper oshPermissionMapper;
 
     @Autowired
     private PermitAllUrlProperties permitAllUrl;
@@ -120,7 +126,8 @@ public class OshAuthenticationFilter extends OncePerRequestFilter {
         // 实时查询用户有效角色（考虑角色过期），确保过期角色不再生效
         List<Integer> effectiveRoleIds = oshRoleMapper.getRoleIdsByUserId(userId);
         String effectiveLevel = "1";
-        String effectiveRoleCode = "";
+        String effectiveRoleCode = "user";
+        Map<String, String> effectiveRole = defaultRole();
         if (effectiveRoleIds != null && !effectiveRoleIds.isEmpty()) {
             LambdaQueryWrapper<OshRole> roleWrapper = new LambdaQueryWrapper<>();
             roleWrapper.in(OshRole::getId, effectiveRoleIds).eq(OshRole::getDeleteFlag, 0);
@@ -132,8 +139,17 @@ public class OshAuthenticationFilter extends OncePerRequestFilter {
                 }
                 effectiveLevel = highest.getLevel().toString();
                 effectiveRoleCode = highest.getRoleCode();
+                effectiveRole.put("roleName", highest.getRoleName());
+                effectiveRole.put("roleCode", highest.getRoleCode());
+                effectiveRole.put("level", highest.getLevel().toString());
             }
         }
+        Map<String, List<String>> effectivePermission = buildPermission(effectiveRoleIds);
+        userInfoMap.put(OshUserConstants.ROLE, effectiveRole);
+        userInfoMap.put(OshUserConstants.PERMISSION, effectivePermission);
+        userInfoMap.put(OshUserConstants.LOGINCOUNT, userInfoMap.getOrDefault(OshUserConstants.LOGINCOUNT, 1));
+        userInfoMap.put(OshUserConstants.TOKEN, token);
+        redisCache.setCacheObject(loginUserKey, userInfoMap, LOGIN_EXPIRE_MINUTES, TimeUnit.MINUTES);
         ThreadLocalUtil.set(OshUserConstants.LEVEL, effectiveLevel);
         ThreadLocalUtil.set(OshUserConstants.ROLE_CODE, effectiveRoleCode);
 
@@ -187,5 +203,51 @@ public class OshAuthenticationFilter extends OncePerRequestFilter {
             }
         }
         return false;
+    }
+
+    private Map<String, String> defaultRole() {
+        Map<String, String> role = new HashMap<>();
+        role.put("roleName", "普通用户");
+        role.put("roleCode", "user");
+        role.put("level", "1");
+        return role;
+    }
+
+    private Map<String, List<String>> buildPermission(List<Integer> roleIds) {
+        if (roleIds == null || roleIds.isEmpty()) {
+            return new HashMap<>();
+        }
+        List<Integer> permissionIds = oshPermissionMapper.selectPermissionIdsByRoleIds(roleIds);
+        if (permissionIds == null || permissionIds.isEmpty()) {
+            return new HashMap<>();
+        }
+        LambdaQueryWrapper<OshPermission> permissionWrapper = new LambdaQueryWrapper<>();
+        permissionWrapper.in(OshPermission::getId, permissionIds).eq(OshPermission::getDeleteFlag, 0);
+        List<OshPermission> permissions = oshPermissionMapper.selectList(permissionWrapper);
+        if (permissions == null || permissions.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        Map<Integer, OshPermission> permissionMap = permissions.stream()
+                .collect(Collectors.toMap(OshPermission::getId, p -> p, (left, right) -> left));
+        Map<String, List<String>> result = new HashMap<>();
+        for (OshPermission permission : permissions) {
+            String currentCode = permission.getPermissionCode();
+            if (currentCode == null || currentCode.isEmpty()) {
+                continue;
+            }
+            Integer parentId = permission.getParentId();
+            OshPermission parent = permissionMap.get(parentId);
+            if (parent != null) {
+                String parentCode = parent.getPermissionCode();
+                if (parentCode != null && !parentCode.isEmpty()) {
+                    result.computeIfAbsent(parentCode, k -> new ArrayList<>()).add(currentCode);
+                }
+            } else if (parentId == null || parentId == 0) {
+                result.computeIfAbsent(currentCode, k -> new ArrayList<>());
+            }
+        }
+        result.values().forEach(Collections::sort);
+        return result;
     }
 }

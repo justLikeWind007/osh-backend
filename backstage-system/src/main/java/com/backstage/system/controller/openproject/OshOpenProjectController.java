@@ -48,7 +48,7 @@ public class OshOpenProjectController {
     @PostMapping("/list")
     @OshUserEvent(module = "开源项目", actionType = "查询", resourceType = "开源项目")
     @Anonymous
-    public R<Map<String, Object>> list(@RequestBody OpenProjectQueryDTO queryDTO) {
+    public R<Map<String, Object>> list(@RequestBody(required = false) OpenProjectQueryDTO queryDTO) {
         return R.ok(openProjectService.listPage(queryDTO));
     }
 
@@ -56,7 +56,7 @@ public class OshOpenProjectController {
     @PostMapping("/pending")
     @PreAuthorize("hasAuthority('op:audit')")
     @OshUserEvent(module = "开源项目", actionType = "查询", resourceType = "开源项目")
-    public R<Map<String, Object>> pending(@RequestBody OpenProjectQueryDTO queryDTO) {
+    public R<Map<String, Object>> pending(@RequestBody(required = false) OpenProjectQueryDTO queryDTO) {
         return R.ok(openProjectService.listPending(queryDTO));
     }
 
@@ -85,7 +85,7 @@ public class OshOpenProjectController {
 
     /** 查询项目详情 */
     @GetMapping("/detail/{id}")
-    @PreAuthorize("hasAuthority('op:detail')")
+    @Anonymous
     @OshUserEvent(module = "开源项目", actionType = "查询", resourceType = "开源项目")
     public R<OpenProjectVO> detail(@PathVariable Long id) {
         OpenProjectVO vo = openProjectService.getDetail(id);
@@ -96,10 +96,14 @@ public class OshOpenProjectController {
     /** 增加点击次数 */
     @PutMapping("/click")
     @OshUserEvent(module = "开源项目", actionType = "点击", resourceType = "开源项目")
-    @PreAuthorize("hasAuthority('op:click')")
+    @Anonymous
     public R<Void> click(@RequestParam Long id) {
-        openProjectService.incrementClickCount(id);
-        return R.ok();
+        try {
+            openProjectService.incrementClickCount(id);
+            return R.ok();
+        } catch (IllegalArgumentException e) {
+            return R.fail(e.getMessage());
+        }
     }
 
     /** 用户提交开源项目 */
@@ -122,9 +126,13 @@ public class OshOpenProjectController {
     @PreAuthorize("hasAuthority('op:collection')")
     @OshUserEvent(module = "开源项目", actionType = "收藏", resourceType = "开源项目")
     public R<Void> favorite(@RequestParam Long projectId) {
-        Long userId = UserContextUtil.getCurrentUserId();
-        favoriteService.favorite(userId, projectId);
-        return R.ok();
+        try {
+            Long userId = UserContextUtil.getCurrentUserId();
+            favoriteService.favorite(userId, projectId);
+            return R.ok();
+        } catch (IllegalArgumentException e) {
+            return R.fail(e.getMessage());
+        }
     }
 
     /** 取消收藏 */
@@ -132,9 +140,13 @@ public class OshOpenProjectController {
     @PreAuthorize("hasAuthority('op:cancel:collection')")
     @OshUserEvent(module = "开源项目", actionType = "取消收藏", resourceType = "开源项目")
     public R<Void> cancelFavorite(@RequestParam Long projectId) {
-        Long userId = UserContextUtil.getCurrentUserId();
-        favoriteService.cancelFavorite(userId, projectId);
-        return R.ok();
+        try {
+            Long userId = UserContextUtil.getCurrentUserId();
+            favoriteService.cancelFavorite(userId, projectId);
+            return R.ok();
+        } catch (IllegalArgumentException e) {
+            return R.fail(e.getMessage());
+        }
     }
 
     /**
@@ -144,7 +156,7 @@ public class OshOpenProjectController {
      * @param topN     返回前 N 名，默认 10
      */
     @GetMapping("/rank")
-    @PreAuthorize("hasAuthority('op:rank')")
+    @Anonymous
     public R<List<OpenProjectRankVO>> rank(
             @RequestParam(defaultValue = "star") String rankType,
             @RequestParam(defaultValue = "7")    int period,
