@@ -11,7 +11,9 @@
         <result property="orderNo" column="order_no"/>
         <result property="memberType" column="member_type"/>
         <result property="planNameSnapshot" column="plan_name_snapshot"/>
+        <result property="purchaseQuantity" column="purchase_quantity"/>
         <result property="durationMonths" column="duration_months"/>
+        <result property="originalAmount" column="original_amount"/>
         <result property="payAmount" column="pay_amount"/>
         <result property="payStatus" column="pay_status"/>
         <result property="grantStatus" column="grant_status"/>
@@ -28,8 +30,8 @@
     </resultMap>
 
     <select id="selectByOrderNoForUpdate" resultMap="OshMemberOrderResult">
-        select id, user_id, plan_id, order_no, member_type, plan_name_snapshot, duration_months,
-               pay_amount, pay_status, grant_status, grant_message, start_time, expire_time,
+        select id, user_id, plan_id, order_no, member_type, plan_name_snapshot, purchase_quantity, duration_months,
+               original_amount, pay_amount, pay_status, grant_status, grant_message, start_time, expire_time,
                pay_time, grant_time, create_time, create_by, update_time, update_by, delete_flag
         from osh_member_order
         where order_no = #{orderNo}
@@ -42,7 +44,9 @@
         select order_no as orderNo,
                plan_name_snapshot as planName,
                member_type as memberType,
+               purchase_quantity as purchaseQuantity,
                duration_months as durationMonths,
+               original_amount as originalAmount,
                pay_amount as payAmount,
                pay_status as payStatus,
                grant_status as grantStatus,

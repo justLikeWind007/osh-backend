@@ -6,7 +6,9 @@ public class MemberOrderVO {
     private String orderNo;
     private String planName;
     private String memberType;
+    private Integer purchaseQuantity;
     private Integer durationMonths;
+    private BigDecimal originalAmount;
     private BigDecimal payAmount;
     private Integer payStatus;
     private Integer grantStatus;
@@ -20,8 +22,12 @@ public class MemberOrderVO {
     public void setPlanName(String planName) { this.planName = planName; }
     public String getMemberType() { return memberType; }
     public void setMemberType(String memberType) { this.memberType = memberType; }
+    public Integer getPurchaseQuantity() { return purchaseQuantity; }
+    public void setPurchaseQuantity(Integer purchaseQuantity) { this.purchaseQuantity = purchaseQuantity; }
     public Integer getDurationMonths() { return durationMonths; }
     public void setDurationMonths(Integer durationMonths) { this.durationMonths = durationMonths; }
+    public BigDecimal getOriginalAmount() { return originalAmount; }
+    public void setOriginalAmount(BigDecimal originalAmount) { this.originalAmount = originalAmount; }
     public BigDecimal getPayAmount() { return payAmount; }
     public void setPayAmount(BigDecimal payAmount) { this.payAmount = payAmount; }
     public Integer getPayStatus() { return payStatus; }

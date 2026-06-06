@@ -20,7 +20,9 @@ public class OshMemberOrder extends OSHBaseEntity implements Serializable {
     private String orderNo;
     private String memberType;
     private String planNameSnapshot;
+    private Integer purchaseQuantity;
     private Integer durationMonths;
+    private BigDecimal originalAmount;
     private BigDecimal payAmount;
     private Integer payStatus;
     private Integer grantStatus;
@@ -42,8 +44,12 @@ public class OshMemberOrder extends OSHBaseEntity implements Serializable {
     public void setMemberType(String memberType) { this.memberType = memberType; }
     public String getPlanNameSnapshot() { return planNameSnapshot; }
     public void setPlanNameSnapshot(String planNameSnapshot) { this.planNameSnapshot = planNameSnapshot; }
+    public Integer getPurchaseQuantity() { return purchaseQuantity; }
+    public void setPurchaseQuantity(Integer purchaseQuantity) { this.purchaseQuantity = purchaseQuantity; }
     public Integer getDurationMonths() { return durationMonths; }
     public void setDurationMonths(Integer durationMonths) { this.durationMonths = durationMonths; }
+    public BigDecimal getOriginalAmount() { return originalAmount; }
+    public void setOriginalAmount(BigDecimal originalAmount) { this.originalAmount = originalAmount; }
     public BigDecimal getPayAmount() { return payAmount; }
     public void setPayAmount(BigDecimal payAmount) { this.payAmount = payAmount; }
     public Integer getPayStatus() { return payStatus; }

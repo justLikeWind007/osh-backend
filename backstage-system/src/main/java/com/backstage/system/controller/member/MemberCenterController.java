@@ -4,6 +4,8 @@ import com.backstage.common.core.domain.R;
 import com.backstage.common.exception.ServiceException;
 import com.backstage.system.domain.member.OshMemberPlan;
 import com.backstage.system.domain.member.dto.MemberCheckoutDTO;
+import com.backstage.system.domain.member.dto.MemberPlanConfigDTO;
+import com.backstage.system.domain.member.dto.MemberPricingRuleDTO;
 import com.backstage.system.domain.member.vo.MemberCenterVO;
 import com.backstage.system.domain.member.vo.MemberOrderVO;
 import com.backstage.system.domain.vo.pay.OrderCheckoutRespVO;
@@ -33,6 +35,24 @@ public class MemberCenterController {
     @GetMapping("/plans")
     public R<List<OshMemberPlan>> plans() {
         return R.ok(memberCenterService.listPlans());
+    }
+
+    @GetMapping("/admin/plans")
+    public R<List<OshMemberPlan>> adminPlans() {
+        currentUserId();
+        return R.ok(memberCenterService.listAllPlansForFounder());
+    }
+
+    @PostMapping("/admin/plan/config")
+    public R<Void> updatePlanConfig(@Validated @RequestBody MemberPlanConfigDTO dto) {
+        memberCenterService.updatePlanConfig(currentUserId(), dto);
+        return R.ok();
+    }
+
+    @PostMapping("/admin/plan/pricing-rule")
+    public R<Void> updatePricingRule(@Validated @RequestBody MemberPricingRuleDTO dto) {
+        memberCenterService.updatePricingRule(currentUserId(), dto);
+        return R.ok();
     }
 
     @PostMapping("/checkout")
