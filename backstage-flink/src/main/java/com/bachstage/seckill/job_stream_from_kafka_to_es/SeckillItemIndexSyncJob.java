@@ -33,7 +33,8 @@ public class SeckillItemIndexSyncJob {
     private static final String EVENT_TYPE_UPDATE = "SECKILL_ITEM_INDEX_UPDATE";
     private static final String EVENT_TYPE_DELETE = "SECKILL_ITEM_INDEX_DELETE";
 
-    /** activityStatus=2 表示进行中，只有进行中的活动商品才写入 ES */
+    /** activityStatus=1 表示未开始，activityStatus=2 表示进行中，两种状态都写入 ES */
+    private static final int ACTIVITY_STATUS_NOT_STARTED = 1;
     private static final int ACTIVITY_STATUS_ONGOING = 2;
 
     public static void main(String[] args) throws Exception {
@@ -115,8 +116,11 @@ public class SeckillItemIndexSyncJob {
 
     private static boolean isOngoing(JSONObject msg) {
         Integer activityStatus = msg.getInteger("activityStatus");
-        boolean pass = activityStatus != null && ACTIVITY_STATUS_ONGOING == activityStatus;
-        log.info("【秒杀明细索引】进行中过滤 - 明细ID: {}, activityStatus: {}, 是否通过: {}",
+        // status=1（未开始）或 status=2（进行中）都写入 ES
+        // ES 查询时通过 startTime <= now 过滤，不依赖 activityStatus 决定可见性
+        boolean pass = activityStatus != null &&
+                (ACTIVITY_STATUS_NOT_STARTED == activityStatus || ACTIVITY_STATUS_ONGOING == activityStatus);
+        log.info("【秒杀明细索引】ES写入过滤 - 明细ID: {}, activityStatus: {}, 是否写入ES: {}",
                 msg.getLong("id"), activityStatus, pass);
         return pass;
     }

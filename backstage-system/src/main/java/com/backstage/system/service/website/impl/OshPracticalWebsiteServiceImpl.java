@@ -17,7 +17,6 @@ import com.backstage.system.domain.website.WebsiteEsDoc;
 import com.backstage.system.mapper.website.OshPracticalWebsiteMapper;
 import com.backstage.system.mapper.website.OshWebsiteTagRelMapper;
 import com.backstage.system.mapper.website.OshWebsiteUserRatingMapper;
-import com.backstage.system.service.website.IWebsiteAnnouncementService;
 import com.backstage.system.service.website.OshPracticalWebsiteService;
 import com.backstage.system.service.website.OshWebsiteTagService;
 import com.backstage.system.utils.UserContextUtil;
@@ -59,8 +58,6 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
     private OshWebsiteTagService oshWebsiteTagService;
     @Autowired
     private OshWebsiteUserRatingMapper oshWebsiteUserRatingMapper;
-    @Autowired
-    private IWebsiteAnnouncementService websiteAnnouncementService;
     @Autowired
     private EmailUtil emailUtil;
     @Autowired
@@ -279,11 +276,9 @@ public class OshPracticalWebsiteServiceImpl implements OshPracticalWebsiteServic
             return rejectResult;
         }
 
-        // 5. 更新对应数据库
+        // 更新对应数据库
         boolean updateResult = oshPracticalWebsiteMapper.updateStatusById(website);
         if (updateResult) {
-            // 审核通过后写入公告栏
-            websiteAnnouncementService.insertWebsiteNotice(website.getId(), website.getName());
             // MySQL 更新成功后，把数据同步到 ES
             try {
                 OshPracticalWebsiteVO vo = oshPracticalWebsiteMapper.selectByIdAndStatus(

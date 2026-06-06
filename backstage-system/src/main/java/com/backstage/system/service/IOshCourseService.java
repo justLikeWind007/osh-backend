@@ -88,7 +88,9 @@ public interface IOshCourseService {
 
     OshCourseDetailVo getCourseDetail(Long id, Long userId, boolean includeUnpublished);
 
-    List<OshCourseSectionVo> getCourseSectionOutline(Long courseId);
+    List<OshCourseSectionVo> getCourseSectionOutline(Long courseId, Long userId);
+
+    boolean canUserAccessSectionContent(Long courseId, Long sectionId, Long userId);
 
     Integer isUserBuyCourseOrFreeCourse(Long courseId, Long userId);
 
