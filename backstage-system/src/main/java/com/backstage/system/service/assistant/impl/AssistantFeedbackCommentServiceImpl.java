@@ -102,7 +102,7 @@ public class AssistantFeedbackCommentServiceImpl
 
         OshUser user = userMap.get(comment.getUserId());
         if (user != null) {
-            commentVO.setUserName(user.getUsername() != null && !user.getUsername().isEmpty() ? user.getUsername() : user.getUsername());
+            commentVO.setUserName(StrUtil.isNotBlank(user.getUsername()) ? user.getUsername() : "匿名用户");
             commentVO.setUserAvatar(user.getAvatar());
         }
         return commentVO;
@@ -129,14 +129,6 @@ public class AssistantFeedbackCommentServiceImpl
                 .eq(AssistantFeedback::getId, feedbackId)
                 .eq(AssistantFeedback::getDeleteFlag, (byte) 0)
                 .one();
-    }
-
-    private String resolveReplyToUserName(AssistantFeedbackComment parentComment) {
-        OshUser replyToUser = parentComment.getUserId() == null ? null : oshUserMapper.selectById(parentComment.getUserId());
-        if (replyToUser != null) {
-            return StrUtil.isNotBlank(replyToUser.getUsername()) ? replyToUser.getUsername() : "匿名用户";
-        }
-        return StrUtil.blankToDefault(parentComment.getReplyToUserName(), "用户");
     }
 
     @Override
