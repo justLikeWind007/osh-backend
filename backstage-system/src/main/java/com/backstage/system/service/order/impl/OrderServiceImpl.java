@@ -216,6 +216,18 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
         return toStatusResult(order, payment);
     }
 
+    @Override
+    public OrderStatusResult getOrderStatusForUser(String orderNo, Long userId) {
+        OshOrder order = requireUserOrder(orderNo, userId);
+        OshPayment payment = paymentMapper.selectByOrderNo(orderNo);
+        if (Objects.nonNull(payment) && Objects.nonNull(payment.getStatus()) && payment.getStatus() == PAYMENT_PENDING) {
+            tryRefreshFromPlatform(payment);
+            order = orderMapper.selectByOrderNo(orderNo);
+            payment = paymentMapper.selectByOrderNo(orderNo);
+        }
+        return toStatusResult(order, payment);
+    }
+
     /**
      * 根据支付流水号查询订单和支付状态。
      *
@@ -263,6 +275,12 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
     public void cancelPaymentByOrderNo(String orderNo) {
         OshPayment payment = paymentMapper.selectByOrderNo(orderNo);
         cancelPendingPayment(payment);
+    }
+
+    @Override
+    public void cancelPaymentByOrderNoForUser(String orderNo, Long userId) {
+        requireUserOrder(orderNo, userId);
+        cancelPaymentByOrderNo(orderNo);
     }
 
     /**
@@ -818,6 +836,20 @@ public class OrderServiceImpl extends ServiceImpl<OshOrderMapper, OshOrder> impl
             result.setPayStatus(Objects.nonNull(order) && Objects.nonNull(order.getStatus()) && order.getStatus() == ORDER_PAID);
         }
         return result;
+    }
+
+    private OshOrder requireUserOrder(String orderNo, Long userId) {
+        if (userId == null) {
+            throw new ServiceException("请先登录");
+        }
+        OshOrder order = orderMapper.selectByOrderNo(orderNo);
+        if (Objects.isNull(order)) {
+            throw new ServiceException("订单不存在");
+        }
+        if (!Objects.equals(order.getUserId(), userId)) {
+            throw new ServiceException("无权操作该订单");
+        }
+        return order;
     }
 
     /**
