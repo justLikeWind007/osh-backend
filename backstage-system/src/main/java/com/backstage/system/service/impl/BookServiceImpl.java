@@ -614,7 +614,7 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
     }
 
     @Override
-    public OrderCheckoutRespVO purchaseBook(Long bookId, Long userId, String channel) {
+    public OrderCheckoutRespVO purchaseBook(Long bookId, Long userId, String channel, Boolean usePoints) {
         BookDO bookDO = getById(bookId);
         checkEntityNotNull(bookDO, "电子书不存在");
 
@@ -625,7 +625,7 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
         }
 
         // 构建订单结算参数，交给订单模块处理
-        return orderCheckoutService.checkout(buildBookCheckoutReqVO(bookDO, bookId, userId, channel));
+        return orderCheckoutService.checkout(buildBookCheckoutReqVO(bookDO, bookId, userId, channel, usePoints));
     }
 
     /**
@@ -635,9 +635,14 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
      * @param bookId 电子书ID
      * @param userId 用户ID
      * @param channel 支付渠道
+     * @param usePoints 是否使用积分抵扣
      * @return 订单结算参数
      */
-    private OrderCheckoutReqVO buildBookCheckoutReqVO(BookDO bookDO, Long bookId, Long userId, String channel) {
+    private OrderCheckoutReqVO buildBookCheckoutReqVO(BookDO bookDO,
+                                                      Long bookId,
+                                                      Long userId,
+                                                      String channel,
+                                                      Boolean usePoints) {
         OrderCheckoutReqVO reqVO = new OrderCheckoutReqVO();
         reqVO.setUserId(userId);
         reqVO.setProductType(ProductTypeEnum.BOOK.getCode());
@@ -647,6 +652,7 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, BookDO> implements 
         reqVO.setPayableAmount(bookDO.getPrice());
         reqVO.setDiscountAmount(java.math.BigDecimal.ZERO);
         reqVO.setChannel(channel);
+        reqVO.setUsePoints(usePoints);
         return reqVO;
     }
 

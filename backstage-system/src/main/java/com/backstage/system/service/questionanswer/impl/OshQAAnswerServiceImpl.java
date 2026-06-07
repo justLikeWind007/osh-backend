@@ -11,10 +11,13 @@ import com.backstage.system.mapper.questionanswer.OshQAQuestionMapper;
 import com.backstage.system.mapper.user.OshUserMapper;
 import com.backstage.system.service.questionanswer.IOshQAAnswerService;
 import com.backstage.system.service.websocket.WebSocketNotifyService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 /**
  * 问答回答 Service 实现
@@ -23,6 +26,9 @@ import org.springframework.stereotype.Service;
 public class OshQAAnswerServiceImpl implements IOshQAAnswerService {
 
     private static final Logger log = LoggerFactory.getLogger(OshQAAnswerServiceImpl.class);
+    private static final byte QUESTION_STATUS_PUBLISHED = 1;
+    private static final byte QUESTION_STATUS_ANSWERED = 2;
+    private static final byte ANSWER_STATUS_NORMAL = 0;
 
     @Autowired
     private OshQAAnswerMapper oshQAAnswerMapper;
@@ -37,17 +43,43 @@ public class OshQAAnswerServiceImpl implements IOshQAAnswerService {
     private WebSocketNotifyService webSocketNotifyService;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public R<String> answer(Long userId, Long questionId, String content) {
+        if (userId == null) {
+            return R.fail(ResultCode.FAILED_NOT_LOGIN.getMsg());
+        }
+        if (questionId == null || !StringUtils.hasText(content)) {
+            return R.fail(ResultCode.FAILED_PARAMS_VALIDATE.getMsg());
+        }
+        Question question = questionMapper.selectOne(new LambdaQueryWrapper<Question>()
+                .select(Question::getId, Question::getUserId, Question::getStatus)
+                .eq(Question::getId, questionId)
+                .eq(Question::getDeleteFlag, 0));
+        if (question == null) {
+            return R.fail(ResultCode.FAILED_NOT_EXISTS.getMsg());
+        }
+        if (question.getStatus() == null || question.getStatus() < QUESTION_STATUS_PUBLISHED) {
+            return R.fail(ResultCode.FAILED_USER_PERMISSION_DENIED.getMsg());
+        }
+
         // 1. 保存回答
         Answer answer = new Answer();
         answer.setQuestionId(questionId);
         answer.setUserId(userId);
-        answer.setContent(content);
+        answer.setContent(content.trim());
+        answer.setStatus(ANSWER_STATUS_NORMAL);
+        answer.setCreateBy(userId);
+        answer.setUpdateBy(userId);
         oshQAAnswerMapper.insert(answer);
+        if (Byte.valueOf(QUESTION_STATUS_PUBLISHED).equals(question.getStatus())) {
+            Question update = new Question();
+            update.setStatus(QUESTION_STATUS_ANSWERED);
+            questionMapper.update(update, new LambdaQueryWrapper<Question>().eq(Question::getId, questionId));
+        }
 
         // 2. 推送通知（异常不影响主流程）
         try {
-            pushAnswerNotify(userId, questionId, content);
+            pushAnswerNotify(userId, question, content);
         } catch (Exception e) {
             log.error("问答回复通知推送失败，questionId={}, answererUserId={}, 原因={}",
                     questionId, userId, e.getMessage());
@@ -62,13 +94,7 @@ public class OshQAAnswerServiceImpl implements IOshQAAnswerService {
      *   1. 问题不存在 → 跳过
      *   2. 回答者 == 提问者（自问自答）→ 跳过
      */
-    private void pushAnswerNotify(Long answererUserId, Long questionId, String content) {
-        Question question = questionMapper.selectById(questionId);
-        if (question == null) {
-            log.warn("推送通知跳过：问题不存在，questionId={}", questionId);
-            return;
-        }
-
+    private void pushAnswerNotify(Long answererUserId, Question question, String content) {
         // 自问自答不推送
         if (answererUserId.equals(question.getUserId())) {
             return;
@@ -84,8 +110,8 @@ public class OshQAAnswerServiceImpl implements IOshQAAnswerService {
         msg.setType("QA_NEW_ANSWER");
         msg.setTitle(nickname + " 回答了你的问题");
         msg.setContent(webSocketNotifyService.truncate(content));
-        msg.setJumpUrl("/question_answer/detail/" + questionId);
-        msg.setBizId(questionId.toString());
+        msg.setJumpUrl("/question_answer/detail/" + question.getId());
+        msg.setBizId(question.getId().toString());
 
         webSocketNotifyService.send(question.getUserId(), msg);
     }

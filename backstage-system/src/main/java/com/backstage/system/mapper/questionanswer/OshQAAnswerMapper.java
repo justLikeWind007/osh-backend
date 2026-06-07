@@ -18,4 +18,8 @@ public interface OshQAAnswerMapper extends BaseMapper<Answer> {
     int voteAnswer(@Param("userId")Long userId, @Param("answerId") Long answerId, @Param("createBy") Long createBy);
 
     int cancelVoteAnswer(@Param("userId")Long userId, @Param("answerId") Long answerId, @Param("updateBy") Long updateBy);
+
+    int incrementVoteCount(@Param("answerId") Long answerId);
+
+    int decrementVoteCount(@Param("answerId") Long answerId);
 }

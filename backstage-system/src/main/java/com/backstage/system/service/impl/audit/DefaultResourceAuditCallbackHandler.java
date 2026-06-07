@@ -43,7 +43,6 @@ public class DefaultResourceAuditCallbackHandler implements ResourceAuditCallbac
                 ResourceTypeEnum.QA_QUESTION,
                 ResourceTypeEnum.QA_ANSWER,
                 ResourceTypeEnum.BOOK,
-                ResourceTypeEnum.WEBSITE,
                 ResourceTypeEnum.OPEN_PROJECT,
                 ResourceTypeEnum.INFO_GAP
         );

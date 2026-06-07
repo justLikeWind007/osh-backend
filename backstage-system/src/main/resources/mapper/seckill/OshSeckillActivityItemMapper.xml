@@ -50,6 +50,16 @@
         order by sort asc, id asc
     </select>
 
+    <!-- 批量查询多个活动的明细，供批量回填使用，避免 N+1 -->
+    <select id="selectItemsByActivityIds" resultMap="OshSeckillActivityItemResult">
+        <include refid="selectItemVo"/>
+        and i.activity_id in
+        <foreach collection="activityIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        order by i.sort asc, i.id asc
+    </select>
+
     <!-- 查询符合搜索条件的进行中活动ID列表（用时间窗口判断是否进行中，不依赖 status=2） -->
     <select id="selectActiveActivityIdsByCondition" resultType="java.lang.Long">
         select distinct i.activity_id
@@ -66,6 +76,20 @@
         </if>
         <if test="goodsType != null">
             and i.goods_type = #{goodsType}
+        </if>
+        <if test="tagNameList != null and tagNameList.size() > 0">
+            and exists (
+                select 1
+                from osh_seckill_goods_tag_rel r
+                join osh_seckill_goods_tag t on t.id = r.tag_id
+                where r.seckill_goods_id = i.seckill_goods_id
+                  and (r.delete_flag = 0 or r.delete_flag is null)
+                  and (t.delete_flag = 0 or t.delete_flag is null)
+                  and t.tag_name in
+                  <foreach collection="tagNameList" item="tag" open="(" separator="," close=")">
+                      #{tag}
+                  </foreach>
+            )
         </if>
     </select>
 

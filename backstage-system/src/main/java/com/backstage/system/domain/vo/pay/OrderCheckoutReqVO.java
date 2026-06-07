@@ -41,6 +41,9 @@ public class OrderCheckoutReqVO {
 
     private String channel;
 
+    /** 是否使用积分抵扣 */
+    private Boolean usePoints;
+
     /** 客户端 IP，由调用方传入；Kafka 消费者等非 HTTP 场景传固定标识 */
     private String clientIp;
 
@@ -131,6 +134,14 @@ public class OrderCheckoutReqVO {
 
     public void setChannel(String channel) {
         this.channel = channel;
+    }
+
+    public Boolean getUsePoints() {
+        return usePoints;
+    }
+
+    public void setUsePoints(Boolean usePoints) {
+        this.usePoints = usePoints;
     }
 
     public String getClientIp() {

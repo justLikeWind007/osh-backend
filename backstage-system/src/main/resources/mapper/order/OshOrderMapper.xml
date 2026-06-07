@@ -17,6 +17,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="originalAmount" column="original_amount"/>
         <result property="discountAmount" column="discount_amount"/>
         <result property="payableAmount" column="payable_amount"/>
+        <result property="pointsAmount" column="points_amount"/>
+        <result property="pointsDeductAmount" column="points_deduct_amount"/>
         <result property="couponId" column="coupon_id"/>
         <result property="createdTime" column="created_time"/>
         <result property="paidTime" column="paid_time"/>
@@ -28,7 +30,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <sql id="selectOshOrderColumns">
         select id, user_id, order_no, status, product_type, product_id, product_name,
                purchase_mode, activity_id, original_amount, discount_amount, payable_amount,
-               coupon_id, created_time, paid_time, close_time, updated_time, delete_flag
+               points_amount, points_deduct_amount, coupon_id, created_time, paid_time,
+               close_time, updated_time, delete_flag
         from osh_order
     </sql>
 
@@ -36,11 +39,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         insert into osh_order (
             user_id, order_no, status, product_type, product_id, product_name,
             purchase_mode, activity_id, original_amount, discount_amount, payable_amount,
-            coupon_id, created_time, paid_time, close_time, updated_time, delete_flag
+            points_amount, points_deduct_amount, coupon_id, created_time, paid_time,
+            close_time, updated_time, delete_flag
         ) values (
             #{userId}, #{orderNo}, #{status}, #{productType}, #{productId}, #{productName},
             #{purchaseMode}, #{activityId}, #{originalAmount}, #{discountAmount}, #{payableAmount},
-            #{couponId}, #{createdTime}, #{paidTime}, #{closeTime}, #{updatedTime}, #{deleteFlag}
+            #{pointsAmount}, #{pointsDeductAmount}, #{couponId}, #{createdTime}, #{paidTime},
+            #{closeTime}, #{updatedTime}, #{deleteFlag}
         )
     </insert>
 

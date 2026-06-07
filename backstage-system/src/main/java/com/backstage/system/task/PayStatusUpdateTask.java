@@ -32,7 +32,7 @@ public class PayStatusUpdateTask {
         try{
             // 超时订单自动关闭
             List<OshOrder> expiredOrderList = orderService.list(new LambdaQueryWrapper<OshOrder>()
-                    .le(OshOrder::getCreatedTime, LocalDateTime.now().minusNanos(30 * 60))
+                    .le(OshOrder::getCreatedTime, LocalDateTime.now().minusMinutes(30))
                     .eq(OshOrder::getDeleteFlag, 0)
             );
 

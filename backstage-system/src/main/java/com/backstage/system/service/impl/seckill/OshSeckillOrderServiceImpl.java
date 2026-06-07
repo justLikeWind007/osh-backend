@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSON;
 import com.backstage.common.constant.KafkaConstants;
 import com.backstage.common.constant.SeckillCacheConstants;
 import com.backstage.common.exception.ServiceException;
+import com.backstage.common.utils.generate.GenerateUtil;
 import com.backstage.common.utils.ip.IpUtils;
 import com.backstage.common.utils.kafka.KafkaMessageUtil;
 import com.backstage.system.domain.order.OshPayment;
@@ -25,7 +26,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import java.math.BigDecimal;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -36,7 +36,6 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 /**
@@ -64,8 +63,7 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
     private static final String SECKILL_ITEM_KEY       = SeckillCacheConstants.SECKILL_ITEM_KEY;
     private static final String SECKILL_ORDER_KEY      = SeckillCacheConstants.SECKILL_ORDER_KEY;
 
-    /** 秒杀尝试号序列号，进程内自增，配合时间戳保证唯一性 */
-    private static final AtomicLong SECKILL_NO_SEQ = new AtomicLong(0);
+    /** 秒杀尝试号使用雪花算法生成，见 generateSeckillNo() */
 
     /**
      * Lua 脚本：原子扣减库存 + 限购校验 + 记录已购数量
@@ -225,10 +223,11 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
         // 格式：SK + yyyyMMddHHmmss + 6位序列号（进程内自增，配合时间戳保证唯一性）
         String seckillNo = generateSeckillNo();
 
-        // 6. 写入未完成订单锁（orderKey），value 存 seckillNo，短 TTL 兜底
-        // 消费者建单成功后会延长 TTL 到支付超时时间；消费者失败时会主动删除
+        // 6. 写入未完成订单锁（orderKey），value 存 seckillNo
+        // 初始 TTL 设为 2 分钟，给 Kafka 消费者足够的建单处理窗口
+        // 消费者建单成功后会延长 TTL 到真实支付超时时间；消费者失败时会主动删除
         long expireSeconds = (activity.getPayTimeoutMin() != null ? activity.getPayTimeoutMin() : 15) * 60L;
-        redisTemplate.opsForValue().set(orderKey, seckillNo, 30, TimeUnit.SECONDS);
+        redisTemplate.opsForValue().set(orderKey, seckillNo, 2, TimeUnit.MINUTES);
 
         // 7. 发送 Kafka 消息，由消费者异步完成：checkout() + decrStock() + insertOrder()
         SeckillOrderMessage message = new SeckillOrderMessage();
@@ -466,12 +465,11 @@ public class OshSeckillOrderServiceImpl implements IOshSeckillOrderService {
 
     /**
      * 生成秒杀尝试号
-     * 格式：SK + yyyyMMddHHmmss + 6位序列号（进程内自增，每秒重置不影响唯一性，配合时间戳保证全局唯一）
+     * 使用项目统一的雪花算法（MyBatis-Plus DefaultIdentifierGenerator），多实例下唯一性有保障
+     * 格式：SK + 雪花ID（18位数字）
      */
     private String generateSeckillNo() {
-        String timestamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-        long seq = SECKILL_NO_SEQ.incrementAndGet() % 1_000_000L;
-        return String.format("SK%s%06d", timestamp, seq);
+        return "SK" + GenerateUtil.generateSnowflakeId();
     }
 
     /** 订单实体转管理端 VO */
