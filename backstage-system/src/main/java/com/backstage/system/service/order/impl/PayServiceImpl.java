@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
@@ -24,6 +25,8 @@ public class PayServiceImpl implements PayService {
 
     private static final Logger log = LoggerFactory.getLogger(PayServiceImpl.class);
     private static final String DEFAULT_NOTIFY_URL = "https://example.com/pay/notify-placeholder";
+    private static final int PAY_REQUEST_CONNECT_TIMEOUT_MS = 3000;
+    private static final int PAY_REQUEST_READ_TIMEOUT_MS = 8000;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -37,7 +40,6 @@ public class PayServiceImpl implements PayService {
             params.put("pid", payConfig.PID);
             params.put("type", channel);
             params.put("out_trade_no", outTradeNo);
-            params.put("notify_url", payConfig.NOTIFY_URL);
             params.put("notify_url", resolveNotifyUrl());
             params.put("return_url", PayConfig.RETURN_URL);
             params.put("name", name);
@@ -51,7 +53,7 @@ public class PayServiceImpl implements PayService {
             params.put("sign", sign);
 
             // 请求易支付 mapi.php
-            RestTemplate restTemplate = new RestTemplate();
+            RestTemplate restTemplate = new RestTemplate(requestFactory());
             MultiValueMap<String, String> request = new LinkedMultiValueMap<>();
             request.setAll(params);
             log.info("【支付】发起支付请求,url:{} , params={}", payConfig.API_URL,params);
@@ -65,9 +67,25 @@ public class PayServiceImpl implements PayService {
             log.warn("发起支付请求失败, outTradeNo={}", outTradeNo, e);
             PayResponse resp = new PayResponse();
             resp.setCode(0);
-            resp.setMsg("请求失败");
+            resp.setMsg("支付平台请求失败：" + resolveErrorMessage(e));
             return resp;
         }
+    }
+
+    private SimpleClientHttpRequestFactory requestFactory() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(PAY_REQUEST_CONNECT_TIMEOUT_MS);
+        factory.setReadTimeout(PAY_REQUEST_READ_TIMEOUT_MS);
+        return factory;
+    }
+
+    private String resolveErrorMessage(Exception e) {
+        Throwable cause = e;
+        while (cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        String message = StringUtils.defaultIfBlank(cause.getMessage(), e.getMessage());
+        return StringUtils.defaultIfBlank(message, e.getClass().getSimpleName());
     }
 
     private String resolveNotifyUrl() {

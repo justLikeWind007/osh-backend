@@ -173,7 +173,7 @@ public class MemberCenterServiceImpl implements MemberCenterService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class, noRollbackFor = ServiceException.class)
     public OrderCheckoutRespVO checkout(Long userId, MemberCheckoutDTO dto) {
         if (userId == null) {
             throw new ServiceException("请先登录");
@@ -196,7 +196,12 @@ public class MemberCenterServiceImpl implements MemberCenterService {
         reqVO.setChannel(dto.getChannel());
         reqVO.setUsePoints(false);
 
-        OrderCheckoutRespVO checkout = orderCheckoutService.checkout(reqVO);
+        OrderCheckoutRespVO checkout;
+        try {
+            checkout = orderCheckoutService.checkout(reqVO);
+        } catch (ServiceException ex) {
+            throw new ServiceException("会员下单失败：" + ex.getMessage());
+        }
         memberOrderMapper.insert(buildMemberOrder(userId, plan, checkout.getOrderNo(), durationMonths, originalAmount, payableAmount, quantity));
         return checkout;
     }
