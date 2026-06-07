@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
@@ -85,7 +86,7 @@ public class OshSiteInfoServiceImpl extends ServiceImpl<OshSiteInfoMapper, OshSi
     @Autowired
     private OshCourseMapper oshCourseMapper;
 
-    @Value("${course.jumpingBaseUrl}")
+    @Value("${innerSite.jumpingUrl.course:}")
     private String courseJumpingBaseUrl;
 
     /**
