@@ -41,8 +41,8 @@ public enum AnnouncementModuleEnum {
     /**
      * 实用网站模块
      */
-    WEBSITE("website", "实用网站公告");
-    SERIAL("serial", "开源项目公告"),
+    WEBSITE("website", "实用网站公告"),
+//    void SERIAL("serial", "开源项目公告"),
 
     /**
      * 首页模块公告栏

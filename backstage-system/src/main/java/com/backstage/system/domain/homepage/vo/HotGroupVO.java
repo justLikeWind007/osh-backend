@@ -108,6 +108,9 @@ public class HotGroupVO {
     public String getDetailUrl() { return detailUrl; }
     public void setDetailUrl(String detailUrl) { this.detailUrl = detailUrl; }
 
+    public java.math.BigDecimal getHotScore() { return hotScore; }
+    public void setHotScore(java.math.BigDecimal hotScore) { this.hotScore = hotScore; }
+
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 

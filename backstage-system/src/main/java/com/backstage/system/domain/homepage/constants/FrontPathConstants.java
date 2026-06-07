@@ -22,7 +22,7 @@ public final class FrontPathConstants {
     public static final String COURSE_DETAIL = "/course_detail/";
 
     /** 电子书详情页前缀 */
-    public static final String BOOK_DETAIL = "/book/detail/";
+    public static final String BOOK_DETAIL = "/detail/book/";
 
     /** 试卷详情页前缀 */
     public static final String EXAM_DETAIL = "/paper_test/";
@@ -111,8 +111,8 @@ public final class FrontPathConstants {
     private static Map<String, String> buildDetailPathMap() {
         Map<String, String> map = new HashMap<>();
         map.put("course",         "/course_detail/");
-        map.put("book",           "/book/detail/");
-        map.put("exam",           "/paper_test/");
+        map.put("book",           "/detail/book/");
+        map.put("exam",           "/paper/");
         map.put("feedback",       "/feedback/detail/");
         map.put("group",          "/course_detail/");
         map.put("info_gap",       "/info_gap/detail/");
