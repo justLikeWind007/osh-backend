@@ -13,6 +13,7 @@ import com.backstage.system.domain.document.OshDocRef;
 import com.backstage.system.domain.course.vo.CourseSearchLoginVo;
 import com.backstage.system.domain.course.vo.OshCourseDetailVo;
 import com.backstage.system.domain.course.vo.OshCourseSectionVo;
+import com.backstage.system.domain.user.OshRole;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.enums.CourseResourceEnum;
 import com.backstage.system.enums.OshCourseStatusEnum;
@@ -42,6 +43,7 @@ import com.backstage.system.service.course.ICourseManageService;
 import com.backstage.system.service.course.IOshCourseEsService;
 import com.backstage.system.utils.FileSizeConvertUtil;
 import com.backstage.common.utils.generate.GenerateUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.github.pagehelper.PageHelper;
 import org.apache.commons.lang3.StringUtils;
@@ -99,10 +101,13 @@ public class OshCourseServiceImpl implements IOshCourseService {
     @Autowired
     private OshDocMapper oshDocMapper;
 
-    // 拥有全量访问权限的角色 code（与 osh_role.role_code 保持一致）
-    private static final Set<String> FULL_ACCESS_ROLE_CODES = new HashSet<>(
-            Arrays.asList("vip", "small_class", "manager", "core_developer", "founder")
-    );
+    /**
+     * 对付费课程开放全部章节的角色（多角色时任一命中即可）。
+     * 注意：developer 虽为 level 2，但属于普通开发者，不在此名单内。
+     */
+    private static final Set<String> FULL_ACCESS_ROLE_CODES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            "vip", "small_class", "manager", "core_developer", "founder"
+    )));
 
     /** 创始人 role.level >= 6，课程操作跳过审核直接发布 */
     private static final int FOUNDER_ROLE_LEVEL = 6;
@@ -172,9 +177,8 @@ public class OshCourseServiceImpl implements IOshCourseService {
             return "TRIAL";
         }
 
-        // 3. 查用户角色，高级角色直接全开放
-        String roleCode = oshRoleMapper.getRoleCodeByUserId(userId);
-        if (roleCode != null && FULL_ACCESS_ROLE_CODES.contains(roleCode.toLowerCase())) {
+        // 3. VIP 及以上角色直接全开放（developer 除外）
+        if (hasFullCourseAccessByRole(userId)) {
             return "FULL";
         }
 
@@ -185,6 +189,34 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
         // 5. 其他情况：仅试看
         return "TRIAL";
+    }
+
+    /**
+     * 遍历用户全部有效角色，任一 VIP 及以上角色即可全量访问课程。
+     */
+    private boolean hasFullCourseAccessByRole(Long userId) {
+        if (userId == null) {
+            return false;
+        }
+        List<Integer> roleIds = oshRoleMapper.getRoleIdsByUserId(userId);
+        if (roleIds == null || roleIds.isEmpty()) {
+            return false;
+        }
+        LambdaQueryWrapper<OshRole> roleWrapper = new LambdaQueryWrapper<>();
+        roleWrapper.in(OshRole::getId, roleIds)
+                .eq(OshRole::getDeleteFlag, 0)
+                .eq(OshRole::getStatus, 1);
+        List<OshRole> roles = oshRoleMapper.selectList(roleWrapper);
+        if (roles == null || roles.isEmpty()) {
+            return false;
+        }
+        for (OshRole role : roles) {
+            String roleCode = role.getRoleCode();
+            if (roleCode != null && FULL_ACCESS_ROLE_CODES.contains(roleCode.toLowerCase(Locale.ROOT))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
