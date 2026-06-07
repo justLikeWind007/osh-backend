@@ -8,6 +8,7 @@ import com.backstage.system.domain.member.dto.MemberPlanConfigDTO;
 import com.backstage.system.domain.member.dto.MemberPricingRuleDTO;
 import com.backstage.system.domain.member.vo.MemberCenterVO;
 import com.backstage.system.domain.member.vo.MemberOrderVO;
+import com.backstage.system.domain.member.vo.MemberPayStatusVO;
 import com.backstage.system.domain.vo.pay.OrderCheckoutRespVO;
 import com.backstage.system.service.member.MemberCenterService;
 import com.backstage.system.utils.UserContextUtil;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
@@ -58,6 +60,11 @@ public class MemberCenterController {
     @PostMapping("/checkout")
     public R<OrderCheckoutRespVO> checkout(@Validated @RequestBody MemberCheckoutDTO dto) {
         return R.ok(memberCenterService.checkout(currentUserId(), dto));
+    }
+
+    @GetMapping("/pay-status")
+    public R<MemberPayStatusVO> payStatus(@RequestParam String orderNo) {
+        return R.ok(memberCenterService.getPayStatus(currentUserId(), orderNo));
     }
 
     @GetMapping("/orders")

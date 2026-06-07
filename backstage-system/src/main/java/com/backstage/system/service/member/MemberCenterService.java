@@ -6,6 +6,7 @@ import com.backstage.system.domain.member.dto.MemberPlanConfigDTO;
 import com.backstage.system.domain.member.dto.MemberPricingRuleDTO;
 import com.backstage.system.domain.member.vo.MemberCenterVO;
 import com.backstage.system.domain.member.vo.MemberOrderVO;
+import com.backstage.system.domain.member.vo.MemberPayStatusVO;
 import com.backstage.system.domain.vo.pay.OrderCheckoutRespVO;
 
 import java.util.List;
@@ -17,5 +18,6 @@ public interface MemberCenterService {
     void updatePlanConfig(Long operatorId, MemberPlanConfigDTO dto);
     void updatePricingRule(Long operatorId, MemberPricingRuleDTO dto);
     OrderCheckoutRespVO checkout(Long userId, MemberCheckoutDTO dto);
+    MemberPayStatusVO getPayStatus(Long userId, String orderNo);
     List<MemberOrderVO> listOrders(Long userId);
 }

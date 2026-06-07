@@ -9,8 +9,12 @@ import com.backstage.system.domain.member.dto.MemberPlanConfigDTO;
 import com.backstage.system.domain.member.dto.MemberPricingRuleDTO;
 import com.backstage.system.domain.member.vo.MemberCenterVO;
 import com.backstage.system.domain.member.vo.MemberOrderVO;
+import com.backstage.system.domain.member.vo.MemberPayStatusVO;
 import com.backstage.system.domain.member.vo.MemberPlanPriceTierVO;
 import com.backstage.system.domain.member.vo.MemberStatusVO;
+import com.backstage.system.domain.order.OrderStatusResult;
+import com.backstage.system.domain.order.enums.OrderStatusEnum;
+import com.backstage.system.domain.order.enums.PaymentStatusEnum;
 import com.backstage.system.domain.order.enums.ProductTypeEnum;
 import com.backstage.system.domain.vo.pay.OrderCheckoutReqVO;
 import com.backstage.system.domain.vo.pay.OrderCheckoutRespVO;
@@ -19,9 +23,12 @@ import com.backstage.system.mapper.member.OshMemberBenefitMapper;
 import com.backstage.system.mapper.member.OshMemberOrderMapper;
 import com.backstage.system.mapper.member.OshMemberPlanMapper;
 import com.backstage.system.service.member.MemberCenterService;
+import com.backstage.system.service.member.MemberEntitlementService;
 import com.backstage.system.service.order.OrderCheckoutService;
+import com.backstage.system.service.order.OrderService;
 import com.backstage.system.utils.UserContextUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,6 +68,12 @@ public class MemberCenterServiceImpl implements MemberCenterService {
 
     @Resource
     private OrderCheckoutService orderCheckoutService;
+
+    @Resource
+    private OrderService orderService;
+
+    @Resource
+    private MemberEntitlementService memberEntitlementService;
 
     @Override
     public MemberCenterVO getCenter(Long userId) {
@@ -207,6 +220,27 @@ public class MemberCenterServiceImpl implements MemberCenterService {
     }
 
     @Override
+    public MemberPayStatusVO getPayStatus(Long userId, String orderNo) {
+        if (userId == null) {
+            throw new ServiceException("请先登录");
+        }
+        if (StringUtils.isBlank(orderNo)) {
+            throw new ServiceException("订单号不能为空");
+        }
+        OshMemberOrder memberOrder = memberOrderMapper.selectByOrderNoAndUserId(orderNo, userId);
+        if (memberOrder == null) {
+            throw new ServiceException("会员订单不存在");
+        }
+
+        OrderStatusResult orderStatus = orderService.getOrderStatusForUser(orderNo, userId);
+        if (isUnifiedPaid(orderStatus) && !isMemberGranted(memberOrder)) {
+            memberEntitlementService.handlePaid(orderNo);
+            memberOrder = memberOrderMapper.selectByOrderNoAndUserId(orderNo, userId);
+        }
+        return buildPayStatus(memberOrder, orderStatus);
+    }
+
+    @Override
     public List<MemberOrderVO> listOrders(Long userId) {
         if (userId == null) {
             throw new ServiceException("请先登录");
@@ -236,6 +270,34 @@ public class MemberCenterServiceImpl implements MemberCenterService {
         order.setUpdateBy(userId);
         order.setDeleteFlag((byte) 0);
         return order;
+    }
+
+    private MemberPayStatusVO buildPayStatus(OshMemberOrder memberOrder, OrderStatusResult orderStatus) {
+        MemberPayStatusVO status = new MemberPayStatusVO();
+        status.setOrderNo(memberOrder.getOrderNo());
+        status.setOrderStatus(orderStatus == null ? null : orderStatus.getOrderStatus());
+        status.setPaymentStatus(orderStatus == null ? null : orderStatus.getPaymentStatus());
+        status.setMemberPayStatus(memberOrder.getPayStatus());
+        status.setGrantStatus(memberOrder.getGrantStatus());
+        status.setGrantMessage(memberOrder.getGrantMessage());
+        status.setPaid(isUnifiedPaid(orderStatus) || Integer.valueOf(1).equals(memberOrder.getPayStatus()));
+        status.setGranted(isMemberGranted(memberOrder));
+        return status;
+    }
+
+    private boolean isUnifiedPaid(OrderStatusResult orderStatus) {
+        if (orderStatus == null) {
+            return false;
+        }
+        return orderStatus.isPayStatus()
+                || Integer.valueOf(OrderStatusEnum.PAID.getCode()).equals(orderStatus.getOrderStatus())
+                || Integer.valueOf(PaymentStatusEnum.SUCCESS.getCode()).equals(orderStatus.getPaymentStatus());
+    }
+
+    private boolean isMemberGranted(OshMemberOrder memberOrder) {
+        return memberOrder != null
+                && Integer.valueOf(1).equals(memberOrder.getPayStatus())
+                && Integer.valueOf(1).equals(memberOrder.getGrantStatus());
     }
 
     private void validatePlan(OshMemberPlan plan) {

@@ -40,7 +40,7 @@ public class PayServiceImpl implements PayService {
             params.put("pid", payConfig.PID);
             params.put("type", channel);
             params.put("out_trade_no", outTradeNo);
-            params.put("notify_url", resolveNotifyUrl());
+            params.put("notify_url", payConfig.NOTIFY_URL);
             params.put("return_url", PayConfig.RETURN_URL);
             params.put("name", name);
             params.put("money", money);
@@ -53,7 +53,7 @@ public class PayServiceImpl implements PayService {
             params.put("sign", sign);
 
             // 请求易支付 mapi.php
-            RestTemplate restTemplate = new RestTemplate(requestFactory());
+            RestTemplate restTemplate = new RestTemplate();
             MultiValueMap<String, String> request = new LinkedMultiValueMap<>();
             request.setAll(params);
             log.info("【支付】发起支付请求,url:{} , params={}", payConfig.API_URL,params);
@@ -70,13 +70,6 @@ public class PayServiceImpl implements PayService {
             resp.setMsg("支付平台请求失败：" + resolveErrorMessage(e));
             return resp;
         }
-    }
-
-    private SimpleClientHttpRequestFactory requestFactory() {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(PAY_REQUEST_CONNECT_TIMEOUT_MS);
-        factory.setReadTimeout(PAY_REQUEST_READ_TIMEOUT_MS);
-        return factory;
     }
 
     private String resolveErrorMessage(Exception e) {

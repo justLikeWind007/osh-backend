@@ -13,6 +13,7 @@ import java.util.List;
 @Mapper
 public interface OshMemberOrderMapper extends BaseMapper<OshMemberOrder> {
     OshMemberOrder selectByOrderNoForUpdate(@Param("orderNo") String orderNo);
+    OshMemberOrder selectByOrderNoAndUserId(@Param("orderNo") String orderNo, @Param("userId") Long userId);
     List<MemberOrderVO> selectMemberOrders(@Param("userId") Long userId);
     MemberStatusVO selectMemberStatus(@Param("userId") Long userId, @Param("roleCode") String roleCode);
     Integer selectRoleIdByCode(@Param("roleCode") String roleCode);

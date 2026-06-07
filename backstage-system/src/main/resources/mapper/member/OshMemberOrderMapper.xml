@@ -40,6 +40,17 @@
         for update
     </select>
 
+    <select id="selectByOrderNoAndUserId" resultMap="OshMemberOrderResult">
+        select id, user_id, plan_id, order_no, member_type, plan_name_snapshot, purchase_quantity, duration_months,
+               original_amount, pay_amount, pay_status, grant_status, grant_message, start_time, expire_time,
+               pay_time, grant_time, create_time, create_by, update_time, update_by, delete_flag
+        from osh_member_order
+        where order_no = #{orderNo}
+          and user_id = #{userId}
+          and delete_flag = 0
+        limit 1
+    </select>
+
     <select id="selectMemberOrders" resultType="com.backstage.system.domain.member.vo.MemberOrderVO">
         select order_no as orderNo,
                plan_name_snapshot as planName,
