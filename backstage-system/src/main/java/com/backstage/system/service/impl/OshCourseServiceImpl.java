@@ -431,6 +431,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
     @Transactional(rollbackFor = Exception.class)
     public Long createCourse(CourseCreateRequest request, OshUser operator) {
         OshCourse course = buildCourseForCreate(request, operator);
+        course.setStatus(resolveCourseStatusAfterOperatorAction(operator));
         int rows = oshCourseMapper.insertCourse(course);
         if (rows <= 0) {
             return null;
@@ -450,6 +451,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
     public Long updateCourse(CourseUpdateRequest request, OshUser operator) {
         ensureCourseExists(request.getId());
         OshCourse course = buildCourseForUpdate(request, operator);
+        course.setStatus(resolveCourseStatusAfterOperatorAction(operator));
         int rows = oshCourseMapper.updateCourse(course);
         if (rows <= 0) {
             return null;
@@ -803,7 +805,6 @@ public class OshCourseServiceImpl implements IOshCourseService {
         course.setLikeCount(CourseConstants.DEFAULT_COUNT);
         course.setCommentCount(CourseConstants.DEFAULT_COUNT);
         course.setRatingScore(CourseConstants.DEFAULT_RATING_SCORE);
-        course.setStatus(resolveCourseStatusAfterOperatorAction());
 
         String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
         course.setCreateBy(operatorName);
@@ -815,12 +816,43 @@ public class OshCourseServiceImpl implements IOshCourseService {
         return value == null ? CourseConstants.DEFAULT_COUNT : value;
     }
 
-    /** 创始人（level>=6）创建/编辑课程直接发布，其余角色进入待审核 */
-    private static Integer resolveCourseStatusAfterOperatorAction() {
-        if (UserContextUtil.getCurrentLevelSafely() >= FOUNDER_ROLE_LEVEL) {
+    /**
+     * 创始人创建/编辑课程直接发布（status=4 审核通过），其余角色进入待审核（status=2）。
+     * 优先查库中有效角色，避免 ThreadLocal level 未刷新时误判。
+     */
+    private Integer resolveCourseStatusAfterOperatorAction(OshUser operator) {
+        if (isFounderOperator(operator)) {
             return OshCourseStatusEnum.PUBLISHED.getCode();
         }
         return OshCourseStatusEnum.PENDING_AUDIT.getCode();
+    }
+
+    private boolean isFounderOperator(OshUser operator) {
+        if (UserContextUtil.getCurrentLevelSafely() >= FOUNDER_ROLE_LEVEL) {
+            return true;
+        }
+        if (operator == null || operator.getId() == null) {
+            return false;
+        }
+        List<Integer> roleIds = oshRoleMapper.getRoleIdsByUserId(operator.getId());
+        if (roleIds == null || roleIds.isEmpty()) {
+            return false;
+        }
+        LambdaQueryWrapper<OshRole> roleWrapper = new LambdaQueryWrapper<>();
+        roleWrapper.in(OshRole::getId, roleIds)
+                .eq(OshRole::getDeleteFlag, 0)
+                .eq(OshRole::getStatus, 1);
+        List<OshRole> roles = oshRoleMapper.selectList(roleWrapper);
+        if (roles == null || roles.isEmpty()) {
+            return false;
+        }
+        for (OshRole role : roles) {
+            String roleCode = role.getRoleCode();
+            if (roleCode != null && "founder".equals(roleCode.toLowerCase(Locale.ROOT))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     static OshCourse buildCourseForUpdate(CourseUpdateRequest request, OshUser operator) {
@@ -840,7 +872,6 @@ public class OshCourseServiceImpl implements IOshCourseService {
         course.setResourceType(request.getResourceType());
         course.setLevel(request.getLevel());
         if (request.getServicePeriod() != null) course.setServicePeriod(request.getServicePeriod());
-        course.setStatus(resolveCourseStatusAfterOperatorAction());
         String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
         course.setUpdateBy(operatorName);
         return course;
