@@ -34,7 +34,17 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         c.resource_type,
         c.level,
         c.status,
-        c.exam_id
+        c.delete_flag,
+        c.exam_id,
+        (
+            select group_concat(distinct ct2.name order by ct2.sort separator ',')
+            from osh_course_tag_rel ctr2
+            inner join osh_course_tag ct2 on ct2.id = ctr2.tag_id
+                and ct2.delete_flag = 0
+                and ct2.status = 1
+            where ctr2.course_id = c.id
+              and ctr2.delete_flag = 0
+        ) as tag_names_text
     </sql>
 
     <sql id="courseDetailColumns">
@@ -61,6 +71,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         c.free_type,
         c.after_service_days,
         c.resource_type,
+        c.service_period,
         c.level,
         c.status,
         c.exam_id,
@@ -133,8 +144,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="resourceType" column="resource_type"/>
         <result property="level" column="level"/>
         <result property="status" column="status"/>
+        <result property="deleteFlag" column="delete_flag"/>
         <result property="examId" column="exam_id"/>
         <result property="collectionCount" column="collection_count"/>
+        <result property="tagNamesText" column="tag_names_text"/>
         <result property="collectionFlag" column="collection_flag"/>
         <result property="buyFlag" column="buy_flag"/>
     </resultMap>
@@ -163,6 +176,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="freeType" column="free_type"/>
         <result property="afterServiceDays" column="after_service_days"/>
         <result property="resourceType" column="resource_type"/>
+        <result property="servicePeriod" column="service_period"/>
         <result property="level" column="level"/>
         <result property="status" column="status"/>
         <result property="examId" column="exam_id"/>
@@ -188,6 +202,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="duration" column="duration"/>
         <result property="mediaUrl" column="media_url"/>
         <result property="textContent" column="text_content"/>
+        <result property="docId" column="doc_id"/>
+        <result property="anchorType" column="anchor_type"/>
+        <result property="anchorStart" column="anchor_start"/>
+        <result property="anchorEnd" column="anchor_end"/>
+        <result property="excerptTitle" column="excerpt_title"/>
         <result property="cover" column="cover"/>
         <result property="videoCodec" column="video_codec"/>
         <result property="videoBitrate" column="video_bitrate"/>
@@ -239,7 +258,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="fileSize" column="file_size"/>
         <result property="fileType" column="file_type"/>
         <result property="downloadCount" column="download_count"/>
-        <result property="payOnly" column="pay_only"/>
+        <result property="payOnly" column="is_pay_only"/>
         <result property="sort" column="sort"/>
         <result property="deleteFlag" column="delete_flag"/>
         <result property="createBy" column="create_by"/>
@@ -363,7 +382,15 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             and ct.status = 1
         <where>
             c.delete_flag = 0
-            and c.status = 2
+            <if test="request != null and request.onlyHidden != null and request.onlyHidden">
+                and c.status = 7
+            </if>
+            <if test="request == null or request.onlyHidden == null or !request.onlyHidden">
+                and c.status != 7
+                <if test="request == null or request.includeUnpublished == null or !request.includeUnpublished">
+                    and c.status = 4
+                </if>
+            </if>
             <if test="request.keyword != null and request.keyword != ''">
                 and c.title like concat('%', #{request.keyword}, '%')
             </if>
@@ -376,8 +403,22 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="request.resourceType != null and request.resourceType != ''">
                 and c.resource_type = #{request.resourceType}
             </if>
+            <if test="request.courseIdFilter != null">
+                and c.id = #{request.courseIdFilter}
+            </if>
         </where>
         order by sort_score desc,c.create_time desc
+    </select>
+
+    <select id="pageQueryAllCoursesForEsSync" resultMap="CourseSearchLoginResult">
+        select distinct
+        <include refid="searchCourseColumns"/>,
+        0 as collection_flag,
+        0 as buy_flag
+        from osh_course c
+        left join osh_course_tag_rel ctr on ctr.course_id = c.id
+        left join osh_course_tag ct on ct.id = ctr.tag_id
+        order by c.id asc
     </select>
 
     <select id="selectUserBoughtCourseIds" resultType="java.lang.Long">
@@ -401,7 +442,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             and occ.delete_flag = 0
         <where>
             c.delete_flag = 0
-            and c.status = 2
+            and c.status != 7
+            <if test="request == null or request.includeUnpublished == null or !request.includeUnpublished">
+                and c.status = 4
+            </if>
             <if test="request.keyword != null and request.keyword != ''">
                 and c.title like concat('%', #{request.keyword}, '%')
             </if>
@@ -422,6 +466,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             </if>
             <if test="request.resourceType != null and request.resourceType != ''">
                 and c.resource_type = #{request.resourceType}
+            </if>
+            <if test="request.courseIdFilter != null">
+                and c.id = #{request.courseIdFilter}
             </if>
         </where>
         order by occ.create_time desc, c.id desc
@@ -438,7 +485,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             and occ.delete_flag = 0
         <where>
             c.delete_flag = 0
-            and c.status = 2
+            and c.status != 7
+            <if test="request == null or request.includeUnpublished == null or !request.includeUnpublished">
+                and c.status = 4
+            </if>
             <if test="request.keyword != null and request.keyword != ''">
                 and c.title like concat('%', #{request.keyword}, '%')
             </if>
@@ -459,6 +509,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             </if>
             <if test="request.resourceType != null and request.resourceType != ''">
                 and c.resource_type = #{request.resourceType}
+            </if>
+            <if test="request.courseIdFilter != null">
+                and c.id = #{request.courseIdFilter}
             </if>
         </where>
         order by occ.create_time desc, c.id desc
@@ -487,38 +540,57 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             and ocb.user_id = #{userId}
         where c.id = #{id}
         and c.delete_flag = 0
-        and c.status = 2
+        <if test="!includeUnpublished">
+            and c.status = 4
+        </if>
     </select>
 
     <select id="selectCourseSectionList" parameterType="Long" resultMap="OshCourseSectionResult">
-        select id,
-               course_id,
-               parent_id,
-               title,
-               sort,
-               free_flag,
-               duration,
-               media_url,
-               text_content,
-               cover,
-               video_codec,
-               video_bitrate,
-               video_resolution,
-               file_size,
-               subtitle_url,
-               type,
-               status,
-               exam_id,
-               delete_flag,
-               create_by,
-               create_time,
-               update_by,
-               update_time
-        from osh_course_section
-        where course_id = #{courseId}
-          and delete_flag = 0
-          and status = 1
-        order by sort asc, id asc
+        select s.id,
+               s.course_id,
+               s.parent_id,
+               s.title,
+               s.sort,
+               s.free_flag,
+               s.duration,
+               s.media_url,
+               r.doc_id,
+               r.anchor_type,
+               r.anchor_start,
+               r.anchor_end,
+               r.excerpt_title,
+               ifnull(d.content, s.text_content) as text_content,
+               s.cover,
+               s.video_codec,
+               s.video_bitrate,
+               s.video_resolution,
+               s.file_size,
+               s.subtitle_url,
+               s.type,
+               s.status,
+               s.exam_id,
+               s.delete_flag,
+               s.create_by,
+               s.create_time,
+               s.update_by,
+               s.update_time
+        from osh_course_section s
+                 left join osh_doc_ref r on r.id = (
+            select rr.id
+            from osh_doc_ref rr
+            where rr.ref_type = 'course_section'
+              and rr.ref_id = s.id
+              and rr.is_primary = 1
+              and rr.delete_flag = 0
+            order by rr.is_primary desc, rr.create_time desc
+            limit 1
+            )
+                 left join osh_doc d on d.id = r.doc_id
+            and d.delete_flag = 0
+        where s.course_id = #{courseId}
+          and s.delete_flag = 0
+          and s.status = 1
+        order by s.sort asc, s.id asc
     </select>
 
     <select id="countCourseSectionInCourse" resultType="java.lang.Integer">
@@ -549,45 +621,69 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
 
     <select id="selectCourseSectionById" resultMap="OshCourseSectionEntityResult">
-        select id,
-               course_id,
-               parent_id,
-               title,
-               sort,
-               free_flag,
-               duration,
-               media_url,
-               cover,
-               text_content,
-               video_desc,
-               video_codec,
-               video_bitrate,
-               video_resolution,
-               file_size,
-               subtitle_url,
-               type,
-               status,
-               exam_id,
-               delete_flag,
-               create_by,
-               create_time,
-               update_by,
-               update_time
-        from osh_course_section
-        where id = #{id}
+        select s.id,
+               s.course_id,
+               s.parent_id,
+               s.title,
+               s.sort,
+               s.free_flag,
+               s.duration,
+               s.media_url,
+               s.cover,
+               ifnull(d.content, s.text_content) as text_content,
+               s.video_desc,
+               s.video_codec,
+               s.video_bitrate,
+               s.video_resolution,
+               s.file_size,
+               s.subtitle_url,
+               s.type,
+               s.status,
+               s.exam_id,
+               s.delete_flag,
+               s.create_by,
+               s.create_time,
+               s.update_by,
+               s.update_time
+        from osh_course_section s
+                 left join osh_doc_ref r on r.id = (
+            select rr.id
+            from osh_doc_ref rr
+            where rr.ref_type = 'course_section'
+              and rr.ref_id = s.id
+              and rr.is_primary = 1
+              and rr.delete_flag = 0
+            order by rr.is_primary desc, rr.create_time desc
+            limit 1
+            )
+                 left join osh_doc d on d.id = r.doc_id
+            and d.delete_flag = 0
+        where s.id = #{id}
     </select>
 
     <select id="getCourseSectionContent" resultType="java.lang.String">
         select case
-                   when type = 'text' then text_content
-                   when type = 'video' then media_url
+                   when s.type = 'text' then ifnull(d.content, '')
+                   when s.type = 'video' then s.media_url
                    else ''
                    end as content
-        from osh_course_section
+        from osh_course_section s
+                 left join osh_doc_ref r on r.id = (
+            select rr.id
+            from osh_doc_ref rr
+            where rr.ref_type = 'course_section'
+              and rr.ref_id = s.id
+              and rr.is_primary = 1
+              and rr.delete_flag = 0
+            order by rr.is_primary desc, rr.create_time desc
+            limit 1
+            )
+                 left join osh_doc d on d.id = r.doc_id
+            and d.delete_flag = 0
         where 0 = 0
-          and id = #{sectionId}
-          and status = 0
-          and delete_flag = 0
+          and s.id = #{sectionId}
+          and s.status = 1
+          and s.delete_flag = 0
     </select>
 
     <select id="isUserBuyCourseOrFreeCourse" resultType="java.lang.Integer">
@@ -597,7 +693,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where course_id = #{courseId}
           and user_id = #{userId}
           and pay_status = 'paid'
-          and status = 1
+          and status = 4
 
         union
 
@@ -726,6 +822,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="freeType != null">free_type,</if>
             <if test="afterServiceDays != null">after_service_days,</if>
             <if test="resourceType != null">resource_type,</if>
+            <if test="servicePeriod != null">service_period,</if>
             <if test="level != null">level,</if>
             status,
             <if test="examId != null">exam_id,</if>
@@ -754,8 +851,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="freeType != null">#{freeType},</if>
             <if test="afterServiceDays != null">#{afterServiceDays},</if>
             <if test="resourceType != null">#{resourceType},</if>
+            <if test="servicePeriod != null">#{servicePeriod},</if>
             <if test="level != null">#{level},</if>
-            2,
+            #{status},
             <if test="examId != null">#{examId},</if>
             <if test="createBy != null and createBy != ''">#{createBy},</if>
             <if test="updateBy != null and updateBy != ''">#{updateBy},</if>
@@ -838,6 +936,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="freeType != null">free_type = #{freeType},</if>
             <if test="afterServiceDays != null">after_service_days = #{afterServiceDays},</if>
             <if test="resourceType != null">resource_type = #{resourceType},</if>
+            <if test="servicePeriod != null">service_period = #{servicePeriod},</if>
             <if test="level != null">level = #{level},</if>
             <if test="status != null">status = #{status},</if>
             <if test="examId != null">exam_id = #{examId},</if>
@@ -867,13 +966,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                file_size,
                file_type,
                download_count,
-               pay_only as pay_only,
-               sort,
-               delete_flag,
-               create_by,
-               create_time,
-               update_by,
-               update_time
+               sort
         from osh_course_material
         where course_id = #{courseId}
           and delete_flag = 0

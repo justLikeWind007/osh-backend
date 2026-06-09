@@ -11,13 +11,13 @@ public class OshCourseStatusEnumTest {
         assertEquals(Integer.valueOf(0), OshCourseStatusEnum.DRAFT.getCode());
         assertEquals("草稿", OshCourseStatusEnum.DRAFT.getDesc());
 
-        assertEquals(Integer.valueOf(1), OshCourseStatusEnum.PENDING_AUDIT.getCode());
+        assertEquals(Integer.valueOf(2), OshCourseStatusEnum.PENDING_AUDIT.getCode());
         assertEquals("待审核", OshCourseStatusEnum.PENDING_AUDIT.getDesc());
 
-        assertEquals(Integer.valueOf(2), OshCourseStatusEnum.PUBLISHED.getCode());
+        assertEquals(Integer.valueOf(4), OshCourseStatusEnum.PUBLISHED.getCode());
         assertEquals("已发布", OshCourseStatusEnum.PUBLISHED.getDesc());
 
-        assertEquals(Integer.valueOf(3), OshCourseStatusEnum.OFF_SHELF.getCode());
+        assertEquals(Integer.valueOf(6), OshCourseStatusEnum.OFF_SHELF.getCode());
         assertEquals("已下架", OshCourseStatusEnum.OFF_SHELF.getDesc());
     }
 }

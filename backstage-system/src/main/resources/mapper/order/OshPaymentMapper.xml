@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.order.OshPaymentMapper">
+
+    <resultMap id="OshPaymentResult" type="com.backstage.system.domain.order.OshPayment">
+        <id property="id" column="id"/>
+        <result property="orderId" column="order_id"/>
+        <result property="orderNo" column="order_no"/>
+        <result property="paymentNo" column="payment_no"/>
+        <result property="channel" column="channel"/>
+        <result property="amount" column="amount"/>
+        <result property="status" column="status"/>
+        <result property="platformTradeNo" column="platform_trade_no"/>
+        <result property="payUrl" column="pay_url"/>
+        <result property="qrcode" column="qrcode"/>
+        <result property="requestPayload" column="request_payload"/>
+        <result property="responsePayload" column="response_payload"/>
+        <result property="paidTime" column="paid_time"/>
+        <result property="expireTime" column="expire_time"/>
+        <result property="createdTime" column="created_time"/>
+        <result property="updatedTime" column="updated_time"/>
+        <result property="deleteFlag" column="delete_flag"/>
+    </resultMap>
+
+    <sql id="selectOshPaymentColumns">
+        select id, order_id, order_no, payment_no, channel, amount, status,
+               platform_trade_no, pay_url, qrcode, request_payload, response_payload,
+               paid_time, expire_time, created_time, updated_time, delete_flag
+        from osh_payment
+    </sql>
+
+    <insert id="insertOshPayment" parameterType="com.backstage.system.domain.order.OshPayment" useGeneratedKeys="true" keyProperty="id">
+        insert into osh_payment (
+            order_id, order_no, payment_no, channel, amount, status,
+            platform_trade_no, pay_url, qrcode, request_payload, response_payload,
+            paid_time, expire_time, created_time, updated_time, delete_flag
+        ) values (
+            #{orderId}, #{orderNo}, #{paymentNo}, #{channel}, #{amount}, #{status},
+            #{platformTradeNo}, #{payUrl}, #{qrcode}, #{requestPayload}, #{responsePayload},
+            #{paidTime}, #{expireTime}, #{createdTime}, #{updatedTime}, #{deleteFlag}
+        )
+    </insert>
+
+    <select id="selectByPaymentNo" resultMap="OshPaymentResult">
+        <include refid="selectOshPaymentColumns"/>
+        where payment_no = #{paymentNo}
+          and delete_flag = 0
+        limit 1
+    </select>
+
+    <select id="selectByOrderNo" resultMap="OshPaymentResult">
+        <include refid="selectOshPaymentColumns"/>
+        where order_no = #{orderNo}
+          and delete_flag = 0
+        limit 1
+    </select>
+
+    <select id="selectExpiredPendingPayments" resultMap="OshPaymentResult">
+        <include refid="selectOshPaymentColumns"/>
+        where status = 0
+          and delete_flag = 0
+          and expire_time is not null
+          and expire_time &lt;= #{expireTime}
+        order by expire_time asc, id asc
+    </select>
+
+    <update id="updatePayResponse">
+        update osh_payment
+        set platform_trade_no = #{platformTradeNo},
+            pay_url = #{payUrl},
+            qrcode = #{qrcode},
+            response_payload = #{responsePayload},
+            updated_time = CURRENT_TIMESTAMP
+        where payment_no = #{paymentNo}
+    </update>
+
+    <update id="updatePendingToSuccess">
+        update osh_payment
+        set status = 1,
+            platform_trade_no = #{platformTradeNo},
+            paid_time = #{paidTime},
+            updated_time = CURRENT_TIMESTAMP
+        where payment_no = #{paymentNo}
+          and status = 0
+    </update>
+
+    <update id="updatePendingToFailed">
+        update osh_payment
+        set status = 2,
+            response_payload = #{responsePayload},
+            updated_time = CURRENT_TIMESTAMP
+        where payment_no = #{paymentNo}
+          and status = 0
+    </update>
+
+    <update id="updatePendingToClosed">
+        update osh_payment
+        set status = 3,
+            updated_time = CURRENT_TIMESTAMP
+        where payment_no = #{paymentNo}
+          and status = 0
+    </update>
+</mapper>

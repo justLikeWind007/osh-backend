@@ -91,6 +91,18 @@ yarn.lock
 *.env.local
 *.env.*.local
 
+# Application configuration files (keep local configs untracked)
+backstage-admin/src/main/resources/application.yml
+backstage-admin/src/main/resources/application-druid.yml
+pom.xml
+backstage-admin/pom.xml
+backstage-common/pom.xml
+backstage-framework/pom.xml
+backstage-system/pom.xml
+backstage-generator/pom.xml
+backstage-quartz/pom.xml
+backstage-flink/pom.xml
+
 # IDE - JetBrains IDEs (specific)
 .idea/tasks.xml
 .idea/workspace.xml
@@ -111,7 +123,9 @@ yarn.lock
 AGENTS.md
 .qoder
 .mybatis
+.kiro
 docs/superpowers
+skills
 
 
 

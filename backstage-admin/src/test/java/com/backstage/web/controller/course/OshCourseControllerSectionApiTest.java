@@ -368,7 +368,7 @@ public class OshCourseControllerSectionApiTest {
     public void shouldMapCollectionCountInCourseDetail() {
         Long courseId = createPublishedTestCourse();
 
-        com.backstage.system.domain.course.vo.OshCourseDetailVo detail = oshCourseMapper.getCourseDetail(courseId, 1L);
+        com.backstage.system.domain.course.vo.OshCourseDetailVo detail = oshCourseMapper.getCourseDetail(courseId, 1L, false);
 
         assertNotNull(detail);
         assertEquals(courseId, detail.getId());

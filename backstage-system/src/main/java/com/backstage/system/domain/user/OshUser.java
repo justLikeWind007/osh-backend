@@ -24,10 +24,6 @@ public class OshUser extends OSHBaseEntity {
      * 用户名
      */
     private String username;
-    /**
-     * 昵称
-     */
-    private String nickname;
 
     /**
      * 邮箱
@@ -42,11 +38,6 @@ public class OshUser extends OSHBaseEntity {
      * 头像URL
      */
     private String avatar;
-
-    /**
-     * 微信unionid
-     */
-    private String weixinUnionid;
 
     /**
      * 性别：未知、男、女
@@ -64,9 +55,14 @@ public class OshUser extends OSHBaseEntity {
     private Integer violationCount;
 
     /**
-     * 状态：0-禁用，1-正常
+     * 状态：0-正常，1-禁用
      */
     private Integer status;
+
+    /**
+     * 邀请码（唯一）
+     */
+    private String inviteCode;
 
     public Long getId() {
         return id;
@@ -82,14 +78,6 @@ public class OshUser extends OSHBaseEntity {
 
     public void setUsername(String username) {
         this.username = username;
-    }
-
-    public String getNickname() {
-        return nickname;
-    }
-
-    public void setNickname(String nickname) {
-        this.nickname = nickname;
     }
 
     public String getEmail() {
@@ -114,14 +102,6 @@ public class OshUser extends OSHBaseEntity {
 
     public void setAvatar(String avatar) {
         this.avatar = avatar;
-    }
-
-    public String getWeixinUnionid() {
-        return weixinUnionid;
-    }
-
-    public void setWeixinUnionid(String weixinUnionid) {
-        this.weixinUnionid = weixinUnionid;
     }
 
     public String getSex() {
@@ -161,15 +141,21 @@ public class OshUser extends OSHBaseEntity {
         return "OshUser{" +
                 "id=" + id +
                 ", username='" + username + '\'' +
-                ", nickname='" + nickname + '\'' +
                 ", email='" + email + '\'' +
                 ", password='" + password + '\'' +
                 ", avatar='" + avatar + '\'' +
-                ", weixinUnionid='" + weixinUnionid + '\'' +
                 ", sex='" + sex + '\'' +
                 ", introduction='" + introduction + '\'' +
                 ", violationCount=" + violationCount +
                 ", status=" + status +
                 '}';
+    }
+
+    public String getInviteCode() {
+        return inviteCode;
+    }
+
+    public void setInviteCode(String inviteCode) {
+        this.inviteCode = inviteCode;
     }
 }

@@ -146,8 +146,16 @@ public class OshCourseEsMapper {
                 .size(pageSize)
                 .timeout(TimeValue.timeValueMillis(searchEsProperties.getFallbackTimeoutMillis()));
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
-                .filter(QueryBuilders.termQuery("status", 2))
                 .filter(QueryBuilders.termQuery("deleteFlag", 0));
+        if (request == null || request.getIncludeUnpublished() == null || !request.getIncludeUnpublished()) {
+            boolQuery.filter(QueryBuilders.termQuery("status", 4));
+        }
+        // 已隐藏课程（status=7）：仅「已隐藏课程」分类返回，其余视图一律排除
+        if (request != null && Boolean.TRUE.equals(request.getOnlyHidden())) {
+            boolQuery.filter(QueryBuilders.termQuery("status", 7));
+        } else {
+            boolQuery.mustNot(QueryBuilders.termQuery("status", 7));
+        }
 
         if (courseIds != null && !courseIds.isEmpty()) {
             boolQuery.filter(QueryBuilders.termsQuery("id", courseIds));
@@ -164,6 +172,9 @@ public class OshCourseEsMapper {
 
         if (request != null && StringUtils.isNotEmpty(request.getResourceType())) {
             boolQuery.filter(QueryBuilders.termQuery("resourceType", request.getResourceType()));
+        }
+        if (request != null && request.getCourseIdFilter() != null) {
+            boolQuery.filter(QueryBuilders.termQuery("id", request.getCourseIdFilter()));
         }
 
         sourceBuilder.query(boolQuery);
@@ -213,6 +224,7 @@ public class OshCourseEsMapper {
         vo.setLevel(document.getLevel());
         vo.setStatus(document.getStatus());
         vo.setExamId(document.getExamId());
+        vo.setTagNamesText(document.getTagNamesText());
         vo.setCollectionFlag(0);
         vo.setBuyFlag(0);
         return vo;

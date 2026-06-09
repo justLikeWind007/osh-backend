@@ -393,9 +393,10 @@ public interface ICourseManageService {
      *
      * @param file 视频文件
      * @param videoName 视频名称
+     * @param sectionId 小节 ID（重新上传时传入，用于删除 OSS 旧视频）
      * @return 视频信息（名称、URL、大小、类型）
      */
-    Map<String, Object> uploadVideo(MultipartFile file, String videoName);
+    Map<String, Object> uploadVideo(MultipartFile file, String videoName, Long sectionId);
     
     /**
      * 上传课时资料
@@ -539,4 +540,15 @@ public interface ICourseManageService {
      * @return 临时访问URL，未找到返回null
      */
     String getMaterialUrl(Long materialId, int minute);
+
+    /**
+     * 批量获取课程内容图片临时访问URL
+     * 用于 textContent 富文本中图片的临时 URL 刷新
+     * 接收相对路径列表，返回 相对路径 -> 临时URL 的映射
+     *
+     * @param relativePaths 图片相对路径列表（最多50个）
+     * @param minute 临时URL有效期（分钟）
+     * @return 相对路径到临时URL的映射 Map<String, String>
+     */
+    Map<String, String> batchGetContentImageUrls(List<String> relativePaths, int minute);
 }

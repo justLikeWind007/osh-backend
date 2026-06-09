@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.tool.OshToolVoteMapper">
+
+    <resultMap id="OshToolVoteResult" type="com.backstage.system.domain.tool.OshToolVote">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="toolId" column="tool_id"/>
+        <result property="type" column="type"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="deleteFlag" column="delete_flag"/>
+    </resultMap>
+
+    <select id="selectByUserIdAndToolId" resultMap="OshToolVoteResult">
+        select id, user_id, tool_id, type, create_by, create_time, update_by, update_time, delete_flag
+        from osh_tool_vote
+        where user_id = #{userId}
+          and tool_id = #{toolId}
+        limit 1
+    </select>
+
+    <select id="selectVoteType" resultType="java.lang.Integer">
+        select type
+        from osh_tool_vote
+        where user_id = #{userId}
+          and tool_id = #{toolId}
+          and delete_flag = 0
+        limit 1
+    </select>
+
+    <insert id="insertToolVote" parameterType="com.backstage.system.domain.tool.OshToolVote"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into osh_tool_vote (
+            user_id, tool_id, type, create_by, create_time, update_by, update_time, delete_flag
+        ) values (
+            #{userId}, #{toolId}, #{type}, #{createBy}, now(), #{updateBy}, now(), 0
+        )
+    </insert>
+
+    <update id="updateToolVote" parameterType="com.backstage.system.domain.tool.OshToolVote">
+        update osh_tool_vote
+        set type = #{type},
+            delete_flag = 0,
+            update_by = #{updateBy},
+            update_time = now()
+        where id = #{id}
+    </update>
+
+    <update id="deleteToolVote">
+        update osh_tool_vote
+        set delete_flag = 1,
+            update_by = #{operator},
+            update_time = now()
+        where id = #{id}
+          and delete_flag = 0
+    </update>
+
+</mapper>

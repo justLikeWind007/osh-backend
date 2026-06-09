@@ -37,8 +37,9 @@ public class OshUserConstants {
     public static final String ROLE_CODE = "roleCode";
     public static final String PERMISSION = "permission";
     public static final String LEVEL = "level";
-    public static final String GOLD_COIN = "goldCoin";
     public static final String POINTS = "points";
+    public static final String INVITE_CODE = "inviteCode";
+    public static final String LOGINCOUNT = "loginCount";
     /**
      * 第一个字符必须是字母（大小写均可）
      * 后面跟着 3-19 个字符，可以是字母、数字或下划线

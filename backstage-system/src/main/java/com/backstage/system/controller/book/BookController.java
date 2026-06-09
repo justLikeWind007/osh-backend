@@ -51,6 +51,7 @@ public class BookController {
     @PostMapping("/page")
     public R<Page<BookListVO>> list(@RequestBody BookListReqVO reqVO) {
         reqVO.setUserLevel(UserContextUtil.getCurrentLevel());
+        reqVO.setUserId(UserContextUtil.getCurrentUserIdSafely());
         if (searchEsProperties.isEnabled()) {
             try {
                 log.info("使用es查询电子书");
@@ -67,6 +68,7 @@ public class BookController {
     @PostMapping("/search")
     @Anonymous
     public R<PageResponse<BookListVO>> search(@RequestBody BookListReqVO reqVO) {
+        reqVO.setUserId(UserContextUtil.getCurrentUserIdSafely());
         Page<BookListVO> pageResult = bookService.getBookPageList(reqVO);
         int pageNum = reqVO.getPageNum() == null ? 1 : reqVO.getPageNum().intValue();
         int pageSize = reqVO.getPageSize() == null ? 12 : reqVO.getPageSize().intValue();
@@ -77,7 +79,7 @@ public class BookController {
      * 查看电子书详情
      */
     @ApiOperation(value = "电子书详情")
-    @OshUserEvent(module = "电子书模块", actionType = "查询", description = "查询电子书详情")
+//    @OshUserEvent(module = "电子书模块", actionType = "查询", description = "查询电子书详情")
     @Anonymous
     @GetMapping("/getById")
     public R<BookDetailVO> getById(@RequestParam Long id, @RequestParam(required = false, defaultValue = "false") Boolean forEdit) {
@@ -211,5 +213,4 @@ public class BookController {
     public R<Integer> syncAllBooksToEs() {
         return R.ok(bookEsService.syncAllBooksToEs(), "ok");
     }
-
 }

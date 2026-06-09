@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.tool.OshToolTagMapper">
+
+    <resultMap id="OshToolTagResult" type="com.backstage.system.domain.tool.OshToolTag">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="sort" column="sort"/>
+        <result property="useCount" column="use_count"/>
+        <result property="status" column="status"/>
+        <result property="remark" column="remark"/>
+        <result property="deleteFlag" column="delete_flag"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectByName" resultMap="OshToolTagResult">
+        select id, name, sort, use_count, status, remark, delete_flag, create_by, create_time, update_by, update_time
+        from osh_tool_tag
+        where name = #{name}
+        limit 1
+    </select>
+
+    <insert id="insertToolTag" parameterType="com.backstage.system.domain.tool.OshToolTag"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into osh_tool_tag (
+            name, sort, use_count, status, remark, delete_flag, create_by, create_time, update_by, update_time
+        ) values (
+            #{name}, 0, 0, 1, #{remark}, 0, #{createBy}, now(), #{updateBy}, now()
+        )
+    </insert>
+
+    <update id="activateToolTag">
+        update osh_tool_tag
+        set delete_flag = 0,
+            status = 1,
+            update_by = #{operator},
+            update_time = now()
+        where id = #{id}
+    </update>
+
+    <select id="selectAvailableTags" resultMap="OshToolTagResult">
+        select id, name, sort, use_count, status, remark, delete_flag, create_by, create_time, update_by, update_time
+        from osh_tool_tag
+        where delete_flag = 0
+          and status = 1
+        order by use_count desc, sort desc, id asc
+    </select>
+
+    <select id="selectRecommendTags" resultMap="OshToolTagResult">
+        select id, name, sort, use_count, status, remark, delete_flag, create_by, create_time, update_by, update_time
+        from osh_tool_tag
+        where delete_flag = 0
+          and status = 1
+        order by use_count desc, sort desc, id asc
+        limit #{limit}
+    </select>
+
+    <select id="selectTagNamesByToolId" resultType="java.lang.String">
+        select t.name
+        from osh_tool_tag_rel r
+        inner join osh_tool_tag t on t.id = r.tag_id
+        where r.tool_id = #{toolId}
+          and r.delete_flag = 0
+          and t.delete_flag = 0
+          and t.status = 1
+        order by t.sort desc, t.id asc
+    </select>
+
+    <select id="selectTagIdsByToolId" resultType="java.lang.Long">
+        select t.id
+        from osh_tool_tag_rel r
+        inner join osh_tool_tag t on t.id = r.tag_id
+        where r.tool_id = #{toolId}
+          and r.delete_flag = 0
+          and t.delete_flag = 0
+          and t.status = 1
+        order by t.sort desc, t.id asc
+    </select>
+
+    <update id="softDeleteRelationsByToolId">
+        update osh_tool_tag_rel
+        set delete_flag = 1,
+            update_by = #{operator},
+            update_time = now()
+        where tool_id = #{toolId}
+          and delete_flag = 0
+    </update>
+
+    <insert id="insertToolTagRel">
+        insert into osh_tool_tag_rel (
+            tool_id, tag_id, create_by, create_time, update_by, update_time, delete_flag
+        ) values (
+            #{toolId}, #{tagId}, #{operator}, now(), #{operator}, now(), 0
+        )
+        on duplicate key update
+            delete_flag = 0,
+            update_by = values(update_by),
+            update_time = now()
+    </insert>
+
+    <update id="increaseUseCount">
+        update osh_tool_tag
+        set use_count = use_count + 1,
+            update_time = now()
+        where id = #{tagId}
+          and delete_flag = 0
+    </update>
+</mapper>

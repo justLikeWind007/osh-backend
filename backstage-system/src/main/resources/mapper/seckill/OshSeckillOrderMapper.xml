@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.seckill.OshSeckillOrderMapper">
+
+    <resultMap type="com.backstage.system.domain.seckill.OshSeckillOrder" id="OshSeckillOrderResult">
+        <result property="id"             column="id"/>
+        <result property="seckillNo"      column="seckill_no"/>
+        <result property="orderNo"        column="order_no"/>
+        <result property="activityId"     column="activity_id"/>
+        <result property="itemId"         column="item_id"/>
+        <result property="userId"         column="user_id"/>
+        <result property="goodsId"        column="goods_id"/>
+        <result property="goodsType"      column="goods_type"/>
+        <result property="goodsTitle"     column="goods_title"/>
+        <result property="goodsCover"     column="goods_cover"/>
+        <result property="originPrice"    column="origin_price"/>
+        <result property="seckillPrice"   column="seckill_price"/>
+        <result property="totalAmount"    column="total_amount"/>
+        <result property="quantity"       column="quantity"/>
+        <result property="status"         column="status"/>
+        <result property="payTime"        column="pay_time"/>
+        <result property="payExpireTime"  column="pay_expire_time"/>
+        <result property="cancelTime"     column="cancel_time"/>
+        <result property="cancelReason"   column="cancel_reason"/>
+        <result property="createTime"     column="create_time"/>
+        <result property="updateTime"     column="update_time"/>
+    </resultMap>
+
+    <sql id="selectOrderVo">
+        select id, seckill_no, order_no, activity_id, item_id, user_id, goods_id, goods_type,
+               goods_title, goods_cover, origin_price, seckill_price, total_amount, quantity,
+               status, pay_time, pay_expire_time, cancel_time, cancel_reason,
+               create_time, update_time
+        from osh_seckill_order
+    </sql>
+
+    <select id="selectOrderById" parameterType="Long" resultMap="OshSeckillOrderResult">
+        <include refid="selectOrderVo"/>
+        where id = #{id}
+    </select>
+
+    <select id="selectOrderBySeckillNo" parameterType="String" resultMap="OshSeckillOrderResult">
+        <include refid="selectOrderVo"/>
+        where seckill_no = #{seckillNo}
+    </select>
+
+    <!-- 根据统一订单号查询（支付成功回调、超时取消调支付系统） -->
+    <select id="selectOrderByOrderNo" parameterType="String" resultMap="OshSeckillOrderResult">
+        <include refid="selectOrderVo"/>
+        where order_no = #{orderNo}
+    </select>
+
+    <!-- 查询该用户该 item 当前未完成的订单（status=0 待支付），用于 getSeckillResult() Redis Key 过期后的兜底降级 -->
+    <select id="selectPendingOrderByItemUser" resultMap="OshSeckillOrderResult">
+        <include refid="selectOrderVo"/>
+        where item_id = #{itemId}
+          and user_id = #{userId}
+          and status = 0
+        order by create_time desc
+        limit 1
+    </select>
+
+    <!-- 管理端列表查询 -->
+    <select id="selectOrderList" parameterType="com.backstage.system.domain.seckill.OshSeckillOrder"
+            resultMap="OshSeckillOrderResult">
+        <include refid="selectOrderVo"/>
+        <where>
+            <if test="activityId != null">and activity_id = #{activityId}</if>
+            <if test="userId != null">and user_id = #{userId}</if>
+            <if test="status != null">and status = #{status}</if>
+            <if test="seckillNo != null and seckillNo != ''">and seckill_no = #{seckillNo}</if>
+        </where>
+        order by create_time desc
+    </select>
+
+    <insert id="insertOrder" parameterType="com.backstage.system.domain.seckill.OshSeckillOrder"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into osh_seckill_order
+        (seckill_no, order_no, activity_id, item_id, user_id, goods_id, goods_type,
+         goods_title, goods_cover, origin_price, seckill_price, total_amount, quantity,
+         status, pay_expire_time, create_time)
+        values
+        (#{seckillNo}, #{orderNo}, #{activityId}, #{itemId}, #{userId}, #{goodsId}, #{goodsType},
+         #{goodsTitle}, #{goodsCover}, #{originPrice}, #{seckillPrice}, #{totalAmount}, #{quantity},
+         #{status}, #{payExpireTime}, CURRENT_TIMESTAMP)
+    </insert>
+
+    <!-- 查询支付超时的待支付订单（status=0 且 pay_expire_time < now） -->
+    <select id="selectTimeoutOrders" resultMap="OshSeckillOrderResult">
+        <include refid="selectOrderVo"/>
+        where status = 0
+          and pay_expire_time &lt; NOW()
+    </select>
+
+    <!-- 查询最近已支付订单，关联用户表取昵称/用户名，用于首页滚动条展示 -->
+    <select id="selectRecentPaidOrders" resultType="com.backstage.system.domain.vo.seckill.SeckillRecentOrderVO">
+        select
+            CONCAT(LEFT(u.username, 2), '**') AS username,
+            o.goods_title  AS goodsTitle,
+            o.goods_type   AS goodsType,
+            o.create_time  AS createTime
+        from osh_seckill_order o
+        left join osh_user u on o.user_id = u.id
+        where o.status = 1
+        order by o.create_time desc
+        limit #{limit}
+    </select>
+
+    <update id="updateOrder" parameterType="com.backstage.system.domain.seckill.OshSeckillOrder">
+        update osh_seckill_order
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="status != null">status = #{status},</if>
+            <if test="payTime != null">pay_time = #{payTime},</if>
+            <if test="cancelTime != null">cancel_time = #{cancelTime},</if>
+            <if test="cancelReason != null and cancelReason != ''">cancel_reason = #{cancelReason},</if>
+            update_time = CURRENT_TIMESTAMP,
+        </trim>
+        where id = #{id}
+    </update>
+
+</mapper>

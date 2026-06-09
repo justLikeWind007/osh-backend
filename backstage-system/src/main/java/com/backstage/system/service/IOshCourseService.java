@@ -86,9 +86,11 @@ public interface IOshCourseService {
      */
     int deleteCourseById(Long id);
 
-    OshCourseDetailVo getCourseDetail(Long id, Long userId);
+    OshCourseDetailVo getCourseDetail(Long id, Long userId, boolean includeUnpublished);
 
-    List<OshCourseSectionVo> getCourseSectionOutline(Long courseId);
+    List<OshCourseSectionVo> getCourseSectionOutline(Long courseId, Long userId);
+
+    boolean canUserAccessSectionContent(Long courseId, Long sectionId, Long userId);
 
     Integer isUserBuyCourseOrFreeCourse(Long courseId, Long userId);
 
@@ -105,4 +107,6 @@ public interface IOshCourseService {
     void updateCourseChapter(CourseChapterCreateRequest request, OshUser currentOshUser);
 
     void deleteCoursesByIds(List<Long> ids, OshUser currentOshUser);
+
+    void hideCoursesByIds(List<Long> ids, OshUser operator);
 }

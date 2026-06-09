@@ -27,11 +27,14 @@ public interface OshCourseMapper
             @Param("userId") Long userId
     );
 
+    List<CourseSearchLoginVo> pageQueryAllCoursesForEsSync(@Param("request") CourseSearchRequest request);
+
     List<Long> selectUserBoughtCourseIds(@Param("userId") Long userId, @Param("courseIds") List<Long> courseIds);
 
     List<CourseSearchLoginVo> pageQueryUserCollectionSearchCourse(@Param("userId") Long userId, @Param("request") CourseSearchRequest request);
 
     List<OshCourse> pageQueryUserCollectionCourse(@Param("userId") Long userId, @Param("request") CourseSearchRequest request);
+
     /**
      * 查询课程信息
      *
@@ -89,7 +92,8 @@ public interface OshCourseMapper
      */
     int deleteCourseByIds(Long[] ids);
 
-    OshCourseDetailVo getCourseDetail(@Param("id") Long id, @Param("userId") Long userId);
+    OshCourseDetailVo getCourseDetail(@Param("id") Long id, @Param("userId") Long userId,
+                                      @Param("includeUnpublished") boolean includeUnpublished);
 
     Integer isUserBuyCourseOrFreeCourse(Long courseId, Long userId);
 

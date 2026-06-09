@@ -99,6 +99,9 @@ public class CourseSearchLoginVo {
     @ApiModelProperty("状态")
     private Integer status;
 
+    @ApiModelProperty("删除标记")
+    private Integer deleteFlag;
+
     @ApiModelProperty("考试 ID")
     private Integer examId;
 
@@ -111,6 +114,9 @@ public class CourseSearchLoginVo {
     @ApiModelProperty("收藏数")
     private Integer collectionCount;
 
+    @ApiModelProperty("课程标签文本，逗号分隔")
+    private String tagNamesText;
+
 
     public Integer getCollectionCount() {
         return collectionCount;
@@ -118,6 +124,14 @@ public class CourseSearchLoginVo {
 
     public void setCollectionCount(Integer collectionCount) {
         this.collectionCount = collectionCount;
+    }
+
+    public String getTagNamesText() {
+        return tagNamesText;
+    }
+
+    public void setTagNamesText(String tagNamesText) {
+        this.tagNamesText = tagNamesText;
     }
 
     public Long getId() {
@@ -358,6 +372,14 @@ public class CourseSearchLoginVo {
 
     public void setExamId(Integer examId) {
         this.examId = examId;
+    }
+
+    public Integer getDeleteFlag() {
+        return deleteFlag;
+    }
+
+    public void setDeleteFlag(Integer deleteFlag) {
+        this.deleteFlag = deleteFlag;
     }
 
     public Integer getCollectionFlag() {

@@ -10,43 +10,47 @@ public class CourseIndexJobConfigTest
     @After
     public void tearDown()
     {
-        System.clearProperty("course.index.update-topic");
-        System.clearProperty("course.index.delete-topic");
+        System.clearProperty("course.index.topic");
+        System.clearProperty("flink.parallelism");
+        System.clearProperty("flink.checkpoint.interval-ms");
     }
 
     @Test
-    public void shouldUseDefaultUpdateTopicWhenSystemPropertyIsMissing()
+    public void shouldUseDefaultTopicWhenSystemPropertyIsMissing()
     {
         CourseIndexJobConfig config = CourseIndexJobConfig.fromSystem();
 
-        assertEquals("osh.course.index.update", config.getUpdateTopic());
+        assertEquals("osh.course.index", config.getTopic());
     }
 
     @Test
-    public void shouldPreferSystemPropertyUpdateTopicWhenProvided()
+    public void shouldPreferSystemPropertyTopicWhenProvided()
     {
-        System.setProperty("course.index.update-topic", "osh.course.index.update.test");
+        System.setProperty("course.index.topic", "osh.course.index.test");
 
         CourseIndexJobConfig config = CourseIndexJobConfig.fromSystem();
 
-        assertEquals("osh.course.index.update.test", config.getUpdateTopic());
+        assertEquals("osh.course.index.test", config.getTopic());
     }
 
     @Test
-    public void shouldUseDefaultDeleteTopicWhenSystemPropertyIsMissing()
+    public void shouldUseDefaultFlinkRuntimeSettingsWhenSystemPropertyIsMissing()
     {
         CourseIndexJobConfig config = CourseIndexJobConfig.fromSystem();
 
-        assertEquals("osh.course.index.delete", config.getDeleteTopic());
+        assertEquals(1, config.getParallelism());
+        assertEquals(60000L, config.getCheckpointIntervalMs());
     }
 
     @Test
-    public void shouldPreferSystemPropertyDeleteTopicWhenProvided()
+    public void shouldPreferSystemPropertyFlinkRuntimeSettingsWhenProvided()
     {
-        System.setProperty("course.index.delete-topic", "osh.course.index.delete.test");
+        System.setProperty("flink.parallelism", "2");
+        System.setProperty("flink.checkpoint.interval-ms", "120000");
 
         CourseIndexJobConfig config = CourseIndexJobConfig.fromSystem();
 
-        assertEquals("osh.course.index.delete.test", config.getDeleteTopic());
+        assertEquals(2, config.getParallelism());
+        assertEquals(120000L, config.getCheckpointIntervalMs());
     }
 }

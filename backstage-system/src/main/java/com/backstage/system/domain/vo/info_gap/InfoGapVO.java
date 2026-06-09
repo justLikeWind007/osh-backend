@@ -1,10 +1,13 @@
 package com.backstage.system.domain.vo.info_gap;
 
+import java.time.LocalDateTime;
+
 /**
  * 列表展示对象 - 包含发布者信息和当前用户是否关注
  */
 public class InfoGapVO {
     private Long id;
+    private String no;
     private Long userId;
     private String title;
     private String content;
@@ -12,23 +15,36 @@ public class InfoGapVO {
     private Integer goodCount;
     private Integer middleCount;
     private Integer badCount;
+    private Integer viewCount;
+    private Integer collectCount;
+    private Integer status;
     private java.time.LocalDateTime createTime;
-    
+    private java.time.LocalDateTime updateTime;
+
     // 发布者信息 (从 OshUser 表关联)
     private String nickname;
     private String avatar;
-    
     // 扩展功能：当前登录用户是否已关注该作者
-    private Boolean isFollowed;
-
+    private Integer isFollowed;
     private Integer isVoted;
+
+    private String tag1;
+    private String tag2;
+    private String tag3;
 
     public Integer getIsVoted() { return isVoted; }
     public void setIsVoted(Integer isVoted) { this.isVoted = isVoted; }
+    public LocalDateTime getUpdateTime() {
+        return updateTime;
+    }
+    public void setUpdateTime(LocalDateTime updateTime) {
+        this.updateTime = updateTime;
+    }
 
-    // Getter and Setter
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+    public String getNo() { return no; }
+    public void setNo(String no) { this.no = no; }
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
     public String getTitle() { return title; }
@@ -43,12 +59,54 @@ public class InfoGapVO {
     public void setMiddleCount(Integer middleCount) { this.middleCount = middleCount; }
     public Integer getBadCount() { return badCount; }
     public void setBadCount(Integer badCount) { this.badCount = badCount; }
+    public Integer getStatus() { return status; }
+    public void setStatus(Integer status) { this.status = status; }
     public java.time.LocalDateTime getCreateTime() { return createTime; }
     public void setCreateTime(java.time.LocalDateTime createTime) { this.createTime = createTime; }
     public String getNickname() { return nickname; }
     public void setNickname(String nickname) { this.nickname = nickname; }
     public String getAvatar() { return avatar; }
     public void setAvatar(String avatar) { this.avatar = avatar; }
-    public Boolean getIsFollowed() { return isFollowed; }
-    public void setIsFollowed(Boolean isFollowed) { this.isFollowed = isFollowed; }
+    public Integer getIsFollowed() { return isFollowed; }
+    public void setIsFollowed(Integer isFollowed) { this.isFollowed = isFollowed; }
+
+    public String getTag1() {
+        return tag1;
+    }
+
+    public void setTag1(String tag1) {
+        this.tag1 = tag1;
+    }
+
+    public String getTag2() {
+        return tag2;
+    }
+
+    public void setTag2(String tag2) {
+        this.tag2 = tag2;
+    }
+
+    public String getTag3() {
+        return tag3;
+    }
+
+    public void setTag3(String tag3) {
+        this.tag3 = tag3;
+    }
+
+    public Integer getViewCount() {
+        return viewCount;
+    }
+
+    public void setViewCount(Integer viewCount) {
+        this.viewCount = viewCount;
+    }
+
+    public Integer getCollectCount() {
+        return collectCount;
+    }
+
+    public void setCollectCount(Integer collectCount) {
+        this.collectCount = collectCount;
+    }
 }

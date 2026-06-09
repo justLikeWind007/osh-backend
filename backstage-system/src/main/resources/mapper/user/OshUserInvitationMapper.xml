@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.user.OshUserInvitationMapper">
+
+    <insert id="insertInvitation" parameterType="com.backstage.system.domain.user.OshUserInvitation">
+        insert into osh_user_invitation (inviter_id, invitee_id, invite_code, create_time)
+        values (#{inviterId}, #{inviteeId}, #{inviteCode}, #{createTime})
+    </insert>
+
+    <select id="selectInviteeListByInviterId" resultType="java.util.LinkedHashMap">
+        select
+            i.invitee_id as inviteeId,
+            u.username as username,
+            u.avatar as avatar,
+            i.create_time as createTime
+        from osh_user_invitation i
+        left join osh_user u on u.id = i.invitee_id
+        where i.inviter_id = #{inviterId}
+        order by i.create_time desc
+    </select>
+</mapper>

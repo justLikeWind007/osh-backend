@@ -11,8 +11,10 @@ import com.backstage.system.domain.dto.website.WebsiteQueryDTO;
 import com.backstage.system.domain.dto.website.WebsiteRatingDTO;
 import com.backstage.system.domain.dto.website.WebsiteSubmitDTO;
 import com.backstage.system.domain.vo.website.OshPracticalWebsiteVO;
+import com.backstage.system.service.website.IWebsiteAnnouncementService;
 import com.backstage.system.service.website.OshPracticalWebsiteService;
 import com.backstage.system.service.website.OshUserFavoriteWebsiteService;
+import com.backstage.system.service.website.OshWebsiteTagService;
 import com.backstage.system.service.website.OshWebsiteUserRatingService;
 import com.github.pagehelper.PageInfo;
 import io.swagger.annotations.ApiOperation;
@@ -41,6 +43,46 @@ public class OshPracticalWebsiteController extends BaseController {
 
     @Resource
     private OshWebsiteUserRatingService oshWebsiteUserRatingService;
+
+    @Autowired
+    private OshWebsiteTagService oshWebsiteTagService;
+
+    @Autowired
+    private IWebsiteAnnouncementService websiteAnnouncementService;
+
+    /**
+     * 查询实用网站公告栏（无需登录）
+     */
+    @Anonymous
+    @ApiOperation("查询实用网站公告栏")
+    @GetMapping("/notices")
+    public R<java.util.List<com.backstage.system.domain.announcement.vo.AnnouncementMarqueeVO>> getNotices(
+            @RequestParam(required = false, defaultValue = "10") int limit) {
+        return R.ok(websiteAnnouncementService.getWebsiteNotices(limit));
+    }
+
+    /**
+     * 查询实用网站动态栏（无需登录）
+     */
+    @Anonymous
+    @ApiOperation("查询实用网站动态栏")
+    @GetMapping("/dynamics")
+    public R<java.util.List<com.backstage.system.domain.announcement.vo.AnnouncementMarqueeVO>> getDynamics(
+            @RequestParam(required = false, defaultValue = "10") int limit) {
+        return R.ok(websiteAnnouncementService.getWebsiteDynamics(limit));
+    }
+
+    /**
+     * 查询标签列表（公开，支持关键字模糊搜索）
+     * 参考课程模块 GET /pc/course/tags?keyword=
+     */
+    @Anonymous
+    @ApiOperation("查询网站标签列表")
+    @GetMapping("/tags")
+    public R<java.util.List<java.util.Map<String, Object>>> getTags(
+            @RequestParam(required = false) String keyword) {
+        return R.ok(oshWebsiteTagService.searchTags(keyword));
+    }
 
     /**
      * 查询实用网站列表（公开，游客可访问）
@@ -145,12 +187,16 @@ public class OshPracticalWebsiteController extends BaseController {
     @ApiOperation("查询用户的收藏网站列表")
     @GetMapping("/Favorites")
     @PreAuthorize("hasAuthority('website:favorite:list')")
-    public R<TableDataInfo> getMyFavoriteList(
+    public R<java.util.Map<String, Object>> getMyFavoriteList(
             @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
             @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
         try {
             TableDataInfo result = oshUserFavoriteWebsiteService.selectUserFavoriteList(pageNum, pageSize);
-            return R.ok(result);
+            // 手动组装，避免 TableDataInfo 自带的 code/msg 字段污染响应结构
+            java.util.Map<String, Object> data = new java.util.LinkedHashMap<>();
+            data.put("total", result.getTotal());
+            data.put("rows", result.getRows());
+            return R.ok(data);
         } catch (Exception e) {
             e.printStackTrace();
             return R.fail("网络开小差");

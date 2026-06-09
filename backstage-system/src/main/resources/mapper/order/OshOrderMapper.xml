@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.order.OshOrderMapper">
+
+    <resultMap id="OshOrderResult" type="com.backstage.system.domain.order.OshOrder">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="orderNo" column="order_no"/>
+        <result property="status" column="status"/>
+        <result property="productType" column="product_type"/>
+        <result property="productId" column="product_id"/>
+        <result property="productName" column="product_name"/>
+        <result property="purchaseMode" column="purchase_mode"/>
+        <result property="activityId" column="activity_id"/>
+        <result property="originalAmount" column="original_amount"/>
+        <result property="discountAmount" column="discount_amount"/>
+        <result property="payableAmount" column="payable_amount"/>
+        <result property="pointsAmount" column="points_amount"/>
+        <result property="pointsDeductAmount" column="points_deduct_amount"/>
+        <result property="couponId" column="coupon_id"/>
+        <result property="createdTime" column="created_time"/>
+        <result property="paidTime" column="paid_time"/>
+        <result property="closeTime" column="close_time"/>
+        <result property="updatedTime" column="updated_time"/>
+        <result property="deleteFlag" column="delete_flag"/>
+    </resultMap>
+
+    <sql id="selectOshOrderColumns">
+        select id, user_id, order_no, status, product_type, product_id, product_name,
+               purchase_mode, activity_id, original_amount, discount_amount, payable_amount,
+               points_amount, points_deduct_amount, coupon_id, created_time, paid_time,
+               close_time, updated_time, delete_flag
+        from osh_order
+    </sql>
+
+    <insert id="insertOshOrder" parameterType="com.backstage.system.domain.order.OshOrder" useGeneratedKeys="true" keyProperty="id">
+        insert into osh_order (
+            user_id, order_no, status, product_type, product_id, product_name,
+            purchase_mode, activity_id, original_amount, discount_amount, payable_amount,
+            points_amount, points_deduct_amount, coupon_id, created_time, paid_time,
+            close_time, updated_time, delete_flag
+        ) values (
+            #{userId}, #{orderNo}, #{status}, #{productType}, #{productId}, #{productName},
+            #{purchaseMode}, #{activityId}, #{originalAmount}, #{discountAmount}, #{payableAmount},
+            #{pointsAmount}, #{pointsDeductAmount}, #{couponId}, #{createdTime}, #{paidTime},
+            #{closeTime}, #{updatedTime}, #{deleteFlag}
+        )
+    </insert>
+
+    <select id="selectByOrderNo" resultMap="OshOrderResult">
+        <include refid="selectOshOrderColumns"/>
+        where order_no = #{orderNo}
+          and delete_flag = 0
+        limit 1
+    </select>
+
+    <update id="updatePendingToPaid">
+        update osh_order
+        set status = 1,
+            paid_time = #{paidTime},
+            updated_time = CURRENT_TIMESTAMP
+        where order_no = #{orderNo}
+          and status = 0
+    </update>
+
+    <update id="updatePendingToClosed">
+        update osh_order
+        set status = 2,
+            close_time = #{closeTime},
+            updated_time = CURRENT_TIMESTAMP
+        where order_no = #{orderNo}
+          and status = 0
+    </update>
+
+    <select id="selectByUserId" resultMap="OshOrderResult">
+        <include refid="selectOshOrderColumns"/>
+        where user_id = #{userId}
+          and delete_flag = 0
+        order by created_time desc
+    </select>
+
+    <select id="selectByUserIdAndStatus" resultMap="OshOrderResult">
+        <include refid="selectOshOrderColumns"/>
+        where user_id = #{userId}
+          and delete_flag = 0
+          <if test="status != null">
+              <if test="status == 2">
+                  and status in (2, 3)
+              </if>
+              <if test="status != 2">
+                  and status = #{status}
+              </if>
+          </if>
+        order by created_time desc
+    </select>
+</mapper>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.tool.OshToolCollectionMapper">
+
+    <resultMap id="OshToolCollectionResult" type="com.backstage.system.domain.tool.OshToolCollection">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="toolId" column="tool_id"/>
+        <result property="deleteFlag" column="delete_flag"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectByUserIdAndToolId" resultMap="OshToolCollectionResult">
+        select id, user_id, tool_id, delete_flag, create_by, create_time, update_by, update_time
+        from osh_tool_collection
+        where user_id = #{userId}
+          and tool_id = #{toolId}
+        limit 1
+    </select>
+
+    <insert id="insertToolCollection" parameterType="com.backstage.system.domain.tool.OshToolCollection"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into osh_tool_collection (
+            user_id, tool_id, delete_flag, create_by, create_time, update_by, update_time
+        ) values (
+            #{userId}, #{toolId}, 0, #{createBy}, now(), #{updateBy}, now()
+        )
+    </insert>
+
+    <update id="updateCollectionDeleteFlag">
+        update osh_tool_collection
+        set delete_flag = #{deleteFlag},
+            update_by = #{operator},
+            update_time = now()
+        where id = #{id}
+    </update>
+</mapper>

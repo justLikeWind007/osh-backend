@@ -2,12 +2,22 @@ package com.backstage.system.controller.info_gap;
 
 import com.backstage.common.annotation.Anonymous;
 import com.backstage.common.core.domain.R;
+import com.backstage.common.exception.ServiceException;
+import com.backstage.common.response.PageResponse;
 import com.backstage.system.domain.dto.info_gap.InfoGapCreateDTO;
+import com.backstage.system.domain.dto.info_gap.InfoGapSearchReqDTO;
+import com.backstage.system.domain.dto.info_gap.InfoGapUpdateReqDTO;
+import com.backstage.system.domain.dto.info_gap.InfoGapVoteReqDTO;
+import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.domain.vo.info_gap.InfoGapVO;
+import com.backstage.system.service.info_gap.InfoGapCollectService;
 import com.backstage.system.service.info_gap.InfoGapService;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.backstage.system.utils.UserContextUtil;
+import com.github.pagehelper.PageInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/pc/info_gap")
@@ -15,48 +25,164 @@ public class InfoGapController {
 
     @Autowired
     private InfoGapService infoGapService;
+    @Autowired
+    private InfoGapCollectService infoGapCollectService;
 
+    /**
+     * 信息差列表
+     * @param type hot、latest
+     */
     @GetMapping("/list")
     @Anonymous
-    public R<Page<InfoGapVO>> list(
-            @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum, // 改成 pageNum
-            @RequestParam(defaultValue = "hot") String type) { // 顺便把默认排序改成 hot
-        Long currentUserId = 1L; // 建议用工具类获取
-        return R.ok(infoGapService.getInfoGapList(pageNum, type, currentUserId));
+    public R<PageResponse<InfoGapVO>> list(
+            @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "hot") String type) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
+
+        List<InfoGapVO> infoGapList = infoGapService.getInfoGapList(pageNum, 10, type, currentUserId);
+        PageInfo<InfoGapVO> pageInfo = new PageInfo<>(infoGapList);
+
+        return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()));
+    }
+
+    /**
+     * 信息差列表
+     * @param type follow、collect
+     */
+    @GetMapping("/list/user")
+    public R<PageResponse<InfoGapVO>> listUser(
+            @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "follow") String type) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
+
+        List<InfoGapVO> infoGapList = infoGapService.getInfoGapList(pageNum, 10, type, currentUserId);
+        PageInfo<InfoGapVO> pageInfo = new PageInfo<>(infoGapList);
+
+        return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()));
+    }
+
+    /**
+     * 查询某条信息差在热门信息差中的页码
+     */
+    @GetMapping("/pageNum")
+    @Anonymous
+    public R<Integer> getHotPageNum(@RequestParam("infoGapId") Long infoGapId,
+                                    @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
+        return R.ok(infoGapService.getHotPageNumByInfoGapId(infoGapId, pageSize));
     }
 
     /**
      * 发布信息差
      */
     @PostMapping("/save")
-    @Anonymous
     public R<Void> save(@RequestBody InfoGapCreateDTO dto) {
-        Long loginUserId = 1L;
-        infoGapService.createInfoGap(dto, loginUserId);
-        return R.ok();
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        String currentUsername = currentOshUser.getUsername();
+        Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
+        infoGapService.createInfoGap(dto, currentUserId, currentUsername);
+
+        return R.ok((Void) null, "提交成功，等待审核");
     }
 
     /**
-     * 评价 (点赞/踩/中评)
+     * 修改我发布的信息差
+     */
+    @PostMapping("/update")
+    public R<Void> updateInfoGap(@RequestBody InfoGapUpdateReqDTO dto) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
+        infoGapService.updateInfoGap(dto, currentUserId);
+
+        return R.ok(null, "修改成功，等待审核");
+    }
+
+    /**
+     * 删除我发布的信息差
+     */
+    @GetMapping("/delete")
+    public R<Void> deleteInfoGap(@RequestParam("infoGapId") Long infoGapId) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
+        infoGapService.deleteInfoGap(infoGapId);
+
+        return R.ok(null, "当前信息差删除成功！");
+    }
+
+    /**
+     * 信息差点评接口，1-好评 2-中评 3-差评
      */
     @PostMapping("/vote")
-    @Anonymous
-    public R<Void> vote(@RequestParam Long id, @RequestParam Integer type) {
-        Long loginUserId = 1L;
-        infoGapService.vote(loginUserId, id, type);
+    public R<Void> vote(@RequestBody InfoGapVoteReqDTO request) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
+
+        infoGapService.vote(currentUserId, request.getId(), request.getType());
         return R.ok();
     }
 
     /**
-     * 关注/取消关注作者 (对应图片中的 +关注 按钮)
-     * @param authorId 被关注的作者ID
+     * 精品推荐
      */
-    @PostMapping("/follow/{authorId}")
+    @GetMapping("/recommend")
     @Anonymous
-    public R<Void> follow(@PathVariable Long authorId) {
-        // 同样模拟当前登录用户
-        Long loginUserId = 1L;
-        infoGapService.toggleFollow(loginUserId, authorId);
+    public R<List> recommend() {
+        List<InfoGapVO> infoGapVOList = infoGapService.recommend();
+
+        return R.ok(infoGapVOList);
+    }
+
+    /**
+     * 收藏/取消收藏信息差
+     */
+    @GetMapping("/collect")
+    public R<String> collect(@RequestParam("infoGapId") Long infoGapId) {
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
+
+        return infoGapCollectService.collectInfoGap(currentUserId, infoGapId);
+    }
+
+    /**
+     * 统计信息差观看次数
+     */
+    @GetMapping("/view")
+    public R<Void> view(@RequestParam("infoGapId") Long infoGapId) {
+        infoGapService.viewCount(infoGapId);
+
         return R.ok();
+    }
+
+    /**
+     * 搜索信息差，支持关键字、标签、类别搜索信息差
+     */
+    @PostMapping("/search")
+    @Anonymous
+    public R<PageResponse<InfoGapVO>> search(@RequestBody InfoGapSearchReqDTO request) {
+        if (request.getKeyword() != null) {
+            request.setKeyword(request.getKeyword().trim());
+            if (request.getKeyword().isEmpty()) {
+                request.setKeyword(null);
+            }
+        }
+
+        if (request.getCategory() != null) {
+            request.setCategory(request.getCategory().trim());
+            if (request.getCategory().isEmpty()) {
+                request.setCategory(null);
+            }
+        }
+
+        if (request.getKeyword() == null && request.getTagId() == null && request.getCategory() == null) {
+            throw new ServiceException("关键字、标签、类别不能同时为空");
+        }
+
+        OshUser currentOshUser = UserContextUtil.getCurrentUser();
+        Long currentUserId = currentOshUser == null ? null : currentOshUser.getId();
+        List<InfoGapVO> infoGapSearchList = infoGapService.searchInfoGap(request, currentUserId);
+        PageInfo<InfoGapVO> pageInfo = new PageInfo<>(infoGapSearchList);
+
+        return R.ok(PageResponse.of(pageInfo.getList(), pageInfo.getTotal(), pageInfo.getPageNum(), pageInfo.getPageSize()));
     }
 }

@@ -1,6 +1,10 @@
 package com.backstage.system.domain.info_gap;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.baomidou.mybatisplus.annotation.TableName;
+
 import java.time.LocalDateTime;
 
 /**
@@ -11,17 +15,21 @@ public class OshInfoGap {
     @TableId(type = IdType.AUTO)
     private Long id;
     private Long userId;
+    private String userName;
     private String title;
     private String tag;
     private String content;
     private Integer goodCount;
     private Integer middleCount;
     private Integer badCount;
-    private Integer status; // 0-正常, 1-审核中, 2-已下架
+    private Integer collectCount;
+    private Integer viewCount;
+    private Integer status; // 0-草稿, 2-待审核, 4-已发布, 6-已下架
+    private Long updateBy;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
     @TableLogic
-    private Integer isDeleted;
+    private Integer deleteFlag;
 
     // Getter and Setter
     public Long getId() { return id; }
@@ -46,6 +54,44 @@ public class OshInfoGap {
     public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
     public LocalDateTime getUpdateTime() { return updateTime; }
     public void setUpdateTime(LocalDateTime updateTime) { this.updateTime = updateTime; }
-    public Integer getIsDeleted() { return isDeleted; }
-    public void setIsDeleted(Integer isDeleted) { this.isDeleted = isDeleted; }
+
+    public Integer getCollectCount() {
+        return collectCount;
+    }
+
+    public void setCollectCount(Integer collectCount) {
+        this.collectCount = collectCount;
+    }
+
+    public Integer getViewCount() {
+        return viewCount;
+    }
+
+    public void setViewCount(Integer viewCount) {
+        this.viewCount = viewCount;
+    }
+
+    public Integer getDeleteFlag() {
+        return deleteFlag;
+    }
+
+    public void setDeleteFlag(Integer deleteFlag) {
+        this.deleteFlag = deleteFlag;
+    }
+
+    public Long getUpdateBy() {
+        return updateBy;
+    }
+
+    public void setUpdateBy(Long updateBy) {
+        this.updateBy = updateBy;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
 }

@@ -3,7 +3,10 @@ package com.backstage;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.scheduling.annotation.EnableScheduling;
+
+import java.util.TimeZone;
 
 /**
  * 启动程序
@@ -16,6 +19,8 @@ public class RuoYiApplication
 {
     public static void main(String[] args)
     {
+        // 设置全局 JVM 时区为东八区
+        TimeZone.setDefault(TimeZone.getTimeZone("Asia/Shanghai"));
         // System.setProperty("spring.devtools.restart.enabled", "false");
         SpringApplication.run(RuoYiApplication.class, args);
         System.out.println("(♥◠‿◠)ﾉﾞ  若依启动成功   ლ(´ڡ`ლ)ﾞ  \n" +

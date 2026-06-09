@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.homepage.OshHomePageCourseMapper">
+
+    <!--
+        热门课程查询（基于热度公式排序）
+        热度公式：(0.70*购买分 + 0.20*浏览分 + 0.10*综合互动分) * 时间衰减系数
+        各分值先取对数再归一化，避免极端值主导排名
+    -->
+    <select id="selectHotCourses" resultType="com.backstage.system.domain.homepage.vo.HotCourseVO">
+        SELECT
+            s.id,
+            s.title,
+            s.cover,
+            s.price,
+            s.t_price       AS tPrice,
+            s.buy_count     AS buyCount,
+            s.view_count    AS viewCount,
+            s.video_count   AS videoCount,
+            s.rating_score  AS ratingScore,
+            s.service_content AS serviceContent,
+            s.resource_type AS resourceType,
+            s.hot_score     AS hotScore
+        FROM (
+            SELECT
+                c.id, c.title, c.cover, c.price, c.t_price,
+                c.buy_count, c.view_count, c.video_count,
+                c.rating_score, c.service_content, c.resource_type,
+                c.create_time,
+                ROUND(
+                    (0.70 * IFNULL(LN(1 + GREATEST(IFNULL(c.sales_count,0), IFNULL(c.buy_count,0))) /
+                            NULLIF((SELECT MAX(LN(1 + GREATEST(IFNULL(x.sales_count,0), IFNULL(x.buy_count,0))))
+                                    FROM osh_course x WHERE x.status=4 AND x.delete_flag=0), 0), 0)
+                   + 0.20 * IFNULL(LN(1 + IFNULL(c.view_count,0)) /
+                            NULLIF((SELECT MAX(LN(1 + IFNULL(x.view_count,0)))
+                                    FROM osh_course x WHERE x.status=4 AND x.delete_flag=0), 0), 0)
+                   + 0.10 * (
+                        0.50 * LEAST(IFNULL(c.rating_score,0), 5) / 5
+                      + 0.20 * IFNULL(LN(1 + IFNULL(c.comment_count,0)) /
+                                NULLIF((SELECT MAX(LN(1 + IFNULL(x.comment_count,0)))
+                                        FROM osh_course x WHERE x.status=4 AND x.delete_flag=0), 0), 0)
+                      + 0.20 * IFNULL(LN(1 + IFNULL(c.collection_count,0)) /
+                                NULLIF((SELECT MAX(LN(1 + IFNULL(x.collection_count,0)))
+                                        FROM osh_course x WHERE x.status=4 AND x.delete_flag=0), 0), 0)
+                      + 0.10 * IFNULL(LN(1 + IFNULL(c.like_count,0)) /
+                                NULLIF((SELECT MAX(LN(1 + IFNULL(x.like_count,0)))
+                                        FROM osh_course x WHERE x.status=4 AND x.delete_flag=0), 0), 0)
+                   ))
+                   * CASE
+                        WHEN TIMESTAMPDIFF(DAY, c.create_time, NOW()) &lt;= 30  THEN 1.20
+                        WHEN TIMESTAMPDIFF(DAY, c.create_time, NOW()) &lt;= 90  THEN 1.00
+                        WHEN TIMESTAMPDIFF(DAY, c.create_time, NOW()) &lt;= 180 THEN 0.85
+                        WHEN TIMESTAMPDIFF(DAY, c.create_time, NOW()) &lt;= 365 THEN 0.70
+                        ELSE 0.55
+                     END
+                , 4) AS hot_score
+            FROM osh_course c
+            WHERE c.status = 4 AND c.delete_flag = 0
+        ) s
+        ORDER BY s.hot_score DESC, s.create_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <!--
+        根据课程ID批量查询标签（按 sort 降序，每个课程最多返回全部标签，Service 层截取前2个）
+    -->
+    <select id="selectTagsByCourseIds" resultType="com.backstage.system.domain.homepage.vo.HotCourseVO">
+        SELECT
+            rel.course_id AS courseId,
+            t.name        AS tagName
+        FROM osh_course_tag_rel rel
+        INNER JOIN osh_course_tag t ON t.id = rel.tag_id
+        WHERE rel.course_id IN
+        <foreach collection="courseIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+          AND rel.delete_flag = 0
+          AND t.delete_flag = 0
+          AND t.status = 1
+        ORDER BY t.sort DESC
+    </select>
+
+</mapper>

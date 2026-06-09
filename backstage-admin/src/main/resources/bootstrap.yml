@@ -9,10 +9,12 @@ spring:
       password: g5t52By7
       discovery:
         namespace: d4208eb8-261f-44a1-adf5-c12406fbd1a2
-        server-addr: http://43.242.200.25:8848
+        # macOS 需要去掉 http:// ---> 43.242.200.25:8848
+        server-addr: 43.242.200.25:58848
       config:
         namespace: d4208eb8-261f-44a1-adf5-c12406fbd1a2
-        server-addr: http://43.242.200.25:8848
+        # macOS 需要去掉 http:// ---> 43.242.200.25:8848
+        server-addr: 43.242.200.25:58848
         file-extension: yaml
         shared-configs:
           - data-id: osh-backend-mysql-dev.yaml
@@ -26,8 +28,17 @@ spring:
             refresh: true
           - data-id: osh-backend-elasticsearch-dev.yaml
             refresh: true
+          - data-id: osh-backend-jasypt-dev.yaml
+            refresh: true
+          - data-id: osh-backend-xxljob-dev.yaml
+            refresh: true
 
-jasypt:
-  encryptor:
-    algorithm: PBEWithMD5AndDES
-    iv-generator-classname: org.jasypt.iv.NoIvGenerator
+# osh-secret 客户端配置
+# 从 osh-secret 服务拉取敏感信息，覆盖 Nacos 配置中的同名属性
+osh:
+  secret:
+    enabled: true
+    server-url: http://43.242.200.25:59100
+    access-token: change-me-in-production
+    app-id: osh-backend
+    env: ${spring.profiles.active}

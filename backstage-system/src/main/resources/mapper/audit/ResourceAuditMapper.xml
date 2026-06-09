@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.audit.ResourceAuditMapper">
+
+    <resultMap id="ResourceAuditItemResult" type="com.backstage.system.domain.audit.ResourceAuditItemVO">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="description" column="description"/>
+        <result property="cover" column="cover"/>
+        <result property="url" column="url"/>
+        <result property="author" column="author"/>
+        <result property="submitTime" column="submit_time"/>
+        <result property="level" column="level"/>
+        <result property="status" column="status"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <select id="selectPendingList" resultMap="ResourceAuditItemResult">
+        <choose>
+            <when test="tableName == 'osh_course'">
+                select id, title, intro as description, cover, null as url,
+                       null as author, null as submit_time, level, status, create_by, create_time
+                from osh_course
+                where delete_flag = 0 and status = 0
+                <if test="keyword != null and keyword != ''">
+                    and (title like concat('%', #{keyword}, '%') or intro like concat('%', #{keyword}, '%'))
+                </if>
+                order by create_time desc, id desc
+                limit #{offset}, #{pageSize}
+            </when>
+            <when test="tableName == 'osh_question_answer_question'">
+                select id, content as title, content as description, null as cover, null as url,
+                       null as author, null as submit_time, level, status, create_by, create_time
+                from osh_question_answer_question
+                where delete_flag = 0 and status = 0
+                <if test="keyword != null and keyword != ''">
+                    and content like concat('%', #{keyword}, '%')
+                </if>
+                order by create_time desc, id desc
+                limit #{offset}, #{pageSize}
+            </when>
+            <when test="tableName == 'osh_question_answer_answer'">
+                select id, content as title, content as description, null as cover, null as url,
+                       null as author, null as submit_time, level, status, create_by, create_time
+                from osh_question_answer_answer
+                where delete_flag = 0 and status = 0
+                <if test="keyword != null and keyword != ''">
+                    and content like concat('%', #{keyword}, '%')
+                </if>
+                order by create_time desc, id desc
+                limit #{offset}, #{pageSize}
+            </when>
+            <when test="tableName == 'osh_book'">
+                select id, title, description, cover, null as url,
+                       null as author, null as submit_time, level, cast(status as signed) as status, create_by, create_time
+                from osh_book
+                where del_flag = '0' and status = '0'
+                <if test="keyword != null and keyword != ''">
+                    and (title like concat('%', #{keyword}, '%') or description like concat('%', #{keyword}, '%'))
+                </if>
+                order by create_time desc, id desc
+                limit #{offset}, #{pageSize}
+            </when>
+            <when test="tableName == 'osh_tool'">
+                select id, tool_name as title, description, logo_url as cover, route_path as url,
+                       null as author, null as submit_time, level, status, create_by, create_time
+                from osh_tool
+                where delete_flag = 0 and status = 0
+                <if test="keyword != null and keyword != ''">
+                    and (tool_name like concat('%', #{keyword}, '%') or description like concat('%', #{keyword}, '%'))
+                </if>
+                order by create_time desc, id desc
+                limit #{offset}, #{pageSize}
+            </when>
+            <when test="tableName == 'osh_practical_website'">
+                select id, name as title, description, logo_url as cover, url,
+                       null as author, null as submit_time, level, status, create_by, create_time
+                from osh_practical_website
+                where delete_flag = 0 and status = 0
+                <if test="keyword != null and keyword != ''">
+                    and (name like concat('%', #{keyword}, '%') or description like concat('%', #{keyword}, '%') or url like concat('%', #{keyword}, '%'))
+                </if>
+                order by create_time desc, id desc
+                limit #{offset}, #{pageSize}
+            </when>
+            <when test="tableName == 'osh_open_project'">
+                select id, project_name as title, project_desc as description, project_cover as cover, project_url as url,
+                       author_name as author, create_time as submit_time, null as level, status, create_by, create_time
+                from osh_open_project
+                where delete_flag = 0 and status = 0
+                <if test="keyword != null and keyword != ''">
+                    and (project_name like concat('%', #{keyword}, '%') or project_desc like concat('%', #{keyword}, '%') or project_url like concat('%', #{keyword}, '%') or author_name like concat('%', #{keyword}, '%'))
+                </if>
+                order by create_time desc, id desc
+                limit #{offset}, #{pageSize}
+            </when>
+            <when test="tableName == 'osh_info_gap'">
+                select id, title, content as description, null as cover, null as url, null as author,
+                       create_time as submit_time, null as level, status, user_name as create_by, create_time
+                from osh_info_gap
+                where delete_flag = 0 and status = 2
+                <if test="keyword != null and keyword != ''">
+                    and (title like concat('%', #{keyword}, '%') or content like concat('%', #{keyword}, '%') or tag like concat('%', #{keyword}, '%'))
+                </if>
+                order by create_time desc, id desc
+                limit #{offset}, #{pageSize}
+            </when>
+            <otherwise>
+                select null as id, null as title, null as description, null as cover, null as url,
+                       null as author, null as submit_time,
+                       null as level, null as status, null as create_by, null as create_time
+                where 1 = 0
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="countPending" resultType="java.lang.Long">
+        <choose>
+            <when test="tableName == 'osh_course'">
+                select count(1) from osh_course where delete_flag = 0 and status = 0
+                <if test="keyword != null and keyword != ''">
+                    and (title like concat('%', #{keyword}, '%') or intro like concat('%', #{keyword}, '%'))
+                </if>
+            </when>
+            <when test="tableName == 'osh_question_answer_question'">
+                select count(1) from osh_question_answer_question where delete_flag = 0 and status = 0
+                <if test="keyword != null and keyword != ''">
+                    and content like concat('%', #{keyword}, '%')
+                </if>
+            </when>
+            <when test="tableName == 'osh_question_answer_answer'">
+                select count(1) from osh_question_answer_answer where delete_flag = 0 and status = 0
+                <if test="keyword != null and keyword != ''">
+                    and content like concat('%', #{keyword}, '%')
+                </if>
+            </when>
+            <when test="tableName == 'osh_book'">
+                select count(1) from osh_book where del_flag = '0' and status = '0'
+                <if test="keyword != null and keyword != ''">
+                    and (title like concat('%', #{keyword}, '%') or description like concat('%', #{keyword}, '%'))
+                </if>
+            </when>
+            <when test="tableName == 'osh_tool'">
+                select count(1) from osh_tool where delete_flag = 0 and status = 0
+                <if test="keyword != null and keyword != ''">
+                    and (tool_name like concat('%', #{keyword}, '%') or description like concat('%', #{keyword}, '%'))
+                </if>
+            </when>
+            <when test="tableName == 'osh_practical_website'">
+                select count(1) from osh_practical_website where delete_flag = 0 and status = 0
+                <if test="keyword != null and keyword != ''">
+                    and (name like concat('%', #{keyword}, '%') or description like concat('%', #{keyword}, '%') or url like concat('%', #{keyword}, '%'))
+                </if>
+            </when>
+            <when test="tableName == 'osh_open_project'">
+                select count(1) from osh_open_project where delete_flag = 0 and status = 0
+                <if test="keyword != null and keyword != ''">
+                    and (project_name like concat('%', #{keyword}, '%') or project_desc like concat('%', #{keyword}, '%') or project_url like concat('%', #{keyword}, '%') or author_name like concat('%', #{keyword}, '%'))
+                </if>
+            </when>
+            <when test="tableName == 'osh_info_gap'">
+                select count(1) from osh_info_gap where delete_flag = 0 and status = 2
+                <if test="keyword != null and keyword != ''">
+                    and (title like concat('%', #{keyword}, '%') or content like concat('%', #{keyword}, '%') or tag like concat('%', #{keyword}, '%'))
+                </if>
+            </when>
+            <otherwise>
+                select 0
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="selectAuditNotifyItem" resultMap="ResourceAuditItemResult">
+        <choose>
+            <when test="tableName == 'osh_course'">
+                select id, title, intro as description, cover, null as url,
+                       null as author, null as submit_time, level, status, create_by, create_time
+                from osh_course
+                where id = #{resourceId}
+                limit 1
+            </when>
+            <when test="tableName == 'osh_question_answer_question'">
+                select id, content as title, content as description, null as cover, null as url,
+                       null as author, null as submit_time, level, status, create_by, create_time
+                from osh_question_answer_question
+                where id = #{resourceId}
+                limit 1
+            </when>
+            <when test="tableName == 'osh_question_answer_answer'">
+                select id, content as title, content as description, null as cover, null as url,
+                       null as author, null as submit_time, level, status, create_by, create_time
+                from osh_question_answer_answer
+                where id = #{resourceId}
+                limit 1
+            </when>
+            <when test="tableName == 'osh_book'">
+                select id, title, description, cover, null as url,
+                       null as author, null as submit_time, level, cast(status as signed) as status, create_by, create_time
+                from osh_book
+                where id = #{resourceId}
+                limit 1
+            </when>
+            <when test="tableName == 'osh_tool'">
+                select id, tool_name as title, description, logo_url as cover, route_path as url,
+                       null as author, null as submit_time, level, status, create_by, create_time
+                from osh_tool
+                where id = #{resourceId}
+                limit 1
+            </when>
+            <when test="tableName == 'osh_practical_website'">
+                select id, name as title, description, logo_url as cover, url,
+                       null as author, null as submit_time, level, status, create_by, create_time
+                from osh_practical_website
+                where id = #{resourceId}
+                limit 1
+            </when>
+            <when test="tableName == 'osh_open_project'">
+                select id, project_name as title, project_desc as description, project_cover as cover, project_url as url,
+                       author_name as author, create_time as submit_time, null as level, status, create_by, create_time
+                from osh_open_project
+                where id = #{resourceId}
+                limit 1
+            </when>
+            <when test="tableName == 'osh_info_gap'">
+                select id, title, content as description, null as cover, null as url,
+                       null as author, create_time as submit_time, null as level, status, user_name as create_by, create_time
+                from osh_info_gap
+                where id = #{resourceId}
+                limit 1
+            </when>
+            <otherwise>
+                select null as id, null as title, null as description, null as cover, null as url,
+                       null as author, null as submit_time,
+                       null as level, null as status, null as create_by, null as create_time
+                where 1 = 0
+            </otherwise>
+        </choose>
+    </select>
+
+    <update id="updateAuditStatus">
+        <choose>
+            <when test="tableName == 'osh_course'">
+                update osh_course
+                set status = #{status},
+                    update_by = #{operator},
+                    update_time = now()
+                where id = #{resourceId} and delete_flag = 0 and status = 2
+            </when>
+            <when test="tableName == 'osh_question_answer_question'">
+                update osh_question_answer_question
+                set status = #{status},
+                    update_by = #{operatorId},
+                    update_time = now()
+                where id = #{resourceId} and delete_flag = 0 and status = 2
+            </when>
+            <when test="tableName == 'osh_question_answer_answer'">
+                update osh_question_answer_answer
+                set status = #{status},
+                    update_by = #{operatorId},
+                    update_time = now()
+                where id = #{resourceId} and delete_flag = 0 and status = 2
+            </when>
+            <when test="tableName == 'osh_book'">
+                update osh_book
+                set status = #{status},
+                    update_by = #{operator},
+                    update_time = now()
+                where id = #{resourceId} and delete_flag = 0 and status = '2'
+            </when>
+            <when test="tableName == 'osh_tool'">
+                update osh_tool
+                set status = #{status},
+                    update_by = #{operator},
+                    update_time = now()
+                where id = #{resourceId} and delete_flag = 0 and status = 2
+            </when>
+            <when test="tableName == 'osh_practical_website'">
+                update osh_practical_website
+                set status = #{status},
+                    audit_by = #{operator},
+                    audit_time = now(),
+                    update_by = #{operator},
+                    update_time = now()
+                where id = #{resourceId} and delete_flag = 0 and status = 2
+            </when>
+            <when test="tableName == 'osh_open_project'">
+                update osh_open_project
+                set status = #{status},
+                    update_by = #{operatorId},
+                    update_time = now()
+                where id = #{resourceId} and delete_flag = 0 and status = 2
+            </when>
+            <when test="tableName == 'osh_info_gap'">
+                update osh_info_gap
+                set status = #{status},
+                    update_by = #{operatorId},
+                    update_time = now()
+                where id = #{resourceId} and delete_flag = 0 and status = 2
+            </when>
+            <otherwise>
+                update osh_tool set status = status where 1 = 0
+            </otherwise>
+        </choose>
+    </update>
+</mapper>

@@ -1,0 +1,102 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0
+  },
+  "mappings": {
+    "dynamic": false,
+    "properties": {
+      "id": {
+        "type": "long"
+      },
+      "activityId": {
+        "type": "long"
+      },
+      "activityStatus": {
+        "type": "integer"
+      },
+      "goodsId": {
+        "type": "long"
+      },
+      "goodsType": {
+        "type": "integer"
+      },
+      "title": {
+        "type": "text",
+        "analyzer": "ik_max_word",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "cover": {
+        "type": "keyword",
+        "ignore_above": 512
+      },
+      "originPrice": {
+        "type": "scaled_float",
+        "scaling_factor": 100
+      },
+      "seckillPrice": {
+        "type": "scaled_float",
+        "scaling_factor": 100
+      },
+      "totalStock": {
+        "type": "integer"
+      },
+      "availableStock": {
+        "type": "integer"
+      },
+      "soldCount": {
+        "type": "integer"
+      },
+      "limitPerUser": {
+        "type": "integer"
+      },
+      "sort": {
+        "type": "integer"
+      },
+      "activityTitle": {
+        "type": "text",
+        "analyzer": "ik_max_word",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "payTimeoutMin": {
+        "type": "integer"
+      },
+      "startTime": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "endTime": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "deleteFlag": {
+        "type": "integer"
+      },
+      "tagNames": {
+        "type": "keyword"
+      },
+      "tagNamesText": {
+        "type": "text",
+        "analyzer": "ik_max_word"
+      },
+      "createTime": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "updateTime": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      }
+    }
+  }
+}

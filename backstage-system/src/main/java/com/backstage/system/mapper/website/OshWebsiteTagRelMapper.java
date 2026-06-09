@@ -19,6 +19,14 @@ public interface OshWebsiteTagRelMapper extends BaseMapper<OshWebsiteTagRel> {
     int batchInsertRel(@Param("list") List<OshWebsiteTagRel> list);
 
     /**
+     * 根据单个网站ID软删除关联关系（用于编辑网站时重建标签）
+     *
+     * @param websiteId 网站 ID
+     * @return 删除的行数
+     */
+    int deleteByWebsiteId(@Param("websiteId") Long websiteId);
+
+    /**
      * 根据网站ID批量软删除关联关系
      * @param websiteIds 网站ID列表
      * @return 删除的行数

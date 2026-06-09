@@ -11,6 +11,9 @@ import javax.validation.constraints.PositiveOrZero;
 @ApiModel("文本小节创建请求")
 public class CourseTextSectionCreateRequest {
 
+    @ApiModelProperty(value = "小节ID（传值表示更新，不传表示新增）", example = "2001")
+    private Long id;
+
     @ApiModelProperty(value = "课程ID", required = true, example = "100")
     @NotNull(message = "课程ID不能为空")
     private Long courseId;
@@ -33,11 +36,39 @@ public class CourseTextSectionCreateRequest {
     private Integer freeFlag;
 
     @ApiModelProperty(value = "文本内容", required = true, example = "这里是图文小节内容")
-    @NotBlank(message = "文本内容不能为空")
     private String textContent;
+
+    @ApiModelProperty(value = "文档模式：CREATE(新建文档) / BIND_EXISTING(绑定已有文档)", example = "CREATE")
+    private String docMode;
+
+    @ApiModelProperty(value = "已有文档ID（docMode=BIND_EXISTING 时必填）", example = "189223901234567890")
+    private Long docId;
+
+    @ApiModelProperty(value = "文档标题（可选，不传默认使用小节标题）", example = "第一节讲义")
+    private String docTitle;
+
+    @ApiModelProperty(value = "片段类型：full(整篇) / range(片段)", example = "full")
+    private String anchorType;
+
+    @ApiModelProperty(value = "片段起始锚点（range 时建议填写）", example = "回调签名校验")
+    private String anchorStart;
+
+    @ApiModelProperty(value = "片段结束锚点（range 时建议填写）", example = "签名算法说明")
+    private String anchorEnd;
+
+    @ApiModelProperty(value = "片段摘要标题", example = "签名校验片段")
+    private String excerptTitle;
 
     public Long getCourseId() {
         return courseId;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public void setCourseId(Long courseId) {
@@ -82,5 +113,61 @@ public class CourseTextSectionCreateRequest {
 
     public void setTextContent(String textContent) {
         this.textContent = StringUtils.trimToNull(textContent);
+    }
+
+    public String getDocMode() {
+        return docMode;
+    }
+
+    public void setDocMode(String docMode) {
+        this.docMode = StringUtils.trimToNull(docMode);
+    }
+
+    public Long getDocId() {
+        return docId;
+    }
+
+    public void setDocId(Long docId) {
+        this.docId = docId;
+    }
+
+    public String getDocTitle() {
+        return docTitle;
+    }
+
+    public void setDocTitle(String docTitle) {
+        this.docTitle = StringUtils.trimToNull(docTitle);
+    }
+
+    public String getAnchorType() {
+        return anchorType;
+    }
+
+    public void setAnchorType(String anchorType) {
+        this.anchorType = StringUtils.trimToNull(anchorType);
+    }
+
+    public String getAnchorStart() {
+        return anchorStart;
+    }
+
+    public void setAnchorStart(String anchorStart) {
+        this.anchorStart = StringUtils.trimToNull(anchorStart);
+    }
+
+    public String getAnchorEnd() {
+        return anchorEnd;
+    }
+
+    public void setAnchorEnd(String anchorEnd) {
+        this.anchorEnd = StringUtils.trimToNull(anchorEnd);
+    }
+
+    public String getExcerptTitle() {
+        return excerptTitle;
+    }
+
+    public void setExcerptTitle(String excerptTitle) {
+        this.excerptTitle = StringUtils.trimToNull(excerptTitle);
     }
 }

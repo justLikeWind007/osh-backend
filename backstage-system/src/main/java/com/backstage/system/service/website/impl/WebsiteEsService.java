@@ -4,9 +4,12 @@ import com.backstage.common.response.PageResponse;
 import com.backstage.system.domain.dto.website.WebsiteQueryDTO;
 import com.backstage.system.domain.vo.website.EsPageResult;
 import com.backstage.system.domain.vo.website.OshPracticalWebsiteVO;
+import com.backstage.system.domain.website.OshPracticalWebsite;
 import com.backstage.system.domain.website.WebsiteEsDoc;
 import com.backstage.system.mapper.website.OshPracticalWebsiteMapper;
 import com.backstage.system.mapper.website.OshWebsiteEsMapper;
+import org.elasticsearch.client.Request;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,17 +28,23 @@ import java.util.List;
  *   2. 单条写入 ES（审核通过时调用）
  *   3. 全量同步（先清空再批量写入）
  *   4. 重建索引
+ *   5. 评价提交后同步计数到 ES（方案一：低频写保证实时性）
  */
 @Service
 public class WebsiteEsService {
 
     private static final Logger log = LoggerFactory.getLogger(WebsiteEsService.class);
 
+    private static final String WEBSITE_INDEX = "osh_practical_website";
+
     @Autowired
     private OshWebsiteEsMapper oshWebsiteEsMapper;
 
     @Autowired
     private OshPracticalWebsiteMapper oshPracticalWebsiteMapper;
+
+    @Autowired
+    private RestHighLevelClient restHighLevelClient;
 
     /**
      * 从 ES 搜索网站列表
@@ -50,7 +59,6 @@ public class WebsiteEsService {
             return new EsPageResult<>(pageResponse.getRows(), pageResponse.getTotal());
         } catch (Exception e) {
             log.error("ES 搜索网站失败，将降级走 MySQL 查询", e);
-            // 返回 null 触发上层降级逻辑
             return null;
         }
     }
@@ -66,8 +74,38 @@ public class WebsiteEsService {
             oshWebsiteEsMapper.bulkUpsertWebsites(Collections.singletonList(doc));
             log.info("网站 ID={} 同步到 ES 成功", doc.getId());
         } catch (Exception e) {
-            // ES 写入失败不影响主流程，只打日志
             log.error("网站 ID={} 同步到 ES 失败", doc.getId(), e);
+        }
+    }
+
+    /**
+     * 评价提交后，把 MySQL 最新的评价计数同步到 ES。
+     * 只更新 goodCount/midCount/badCount 三个字段，不覆盖其他字段。
+     * 失败不影响主流程，只打警告日志。
+     *
+     * @param websiteId 网站 ID
+     */
+    public void syncCountsToEs(Long websiteId) {
+        try {
+            OshPracticalWebsite website = oshPracticalWebsiteMapper.selectByIdForUpdate(websiteId);
+            if (website == null) {
+                return;
+            }
+            int goodCount = website.getGoodCount() == null ? 0 : website.getGoodCount();
+            int midCount  = website.getMidCount()  == null ? 0 : website.getMidCount();
+            int badCount  = website.getBadCount()  == null ? 0 : website.getBadCount();
+
+            // 用 ES Update API 局部更新，不影响其他字段
+            Request request = new Request("POST", "/" + WEBSITE_INDEX + "/_update/" + websiteId);
+            request.setJsonEntity(String.format(
+                    "{\"doc\":{\"goodCount\":%d,\"midCount\":%d,\"badCount\":%d}}",
+                    goodCount, midCount, badCount));
+            restHighLevelClient.getLowLevelClient().performRequest(request);
+
+            log.info("网站 ID={} 评价计数同步到 ES 成功 good={} mid={} bad={}",
+                    websiteId, goodCount, midCount, badCount);
+        } catch (Exception e) {
+            log.warn("网站 ID={} 评价计数同步到 ES 失败，不影响主流程", websiteId, e);
         }
     }
 
@@ -78,20 +116,17 @@ public class WebsiteEsService {
      * @return 成功同步的文档数量
      */
     public int syncAllToEs() {
-        // 1. 从 MySQL 查出所有已审核通过的网站（含标签）
         List<OshPracticalWebsiteVO> voList = oshPracticalWebsiteMapper.selectAllPublishedWebsites();
         if (voList == null || voList.isEmpty()) {
             log.info("没有已审核通过的网站，跳过全量同步");
             return 0;
         }
 
-        // 2. VO 转 EsDoc
         List<WebsiteEsDoc> docs = new ArrayList<>(voList.size());
         for (OshPracticalWebsiteVO vo : voList) {
             docs.add(convertVoToEsDoc(vo));
         }
 
-        // 3. 清空 ES + 批量写入
         try {
             int deleted = oshWebsiteEsMapper.deleteAllWebsites();
             log.info("全量同步前清空 ES，共删除 {} 条文档", deleted);
@@ -105,7 +140,6 @@ public class WebsiteEsService {
 
     /**
      * 重建 ES 索引
-     * 删除旧索引并按传入的 mapping 定义重新创建
      *
      * @param indexDefinitionJson 索引定义 JSON（来自 osh_practical_website_index.json）
      */
@@ -136,7 +170,6 @@ public class WebsiteEsService {
         doc.setCollectionCount(vo.getCollectionCount());
         doc.setRatingScore(vo.getRatingScore());
         doc.setAuditTime(vo.getAuditTime());
-        // tags：逗号分隔字符串 → List<String>，trim 掉空格防止精确匹配失败
         if (vo.getTags() != null && !vo.getTags().isEmpty()) {
             doc.setTags(
                 Arrays.stream(vo.getTags().split(","))

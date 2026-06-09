@@ -92,24 +92,29 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
 
     @Override
     public int syncAllCoursesToEs() {
+        return syncCoursesToEs(false);
+    }
+
+    @Override
+    public int syncAllCoursesToEsWithoutStatusFilter() {
+        return syncCoursesToEs(true);
+    }
+
+    private int syncCoursesToEs(boolean includeAllStatuses) {
         int pageNum = 1;
         int pageSize = 200;
         int total = 0;
 
-        try {
-            oshCourseEsMapper.deleteAllCourses();
-        } catch (Exception ex) {
-            throw new IllegalStateException("clear courses in es failed", ex);
-        }
-
+        // 增量 upsert，避免先 deleteAll 后写回失败导致 ES 索引被清空
         while (true) {
             CourseSearchRequest request = new CourseSearchRequest();
             request.setPageNum(pageNum);
             request.setPageSize(pageSize);
 
             PageHelper.startPage(pageNum, pageSize);
-            CurrentUser currentUser = new CurrentUser();
-            List<CourseSearchLoginVo> rows = oshCourseMapper.pageQuerySearchCourse(request, currentUser.getId());
+            List<CourseSearchLoginVo> rows = includeAllStatuses
+                    ? oshCourseMapper.pageQueryAllCoursesForEsSync(request)
+                    : oshCourseMapper.pageQuerySearchCourse(request, new CurrentUser().getId());
             if (StringUtils.isEmpty(rows)) {
                 break;
             }
@@ -132,6 +137,30 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
         }
 
         return total;
+    }
+
+    @Override
+    public void upsertCourseById(Long courseId) {
+        if (courseId == null) {
+            return;
+        }
+        try {
+            CourseSearchRequest request = new CourseSearchRequest();
+            request.setIncludeUnpublished(true);
+            request.setCourseIdFilter(courseId);
+            request.setPageNum(1);
+            request.setPageSize(1);
+            PageHelper.startPage(1, 1);
+            List<CourseSearchLoginVo> rows = oshCourseMapper.pageQuerySearchCourse(request, null);
+            if (StringUtils.isEmpty(rows)) {
+                log.warn("upsert course to es skipped, course not found, courseId={}", courseId);
+                return;
+            }
+            oshCourseEsMapper.bulkUpsertCourses(Collections.singletonList(buildEsDocument(rows.get(0))));
+            log.info("course upserted to es, courseId={}, status={}", courseId, rows.get(0).getStatus());
+        } catch (Exception ex) {
+            log.warn("upsert course to es failed, courseId={}", courseId, ex);
+        }
     }
 
     private void fillBuyFlag(List<CourseSearchLoginVo> rows, Long userId) {
@@ -221,6 +250,8 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
         collectionSearchRequest.setKeyword(request.getKeyword());
         collectionSearchRequest.setResourceType(request.getResourceType());
         collectionSearchRequest.setCollectionFlag(request.getCollectionFlag());
+        collectionSearchRequest.setCourseNo(request.getCourseNo());
+        collectionSearchRequest.setIncludeUnpublished(request.getIncludeUnpublished());
         collectionSearchRequest.setPageNum(1);
         collectionSearchRequest.setPageSize(courseCount);
         return collectionSearchRequest;
@@ -298,7 +329,7 @@ public class OshCourseEsServiceImpl implements IOshCourseEsService {
         document.setLevel(row.getLevel());
         document.setStatus(row.getStatus());
         document.setExamId(row.getExamId());
-        document.setDeleteFlag(0);
+        document.setDeleteFlag(row.getDeleteFlag() == null ? 0 : row.getDeleteFlag());
         document.setCreateTime(row.getCreateTime());
         document.setUpdateTime(row.getUpdateTime());
 

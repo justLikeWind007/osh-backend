@@ -18,6 +18,7 @@
                     <include>**/static/**</include>
                     <include>**/*.jpg</include>
                     <include>**/*.png</include>
+                    <include>**/*.factories</include>
                     <include>**/*.gif</include>
                     <include>**/*.ico</include>
                 </includes>
@@ -43,6 +44,12 @@
     </description>
 
     <dependencies>
+
+        <!-- Spring Cloud Context（PropertySourceLocator） -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-context</artifactId>
+        </dependency>
 
         <!-- Spring框架基本的核心工具 -->
         <dependency>
@@ -125,6 +132,12 @@
         <dependency>
             <groupId>javax.xml.bind</groupId>
             <artifactId>jaxb-api</artifactId>
+        </dependency>
+
+        <!-- spring aop 切面编程 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
 
         <!-- redis 缓存操作 -->
@@ -243,6 +256,11 @@
             <artifactId>jasypt-spring-boot-starter</artifactId>
             <version>2.1.2</version>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
     </dependencies>
 
 </project>

@@ -1,5 +1,6 @@
 package com.backstage.system.service.impl;
 
+import com.backstage.system.config.properties.SearchEsProperties;
 import com.backstage.system.constants.CourseConstants;
 import com.backstage.system.constants.CourseSectionConstants;
 import com.backstage.system.domain.course.OshCourse;
@@ -7,9 +8,12 @@ import com.backstage.system.domain.course.OshCourseSection;
 import com.backstage.system.domain.course.OshCourseMaterial;
 import com.backstage.system.domain.course.OshCourseTag;
 import com.backstage.system.domain.course.OshCourseTagRel;
+import com.backstage.system.domain.document.OshDoc;
+import com.backstage.system.domain.document.OshDocRef;
 import com.backstage.system.domain.course.vo.CourseSearchLoginVo;
 import com.backstage.system.domain.course.vo.OshCourseDetailVo;
 import com.backstage.system.domain.course.vo.OshCourseSectionVo;
+import com.backstage.system.domain.user.OshRole;
 import com.backstage.system.domain.user.OshUser;
 import com.backstage.system.enums.CourseResourceEnum;
 import com.backstage.system.enums.OshCourseStatusEnum;
@@ -18,6 +22,7 @@ import com.backstage.system.mapper.course.OshCourseCollectionMapper;
 import com.backstage.system.mapper.course.OshCourseMaterialMapper;
 import com.backstage.system.mapper.course.OshCourseSectionMapper;
 import com.backstage.system.mapper.course.OshCourseTagMapper;
+import com.backstage.system.mapper.document.OshDocMapper;
 import com.backstage.system.mapper.user.OshRoleMapper;
 import com.backstage.system.request.CourseCreateRequest;
 import com.backstage.system.request.CourseChapterCreateRequest;
@@ -30,10 +35,15 @@ import com.backstage.system.service.IOshCourseService;
 import com.backstage.system.service.OutboxEventService;
 import com.backstage.system.service.common.OssService;
 import com.backstage.system.service.course.CourseIndexDeleteMessage;
+import com.backstage.system.service.course.CourseIndexEventType;
 import com.backstage.system.service.course.CourseIndexMessageMapper;
 import com.backstage.system.service.course.CourseIndexUpsertMessage;
+import com.backstage.system.utils.UserContextUtil;
 import com.backstage.system.service.course.ICourseManageService;
+import com.backstage.system.service.course.IOshCourseEsService;
 import com.backstage.system.utils.FileSizeConvertUtil;
+import com.backstage.common.utils.generate.GenerateUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.github.pagehelper.PageHelper;
 import org.apache.commons.lang3.StringUtils;
@@ -41,6 +51,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -75,15 +87,33 @@ public class OshCourseServiceImpl implements IOshCourseService {
     private OutboxEventService outboxEventService;
 
     @Autowired
+    private IOshCourseEsService oshCourseEsService;
+
+    @Autowired
+    private SearchEsProperties searchEsProperties;
+
+    @Autowired
     private OshCourseSectionMapper oshCourseSectionMapper;
 
     @Autowired
     private OshRoleMapper oshRoleMapper;
 
-    // 拥有全量访问权限的角色 code（与 osh_role.role_code 保持一致）
-    private static final Set<String> FULL_ACCESS_ROLE_CODES = new HashSet<>(
-            Arrays.asList("vip", "small_class", "manager", "core_developer", "founder")
-    );
+    @Autowired
+    private OshDocMapper oshDocMapper;
+
+    /**
+     * 对付费课程开放全部章节的角色（多角色时任一命中即可）。
+     * 注意：developer 虽为 level 2，但属于普通开发者，不在此名单内。
+     */
+    private static final Set<String> FULL_ACCESS_ROLE_CODES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            "vip", "small_class", "manager", "core_developer", "founder"
+    )));
+
+    /** 创始人 role.level >= 6，课程操作跳过审核直接发布 */
+    private static final int FOUNDER_ROLE_LEVEL = 6;
+
+    private static final String DOC_MODE_BIND_EXISTING = "BIND_EXISTING";
+    private static final String DOC_REF_TYPE_COURSE_SECTION = "course_section";
 
 
 
@@ -112,9 +142,9 @@ public class OshCourseServiceImpl implements IOshCourseService {
     }
 
     @Override
-    public OshCourseDetailVo getCourseDetail(Long id, Long userId) {
+    public OshCourseDetailVo getCourseDetail(Long id, Long userId, boolean includeUnpublished) {
         // 1. 拿到详情 VO
-        OshCourseDetailVo vo = oshCourseMapper.getCourseDetail(id, userId);
+        OshCourseDetailVo vo = oshCourseMapper.getCourseDetail(id, userId, includeUnpublished);
         if (vo == null) return null;
         fillResourceTypeDetail(vo);
 
@@ -123,40 +153,9 @@ public class OshCourseServiceImpl implements IOshCourseService {
             vo.setCover(ossService.getLimitedUrl(vo.getCover(), 1440));
         }
 
-        // 3. 处理视频：把所有（包括子章节）的 ID 全部收割出来，走批量接口
-        if (vo.getSections() != null && !vo.getSections().isEmpty()) {
-            List<Long> allIds = new ArrayList<>();
-            for (OshCourseSectionVo section : vo.getSections()) {
-                allIds.add(section.getId()); // 父级 ID
-                if (section.getChildren() != null) {
-                    // 子级 ID 也加进来
-                    section.getChildren().forEach(child -> allIds.add(child.getId()));
-                }
-            }
-
-            // --- 核心点：直接调你指定的 courseManageService 批量接口 ---
-            // 这个方法内部会自动根据 ID 查库、自动调 OSS 加签、自动返回 Map
-            Map<Long, String> videoUrlMap = courseManageService.batchGetSectionVideoUrls(allIds, 360);
-
-            // 4. 把 Map 里的结果回填给 VO
-            for (OshCourseSectionVo section : vo.getSections()) {
-                // 回填父级
-                if (videoUrlMap.containsKey(section.getId())) {
-                    section.setMediaUrl(videoUrlMap.get(section.getId()));
-                }
-                // 回填子级
-                if (section.getChildren() != null) {
-                    for (OshCourseSectionVo child : section.getChildren()) {
-                        if (videoUrlMap.containsKey(child.getId())) {
-                            child.setMediaUrl(videoUrlMap.get(child.getId()));
-                        }
-                    }
-                }
-            }
-        }
-
-        // 5. 计算 accessLevel：FULL=全部章节可看，TRIAL=仅试看
+        // 3. 先计算 accessLevel，再按权限签发/屏蔽小节媒体地址
         vo.setAccessLevel(resolveAccessLevel(vo, userId));
+        applySectionMediaByAccess(vo.getSections(), vo.getAccessLevel());
 
         return vo;
     }
@@ -178,9 +177,8 @@ public class OshCourseServiceImpl implements IOshCourseService {
             return "TRIAL";
         }
 
-        // 3. 查用户角色，高级角色直接全开放
-        String roleCode = oshRoleMapper.getRoleCodeByUserId(userId);
-        if (roleCode != null && FULL_ACCESS_ROLE_CODES.contains(roleCode.toLowerCase())) {
+        // 3. VIP 及以上角色直接全开放（developer 除外）
+        if (hasFullCourseAccessByRole(userId)) {
             return "FULL";
         }
 
@@ -191,6 +189,34 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
         // 5. 其他情况：仅试看
         return "TRIAL";
+    }
+
+    /**
+     * 遍历用户全部有效角色，任一 VIP 及以上角色即可全量访问课程。
+     */
+    private boolean hasFullCourseAccessByRole(Long userId) {
+        if (userId == null) {
+            return false;
+        }
+        List<Integer> roleIds = oshRoleMapper.getRoleIdsByUserId(userId);
+        if (roleIds == null || roleIds.isEmpty()) {
+            return false;
+        }
+        LambdaQueryWrapper<OshRole> roleWrapper = new LambdaQueryWrapper<>();
+        roleWrapper.in(OshRole::getId, roleIds)
+                .eq(OshRole::getDeleteFlag, 0)
+                .eq(OshRole::getStatus, 1);
+        List<OshRole> roles = oshRoleMapper.selectList(roleWrapper);
+        if (roles == null || roles.isEmpty()) {
+            return false;
+        }
+        for (OshRole role : roles) {
+            String roleCode = role.getRoleCode();
+            if (roleCode != null && FULL_ACCESS_ROLE_CODES.contains(roleCode.toLowerCase(Locale.ROOT))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -219,7 +245,18 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
     @Override
     public String getCourseSectionContent(Long sectionId, Long userId) {
-        return oshCourseMapper.getCourseSectionContent(sectionId);
+        OshCourseSection section = oshCourseMapper.selectCourseSectionById(sectionId);
+        if (section == null || section.getDeleteFlag() == null || section.getDeleteFlag() != CourseSectionConstants.DELETE_FLAG_NORMAL) {
+            return "";
+        }
+        if (CourseSectionConstants.TYPE_TEXT.equalsIgnoreCase(section.getType())) {
+            String content = oshDocMapper.selectPrimaryDocContentBySectionId(sectionId);
+            return StringUtils.defaultString(content, "");
+        }
+        if (CourseSectionConstants.TYPE_VIDEO.equalsIgnoreCase(section.getType())) {
+            return StringUtils.defaultString(section.getMediaUrl(), "");
+        }
+        return "";
     }
 
     @Override
@@ -245,26 +282,91 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
 
     @Override
-    public List<OshCourseSectionVo> getCourseSectionOutline(Long courseId) {
-        // 1. 先调用原有逻辑生成树形结构
+    public List<OshCourseSectionVo> getCourseSectionOutline(Long courseId, Long userId) {
         List<OshCourseSectionVo> sectionTree = buildSectionTree(oshCourseMapper.selectCourseSectionList(courseId));
-
         if (sectionTree == null || sectionTree.isEmpty()) {
             return sectionTree;
         }
-
-        // 2. 收集树中所有节点的 ID (包括父级和子级)
-        List<Long> allIds = new ArrayList<>();
-        collectIds(sectionTree, allIds);
-
-        // 3. 调用你之前的批量接口，统一获取临时访问 URL
-        // 注意：这里用你定义的 courseManageService 或者直接在本类调用该方法
-        Map<Long, String> videoUrlMap = courseManageService.batchGetSectionVideoUrls(allIds, 360);
-
-        // 4. 将拿到的 URL 重新塞回树结构中
-        applyUrls(sectionTree, videoUrlMap);
-
+        String accessLevel = resolveAccessLevel(buildAccessVo(courseId), userId);
+        applySectionMediaByAccess(sectionTree, accessLevel);
         return sectionTree;
+    }
+
+    @Override
+    public boolean canUserAccessSectionContent(Long courseId, Long sectionId, Long userId) {
+        if (courseId == null || sectionId == null) {
+            return false;
+        }
+        OshCourse course = oshCourseMapper.selectCourseById(courseId);
+        if (course == null) {
+            return false;
+        }
+        OshCourseDetailVo accessVo = new OshCourseDetailVo();
+        accessVo.setId(courseId);
+        accessVo.setFreeType(course.getFreeType());
+        if ("FULL".equals(resolveAccessLevel(accessVo, userId))) {
+            return true;
+        }
+        return oshCourseMapper.countFreeSectionInCourse(courseId, sectionId) > 0;
+    }
+
+    private OshCourseDetailVo buildAccessVo(Long courseId) {
+        OshCourseDetailVo vo = new OshCourseDetailVo();
+        vo.setId(courseId);
+        OshCourse course = oshCourseMapper.selectCourseById(courseId);
+        if (course != null) {
+            vo.setFreeType(course.getFreeType());
+        }
+        return vo;
+    }
+
+    private void applySectionMediaByAccess(List<OshCourseSectionVo> sections, String accessLevel) {
+        if (sections == null || sections.isEmpty()) {
+            return;
+        }
+        boolean fullAccess = "FULL".equals(accessLevel);
+        List<Long> accessibleIds = new ArrayList<>();
+        collectAccessibleSectionIds(sections, fullAccess, accessibleIds);
+        Map<Long, String> videoUrlMap = accessibleIds.isEmpty()
+                ? Collections.emptyMap()
+                : courseManageService.batchGetSectionVideoUrls(accessibleIds, 360);
+        applyUrlsWithAccess(sections, videoUrlMap, fullAccess);
+    }
+
+    private void collectAccessibleSectionIds(List<OshCourseSectionVo> nodes, boolean fullAccess, List<Long> ids) {
+        for (OshCourseSectionVo node : nodes) {
+            if (node == null) {
+                continue;
+            }
+            if (fullAccess || isFreePreviewSection(node)) {
+                ids.add(node.getId());
+            }
+            if (node.getChildren() != null && !node.getChildren().isEmpty()) {
+                collectAccessibleSectionIds(node.getChildren(), fullAccess, ids);
+            }
+        }
+    }
+
+    private void applyUrlsWithAccess(List<OshCourseSectionVo> nodes, Map<Long, String> videoUrlMap, boolean fullAccess) {
+        for (OshCourseSectionVo node : nodes) {
+            if (node == null) {
+                continue;
+            }
+            boolean canAccess = fullAccess || isFreePreviewSection(node);
+            if (canAccess && videoUrlMap.containsKey(node.getId())) {
+                node.setMediaUrl(videoUrlMap.get(node.getId()));
+            } else if (!canAccess) {
+                node.setMediaUrl(null);
+                node.setTextContent(null);
+            }
+            if (node.getChildren() != null && !node.getChildren().isEmpty()) {
+                applyUrlsWithAccess(node.getChildren(), videoUrlMap, fullAccess);
+            }
+        }
+    }
+
+    private boolean isFreePreviewSection(OshCourseSectionVo section) {
+        return section != null && section.getFreeFlag() != null && section.getFreeFlag() == 1;
     }
 
     /**
@@ -329,6 +431,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
     @Transactional(rollbackFor = Exception.class)
     public Long createCourse(CourseCreateRequest request, OshUser operator) {
         OshCourse course = buildCourseForCreate(request, operator);
+        course.setStatus(resolveCourseStatusAfterOperatorAction(operator));
         int rows = oshCourseMapper.insertCourse(course);
         if (rows <= 0) {
             return null;
@@ -336,16 +439,19 @@ public class OshCourseServiceImpl implements IOshCourseService {
         bindCourseMaterial(course.getId(), request.getMaterial(), operator);
         bindCourseTags(course.getId(), request.getTags(), operator);
         OshCourse latestCourse = ensureCourseExists(course.getId());
-        outboxEventService.saveCourseIndexCreateEvent(course.getId(), buildCourseIndexUpsertMessage(latestCourse, request.getTags(), operator), operator);
+        CourseIndexUpsertMessage indexMessage = buildCourseIndexUpsertMessage(
+                latestCourse, request.getTags(), operator, CourseIndexEventType.COURSE_INDEX_CREATE);
+        publishCourseIndexOutboxIfNeeded(course.getId(), latestCourse.getStatus(), indexMessage, operator);
+        scheduleCourseEsUpsertAfterCommit(course.getId(), latestCourse.getStatus());
         return course.getId();
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long updateCourse(CourseUpdateRequest request, OshUser operator) {
-        OshCourse existingCourse = ensureCourseExists(request.getId());
-        ensureCourseEditableByOperator(existingCourse, operator);
+        ensureCourseExists(request.getId());
         OshCourse course = buildCourseForUpdate(request, operator);
+        course.setStatus(resolveCourseStatusAfterOperatorAction(operator));
         int rows = oshCourseMapper.updateCourse(course);
         if (rows <= 0) {
             return null;
@@ -357,8 +463,10 @@ public class OshCourseServiceImpl implements IOshCourseService {
             rebuildCourseTags(course.getId(), request.getTags(), operator);
         }
         OshCourse latestCourse = ensureCourseExists(course.getId());
-        outboxEventService.saveCourseIndexUpdateEvent(course.getId(),
-                buildCourseIndexUpsertMessage(latestCourse, request.getTags(), operator), operator);
+        CourseIndexUpsertMessage indexMessage = buildCourseIndexUpsertMessage(
+                latestCourse, request.getTags(), operator, CourseIndexEventType.COURSE_INDEX_UPDATE);
+        publishCourseIndexOutboxIfNeeded(course.getId(), latestCourse.getStatus(), indexMessage, operator);
+        scheduleCourseEsUpsertAfterCommit(course.getId(), latestCourse.getStatus());
         return course.getId();
     }
 
@@ -372,12 +480,18 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
         OshCourse course = new OshCourse();
         course.setId(courseId);
-        course.setStatus(OshCourseStatusEnum.PUBLISHED.getCode());
+        // New/edited courses must go through the audit queue first.
+        course.setStatus(OshCourseStatusEnum.PENDING_AUDIT.getCode());
         course.setUpdateBy(operator == null ? null : StringUtils.trimToNull(operator.getUsername()));
         int rows = oshCourseMapper.updateCourse(course);
         if (rows <= 0) {
             throw new IllegalArgumentException("审核课程失败");
         }
+        OshCourse latestCourse = ensureCourseExists(courseId);
+        CourseIndexUpsertMessage indexMessage = buildCourseIndexUpsertMessage(
+                latestCourse, null, operator, CourseIndexEventType.COURSE_INDEX_UPDATE);
+        publishCourseIndexOutboxIfNeeded(courseId, latestCourse.getStatus(), indexMessage, operator);
+        scheduleCourseEsUpsertAfterCommit(courseId, latestCourse.getStatus());
         return courseId;
     }
 
@@ -391,6 +505,41 @@ public class OshCourseServiceImpl implements IOshCourseService {
         section.setUpdateBy(String.valueOf(operator.getId()));
         section.setUpdateTime(now);
         oshCourseMapper.updateCourseSection(section);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void hideCoursesByIds(List<Long> ids, OshUser operator) {
+        if (ids == null || ids.isEmpty()) {
+            return;
+        }
+        String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
+        Integer hiddenStatus = OshCourseStatusEnum.HIDDEN.getCode();
+
+        for (Long courseId : ids) {
+            OshCourse existingCourse = ensureCourseExists(courseId);
+            if (existingCourse.getDeleteFlag() != null && existingCourse.getDeleteFlag() != 0) {
+                throw new IllegalArgumentException("课程不存在");
+            }
+            if (Objects.equals(existingCourse.getStatus(), hiddenStatus)) {
+                continue;
+            }
+
+            OshCourse course = new OshCourse();
+            course.setId(courseId);
+            course.setStatus(hiddenStatus);
+            course.setUpdateBy(operatorName);
+            int rows = oshCourseMapper.updateCourse(course);
+            if (rows <= 0) {
+                throw new IllegalArgumentException("隐藏课程失败");
+            }
+
+            OshCourse latestCourse = ensureCourseExists(courseId);
+            CourseIndexUpsertMessage indexMessage = buildCourseIndexUpsertMessage(
+                    latestCourse, null, operator, CourseIndexEventType.COURSE_INDEX_UPDATE);
+            publishCourseIndexOutboxIfNeeded(courseId, latestCourse.getStatus(), indexMessage, operator);
+            scheduleCourseEsUpsertAfterCommit(courseId, latestCourse.getStatus());
+        }
     }
 
     @Override
@@ -415,7 +564,9 @@ public class OshCourseServiceImpl implements IOshCourseService {
             oshCourseMaterialMapper.deleteMaterialsByCourseId(courseId);
 
             // 5. 记录删除 outbox 事件，交给定时任务异步投递到 Kafka，再由 Flink 删除 ES 文档
-            outboxEventService.saveCourseIndexDeleteEvent(courseId, new CourseIndexDeleteMessage(courseId), operator);
+            CourseIndexDeleteMessage deleteMessage = new CourseIndexDeleteMessage(courseId);
+            deleteMessage.setEventType(CourseIndexEventType.COURSE_INDEX_DELETE);
+            outboxEventService.saveCourseIndexDeleteEvent(courseId, deleteMessage, operator);
         }
     }
 
@@ -431,11 +582,31 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Long createCourseTextSection(CourseTextSectionCreateRequest request, OshUser operator) {
+        validateTextDocPayload(request);
+
+        // 有 id 时走更新；无 id 时走新增
+        if (request.getId() != null) {
+            OshCourseSection existingSection = ensureSectionExists(request.getId());
+            ensureCourseExists(existingSection.getCourseId());
+            ensureParentChapter(existingSection.getCourseId(), request.getParentId());
+
+            OshCourseSection section = buildTextSectionForUpdate(request, existingSection, operator);
+            oshCourseMapper.updateCourseSection(section);
+            saveOrBindSectionDoc(section.getId(), request, operator);
+            return section.getId();
+        }
+
         ensureCourseExists(request.getCourseId());
         ensureParentChapter(request.getCourseId(), request.getParentId());
         OshCourseSection section = buildTextSectionForCreate(request, operator);
-        return insertCourseSection(section);
+        Long sectionId = insertCourseSection(section);
+        if (sectionId == null) {
+            throw new IllegalArgumentException("新增文本小节失败");
+        }
+        saveOrBindSectionDoc(sectionId, request, operator);
+        return sectionId;
     }
 
     @Override
@@ -445,6 +616,9 @@ public class OshCourseServiceImpl implements IOshCourseService {
             OshCourseSection section = buildVideoSectionForUpdate(request, operator);
             section.setId(request.getId());
             oshCourseMapper.updateCourseSection(section);
+            if (shouldHandleDocForVideoRequest(request)) {
+                saveOrBindSectionDoc(request.getId(), buildDocBindRequestForVideo(request), operator);
+            }
             return request.getId();
         }
         // 无 id → 新增，先校验必填
@@ -454,7 +628,11 @@ public class OshCourseServiceImpl implements IOshCourseService {
         ensureCourseExists(request.getCourseId());
         ensureParentChapter(request.getCourseId(), request.getParentId());
         OshCourseSection section = buildVideoSectionForCreate(request, operator);
-        return insertCourseSection(section);
+        Long sectionId = insertCourseSection(section);
+        if (sectionId != null && shouldHandleDocForVideoRequest(request)) {
+            saveOrBindSectionDoc(sectionId, buildDocBindRequestForVideo(request), operator);
+        }
+        return sectionId;
     }
 
 
@@ -616,6 +794,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         course.setRemark(StringUtils.trimToNull(request.getRemark()));
         course.setResourceType(request.getResourceType());
         course.setLevel(request.getLevel());
+        course.setServicePeriod(request.getServicePeriod());
 
         course.setSubCount(CourseConstants.DEFAULT_COUNT);
         course.setTotalDuration(CourseConstants.DEFAULT_COUNT);
@@ -626,7 +805,6 @@ public class OshCourseServiceImpl implements IOshCourseService {
         course.setLikeCount(CourseConstants.DEFAULT_COUNT);
         course.setCommentCount(CourseConstants.DEFAULT_COUNT);
         course.setRatingScore(CourseConstants.DEFAULT_RATING_SCORE);
-        course.setStatus(OshCourseStatusEnum.PUBLISHED.getCode());
 
         String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
         course.setCreateBy(operatorName);
@@ -636,6 +814,45 @@ public class OshCourseServiceImpl implements IOshCourseService {
 
     private static Integer defaultInteger(Integer value) {
         return value == null ? CourseConstants.DEFAULT_COUNT : value;
+    }
+
+    /**
+     * 创始人创建/编辑课程直接发布（status=4 审核通过），其余角色进入待审核（status=2）。
+     * 优先查库中有效角色，避免 ThreadLocal level 未刷新时误判。
+     */
+    private Integer resolveCourseStatusAfterOperatorAction(OshUser operator) {
+        if (isFounderOperator(operator)) {
+            return OshCourseStatusEnum.PUBLISHED.getCode();
+        }
+        return OshCourseStatusEnum.PENDING_AUDIT.getCode();
+    }
+
+    private boolean isFounderOperator(OshUser operator) {
+        if (UserContextUtil.getCurrentLevelSafely() >= FOUNDER_ROLE_LEVEL) {
+            return true;
+        }
+        if (operator == null || operator.getId() == null) {
+            return false;
+        }
+        List<Integer> roleIds = oshRoleMapper.getRoleIdsByUserId(operator.getId());
+        if (roleIds == null || roleIds.isEmpty()) {
+            return false;
+        }
+        LambdaQueryWrapper<OshRole> roleWrapper = new LambdaQueryWrapper<>();
+        roleWrapper.in(OshRole::getId, roleIds)
+                .eq(OshRole::getDeleteFlag, 0)
+                .eq(OshRole::getStatus, 1);
+        List<OshRole> roles = oshRoleMapper.selectList(roleWrapper);
+        if (roles == null || roles.isEmpty()) {
+            return false;
+        }
+        for (OshRole role : roles) {
+            String roleCode = role.getRoleCode();
+            if (roleCode != null && "founder".equals(roleCode.toLowerCase(Locale.ROOT))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     static OshCourse buildCourseForUpdate(CourseUpdateRequest request, OshUser operator) {
@@ -654,7 +871,7 @@ public class OshCourseServiceImpl implements IOshCourseService {
         course.setRemark(StringUtils.trimToNull(request.getRemark()));
         course.setResourceType(request.getResourceType());
         course.setLevel(request.getLevel());
-        course.setStatus(OshCourseStatusEnum.PUBLISHED.getCode());
+        if (request.getServicePeriod() != null) course.setServicePeriod(request.getServicePeriod());
         String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
         course.setUpdateBy(operatorName);
         return course;
@@ -664,13 +881,45 @@ public class OshCourseServiceImpl implements IOshCourseService {
         if (materialRequest == null) {
             return;
         }
+        if (materialRequest.getMaterialId() != null) {
+            return;
+        }
+        if (org.apache.commons.lang3.StringUtils.isBlank(materialRequest.getFileName())) {
+            throw new com.backstage.common.exception.ServiceException("资料文件名称不能为空");
+        }
+        if (org.apache.commons.lang3.StringUtils.isBlank(materialRequest.getFileUrl())) {
+            throw new com.backstage.common.exception.ServiceException("资料文件地址不能为空");
+        }
+        if (org.apache.commons.lang3.StringUtils.isBlank(materialRequest.getFileType())) {
+            throw new com.backstage.common.exception.ServiceException("资料文件类型不能为空");
+        }
+        if (materialRequest.getFileSize() == null || materialRequest.getFileSize().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+            throw new com.backstage.common.exception.ServiceException("资料文件大小不能为空");
+        }
         OshCourseMaterial material = buildCourseMaterialForCreate(courseId, materialRequest, operator);
         oshCourseMaterialMapper.insertMaterialEntity(material);
     }
 
+    static String normalizeMaterialRelativePath(String fileUrl) {
+        if (StringUtils.isBlank(fileUrl) || "keep".equalsIgnoreCase(fileUrl.trim())) {
+            return null;
+        }
+        String trimmed = fileUrl.trim();
+        if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+            throw new com.backstage.common.exception.ServiceException("资料地址必须为OSS相对路径，请重新上传资料");
+        }
+        while (trimmed.startsWith("/")) {
+            trimmed = trimmed.substring(1);
+        }
+        return trimmed;
+    }
+
     static OshCourseMaterial buildCourseMaterialForCreate(Long courseId, CourseMaterialCreateRequest materialRequest, OshUser operator) {
         String fileName = StringUtils.trimToNull(materialRequest.getFileName());
-        String fileUrl = StringUtils.trimToNull(materialRequest.getFileUrl());
+        String fileUrl = normalizeMaterialRelativePath(materialRequest.getFileUrl());
+        if (StringUtils.isBlank(fileUrl)) {
+            throw new com.backstage.common.exception.ServiceException("资料文件地址不能为空");
+        }
         String fileType = StringUtils.trimToNull(materialRequest.getFileType());
 
         OshCourseMaterial material = new OshCourseMaterial();
@@ -689,6 +938,10 @@ public class OshCourseServiceImpl implements IOshCourseService {
     }
 
     private void rebuildCourseMaterial(Long courseId, CourseMaterialCreateRequest materialRequest, OshUser operator) {
+        // 如果传了 materialId，说明是已有资料，直接保留，不删不增
+        if (materialRequest != null && materialRequest.getMaterialId() != null) {
+            return;
+        }
         oshCourseMaterialMapper.deleteMaterialsByCourseId(courseId);
         bindCourseMaterial(courseId, materialRequest, operator);
     }
@@ -764,7 +1017,8 @@ public class OshCourseServiceImpl implements IOshCourseService {
         }
         CourseResourceEnum resourceEnum = CourseResourceEnum.fromCode(vo.getResourceType());
         if (resourceEnum != null) {
-            vo.setResourceType(resourceEnum.getDesc());
+            // 只设置描述字段，保留原始 code 供前端回显使用
+            vo.setResourceTypeDesc(resourceEnum.getDesc());
         }
     }
 
@@ -880,9 +1134,173 @@ public class OshCourseServiceImpl implements IOshCourseService {
         return section;
     }
 
+    static OshCourseSection buildTextSectionForUpdate(CourseTextSectionCreateRequest request, OshCourseSection existing, OshUser operator) {
+        OshCourseSection section = new OshCourseSection();
+        section.setId(existing.getId());
+        section.setTitle(StringUtils.trimToNull(request.getTitle()));
+        section.setSort(request.getSort());
+        section.setFreeFlag(defaultFreeFlag(request.getFreeFlag()));
+        section.setTextContent(StringUtils.trimToNull(request.getTextContent()));
+        String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
+        section.setUpdateBy(operatorName);
+        section.setUpdateTime(new Date());
+        return section;
+    }
+
     private Long insertCourseSection(OshCourseSection section) {
         int rows = oshCourseMapper.insertCourseSection(section);
         return rows > 0 ? section.getId() : null;
+    }
+
+    private void validateTextDocPayload(CourseTextSectionCreateRequest request) {
+        boolean bindExisting = isBindExistingDocMode(request);
+        if (bindExisting && request.getDocId() == null) {
+            throw new IllegalArgumentException("绑定已有文档时 docId 不能为空");
+        }
+        if (!bindExisting && StringUtils.isBlank(request.getTextContent())) {
+            throw new IllegalArgumentException("文本内容不能为空");
+        }
+    }
+
+    private boolean isBindExistingDocMode(CourseTextSectionCreateRequest request) {
+        if (request.getDocId() != null) {
+            return true;
+        }
+        return StringUtils.equalsIgnoreCase(DOC_MODE_BIND_EXISTING, request.getDocMode());
+    }
+
+    private boolean shouldHandleDocForVideoRequest(CourseVideoSectionCreateRequest request) {
+        if (request == null) {
+            return false;
+        }
+        if (request.getDocId() != null) {
+            return true;
+        }
+        if (StringUtils.isNotBlank(request.getDocMode())
+                && !StringUtils.equalsIgnoreCase(DOC_MODE_BIND_EXISTING, request.getDocMode())) {
+            return true;
+        }
+        if (StringUtils.equalsIgnoreCase(DOC_MODE_BIND_EXISTING, request.getDocMode())) {
+            return true;
+        }
+        return StringUtils.isNotBlank(request.getTextContent());
+    }
+
+    private CourseTextSectionCreateRequest buildDocBindRequestForVideo(CourseVideoSectionCreateRequest request) {
+        CourseTextSectionCreateRequest bindRequest = new CourseTextSectionCreateRequest();
+        bindRequest.setId(request.getId());
+        bindRequest.setCourseId(request.getCourseId());
+        bindRequest.setParentId(request.getParentId());
+        bindRequest.setTitle(request.getTitle());
+        bindRequest.setSort(request.getSort());
+        bindRequest.setFreeFlag(request.getFreeFlag());
+        bindRequest.setTextContent(request.getTextContent());
+        bindRequest.setDocMode(request.getDocMode());
+        bindRequest.setDocId(request.getDocId());
+        bindRequest.setDocTitle(request.getDocTitle());
+        bindRequest.setAnchorType(request.getAnchorType());
+        bindRequest.setAnchorStart(request.getAnchorStart());
+        bindRequest.setAnchorEnd(request.getAnchorEnd());
+        bindRequest.setExcerptTitle(request.getExcerptTitle());
+        return bindRequest;
+    }
+
+    private void saveOrBindSectionDoc(Long sectionId, CourseTextSectionCreateRequest request, OshUser operator) {
+        String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
+        Date now = new Date();
+        Long currentDocId = oshDocMapper.selectPrimaryDocIdBySectionId(sectionId);
+        boolean bindExisting = isBindExistingDocMode(request);
+        boolean hasTextUpdate = StringUtils.isNotBlank(request.getTextContent()) || StringUtils.isNotBlank(request.getDocTitle());
+        String docTitle = StringUtils.defaultIfBlank(request.getDocTitle(), request.getTitle());
+        Long docId;
+
+        if (bindExisting) {
+            if (request.getDocId() == null) {
+                throw new IllegalArgumentException("绑定已有文档时 docId 不能为空");
+            }
+            OshDoc existingDoc = oshDocMapper.selectDocById(request.getDocId());
+            if (existingDoc == null) {
+                throw new IllegalArgumentException("要绑定的文档不存在");
+            }
+            docId = existingDoc.getId();
+            ensureSectionDocRef(sectionId, docId, request, operatorName, now);
+            return;
+        }
+
+        if (currentDocId != null) {
+            docId = currentDocId;
+            if (hasTextUpdate) {
+                OshDoc updateDoc = new OshDoc();
+                updateDoc.setId(currentDocId);
+                updateDoc.setTitle(docTitle);
+                updateDoc.setContent(StringUtils.defaultString(request.getTextContent(), ""));
+                updateDoc.setContentFormat("html");
+                updateDoc.setUpdateBy(operatorName);
+                updateDoc.setUpdateTime(now);
+                oshDocMapper.updateDocContent(updateDoc);
+            }
+        } else {
+            OshDoc newDoc = new OshDoc();
+            newDoc.setId(GenerateUtil.generateSnowflakeId());
+            newDoc.setTitle(StringUtils.defaultIfBlank(docTitle, "Section#" + sectionId));
+            newDoc.setContentFormat("html");
+            newDoc.setContent(StringUtils.defaultString(request.getTextContent(), ""));
+            newDoc.setSummary(null);
+            newDoc.setStatus(OshCourseStatusEnum.PUBLISHED.getCode());
+            newDoc.setVisibility(1);
+            newDoc.setDeleteFlag(0);
+            newDoc.setCreateBy(operatorName);
+            newDoc.setCreateTime(now);
+            newDoc.setUpdateBy(operatorName);
+            newDoc.setUpdateTime(now);
+            oshDocMapper.insertDoc(newDoc);
+            docId = newDoc.getId();
+        }
+
+        ensureSectionDocRef(sectionId, docId, request, operatorName, now);
+    }
+
+    private void ensureSectionDocRef(Long sectionId,
+                                     Long docId,
+                                     CourseTextSectionCreateRequest request,
+                                     String operatorName,
+                                     Date now) {
+        OshDocRef activeRef = oshDocMapper.selectActivePrimaryDocRefBySectionId(sectionId);
+        String anchorType = StringUtils.defaultIfBlank(request.getAnchorType(), "full");
+        String anchorStart = StringUtils.defaultString(request.getAnchorStart(), "");
+        String anchorEnd = StringUtils.defaultString(request.getAnchorEnd(), "");
+        String excerptTitle = StringUtils.trimToNull(request.getExcerptTitle());
+
+        if (activeRef != null
+                && Objects.equals(activeRef.getDocId(), docId)
+                && StringUtils.equals(StringUtils.defaultString(activeRef.getAnchorType(), "full"), anchorType)
+                && StringUtils.equals(StringUtils.defaultString(activeRef.getAnchorStart(), ""), anchorStart)
+                && StringUtils.equals(StringUtils.defaultString(activeRef.getAnchorEnd(), ""), anchorEnd)) {
+            return;
+        }
+
+        oshDocMapper.purgeSoftDeletedSectionDocRefs(sectionId);
+        if (activeRef != null) {
+            oshDocMapper.softDeleteSectionDocRefs(sectionId, operatorName);
+        }
+
+        OshDocRef ref = new OshDocRef();
+        ref.setId(GenerateUtil.generateSnowflakeId());
+        ref.setDocId(docId);
+        ref.setRefType(DOC_REF_TYPE_COURSE_SECTION);
+        ref.setRefId(sectionId);
+        ref.setIsPrimary(1);
+        ref.setSort(0);
+        ref.setAnchorType(anchorType);
+        ref.setAnchorStart(anchorStart);
+        ref.setAnchorEnd(anchorEnd);
+        ref.setExcerptTitle(excerptTitle);
+        ref.setDeleteFlag(0);
+        ref.setCreateBy(operatorName);
+        ref.setCreateTime(now);
+        ref.setUpdateBy(operatorName);
+        ref.setUpdateTime(now);
+        oshDocMapper.insertDocRef(ref);
     }
 
     private OshCourse ensureCourseExists(Long courseId) {
@@ -893,12 +1311,12 @@ public class OshCourseServiceImpl implements IOshCourseService {
         return course;
     }
 
-    private void ensureCourseEditableByOperator(OshCourse course, OshUser operator) {
-        String creator = course == null ? null : StringUtils.trimToNull(course.getCreateBy());
-        String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
-        if (!StringUtils.equals(creator, operatorName)) {
-            throw new IllegalArgumentException("只有课程创建人可以修改课程");
+    private OshCourseSection ensureSectionExists(Long sectionId) {
+        OshCourseSection section = oshCourseMapper.selectCourseSectionById(sectionId);
+        if (section == null || section.getDeleteFlag() == null || section.getDeleteFlag() != CourseSectionConstants.DELETE_FLAG_NORMAL) {
+            throw new IllegalArgumentException("小节不存在");
         }
+        return section;
     }
 
     private void ensureParentChapter(Long courseId, Long parentId) {
@@ -935,13 +1353,51 @@ public class OshCourseServiceImpl implements IOshCourseService {
         return freeFlag == null ? CourseSectionConstants.DEFAULT_FREE_FLAG : freeFlag;
     }
 
-    private CourseIndexUpsertMessage buildCourseIndexUpsertMessage(OshCourse course, List<String> tags, OshUser operator) {
+    /**
+     * 待审核/已下架课程不走 Outbox upsert：旧版 Flink 会把非已发布文档从 ES 删除，
+     * 导致「手动 esSync 有数据、新建后审核页看不到」的问题。这类状态改由事务提交后直接 upsert。
+     */
+    private void publishCourseIndexOutboxIfNeeded(Long courseId, Integer status,
+                                                  CourseIndexUpsertMessage message, OshUser operator) {
+        if (!OshCourseStatusEnum.PUBLISHED.getCode().equals(status)) {
+            return;
+        }
+        outboxEventService.saveCourseIndexEvent(courseId, message, operator);
+    }
+
+    private void scheduleCourseEsUpsertAfterCommit(Long courseId, Integer status) {
+        if (!searchEsProperties.isEnabled() || courseId == null || !shouldDirectSyncCourseToEs(status)) {
+            return;
+        }
+        Runnable upsertTask = () -> oshCourseEsService.upsertCourseById(courseId);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    upsertTask.run();
+                }
+            });
+        } else {
+            upsertTask.run();
+        }
+    }
+
+    private boolean shouldDirectSyncCourseToEs(Integer status) {
+        return OshCourseStatusEnum.PENDING_AUDIT.getCode().equals(status)
+                || OshCourseStatusEnum.PUBLISHED.getCode().equals(status)
+                || OshCourseStatusEnum.OFF_SHELF.getCode().equals(status)
+                // 隐藏课程同步写入 ES（status=7），普通用户的 ES 查询按 status=4 过滤后自然不可见
+                || OshCourseStatusEnum.HIDDEN.getCode().equals(status);
+    }
+
+    private CourseIndexUpsertMessage buildCourseIndexUpsertMessage(OshCourse course, List<String> tags, OshUser operator, String eventType) {
         Date now = new Date();
         String operatorName = operator == null ? null : StringUtils.trimToNull(operator.getUsername());
         CourseIndexUpsertMessage message = courseIndexMessageMapper.toMessage(course, operatorName);
         if (message == null) {
             message = new CourseIndexUpsertMessage();
         }
+        message.setEventType(eventType);
         message.setCollectionCount(CourseConstants.DEFAULT_COUNT);
         message.setDeleteFlag(CourseConstants.DEFAULT_COUNT);
         if (message.getCreateTime() == null) {

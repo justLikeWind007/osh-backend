@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.backstage.system.mapper.seckill.OshSeckillGoodsMapper">
+
+    <resultMap type="com.backstage.system.domain.seckill.OshSeckillGoods" id="OshSeckillGoodsResult">
+        <result property="id"               column="id"/>
+        <result property="no"               column="no"/>
+        <result property="goodsId"          column="goods_id"/>
+        <result property="goodsType"        column="goods_type"/>
+        <result property="goodsName"        column="goods_name"/>
+        <result property="goodsCover"       column="goods_cover"/>
+        <result property="originPrice"      column="origin_price"/>
+        <result property="minSeckillPrice"  column="min_seckill_price"/>
+        <result property="status"           column="status"/>
+        <result property="sort"             column="sort"/>
+        <result property="createBy"         column="create_by"/>
+        <result property="createTime"       column="create_time"/>
+        <result property="updateBy"         column="update_by"/>
+        <result property="updateTime"       column="update_time"/>
+        <result property="deleteFlag"       column="delete_flag"/>
+    </resultMap>
+
+    <sql id="selectOshSeckillGoodsVo">
+        select id, no, goods_id, goods_type, goods_name, goods_cover, origin_price,
+               min_seckill_price, status, sort, create_by, create_time, update_by, update_time, delete_flag
+        from osh_seckill_goods
+        where (delete_flag = 0 or delete_flag is null)
+    </sql>
+
+    <!-- 根据ID查询 -->
+    <select id="selectSeckillGoodsById" parameterType="Long"
+            resultMap="OshSeckillGoodsResult">
+        <include refid="selectOshSeckillGoodsVo"/>
+        and id = #{id}
+    </select>
+
+    <!-- 列表查询 -->
+    <select id="selectSeckillGoodsList" parameterType="com.backstage.system.domain.seckill.OshSeckillGoods"
+            resultMap="OshSeckillGoodsResult">
+        <include refid="selectOshSeckillGoodsVo"/>
+        <if test="goodsName != null and goodsName != ''">
+            and goods_name like concat('%', #{goodsName}, '%')
+        </if>
+        <if test="goodsType != null">
+            and goods_type = #{goodsType}
+        </if>
+        <if test="status != null">
+            and status = #{status}
+        </if>
+        order by sort desc, create_time desc
+    </select>
+
+    <!-- 根据 goods_id + goods_type 查询（防重复入池） -->
+    <select id="selectByGoodsIdAndType" resultMap="OshSeckillGoodsResult">
+        select id, no, goods_id, goods_type, goods_name, goods_cover, origin_price,
+               min_seckill_price, status, sort, create_by, create_time, update_by, update_time, delete_flag
+        from osh_seckill_goods
+        where goods_id = #{goodsId}
+          and goods_type = #{goodsType}
+          and (delete_flag = 0 or delete_flag is null)
+        limit 1
+    </select>
+
+    <!-- 新增 -->
+    <insert id="insertSeckillGoods" parameterType="com.backstage.system.domain.seckill.OshSeckillGoods"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into osh_seckill_goods
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="no != null and no != ''">no,</if>
+            <if test="goodsId != null">goods_id,</if>
+            <if test="goodsType != null">goods_type,</if>
+            <if test="goodsName != null and goodsName != ''">goods_name,</if>
+            <if test="goodsCover != null and goodsCover != ''">goods_cover,</if>
+            <if test="originPrice != null">origin_price,</if>
+            <if test="minSeckillPrice != null">min_seckill_price,</if>
+            <if test="status != null">status,</if>
+            <if test="sort != null">sort,</if>
+            <if test="createBy != null and createBy != ''">create_by,</if>
+            create_time,
+            delete_flag,
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="no != null and no != ''">#{no},</if>
+            <if test="goodsId != null">#{goodsId},</if>
+            <if test="goodsType != null">#{goodsType},</if>
+            <if test="goodsName != null and goodsName != ''">#{goodsName},</if>
+            <if test="goodsCover != null and goodsCover != ''">#{goodsCover},</if>
+            <if test="originPrice != null">#{originPrice},</if>
+            <if test="minSeckillPrice != null">#{minSeckillPrice},</if>
+            <if test="status != null">#{status},</if>
+            <if test="sort != null">#{sort},</if>
+            <if test="createBy != null and createBy != ''">#{createBy},</if>
+            CURRENT_TIMESTAMP,
+            0,
+        </trim>
+    </insert>
+
+    <!-- 修改 -->
+    <update id="updateSeckillGoods" parameterType="com.backstage.system.domain.seckill.OshSeckillGoods">
+        update osh_seckill_goods
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="goodsName != null and goodsName != ''">goods_name = #{goodsName},</if>
+            <if test="goodsCover != null and goodsCover != ''">goods_cover = #{goodsCover},</if>
+            <if test="originPrice != null">origin_price = #{originPrice},</if>
+            <if test="minSeckillPrice != null">min_seckill_price = #{minSeckillPrice},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="sort != null">sort = #{sort},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            update_time = CURRENT_TIMESTAMP,
+        </trim>
+        where id = #{id}
+    </update>
+
+    <!-- 批量更新状态 -->
+    <update id="updateSeckillGoodsStatusByIds">
+        update osh_seckill_goods
+        set status = #{status}, update_time = CURRENT_TIMESTAMP
+        where id in
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <!-- 逻辑删除（单条） -->
+    <update id="deleteSeckillGoodsById" parameterType="Long">
+        update osh_seckill_goods
+        set delete_flag = 1, update_time = CURRENT_TIMESTAMP
+        where id = #{id}
+    </update>
+
+    <!-- 批量逻辑删除 -->
+    <update id="deleteSeckillGoodsByIds" parameterType="Long">
+        update osh_seckill_goods
+        set delete_flag = 1, update_time = CURRENT_TIMESTAMP
+        where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+</mapper>
