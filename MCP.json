@@ -3,13 +3,13 @@
     "zentao": {
       "disabled": false,
       "type": "mcp",
-      "url": "http://43.242.200.25:2004/zentao/mcp",
+      "url": "http://43.242.200.25:52002/mcp",
       "timeout": 60000,
       "headers": {
-        "token": "",
+        "token": "0bc2b5bce255d1de5d72019894feafa3",
         "Authorization": ""
       },
-      "apiBaseUrl": "http://43.242.200.25:2001/zentao"
+      "apiBaseUrl": "http://43.242.200.25:52001"
     }
   }
 }
